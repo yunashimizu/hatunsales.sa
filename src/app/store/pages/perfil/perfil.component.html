@@ -1,0 +1,209 @@
+<div class="contenedor">
+
+  <nav class="migas" aria-label="Ruta de navegación">
+    <a routerLink="/store">Inicio</a>
+    <i class="bi bi-chevron-right"></i>
+    <span>Mi cuenta</span>
+  </nav>
+
+  <header class="perfil-cabecera">
+    <div class="avatar" aria-hidden="true">{{ iniciales || 'C' }}</div>
+    <div>
+      <h1>{{ usuario.nombre }}</h1>
+      <p class="subtitulo">{{ usuario.email || 'Sin correo registrado' }}</p>
+    </div>
+  </header>
+
+  <div class="disposicion">
+
+    <nav class="menu" aria-label="Secciones de la cuenta">
+      <button
+        type="button"
+        *ngFor="let s of secciones"
+        [class.activo]="seccion === s.id"
+        (click)="seccion = s.id">
+        <i class="bi" [class]="s.icono"></i>{{ s.titulo }}
+      </button>
+
+      <a routerLink="/store/favoritos"><i class="bi bi-heart"></i>Favoritos</a>
+      <a routerLink="/store/pedidos"><i class="bi bi-clock-history"></i>Historial completo</a>
+    </nav>
+
+    <section class="panel">
+
+      <!-- Datos -->
+      <div class="bloque" *ngIf="seccion === 'datos'">
+        <h2>Mis datos</h2>
+        <p class="ayuda">Actualiza tu nombre, correo o contraseña cuando quieras.</p>
+
+        <div class="campos" style="margin-bottom:1.25rem">
+          <label class="campo">
+            <span>Nombre</span>
+            <input type="text" [(ngModel)]="formulario.nombre" autocomplete="name" />
+          </label>
+          <label class="campo">
+            <span>Correo</span>
+            <input type="email" [(ngModel)]="formulario.email" autocomplete="email" />
+          </label>
+          <label class="campo" *ngIf="usuario.rol">
+            <span>Tipo de cuenta</span>
+            <input type="text" [value]="usuario.rol | titlecase" disabled />
+          </label>
+          <label class="campo">
+            <span>Contraseña actual</span>
+            <input type="password" [(ngModel)]="formulario.password_actual" autocomplete="current-password" placeholder="Solo si cambias la clave" />
+          </label>
+          <label class="campo">
+            <span>Nueva contraseña</span>
+            <input type="password" [(ngModel)]="formulario.password_nueva" autocomplete="new-password" />
+          </label>
+          <label class="campo">
+            <span>Confirmar nueva</span>
+            <input type="password" [(ngModel)]="formulario.password_confirma" autocomplete="new-password" />
+          </label>
+        </div>
+
+        <button type="button" class="boton-primario" (click)="guardarPerfil()" [disabled]="guardandoPerfil">
+          {{ guardandoPerfil ? 'Guardando…' : 'Guardar mis datos' }}
+        </button>
+
+        <div class="atajos" style="margin-top:1.5rem">
+          <a routerLink="/store/pedidos" class="atajo">
+            <i class="bi bi-box-seam"></i>
+            <span><strong>Mis pedidos</strong><small>Estado y seguimiento</small></span>
+            <i class="bi bi-chevron-right flecha"></i>
+          </a>
+          <a routerLink="/store/favoritos" class="atajo">
+            <i class="bi bi-heart"></i>
+            <span><strong>Favoritos</strong><small>Productos guardados</small></span>
+            <i class="bi bi-chevron-right flecha"></i>
+          </a>
+          <a routerLink="/store/carrito" class="atajo">
+            <i class="bi bi-cart3"></i>
+            <span><strong>Mi carrito</strong><small>Continuar la compra</small></span>
+            <i class="bi bi-chevron-right flecha"></i>
+          </a>
+          <a routerLink="/store/contacto" class="atajo">
+            <i class="bi bi-headset"></i>
+            <span><strong>Ayuda y contacto</strong><small>Teléfono, WhatsApp y ubicación</small></span>
+            <i class="bi bi-chevron-right flecha"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Direcciones -->
+      <div class="bloque" *ngIf="seccion === 'direcciones'">
+        <div class="titulo-fila">
+          <div>
+            <h2>Mis direcciones</h2>
+            <p class="ayuda">Guarda tus lugares de entrega para comprar más rápido.</p>
+          </div>
+          <button type="button" class="boton-primario" *ngIf="!mostrarFormulario" (click)="nueva()">
+            <i class="bi bi-plus-lg"></i>Nueva
+          </button>
+        </div>
+
+        <!-- Formulario -->
+        <div class="formulario" *ngIf="mostrarFormulario">
+          <h3>{{ editandoId ? 'Editar dirección' : 'Nueva dirección' }}</h3>
+
+          <div class="campos">
+            <label class="campo">
+              <span>Alias</span>
+              <input type="text" [(ngModel)]="formularioDireccion.alias" placeholder="Casa, oficina, obra…" />
+            </label>
+            <label class="campo">
+              <span>Quién recibe</span>
+              <input type="text" [(ngModel)]="formularioDireccion.destinatario" placeholder="Nombre del destinatario" />
+            </label>
+            <label class="campo">
+              <span>Teléfono</span>
+              <input type="tel" [(ngModel)]="formularioDireccion.telefono" placeholder="999 999 999" />
+            </label>
+            <label class="campo">
+              <span>Departamento</span>
+              <input type="text" [(ngModel)]="formularioDireccion.departamento" placeholder="Lima" />
+            </label>
+            <label class="campo">
+              <span>Provincia</span>
+              <input type="text" [(ngModel)]="formularioDireccion.provincia" placeholder="Lima" />
+            </label>
+            <label class="campo">
+              <span>Distrito</span>
+              <input type="text" [(ngModel)]="formularioDireccion.distrito" placeholder="San Miguel" />
+            </label>
+            <label class="campo ancho">
+              <span>Dirección *</span>
+              <input type="text" [(ngModel)]="formularioDireccion.direccion" placeholder="Av. La Marina 1234, Dpto. 501" />
+            </label>
+            <label class="campo ancho">
+              <span>Referencia</span>
+              <input type="text" [(ngModel)]="formularioDireccion.referencia" placeholder="Frente al parque, portón azul" />
+            </label>
+          </div>
+
+          <label class="casilla">
+            <input type="checkbox" [(ngModel)]="formularioDireccion.es_predeterminada" />
+            <span>Usar como dirección predeterminada</span>
+          </label>
+
+          <div class="acciones-formulario">
+            <button type="button" class="boton-primario" (click)="guardar()" [disabled]="guardando">
+              {{ guardando ? 'Guardando…' : 'Guardar dirección' }}
+            </button>
+            <button type="button" class="boton-texto" (click)="cancelar()">Cancelar</button>
+          </div>
+        </div>
+
+        <div class="vacio-mini" *ngIf="!cargando && direcciones.length === 0 && !mostrarFormulario">
+          <i class="bi bi-geo-alt"></i>
+          Todavía no tienes direcciones guardadas.
+        </div>
+
+        <div class="tarjetas">
+          <article class="direccion" *ngFor="let d of direcciones" [class.predeterminada]="d.es_predeterminada">
+            <header>
+              <strong>{{ d.alias || 'Dirección' }}</strong>
+              <span class="etiqueta-mini" *ngIf="d.es_predeterminada">Predeterminada</span>
+            </header>
+
+            <p>{{ textoDireccion(d) }}</p>
+            <small *ngIf="d.referencia">Ref: {{ d.referencia }}</small>
+            <small *ngIf="d.destinatario">{{ d.destinatario }}<span *ngIf="d.telefono"> · {{ d.telefono }}</span></small>
+
+            <footer>
+              <button type="button" (click)="editar(d)"><i class="bi bi-pencil"></i>Editar</button>
+              <button type="button" class="peligro" (click)="eliminar(d)"><i class="bi bi-trash"></i>Eliminar</button>
+            </footer>
+          </article>
+        </div>
+      </div>
+
+      <!-- Últimos pedidos -->
+      <div class="bloque" *ngIf="seccion === 'pedidos'">
+        <div class="titulo-fila">
+          <div>
+            <h2>Últimos pedidos</h2>
+            <p class="ayuda">Tus compras más recientes.</p>
+          </div>
+          <a class="boton-texto" routerLink="/store/pedidos">Ver todos<i class="bi bi-arrow-right"></i></a>
+        </div>
+
+        <div class="vacio-mini" *ngIf="pedidos.length === 0">
+          <i class="bi bi-box-seam"></i>
+          Todavía no tienes pedidos registrados.
+        </div>
+
+        <a class="pedido-fila" *ngFor="let p of pedidos" [routerLink]="['/store/pedidos', p.id_pedido]">
+          <div class="pedido-info">
+            <strong>{{ p.codigo }}</strong>
+            <small>{{ p.creado_en | date: 'dd MMM yyyy' }} · {{ p.cantidad_items }} productos</small>
+          </div>
+          <span class="pedido-estado" [class]="p.estado">{{ p.estado | titlecase }}</span>
+          <strong class="pedido-total">S/ {{ p.total | number: '1.2-2' }}</strong>
+          <i class="bi bi-chevron-right flecha"></i>
+        </a>
+      </div>
+    </section>
+  </div>
+</div>

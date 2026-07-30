@@ -1,0 +1,260 @@
+<div class="contenedor">
+
+  <div class="cargando" *ngIf="cargando">
+    <div class="esqueleto galeria-esqueleto"></div>
+    <div class="columna-esqueleto">
+      <div class="esqueleto linea alta"></div>
+      <div class="esqueleto linea"></div>
+      <div class="esqueleto linea corta"></div>
+      <div class="esqueleto bloque"></div>
+    </div>
+  </div>
+
+  <div class="no-encontrado" *ngIf="noEncontrado">
+    <i class="bi bi-exclamation-circle"></i>
+    <h1>No encontramos este producto</h1>
+    <p>Puede que se haya retirado del catálogo o que el enlace esté desactualizado.</p>
+    <a class="boton-primario" routerLink="/store/catalogo">Volver al catálogo</a>
+  </div>
+
+  <ng-container *ngIf="producto && !cargando">
+
+    <nav class="migas" aria-label="Ruta de navegación">
+      <a routerLink="/store">Inicio</a>
+      <i class="bi bi-chevron-right"></i>
+      <a routerLink="/store/catalogo">Catálogo</a>
+      <ng-container *ngIf="producto.categoria">
+        <i class="bi bi-chevron-right"></i>
+        <a [routerLink]="['/store/catalogo']" [queryParams]="{ categoria: producto.id_categoria }">{{ producto.categoria }}</a>
+      </ng-container>
+      <i class="bi bi-chevron-right"></i>
+      <span>{{ producto.nombre }}</span>
+    </nav>
+
+    <div class="ficha">
+
+      <!-- Galería -->
+      <section class="galeria">
+        <div class="visor"
+             [class.zoom]="zoom"
+             (click)="alternarZoom()"
+             (mouseenter)="zoom = true"
+             (mouseleave)="zoom = false"
+             title="Clic para ampliar">
+          <img [src]="imagenPrincipal" [alt]="producto.nombre" (error)="imagenAlternativa($event)" />
+          <span class="insignia-oferta" *ngIf="producto.descuento > 0">-{{ producto.descuento }}%</span>
+          <span class="visor-pista" *ngIf="producto.imagenes.length > 1">
+            <i class="bi bi-images"></i> {{ producto.imagenes.length }} fotos
+          </span>
+        </div>
+
+        <div class="miniaturas" *ngIf="producto.imagenes.length > 1">
+          <button
+            type="button"
+            *ngFor="let img of producto.imagenes; let i = index"
+            class="miniatura"
+            [class.activa]="img.id_imagen === imagenActiva?.id_imagen"
+            (click)="elegirImagen(img)"
+            [attr.aria-label]="'Ver imagen ' + (i + 1)">
+            <img [src]="imagenUrl(img)" [alt]="producto.nombre" loading="lazy" (error)="imagenAlternativa($event)" />
+          </button>
+        </div>
+        <p class="ayuda-galeria" *ngIf="producto.imagenes.length > 1">
+          Toca una miniatura para cambiar la foto. Clic en la imagen grande para ampliar.
+        </p>
+      </section>
+
+      <!-- Compra -->
+      <section class="compra">
+        <span class="marca" *ngIf="producto.marca">{{ producto.marca }}</span>
+        <h1>{{ producto.nombre }}</h1>
+
+        <div class="meta">
+          <app-estrellas [valor]="producto.rating" [total]="producto.total_resenas"></app-estrellas>
+          <span class="separador" *ngIf="producto.sku">·</span>
+          <span class="sku" *ngIf="producto.sku">SKU {{ producto.sku }}</span>
+        </div>
+
+        <p class="resumen" *ngIf="producto.descripcion_corta">{{ producto.descripcion_corta }}</p>
+
+        <div class="caja-precio">
+          <div class="precios">
+            <span class="precio">S/ {{ producto.precio_final | number: '1.2-2' }}</span>
+            <span class="precio-antes" *ngIf="ahorro > 0">S/ {{ producto.precio | number: '1.2-2' }}</span>
+            <span class="pastilla-descuento" *ngIf="producto.descuento > 0">-{{ producto.descuento }}%</span>
+          </div>
+          <span class="ahorro" *ngIf="ahorro > 0">Ahorras S/ {{ ahorro | number: '1.2-2' }}</span>
+          <span class="incluye-igv">Precio incluye IGV</span>
+        </div>
+
+        <div class="estado-stock" [class.agotado]="stockTotal <= 0" [class.bajo]="stockTotal > 0 && stockTotal <= 5">
+          <i class="bi" [class.bi-check-circle-fill]="stockTotal > 5" [class.bi-exclamation-circle-fill]="stockTotal > 0 && stockTotal <= 5" [class.bi-x-circle-fill]="stockTotal <= 0"></i>
+          <span *ngIf="stockTotal > 5">Disponible · {{ stockTotal }} unidades en stock</span>
+          <span *ngIf="stockTotal > 0 && stockTotal <= 5">¡Últimas {{ stockTotal }} unidades!</span>
+          <span *ngIf="stockTotal <= 0">Sin stock por el momento</span>
+        </div>
+
+        <div class="acciones">
+          <div class="selector-cantidad">
+            <button type="button" (click)="cambiarCantidad(-1)" [disabled]="cantidad <= 1" aria-label="Quitar una unidad">
+              <i class="bi bi-dash"></i>
+            </button>
+            <input type="number" [(ngModel)]="cantidad" [min]="1" [max]="maximo" aria-label="Cantidad" />
+            <button type="button" (click)="cambiarCantidad(1)" [disabled]="cantidad >= maximo" aria-label="Agregar una unidad">
+              <i class="bi bi-plus"></i>
+            </button>
+          </div>
+
+          <button type="button" class="boton-primario grande" (click)="agregarAlCarrito()" [disabled]="stockTotal <= 0">
+            <i class="bi bi-bag-plus"></i>{{ stockTotal > 0 ? 'Agregar al carrito' : 'Sin stock' }}
+          </button>
+
+          <a class="boton-secundario" routerLink="/store/carrito">
+            <i class="bi bi-bag-check"></i>Ver carrito
+          </a>
+
+          <button type="button" class="boton-icono" [class.activo]="esFavorito" (click)="alternarFavorito()" [attr.aria-pressed]="esFavorito" aria-label="Guardar en favoritos">
+            <i class="bi" [class.bi-heart-fill]="esFavorito" [class.bi-heart]="!esFavorito"></i>
+          </button>
+
+          <button type="button" class="boton-icono" (click)="compartir()" aria-label="Compartir producto">
+            <i class="bi bi-share"></i>
+          </button>
+        </div>
+
+        <ul class="beneficios">
+          <li><i class="bi bi-truck"></i>Envío a todo el Perú en 24 a 72 horas</li>
+          <li><i class="bi bi-shield-check"></i>Garantía oficial del fabricante</li>
+          <li><i class="bi bi-arrow-repeat"></i>Cambios dentro de los 7 días</li>
+          <li><i class="bi bi-credit-card-2-back"></i>Paga con tarjeta, Yape, Plin o transferencia</li>
+        </ul>
+      </section>
+    </div>
+
+    <!-- Pestañas -->
+    <section class="detalle">
+      <div class="pestanas" role="tablist">
+        <button type="button" role="tab" [class.activa]="pestana === 'descripcion'" [attr.aria-selected]="pestana === 'descripcion'" (click)="pestana = 'descripcion'">
+          Descripción
+        </button>
+        <button type="button" role="tab" [class.activa]="pestana === 'especificaciones'" [attr.aria-selected]="pestana === 'especificaciones'" (click)="pestana = 'especificaciones'" *ngIf="producto.especificaciones.length > 0">
+          Especificaciones
+        </button>
+        <button type="button" role="tab" [class.activa]="pestana === 'sucursales'" [attr.aria-selected]="pestana === 'sucursales'" (click)="pestana = 'sucursales'" *ngIf="producto.stock_sucursales.length > 0">
+          Stock por sucursal
+        </button>
+        <button type="button" role="tab" [class.activa]="pestana === 'opiniones'" [attr.aria-selected]="pestana === 'opiniones'" (click)="pestana = 'opiniones'">
+          Opiniones ({{ producto.total_resenas }})
+        </button>
+      </div>
+
+      <div class="panel" role="tabpanel">
+
+        <div *ngIf="pestana === 'descripcion'">
+          <p class="texto" *ngIf="producto.descripcion">{{ producto.descripcion }}</p>
+          <p class="texto vacio-suave" *ngIf="!producto.descripcion">
+            Este producto todavía no tiene una descripción detallada. Comunícate con nosotros si necesitas más información técnica.
+          </p>
+        </div>
+
+        <table class="tabla" *ngIf="pestana === 'especificaciones'">
+          <tbody>
+            <tr *ngFor="let e of producto.especificaciones">
+              <th scope="row">{{ e.nombre }}</th>
+              <td>{{ e.valor }}</td>
+            </tr>
+            <tr *ngIf="producto.unidad_medida">
+              <th scope="row">Unidad de medida</th>
+              <td>{{ producto.unidad_medida }}</td>
+            </tr>
+            <tr *ngIf="producto.codigo_barras">
+              <th scope="row">Código de barras</th>
+              <td>{{ producto.codigo_barras }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="sucursales" *ngIf="pestana === 'sucursales'">
+          <div class="sucursal" *ngFor="let s of producto.stock_sucursales">
+            <div class="sucursal-info">
+              <strong>{{ s.sucursal }}</strong>
+              <small *ngIf="s.direccion">{{ s.direccion }}</small>
+            </div>
+            <span class="pastilla-stock" [class.sin]="s.stock <= 0">
+              {{ s.stock > 0 ? s.stock + ' disponibles' : 'Sin stock' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="opiniones" *ngIf="pestana === 'opiniones'">
+
+          <div class="resumen-opiniones">
+            <div class="puntaje">
+              <strong>{{ producto.rating | number: '1.1-1' }}</strong>
+              <app-estrellas [valor]="producto.rating" [mostrarConteo]="false"></app-estrellas>
+              <small>{{ producto.total_resenas }} {{ producto.total_resenas === 1 ? 'opinión' : 'opiniones' }}</small>
+            </div>
+          </div>
+
+          <form class="formulario-resena" *ngIf="autenticado" (ngSubmit)="enviarResena()">
+            <h3>Deja tu opinión</h3>
+
+            <div class="campo-estrellas">
+              <button
+                type="button"
+                *ngFor="let n of [1, 2, 3, 4, 5]"
+                (click)="nuevaResena.calificacion = n"
+                [attr.aria-label]="n + ' estrellas'">
+                <i class="bi" [class.bi-star-fill]="n <= nuevaResena.calificacion" [class.bi-star]="n > nuevaResena.calificacion"></i>
+              </button>
+            </div>
+
+            <input type="text" [(ngModel)]="nuevaResena.titulo" name="titulo" placeholder="Título (opcional)" maxlength="160" />
+            <textarea [(ngModel)]="nuevaResena.comentario" name="comentario" rows="3" placeholder="Cuéntanos qué te pareció el producto"></textarea>
+
+            <button type="submit" class="boton-primario" [disabled]="enviandoResena">
+              {{ enviandoResena ? 'Enviando…' : 'Publicar opinión' }}
+            </button>
+          </form>
+
+          <p class="aviso-login" *ngIf="!autenticado">
+            <i class="bi bi-info-circle"></i>
+            <a routerLink="/auth">Inicia sesión</a> para dejar tu opinión sobre este producto.
+          </p>
+
+          <ul class="lista-resenas" *ngIf="resenas.length > 0">
+            <li *ngFor="let r of resenas">
+              <div class="resena-cabecera">
+                <span class="avatar">{{ r.autor.charAt(0).toUpperCase() }}</span>
+                <div>
+                  <strong>{{ r.autor }}</strong>
+                  <app-estrellas [valor]="r.calificacion" [mostrarConteo]="false"></app-estrellas>
+                </div>
+                <time>{{ r.fecha | date: 'dd/MM/yyyy' }}</time>
+              </div>
+              <strong class="resena-titulo" *ngIf="r.titulo">{{ r.titulo }}</strong>
+              <p *ngIf="r.comentario">{{ r.comentario }}</p>
+            </li>
+          </ul>
+
+          <p class="vacio-suave" *ngIf="resenas.length === 0">Todavía nadie ha opinado sobre este producto. ¡Sé el primero!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Relacionados -->
+    <section class="relacionados" *ngIf="producto.relacionados.length > 0">
+      <h2>Productos relacionados</h2>
+
+      <div class="grilla">
+        <app-producto-card
+          *ngFor="let p of producto.relacionados"
+          [producto]="p"
+          [esFavorito]="favoritoRelacionado(p)"
+          (agregar)="agregarRelacionado($event)"
+          (alternarFavorito)="alternarFavoritoRelacionado($event)">
+        </app-producto-card>
+      </div>
+    </section>
+  </ng-container>
+</div>

@@ -1,1 +1,38 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color-scheme: light;
+  color: #111827;
+  background: #f7f8fb;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --surface-muted: #eef2ff;
+  --border: rgba(148, 163, 184, 0.24);
+  --text-strong: #0f172a;
+  --text-muted: #475569;
+  --accent-indigo: #6366f1;
+  --accent-violet: #7c3aed;
+  --accent-cyan: #22d3ee;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  min-height: 100vh;
+  color: var(--text-strong);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+* {
+  box-sizing: border-box;
+}

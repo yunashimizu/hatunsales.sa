@@ -1,0 +1,90 @@
+<div class="capa" [class.visible]="abierto" (click)="cerrar()" aria-hidden="true"></div>
+
+<aside
+  class="panel"
+  [class.visible]="abierto"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Carrito de compras"
+  [attr.inert]="abierto ? null : ''">
+
+  <header class="cabecera">
+    <div class="titulo">
+      <i class="bi bi-bag"></i>
+      <h2>Tu carrito</h2>
+      <span class="conteo" *ngIf="carrito.cantidad_items > 0">{{ carrito.cantidad_items }}</span>
+    </div>
+
+    <button type="button" class="cerrar" (click)="cerrar()" aria-label="Cerrar carrito">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </header>
+
+  <div class="lista" *ngIf="carrito.items.length > 0; else vacio">
+    <article class="item" *ngFor="let item of carrito.items" [class.ocupado]="itemOcupado === item.id_item">
+      <img [src]="imagen(item)" [alt]="item.nombre" class="miniatura" loading="lazy" />
+
+      <div class="datos">
+        <span class="marca" *ngIf="item.marca">{{ item.marca }}</span>
+        <span class="nombre">{{ item.nombre }}</span>
+        <span class="precio">S/ {{ item.precio_unitario | number: '1.2-2' }}</span>
+
+        <span class="alerta-stock" *ngIf="item.excede_stock">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          Solo quedan {{ item.stock_disponible }}
+        </span>
+
+        <div class="controles">
+          <div class="cantidad">
+            <button type="button" (click)="cambiar(item, -1)" [disabled]="item.cantidad <= 1" aria-label="Quitar una unidad">
+              <i class="bi bi-dash"></i>
+            </button>
+            <span>{{ item.cantidad }}</span>
+            <button type="button" (click)="cambiar(item, 1)" aria-label="Agregar una unidad">
+              <i class="bi bi-plus"></i>
+            </button>
+          </div>
+
+          <button type="button" class="eliminar" (click)="quitar(item)" aria-label="Eliminar del carrito">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </div>
+      </div>
+
+      <span class="subtotal">S/ {{ item.subtotal | number: '1.2-2' }}</span>
+    </article>
+  </div>
+
+  <ng-template #vacio>
+    <div class="vacio">
+      <div class="ilustracion"><i class="bi bi-bag"></i></div>
+      <h3>Tu carrito está vacío</h3>
+      <p>Explora el catálogo y encuentra lo que necesitas para tu proyecto.</p>
+      <button type="button" class="boton-primario" (click)="irAlCatalogo()">Ver productos</button>
+    </div>
+  </ng-template>
+
+  <footer class="pie" *ngIf="carrito.items.length > 0">
+    <div class="linea">
+      <span>Valor de venta</span>
+      <span>S/ {{ carrito.subtotal | number: '1.2-2' }}</span>
+    </div>
+    <div class="linea">
+      <span>IGV (18%)</span>
+      <span>S/ {{ carrito.igv | number: '1.2-2' }}</span>
+    </div>
+    <div class="linea total">
+      <span>Total</span>
+      <span>S/ {{ carrito.total | number: '1.2-2' }}</span>
+    </div>
+
+    <button type="button" class="boton-primario grande" (click)="irAlCheckout()">
+      Finalizar compra<i class="bi bi-arrow-right"></i>
+    </button>
+
+    <div class="secundarias">
+      <a routerLink="/store/carrito" (click)="cerrar()">Ver carrito completo</a>
+      <button type="button" (click)="vaciar()">Vaciar</button>
+    </div>
+  </footer>
+</aside>

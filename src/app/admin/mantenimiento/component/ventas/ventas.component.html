@@ -1,0 +1,603 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Punto de venta</h1>
+      <p class="adm-cabecera__sub">
+        Busque el producto, identifique al cliente y emita el comprobante. Los precios ya incluyen IGV.
+      </p>
+    </div>
+  </header>
+
+  <!-- Resultado de la última venta -->
+  <div class="adm-tarjeta pv-resultado adm-recien-creado" *ngIf="ultimaVenta">
+    <div class="adm-tarjeta__cuerpo pv-resultado__cuerpo">
+      <div class="pv-resultado__icono" [class.pv-resultado__icono--pendiente]="ultimaVenta.comprobante_error">
+        <i class="bi" [ngClass]="ultimaVenta.comprobante_error ? 'bi-exclamation-triangle-fill' : 'bi-check-circle-fill'"></i>
+      </div>
+
+      <div class="pv-resultado__texto">
+        <strong>
+          {{ ultimaVenta.comprobante_error ? 'Venta registrada, comprobante pendiente' : 'Comprobante emitido' }}
+        </strong>
+        <div class="adm-tabla__secundario">
+          Venta #{{ ultimaVenta.id_venta }}
+          <span *ngIf="ultimaVenta.comprobante?.numero_formateado">
+            · {{ ultimaVenta.comprobante?.numero_formateado }}
+          </span>
+          · Total S/ {{ ultimaVenta.total | number:'1.2-2' }}
+        </div>
+        <div class="adm-ayuda--error" *ngIf="ultimaVenta.comprobante_error">
+          {{ ultimaVenta.comprobante_error }}
+        </div>
+      </div>
+
+      <div class="adm-acciones">
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                *ngIf="ultimaVenta.comprobante?.enlace_pdf || ultimaVenta.comprobante?.enlace"
+                (click)="abrirComprobante()">
+          <i class="bi bi-file-earmark-pdf"></i> Ver comprobante
+        </button>
+        <a class="adm-btn adm-btn--suave adm-btn--sm" routerLink="/dashboard/mantenimiento/doc">
+          <i class="bi bi-collection"></i> Ir a documentos
+        </a>
+        <button type="button" class="adm-btn-icono" (click)="cerrarUltimaVenta()" aria-label="Cerrar aviso">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="adm-grid adm-grid--pos">
+
+    <!-- ─── Columna izquierda: carrito ─────────────────────────── -->
+    <div class="pv-columna">
+
+      <!-- Buscador de productos -->
+      <section class="adm-tarjeta adm-tarjeta--desbordable">
+        <div class="adm-tarjeta__cuerpo">
+          <div class="adm-campo adm-autocompletar">
+            <label class="adm-etiqueta" for="adm-buscar-producto">Agregar producto</label>
+            <div class="pv-buscador">
+              <i class="bi bi-upc-scan pv-buscador__icono"></i>
+              <input #inputProducto
+                     id="adm-buscar-producto"
+                     class="adm-input pv-buscador__input"
+                     type="text"
+                     autocomplete="off"
+                     autofocus
+                     placeholder="Escanee el código o busque por nombre / SKU…"
+                     [(ngModel)]="textoProducto"
+                     (ngModelChange)="alEscribirProducto()"
+                     (keydown)="alPresionarEnProducto($event)">
+              <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProducto"></i>
+            </div>
+            <span class="adm-ayuda">
+              Con el lector USB: deje el cursor aquí, escanee y el producto entra al carrito (no emite aún).
+            </span>
+
+            <ul class="adm-sugerencias" *ngIf="sugerenciasProducto.length">
+              <li *ngFor="let producto of sugerenciasProducto; trackBy: identificarProductoSugerido; let i = index"
+                  class="adm-sugerencia"
+                  [class.adm-sugerencia--activa]="i === indiceProducto"
+                  (click)="agregarProducto(producto)">
+                <img class="adm-sugerencia__miniatura"
+                     [src]="urlDe(producto.imagen_url) || 'assets/img/producto-sin-imagen.svg'"
+                     [alt]="producto.nombre">
+                <div class="adm-sugerencia__texto">
+                  <div class="adm-sugerencia__titulo">{{ producto.nombre }}</div>
+                  <div class="adm-sugerencia__detalle">
+                    <span *ngIf="producto.sku">{{ producto.sku }} · </span>
+                    S/ {{ producto.precio_final | number:'1.2-2' }}
+                  </div>
+                </div>
+                <span class="adm-insignia"
+                      [ngClass]="producto.stock_disponible > 0 ? 'adm-insignia--exito' : 'adm-insignia--peligro'">
+                  {{ producto.stock_disponible }}
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Carrito -->
+      <section class="adm-tarjeta">
+        <div class="adm-tarjeta__cabecera">
+          <h2 class="adm-tarjeta__titulo">
+            <i class="bi bi-cart3"></i> Productos
+            <span class="adm-insignia adm-insignia--neutra" *ngIf="lineas.length">{{ lineas.length }}</span>
+          </h2>
+          <button type="button" class="adm-btn adm-btn--fantasma adm-btn--sm"
+                  *ngIf="lineas.length" (click)="vaciarCarrito()">
+            <i class="bi bi-trash3"></i> Vaciar
+          </button>
+        </div>
+
+        <div class="adm-vacio" *ngIf="!lineas.length">
+          <div class="adm-vacio__icono"><i class="bi bi-basket"></i></div>
+          <div class="adm-vacio__titulo">Todavía no hay productos</div>
+          <p>Use el buscador de arriba o pase el lector por el código de barras.</p>
+        </div>
+
+        <div class="adm-tabla-envoltorio" *ngIf="lineas.length">
+          <table class="adm-tabla adm-tabla--adaptable">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th class="adm-centro">Cantidad</th>
+                <th class="adm-num">Precio</th>
+                <th class="adm-num">Dscto.</th>
+                <th class="adm-num">Importe</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let linea of lineas; trackBy: identificarLinea">
+                <td data-etiqueta="Producto">
+                  <div class="adm-tabla__principal">{{ linea.descripcion }}</div>
+                  <div class="adm-tabla__secundario">
+                    <span *ngIf="linea.sku">{{ linea.sku }} · </span>
+                    Stock {{ linea.stock_disponible }}
+                    <span class="adm-insignia adm-insignia--peligro"
+                          *ngIf="linea.cantidad > linea.stock_disponible">Excede el stock</span>
+                  </div>
+                </td>
+
+                <td data-etiqueta="Cantidad" class="adm-centro">
+                  <div class="pv-contador">
+                    <button type="button" class="adm-btn-icono" (click)="sumarCantidad(linea, -1)"
+                            [disabled]="linea.cantidad <= 1" aria-label="Quitar una unidad">
+                      <i class="bi bi-dash"></i>
+                    </button>
+                    <input class="adm-input pv-contador__input" type="number" min="1" step="1"
+                           [ngModel]="linea.cantidad"
+                           (ngModelChange)="cambiarCantidad(linea, $event)">
+                    <button type="button" class="adm-btn-icono" (click)="sumarCantidad(linea, 1)"
+                            aria-label="Agregar una unidad">
+                      <i class="bi bi-plus"></i>
+                    </button>
+                  </div>
+                </td>
+
+                <td data-etiqueta="Precio" class="adm-num">
+                  <input class="adm-input pv-monto" type="number" min="0" step="0.01"
+                         [ngModel]="linea.precio_unitario"
+                         (ngModelChange)="cambiarPrecio(linea, $event)">
+                </td>
+
+                <td data-etiqueta="Descuento" class="adm-num">
+                  <input class="adm-input pv-monto" type="number" min="0" step="0.01"
+                         [ngModel]="linea.descuento"
+                         (ngModelChange)="cambiarDescuento(linea, $event)">
+                </td>
+
+                <td data-etiqueta="Importe" class="adm-num adm-tabla__principal">
+                  S/ {{ (linea.cantidad * linea.precio_unitario - linea.descuento) | number:'1.2-2' }}
+                </td>
+
+                <td>
+                  <button type="button" class="adm-btn-icono adm-btn-icono--peligro"
+                          (click)="quitarLinea(linea)" aria-label="Quitar producto">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Vista previa del comprobante -->
+      <section class="adm-tarjeta" *ngIf="preview">
+        <div class="adm-tarjeta__cabecera">
+          <h2 class="adm-tarjeta__titulo">
+            <i class="bi bi-receipt"></i> Así saldrá el comprobante
+          </h2>
+          <span class="adm-insignia adm-insignia--neutra" *ngIf="calculandoPreview">
+            <i class="bi bi-arrow-repeat adm-girando"></i> Actualizando
+          </span>
+        </div>
+
+        <div class="adm-tarjeta__cuerpo">
+          <div class="adm-ticket">
+            <div class="adm-ticket__cabecera">
+              <div class="adm-ticket__emisor">
+                <strong>{{ preview.emisor.razon_social }}</strong>
+                <div>{{ preview.emisor.direccion }}</div>
+                <div>{{ preview.emisor.ubicacion }}</div>
+              </div>
+              <div class="adm-ticket__recuadro">
+                <small>RUC {{ preview.emisor.ruc }}</small>
+                <small>{{ preview.tipo_nombre }}</small>
+                <div class="adm-ticket__numero">{{ preview.numero_formateado }}</div>
+              </div>
+            </div>
+
+            <div class="adm-ticket__seccion">
+              <div class="adm-ticket__dato">
+                <span>Cliente</span><span>{{ preview.receptor.denominacion }}</span>
+              </div>
+              <div class="adm-ticket__dato">
+                <span>{{ preview.receptor.tipo_documento === 6 ? 'RUC' : 'DNI' }}</span>
+                <span>{{ preview.receptor.numero_documento }}</span>
+              </div>
+              <div class="adm-ticket__dato" *ngIf="preview.receptor.direccion">
+                <span>Dirección</span><span>{{ preview.receptor.direccion }}</span>
+              </div>
+              <div class="adm-ticket__dato">
+                <span>Emisión</span><span>{{ preview.fecha_de_emision }}</span>
+              </div>
+            </div>
+
+            <div class="adm-ticket__seccion">
+              <table class="adm-ticket__tabla">
+                <thead>
+                  <tr>
+                    <th>Descripción</th>
+                    <th class="adm-num">Cant.</th>
+                    <th class="adm-num">V. unit.</th>
+                    <th class="adm-num">P. unit.</th>
+                    <th class="adm-num">Importe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of preview.items">
+                    <td>{{ item.descripcion }}</td>
+                    <td class="adm-num">{{ item.cantidad }}</td>
+                    <td class="adm-num">{{ item.valor_unitario | number:'1.2-4' }}</td>
+                    <td class="adm-num">{{ item.precio_unitario | number:'1.2-2' }}</td>
+                    <td class="adm-num">{{ item.total | number:'1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="adm-ticket__totales">
+              <div class="adm-ticket__total-fila">
+                <span>Op. gravada</span>
+                <span>{{ preview.moneda.simbolo }} {{ preview.totales.gravada | number:'1.2-2' }}</span>
+              </div>
+              <div class="adm-ticket__total-fila" *ngIf="preview.totales.exonerada">
+                <span>Op. exonerada</span>
+                <span>{{ preview.moneda.simbolo }} {{ preview.totales.exonerada | number:'1.2-2' }}</span>
+              </div>
+              <div class="adm-ticket__total-fila" *ngIf="preview.totales.inafecta">
+                <span>Op. inafecta</span>
+                <span>{{ preview.moneda.simbolo }} {{ preview.totales.inafecta | number:'1.2-2' }}</span>
+              </div>
+              <div class="adm-ticket__total-fila" *ngIf="preview.totales.descuento">
+                <span>Descuentos</span>
+                <span>− {{ preview.moneda.simbolo }} {{ preview.totales.descuento | number:'1.2-2' }}</span>
+              </div>
+              <div class="adm-ticket__total-fila">
+                <span>IGV ({{ preview.porcentaje_igv }}%)</span>
+                <span>{{ preview.moneda.simbolo }} {{ preview.totales.igv | number:'1.2-2' }}</span>
+              </div>
+              <div class="adm-ticket__total-fila adm-ticket__total-fila--destacada">
+                <span>Importe total</span>
+                <span>{{ preview.moneda.simbolo }} {{ preview.totales.total | number:'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <div class="adm-ticket__letras">
+              Son: {{ preview.importe_en_letras }}
+            </div>
+          </div>
+
+          <div class="adm-aviso adm-aviso--aviso pv-espaciado"
+               *ngFor="let advertencia of preview.advertencias">
+            <i class="bi bi-exclamation-triangle"></i><span>{{ advertencia }}</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ─── Columna derecha: cliente y cobro ───────────────────── -->
+    <aside class="pv-columna">
+
+      <!-- Cliente -->
+      <section class="adm-tarjeta adm-tarjeta--desbordable">
+        <div class="adm-tarjeta__cabecera">
+          <h2 class="adm-tarjeta__titulo"><i class="bi bi-person-vcard"></i> Cliente</h2>
+        </div>
+
+        <div class="adm-tarjeta__cuerpo">
+          <div class="pv-receptor" *ngIf="receptor; else buscadorReceptor">
+            <div class="pv-receptor__datos">
+              <div class="adm-campo" *ngIf="!receptor.denominacion || receptor.advertencia; else nombreListo">
+                <label class="adm-etiqueta" for="pv-nombre-cliente">
+                  {{ receptor.tipo_documento === 6 ? 'Razón social' : 'Nombre completo' }}
+                </label>
+                <input id="pv-nombre-cliente" class="adm-input" type="text" autocomplete="off"
+                       placeholder="Escriba el nombre aquí…"
+                       [(ngModel)]="receptor.denominacion" (ngModelChange)="pedirRecalculoPublico()">
+                <span class="adm-ayuda" *ngIf="receptor.advertencia">{{ receptor.advertencia }}</span>
+              </div>
+              <ng-template #nombreListo>
+                <div class="adm-tabla__principal">{{ receptor.denominacion }}</div>
+              </ng-template>
+              <div class="adm-tabla__secundario">
+                {{ receptor.tipo_documento === 6 ? 'RUC' : 'DNI' }} {{ receptor.numero_documento }}
+                <span *ngIf="receptor.direccion"> · {{ receptor.direccion }}</span>
+              </div>
+              <span class="adm-insignia adm-insignia--info"
+                    *ngIf="receptor.origen === 'externo' && receptor.denominacion && !receptor.advertencia">
+                <i class="bi bi-cloud-download"></i> Traído de SUNAT y guardado
+              </span>
+              <span class="adm-insignia adm-insignia--aviso"
+                    *ngIf="receptor.advertencia">
+                Completar a mano
+              </span>
+              <span class="adm-insignia adm-insignia--neutra" *ngIf="receptor.origen === 'generico'">
+                Venta sin identificar
+              </span>
+            </div>
+            <button type="button" class="adm-btn-icono" (click)="quitarReceptor()" aria-label="Cambiar cliente">
+              <i class="bi bi-pencil"></i>
+            </button>
+          </div>
+
+          <ng-template #buscadorReceptor>
+            <div class="adm-campo adm-autocompletar">
+              <label class="adm-etiqueta" for="adm-buscar-cliente">DNI, RUC o nombre</label>
+              <div class="pv-buscador">
+                <i class="bi bi-search pv-buscador__icono"></i>
+                <input id="adm-buscar-cliente"
+                       class="adm-input pv-buscador__input"
+                       type="text"
+                       autocomplete="off"
+                       placeholder="Escriba para buscar…"
+                       [(ngModel)]="textoReceptor"
+                       (ngModelChange)="alEscribirReceptor()"
+                       (keydown)="alPresionarEnReceptor($event)">
+                <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoReceptor"></i>
+              </div>
+
+              <ul class="adm-sugerencias" *ngIf="sugerenciasReceptor.length">
+                <li *ngFor="let sugerencia of sugerenciasReceptor; trackBy: identificarReceptorSugerido; let i = index"
+                    class="adm-sugerencia"
+                    [class.adm-sugerencia--activa]="i === indiceReceptor"
+                    (click)="elegirSugerenciaReceptor(sugerencia)">
+                  <span class="adm-insignia"
+                        [ngClass]="sugerencia.tipo === 'empresa' ? 'adm-insignia--primaria' : 'adm-insignia--neutra'">
+                    {{ sugerencia.tipo === 'empresa' ? 'RUC' : 'DNI' }}
+                  </span>
+                  <div class="adm-sugerencia__texto">
+                    <div class="adm-sugerencia__titulo">{{ sugerencia.denominacion }}</div>
+                    <div class="adm-sugerencia__detalle">{{ sugerencia.numero_documento }}</div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <div class="adm-acciones pv-espaciado">
+              <button type="button" class="adm-btn adm-btn--primario adm-btn--sm"
+                      [disabled]="!documentoCompleto || buscandoReceptor"
+                      (click)="buscarDocumento()">
+                <i class="bi bi-cloud-arrow-down"></i> Buscar en SUNAT
+              </button>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="usarConsumidorFinal()">
+                Sin identificar
+              </button>
+            </div>
+            <p class="adm-ayuda">
+              Si el documento no está registrado se consulta a SUNAT y queda guardado para la próxima venta.
+            </p>
+          </ng-template>
+        </div>
+      </section>
+
+      <!-- Comprobante -->
+      <section class="adm-tarjeta">
+        <div class="adm-tarjeta__cabecera">
+          <h2 class="adm-tarjeta__titulo"><i class="bi bi-file-earmark-text"></i> Comprobante</h2>
+        </div>
+
+        <div class="adm-tarjeta__cuerpo">
+          <div class="pv-tipos">
+            <button type="button" class="pv-tipo" [class.pv-tipo--activo]="idTipo === TIPO_BOLETA"
+                    (click)="cambiarTipo(TIPO_BOLETA)">
+              <i class="bi bi-receipt"></i> Boleta
+            </button>
+            <button type="button" class="pv-tipo" [class.pv-tipo--activo]="idTipo === TIPO_FACTURA"
+                    (click)="cambiarTipo(TIPO_FACTURA)">
+              <i class="bi bi-file-earmark-ruled"></i> Factura
+            </button>
+          </div>
+
+          <div class="adm-aviso adm-aviso--aviso pv-espaciado" *ngIf="avisoFactura">
+            <i class="bi bi-exclamation-triangle"></i><span>{{ avisoFactura }}</span>
+          </div>
+
+          <div class="adm-fila pv-espaciado">
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="adm-serie">Serie</label>
+              <input id="adm-serie" class="adm-input" type="text" maxlength="4"
+                     [placeholder]="idTipo === TIPO_FACTURA ? 'FFF1' : 'BBB1'"
+                     [(ngModel)]="serie" (ngModelChange)="cambiarTipo(idTipo)">
+            </div>
+          </div>
+
+          <div class="adm-campo pv-espaciado">
+            <label class="adm-etiqueta" for="adm-observaciones">Observaciones</label>
+            <textarea id="adm-observaciones" class="adm-textarea" rows="2"
+                      placeholder="Opcional, se imprime en el comprobante"
+                      [(ngModel)]="observaciones"></textarea>
+          </div>
+
+          <label class="pv-casilla">
+            <input type="checkbox" [(ngModel)]="enviarPorCorreo">
+            <span>Enviar el comprobante al correo del cliente</span>
+          </label>
+          <label class="pv-casilla">
+            <input type="checkbox" [(ngModel)]="emitirComprobante">
+            <span>Emitir comprobante electrónico</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Cobro -->
+      <section class="adm-tarjeta pv-cobro">
+        <div class="adm-tarjeta__cuerpo">
+          <div class="pv-total">
+            <span>Total a pagar</span>
+            <strong>S/ {{ total | number:'1.2-2' }}</strong>
+          </div>
+          <div class="pv-desglose" *ngIf="preview">
+            Incluye IGV ({{ preview.porcentaje_igv }}%) de S/ {{ preview.totales.igv | number:'1.2-2' }}
+          </div>
+
+          <div class="adm-aviso adm-aviso--info pv-espaciado" *ngIf="lineaCredito as lc">
+            <i class="bi bi-credit-card-2-front"></i>
+            <span>
+              Crédito {{ lc.credito_activo ? 'activo' : 'inactivo' }} ·
+              Disponible S/ {{ lc.disponible | number:'1.2-2' }}
+              (límite {{ lc.limite_credito | number:'1.2-2' }}, deuda {{ lc.saldo_pendiente | number:'1.2-2' }},
+              {{ lc.dias_credito }} días)
+            </span>
+          </div>
+
+          <div class="pv-espaciado" *ngFor="let pago of lineasPago; trackBy: identificarPago; let i = index">
+            <div class="adm-fila">
+              <div class="adm-campo">
+                <label class="adm-etiqueta">Medio {{ i + 1 }}</label>
+                <select class="adm-select" [(ngModel)]="pago.id_metodo" [name]="'metodo'+i">
+                  <option *ngFor="let m of metodosPago" [ngValue]="m.id_metodo">{{ m.nombre }}</option>
+                </select>
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta">Monto</label>
+                <input class="adm-input" type="number" min="0" step="0.10"
+                       [(ngModel)]="pago.monto" [name]="'monto'+i"
+                       (focus)="!pago.monto && completarConRestante(i)">
+              </div>
+            </div>
+            <div class="adm-fila pv-espaciado" *ngIf="esTransferencia(pago.id_metodo)">
+              <div class="adm-campo">
+                <label class="adm-etiqueta">Cuenta destino</label>
+                <select class="adm-select" [(ngModel)]="pago.id_cuenta_bancaria" [name]="'cuenta'+i">
+                  <option [ngValue]="null">Selecciona cuenta</option>
+                  <option *ngFor="let c of cuentasBancarias" [ngValue]="c.id_cuenta">
+                    {{ c.banco }} · {{ c.alias || c.numero_cuenta || 'sin número' }}
+                  </option>
+                </select>
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta">Nº operación</label>
+                <input class="adm-input" type="text" [(ngModel)]="pago.referencia" [name]="'refT'+i"
+                       placeholder="Obligatorio">
+              </div>
+            </div>
+
+            <div class="pv-espaciado" *ngIf="esYape(pago.id_metodo)">
+              <div class="adm-aviso adm-aviso--info" *ngIf="pasarelaInfo?.culqi_habilitado">
+                <i class="bi bi-qr-code"></i>
+                <span>Puedes generar cobro Yape con Culqi y verificar antes de emitir.</span>
+              </div>
+              <div class="adm-aviso adm-aviso--aviso" *ngIf="pasarelaInfo && !pasarelaInfo.culqi_habilitado">
+                <i class="bi bi-info-circle"></i>
+                <span>Culqi no configurado: registra el N° de operación de Yape a mano.</span>
+              </div>
+              <div class="adm-acciones pv-espaciado">
+                <button type="button" class="adm-btn adm-btn--primario"
+                        (click)="iniciarYape(i)" [disabled]="yapeCargando">
+                  <i class="bi bi-phone"></i> Generar cobro Yape
+                </button>
+                <button type="button" class="adm-btn adm-btn--suave"
+                        *ngIf="pago.yape_orden_id"
+                        (click)="verificarYape(i)" [disabled]="yapeCargando">
+                  <i class="bi bi-shield-check"></i> Verificar pago
+                </button>
+              </div>
+              <p class="adm-ayuda" *ngIf="pago.yape_orden_id">
+                Orden: {{ pago.yape_orden_id }}
+                · Estado: {{ pago.yape_estado || 'pendiente' }}
+                <span *ngIf="pago.validacion === 'culqi'"> · Confirmado</span>
+              </p>
+              <div class="adm-campo pv-espaciado">
+                <label class="adm-etiqueta">Nº operación (manual si no usas Culqi)</label>
+                <input class="adm-input" type="text" [(ngModel)]="pago.referencia" [name]="'refY'+i"
+                       placeholder="Ej. 123456">
+              </div>
+            </div>
+
+            <div class="adm-fila pv-espaciado" *ngIf="esPlin(pago.id_metodo)">
+              <div class="adm-campo">
+                <label class="adm-etiqueta">Nº operación Plin</label>
+                <input class="adm-input" type="text" [(ngModel)]="pago.referencia" [name]="'refP'+i"
+                       placeholder="Obligatorio">
+              </div>
+            </div>
+
+            <div class="pv-espaciado" *ngIf="esTarjeta(pago.id_metodo)">
+              <div class="adm-aviso adm-aviso--info">
+                <i class="bi bi-credit-card"></i>
+                <span>{{ pasarelaInfo?.mensaje_tarjeta || 'Cobra en la maquinita POS y anota el voucher. La boleta/factura la emite este sistema.' }}</span>
+              </div>
+              <div class="adm-campo pv-espaciado">
+                <label class="adm-etiqueta">Nº voucher POS</label>
+                <input class="adm-input" type="text" [(ngModel)]="pago.voucher_pos" [name]="'voucher'+i"
+                       placeholder="Obligatorio — ticket de la maquinita">
+              </div>
+            </div>
+
+            <div class="adm-fila pv-espaciado"
+                 *ngIf="!esEfectivo(pago.id_metodo) && !esCredito(pago.id_metodo)
+                        && !esTransferencia(pago.id_metodo) && !esYape(pago.id_metodo)
+                        && !esPlin(pago.id_metodo) && !esTarjeta(pago.id_metodo)">
+              <div class="adm-campo">
+                <label class="adm-etiqueta">Nº operación / referencia</label>
+                <input class="adm-input" type="text" [(ngModel)]="pago.referencia" [name]="'ref'+i"
+                       placeholder="Opcional">
+              </div>
+            </div>
+            <div class="adm-fila pv-espaciado" *ngIf="esEfectivo(pago.id_metodo)">
+              <div class="adm-campo">
+                <label class="adm-etiqueta">Paga con</label>
+                <input class="adm-input" type="number" min="0" step="0.10"
+                       [(ngModel)]="pago.monto_recibido" [name]="'recibido'+i" placeholder="0.00">
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta">Vuelto</label>
+                <div class="pv-vuelto">S/ {{ vueltoDe(pago) | number:'1.2-2' }}</div>
+              </div>
+            </div>
+            <div class="adm-acciones pv-espaciado">
+              <button type="button" class="adm-btn adm-btn--suave" (click)="completarConRestante(i)">
+                Completar resto
+              </button>
+              <button type="button" class="adm-btn adm-btn--suave" *ngIf="lineasPago.length > 1" (click)="quitarLineaPago(i)">
+                Quitar
+              </button>
+            </div>
+          </div>
+
+          <div class="adm-acciones pv-espaciado">
+            <button type="button" class="adm-btn adm-btn--suave" (click)="agregarLineaPago()" [disabled]="pagoCubierto">
+              <i class="bi bi-plus-lg"></i> Otro medio (mixto)
+            </button>
+            <a routerLink="/dashboard/mantenimiento/cuentas-por-cobrar" class="adm-btn adm-btn--suave">
+              Cuentas por cobrar
+            </a>
+          </div>
+
+          <div class="adm-ayuda" [class.adm-aviso--peligro]="!pagoCubierto && total > 0">
+            Cubierto: S/ {{ sumaPagos | number:'1.2-2' }}
+            · Resta: S/ {{ restantePago | number:'1.2-2' }}
+          </div>
+
+          <div class="adm-aviso adm-aviso--peligro pv-espaciado" *ngIf="errorPreview">
+            <i class="bi bi-x-circle"></i><span>{{ errorPreview }}</span>
+          </div>
+
+          <button type="button" class="adm-btn adm-btn--exito adm-btn--lg adm-btn--bloque pv-espaciado"
+                  [disabled]="!puedeEmitir" (click)="cobrar()">
+            <i class="bi" [ngClass]="emitiendo ? 'bi-arrow-repeat adm-girando' : 'bi-cash-coin'"></i>
+            {{ emitiendo ? 'Procesando…' : 'Cobrar y emitir' }}
+          </button>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>

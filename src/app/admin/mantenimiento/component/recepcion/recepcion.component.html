@@ -1,0 +1,301 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Recepción de mercadería</h1>
+      <p class="adm-cabecera__sub">
+        Escanee productos, registre la guía y deje en observación lo que llega mal (con foto). Solo lo aprobado suma stock.
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/proveedores">
+        <i class="bi bi-truck"></i> Proveedores
+      </a>
+    </div>
+  </header>
+
+  <div class="adm-acciones" style="margin-bottom:1rem;flex-wrap:wrap">
+    <button type="button" class="adm-btn"
+            [class.adm-btn--primario]="pestana==='nueva'"
+            [class.adm-btn--suave]="pestana!=='nueva'"
+            (click)="cambiarPestana('nueva')">
+      <i class="bi bi-upc-scan"></i> Nueva recepción
+    </button>
+    <button type="button" class="adm-btn"
+            [class.adm-btn--primario]="pestana==='historial'"
+            [class.adm-btn--suave]="pestana!=='historial'"
+            (click)="cambiarPestana('historial')">
+      <i class="bi bi-clock-history"></i> Historial
+    </button>
+    <button type="button" class="adm-btn"
+            [class.adm-btn--primario]="pestana==='observaciones'"
+            [class.adm-btn--suave]="pestana!=='observaciones'"
+            (click)="cambiarPestana('observaciones')">
+      <i class="bi bi-eye"></i> Observaciones
+      <span class="adm-insignia adm-insignia--peligro" *ngIf="pendientesObs">{{ pendientesObs }}</span>
+    </button>
+  </div>
+
+  <!-- ── Nueva recepción ───────────────────────────────────── -->
+  <ng-container *ngIf="pestana==='nueva'">
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cuerpo">
+        <div class="adm-fila">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="rec-prov">Proveedor</label>
+            <select id="rec-prov" class="adm-select" [(ngModel)]="idProveedor">
+              <option [ngValue]="null">Seleccione…</option>
+              <option *ngFor="let p of proveedores" [ngValue]="p.id_proveedor">
+                {{ p.nombre }} <span *ngIf="p.ruc">({{ p.ruc }})</span>
+              </option>
+            </select>
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="rec-alm">Almacén destino</label>
+            <select id="rec-alm" class="adm-select" [(ngModel)]="idAlmacen">
+              <option [ngValue]="null">Seleccione…</option>
+              <option *ngFor="let a of almacenes" [ngValue]="a.id_almacen">{{ a.nombre }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="adm-fila">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="rec-guia">Nº guía / remisión</label>
+            <input id="rec-guia" class="adm-input" type="text" [(ngModel)]="nroGuia"
+                   placeholder="Ej. GR-001-000123">
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="rec-doc">Factura / documento (opc.)</label>
+            <input id="rec-doc" class="adm-input" type="text" [(ngModel)]="nroDocumento">
+          </div>
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="rec-obs">Observaciones generales</label>
+          <input id="rec-obs" class="adm-input" type="text" [(ngModel)]="observacionesCabecera"
+                 placeholder="Opcional">
+        </div>
+      </div>
+    </section>
+
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cuerpo">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="rec-scan">Escanear producto</label>
+          <div class="pv-buscador" style="position:relative">
+            <i class="bi bi-upc-scan" style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);opacity:.6"></i>
+            <input #inputProducto id="rec-scan" class="adm-input" type="text" autofocus
+                   style="padding-left:2.4rem"
+                   placeholder="Pase el lector o escriba el código y Enter…"
+                   [(ngModel)]="textoProducto"
+                   (keydown)="alPresionarProducto($event)">
+          </div>
+          <span class="adm-ayuda">Cada escaneo suma 1 a cantidad OK. Ajuste cantidades u observación por línea.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-list-check"></i> Líneas</h2>
+        <span class="adm-insignia adm-insignia--neutra">{{ lineas.length }}</span>
+      </div>
+
+      <div class="adm-vacio" *ngIf="!lineas.length">
+        <div class="adm-vacio__icono"><i class="bi bi-upc-scan"></i></div>
+        <div class="adm-vacio__titulo">Sin productos aún</div>
+        <p>Escanee el código de barras de cada unidad que llega.</p>
+      </div>
+
+      <div class="adm-tabla-envoltorio" *ngIf="lineas.length">
+        <table class="adm-tabla adm-tabla--adaptable">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th class="adm-num">OK</th>
+              <th class="adm-num">Observado</th>
+              <th>Cómo llegó / foto</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of lineas; trackBy: identificarLinea">
+              <td data-etiqueta="Producto">
+                <div class="adm-tabla__principal">{{ l.nombre }}</div>
+                <div class="adm-ayuda">{{ l.codigo_barras || l.sku || ('#' + l.id_producto) }}</div>
+              </td>
+              <td data-etiqueta="OK" class="adm-num">
+                <input class="adm-input" type="number" min="0" step="1" style="max-width:5.5rem"
+                       [(ngModel)]="l.cantidad_ok">
+              </td>
+              <td data-etiqueta="Observado" class="adm-num">
+                <input class="adm-input" type="number" min="0" step="1" style="max-width:5.5rem"
+                       [(ngModel)]="l.cantidad_observada">
+              </td>
+              <td data-etiqueta="Observación">
+                <ng-container *ngIf="l.cantidad_observada > 0">
+                  <input class="adm-input" type="text" [(ngModel)]="l.motivo_observacion"
+                         placeholder="Comentario: caja dañada, humedad, falta…">
+                  <div class="adm-evidencia">
+                    <label class="adm-btn adm-btn--suave adm-btn--sm" style="cursor:pointer">
+                      <i class="bi bi-camera"></i> Foto
+                      <input type="file" accept="image/*" hidden (change)="onFoto(l, $event)">
+                    </label>
+                    <img *ngIf="l.fotoPreview"
+                         class="adm-evidencia__thumb"
+                         [src]="l.fotoPreview"
+                         alt="Evidencia"
+                         title="Ver imagen"
+                         (click)="abrirVistaImagen(l.fotoPreview)">
+                    <button *ngIf="l.fotoPreview"
+                            type="button"
+                            class="adm-btn adm-btn--suave adm-btn--sm"
+                            (click)="quitarFoto(l)"
+                            title="Quitar foto">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </ng-container>
+                <span class="adm-ayuda" *ngIf="l.cantidad_observada <= 0">—</span>
+              </td>
+              <td>
+                <button type="button" class="adm-btn-icono" (click)="quitarLinea(l)" aria-label="Quitar">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="adm-tarjeta__cuerpo" *ngIf="lineas.length">
+        <button type="button" class="adm-btn adm-btn--primario" (click)="confirmar()" [disabled]="confirmando">
+          <i class="bi bi-check2-circle"></i>
+          {{ confirmando ? 'Confirmando…' : 'Confirmar recepción' }}
+        </button>
+      </div>
+    </section>
+  </ng-container>
+
+  <!-- ── Historial ─────────────────────────────────────────── -->
+  <section class="adm-tarjeta" *ngIf="pestana==='historial'">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-clock-history"></i> Recepciones</h2>
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cargarHistorial()">
+        Actualizar
+      </button>
+    </div>
+    <div class="adm-vacio" *ngIf="!historial.length">
+      <div class="adm-vacio__titulo">Sin recepciones aún</div>
+    </div>
+    <div class="adm-tabla-envoltorio" *ngIf="historial.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Proveedor</th>
+            <th>Guía</th>
+            <th>Almacén</th>
+            <th class="adm-num">OK</th>
+            <th class="adm-num">Obs.</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of historial; trackBy: identificarHistorial">
+            <td data-etiqueta="#">{{ r.id_recepcion }}</td>
+            <td data-etiqueta="Proveedor">{{ r.proveedor }}</td>
+            <td data-etiqueta="Guía">{{ r.nro_guia }}</td>
+            <td data-etiqueta="Almacén">{{ r.almacen }}</td>
+            <td data-etiqueta="OK" class="adm-num">{{ r.unidades_ok }}</td>
+            <td data-etiqueta="Obs." class="adm-num">{{ r.unidades_obs }}</td>
+            <td data-etiqueta="Fecha">{{ r.creado_en | date:'short' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Observaciones ─────────────────────────────────────── -->
+  <section class="adm-tarjeta" *ngIf="pestana==='observaciones'">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-eye"></i> Cola de observaciones</h2>
+      <div class="adm-acciones">
+        <select class="adm-select" [(ngModel)]="filtroObs" (ngModelChange)="cargarObservaciones()"
+                style="width:auto">
+          <option value="pendiente">Pendientes</option>
+          <option value="todas">Todas</option>
+        </select>
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cargarObservaciones()">
+          Actualizar
+        </button>
+      </div>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!observaciones.length">
+      <div class="adm-vacio__icono"><i class="bi bi-check2-circle"></i></div>
+      <div class="adm-vacio__titulo">Sin observaciones</div>
+      <p>Cuando un producto llegue mal, aparecerá aquí hasta el visto bueno.</p>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="observaciones.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Guía / proveedor</th>
+            <th class="adm-num">Cant.</th>
+            <th>Evidencia</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let o of observaciones; trackBy: identificarObservacion">
+            <td data-etiqueta="Producto">
+              <div class="adm-tabla__principal">{{ o.producto }}</div>
+              <div class="adm-ayuda">{{ o.motivo }}</div>
+            </td>
+            <td data-etiqueta="Guía">
+              <div>{{ o.nro_guia }}</div>
+              <div class="adm-ayuda">{{ o.proveedor }} · {{ o.almacen }}</div>
+            </td>
+            <td data-etiqueta="Cant." class="adm-num">{{ o.cantidad }}</td>
+            <td data-etiqueta="Foto">
+              <ng-container *ngIf="o.adjuntos?.length; else sinFoto">
+                <img *ngFor="let a of o.adjuntos; trackBy: identificarAdjunto"
+                     class="adm-evidencia__thumb"
+                     [src]="urlDe(a.url)"
+                     alt="Evidencia"
+                     title="Ver imagen"
+                     (click)="abrirVistaImagen(a.url)">
+              </ng-container>
+              <ng-template #sinFoto><span class="adm-ayuda">Sin foto</span></ng-template>
+            </td>
+            <td data-etiqueta="Estado">
+              <span class="adm-insignia"
+                    [ngClass]="{
+                      'adm-insignia--aviso': o.estado==='pendiente',
+                      'adm-insignia--exito': o.estado==='aprobado',
+                      'adm-insignia--peligro': o.estado==='rechazado'
+                    }">
+                {{ o.estado }}
+              </span>
+            </td>
+            <td data-etiqueta="Acciones">
+              <div class="adm-acciones" *ngIf="o.estado==='pendiente'">
+                <button type="button" class="adm-btn adm-btn--primario adm-btn--sm" (click)="aprobar(o)">
+                  Visto bueno
+                </button>
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="rechazar(o)">
+                  Rechazar
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <app-visor-imagen [url]="vistaImagen" (cerrar)="cerrarVistaImagen()"></app-visor-imagen>
+</div>

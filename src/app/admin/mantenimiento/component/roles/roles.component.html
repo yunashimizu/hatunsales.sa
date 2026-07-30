@@ -1,0 +1,141 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Roles</h1>
+      <p class="adm-cabecera__sub">
+        IDs de acceso. Panel: 1 admin, 3 vendedor, 4 caja. Tienda: 5 cliente (y 2 usuario).
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
+        Actualizar
+      </button>
+      <button type="button" class="adm-btn adm-btn--primario" (click)="nuevo()">
+        <i class="bi bi-plus-lg"></i> Nuevo rol
+      </button>
+    </div>
+  </header>
+
+  <section class="adm-grid adm-grid--3">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"><i class="bi bi-people"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ roles.length }}</div>
+        <div class="adm-metrica__etiqueta">Roles</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-display"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ totalPanel }}</div>
+        <div class="adm-metrica__etiqueta">Van al panel</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-shop"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ totalStore }}</div>
+        <div class="adm-metrica__etiqueta">Van a la tienda</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo">
+        <i class="bi" [ngClass]="editando ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+        {{ editando ? ('Editar rol #' + editando.id_rol) : 'Crear rol' }}
+      </h2>
+    </div>
+    <div class="adm-tarjeta__cuerpo">
+      <div class="adm-fila">
+        <div class="adm-campo" *ngIf="editando">
+          <label class="adm-etiqueta" for="rol-id">ID</label>
+          <input id="rol-id" class="adm-input" type="text" [value]="editando.id_rol" disabled>
+          <span class="adm-ayuda">El ID no se puede cambiar.</span>
+        </div>
+        <div class="adm-campo rol-campo--nombre">
+          <label class="adm-etiqueta" for="rol-nombre">Nombre</label>
+          <input id="rol-nombre" class="adm-input" type="text" [(ngModel)]="nombre"
+                 placeholder="ej. cliente" autocomplete="off">
+          <span class="adm-ayuda">Se guarda en minúsculas. Para clientes usa exactamente: cliente</span>
+        </div>
+        <div class="adm-acciones rol-acciones-form">
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
+            {{ guardando ? 'Guardando…' : 'Guardar' }}
+          </button>
+          <button type="button" class="adm-btn adm-btn--suave" *ngIf="editando" (click)="cancelar()">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Lista de roles</h2>
+    </div>
+
+    <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !roles.length">
+      <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4]"></div>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargando && !roles.length">
+      <div class="adm-vacio__icono"><i class="bi bi-people"></i></div>
+      <div class="adm-vacio__titulo">No hay roles</div>
+      <p>Crea el primero con el formulario de arriba.</p>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="roles.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th class="adm-num">ID</th>
+            <th>Nombre</th>
+            <th class="adm-num">Usuarios</th>
+            <th>Destino</th>
+            <th>Protegido</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of roles; trackBy: identificarRol" [class.adm-recien-creado]="idDestacado === r.id_rol">
+            <td data-etiqueta="ID" class="adm-num"><strong>{{ r.id_rol }}</strong></td>
+            <td data-etiqueta="Nombre">
+              <div class="adm-tabla__principal">{{ r.nombre }}</div>
+            </td>
+            <td data-etiqueta="Usuarios" class="adm-num">{{ r.usuarios ?? 0 }}</td>
+            <td data-etiqueta="Destino">
+              <span class="adm-insignia"
+                    [ngClass]="esPanel(r) ? 'adm-insignia--neutra' : 'adm-insignia--exito'">
+                {{ destinoDe(r) }}
+              </span>
+            </td>
+            <td data-etiqueta="Protegido">
+              <span class="adm-insignia"
+                    [ngClass]="r.protegido ? 'adm-insignia--aviso' : 'adm-insignia--neutra'">
+                {{ r.protegido ? 'Sí' : 'No' }}
+              </span>
+            </td>
+            <td data-etiqueta="Acciones">
+              <div class="adm-acciones">
+                <button type="button" class="adm-btn adm-btn--suave" (click)="editar(r)">
+                  <i class="bi bi-pencil"></i> Editar
+                </button>
+                <button type="button" class="adm-btn adm-btn--suave" (click)="eliminar(r)"
+                        [disabled]="r.protegido">
+                  <i class="bi bi-trash"></i> Eliminar
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>

@@ -1,0 +1,256 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--t-superficie);
+  border: 1px solid var(--t-borde);
+  border-radius: var(--t-r-md);
+  overflow: hidden;
+  transition: transform var(--t-transicion), box-shadow var(--t-transicion), border-color var(--t-transicion);
+}
+
+.tarjeta:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--t-sombra-lg);
+  border-color: var(--t-borde-fuerte);
+}
+
+.tarjeta.agotado {
+  opacity: 0.72;
+}
+
+/* ------------------------------------------------------------------ imagen */
+
+.marco {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: var(--t-superficie-2);
+  overflow: hidden;
+}
+
+.marco img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 14px;
+  transition: transform 380ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tarjeta:hover .marco img {
+  transform: scale(1.06);
+}
+
+.insignias {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.insignia {
+  padding: 4px 10px;
+  border-radius: var(--t-r-full);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.insignia.oferta {
+  background: var(--t-acento);
+}
+
+.insignia.nuevo {
+  background: var(--t-primario);
+}
+
+.favorito {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--t-borde);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  color: var(--t-texto-suave);
+  cursor: pointer;
+  transition: all var(--t-transicion);
+}
+
+.favorito:hover {
+  color: var(--t-peligro);
+  border-color: var(--t-peligro);
+  transform: scale(1.08);
+}
+
+.favorito.activo {
+  color: var(--t-peligro);
+  border-color: var(--t-peligro);
+}
+
+.favorito:focus-visible {
+  outline: 2px solid var(--t-primario);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ cuerpo */
+
+.cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px 16px;
+  flex: 1;
+}
+
+.marca {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-texto-tenue);
+}
+
+.nombre {
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--t-texto);
+  text-decoration: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.6em;
+}
+
+.nombre:hover {
+  color: var(--t-primario);
+}
+
+.rating {
+  margin-top: 2px;
+}
+
+.precios {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.precio {
+  font-size: 1.22rem;
+  font-weight: 700;
+  color: var(--t-texto);
+  letter-spacing: -0.02em;
+}
+
+.precio-antes {
+  font-size: 0.82rem;
+  color: var(--t-texto-tenue);
+  text-decoration: line-through;
+}
+
+.ahorro {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--t-exito);
+}
+
+/* --------------------------------------------------------------------- pie */
+
+.pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.stock i {
+  font-size: 0.42rem;
+}
+
+.stock.ok {
+  color: var(--t-exito);
+}
+
+.stock.bajo {
+  color: var(--t-aviso);
+}
+
+.stock.agotado {
+  color: var(--t-texto-tenue);
+}
+
+.agregar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--t-r-full);
+  background: var(--t-primario);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--t-transicion);
+}
+
+.agregar:hover:not(:disabled) {
+  background: var(--t-primario-osc);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+}
+
+.agregar:disabled {
+  background: var(--t-superficie-2);
+  color: var(--t-texto-tenue);
+  cursor: not-allowed;
+}
+
+.agregar:focus-visible {
+  outline: 2px solid var(--t-primario);
+  outline-offset: 2px;
+}
+
+.girando {
+  animation: girar 900ms linear infinite;
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 480px) {
+  .pie {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .agregar {
+    justify-content: center;
+  }
+}

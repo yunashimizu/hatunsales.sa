@@ -1,0 +1,358 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Inventario</h1>
+      <p class="adm-cabecera__sub">
+        Stock por almacén. Cada entrada o salida queda registrada en el kardex con su motivo.
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <button type="button" class="adm-btn adm-btn--suave"
+              [class.inv-filtro--activo]="filtro.solo_alertas" (click)="alternarAlertas()">
+        <i class="bi bi-exclamation-triangle"></i> Solo alertas
+      </button>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
+        Actualizar
+      </button>
+    </div>
+  </header>
+
+  <!-- Indicadores -->
+  <section class="adm-grid adm-grid--4" *ngIf="resumen">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"><i class="bi bi-boxes"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ resumen.productos }}</div>
+        <div class="adm-metrica__etiqueta">Productos</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--peligro"><i class="bi bi-x-circle"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ resumen.sin_stock }}</div>
+        <div class="adm-metrica__etiqueta">Sin stock</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-graph-down"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ resumen.bajo_stock }}</div>
+        <div class="adm-metrica__etiqueta">Bajo mínimo</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-cash-stack"></i></div>
+      <div>
+        <div class="adm-metrica__valor">S/ {{ resumen.valorizado | number:'1.2-2' }}</div>
+        <div class="adm-metrica__etiqueta">Valorizado</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filtros -->
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cuerpo">
+      <div class="adm-fila">
+        <div class="adm-campo inv-campo--ancho">
+          <label class="adm-etiqueta" for="inv-texto">Buscar</label>
+          <input id="inv-texto" class="adm-input" type="text" autocomplete="off"
+                 placeholder="Producto, SKU o código de barras…"
+                 [(ngModel)]="filtro.texto" (ngModelChange)="alBuscar()">
+        </div>
+
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="inv-almacen">Almacén</label>
+          <select id="inv-almacen" class="adm-select" [(ngModel)]="filtro.id_almacen"
+                  (ngModelChange)="cargar(1)">
+            <option value="">Todos</option>
+            <option *ngFor="let a of almacenes" [ngValue]="a.id_almacen">
+              {{ a.nombre }}<span *ngIf="a.sucursal"> — {{ a.sucursal }}</span>
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Listado -->
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cuerpo inv-cargando" *ngIf="cargando && !filas.length">
+      <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4,5,6]"></div>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargando && !filas.length">
+      <div class="adm-vacio__icono"><i class="bi bi-inboxes"></i></div>
+      <div class="adm-vacio__titulo">No hay existencias que mostrar</div>
+      <p>Cambie los filtros o registre un ingreso desde un producto.</p>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="filas.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th class="inv-col-img"></th>
+            <th>Producto</th>
+            <th>Almacén</th>
+            <th class="adm-num">Stock</th>
+            <th class="adm-num">Mínimo</th>
+            <th class="adm-num">Valorizado</th>
+            <th>Estado</th>
+            <th class="adm-centro">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let fila of filas; trackBy: identificarFila"
+              [class.adm-recien-creado]="idDestacado === fila.id_inventario">
+
+            <td data-etiqueta="Imagen" class="inv-col-img">
+              <div class="inv-miniatura">
+                <img *ngIf="fila.imagen_url"
+                     class="adm-img-clic"
+                     [src]="urlDe(fila.imagen_url)"
+                     [alt]="fila.producto"
+                     loading="lazy"
+                     title="Ver imagen"
+                     (click)="abrirVistaImagen(fila.imagen_url, $event)">
+                <i class="bi bi-box" *ngIf="!fila.imagen_url"></i>
+              </div>
+            </td>
+
+            <td data-etiqueta="Producto">
+              <div class="adm-tabla__principal">{{ fila.producto }}</div>
+              <div class="adm-tabla__secundario">
+                {{ fila.sku || fila.codigo_barras || '—' }}
+                <span *ngIf="fila.categoria"> · {{ fila.categoria }}</span>
+              </div>
+            </td>
+
+            <td data-etiqueta="Almacén">
+              <div>{{ fila.almacen || '—' }}</div>
+              <div class="adm-tabla__secundario" *ngIf="fila.sucursal">{{ fila.sucursal }}</div>
+            </td>
+
+            <td data-etiqueta="Stock" class="adm-num adm-tabla__principal">
+              {{ fila.stock }} <small>{{ fila.unidad_medida }}</small>
+            </td>
+
+            <td data-etiqueta="Mínimo" class="adm-num">
+              <ng-container *ngIf="edicionMinimo !== fila.id_inventario">
+                <button type="button" class="inv-minimo" (click)="editarMinimo(fila)"
+                        title="Cambiar el stock mínimo">
+                  {{ fila.stock_minimo }} <i class="bi bi-pencil"></i>
+                </button>
+              </ng-container>
+
+              <span class="inv-minimo-edicion" *ngIf="edicionMinimo === fila.id_inventario">
+                <input class="adm-input inv-minimo-input" type="number" min="0"
+                       [(ngModel)]="valorMinimo" (keyup.enter)="guardarMinimo(fila)"
+                       (keyup.escape)="cancelarMinimo()">
+                <button type="button" class="adm-btn-icono" (click)="guardarMinimo(fila)" title="Guardar">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+                <button type="button" class="adm-btn-icono" (click)="cancelarMinimo()" title="Cancelar">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </span>
+            </td>
+
+            <td data-etiqueta="Valorizado" class="adm-num">S/ {{ fila.valorizado | number:'1.2-2' }}</td>
+
+            <td data-etiqueta="Estado">
+              <span class="adm-insignia" [ngClass]="claseEstado(fila.estado)">
+                {{ textoEstado(fila.estado) }}
+              </span>
+            </td>
+
+            <td data-etiqueta="Acciones" class="adm-centro">
+              <div class="inv-acciones">
+                <button type="button" class="adm-btn-icono" (click)="abrir(fila, 'ajuste')"
+                        title="Registrar entrada o salida">
+                  <i class="bi bi-plus-slash-minus"></i>
+                </button>
+                <button type="button" class="adm-btn-icono" (click)="abrir(fila, 'transferencia')"
+                        title="Transferir a otro almacén">
+                  <i class="bi bi-arrow-left-right"></i>
+                </button>
+                <button type="button" class="adm-btn-icono" (click)="abrir(fila, 'movimientos')"
+                        title="Ver movimientos">
+                  <i class="bi bi-clock-history"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="adm-paginacion" *ngIf="total > porPagina">
+      <span>{{ total }} registros · página {{ pagina }} de {{ totalPaginas }}</span>
+      <div class="adm-acciones">
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                [disabled]="pagina === 1" (click)="irA(pagina - 1)">
+          <i class="bi bi-chevron-left"></i> Anterior
+        </button>
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                [disabled]="pagina === totalPaginas" (click)="irA(pagina + 1)">
+          Siguiente <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Panel lateral -->
+<div class="adm-velo" *ngIf="panelAbierto" (click)="cerrarPanel()"></div>
+
+<aside class="adm-panel" *ngIf="panelAbierto && seleccionada">
+  <div class="adm-panel__cabecera">
+    <h2 class="adm-tarjeta__titulo">
+      <i class="bi" [ngClass]="{
+        'bi-plus-slash-minus': modo === 'ajuste',
+        'bi-arrow-left-right': modo === 'transferencia',
+        'bi-clock-history': modo === 'movimientos'
+      }"></i>
+      <span *ngIf="modo === 'ajuste'">Ajustar stock</span>
+      <span *ngIf="modo === 'transferencia'">Transferir stock</span>
+      <span *ngIf="modo === 'movimientos'">Movimientos</span>
+    </h2>
+    <button type="button" class="adm-btn-icono" (click)="cerrarPanel()" aria-label="Cerrar">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="adm-panel__cuerpo">
+    <div class="inv-resumen">
+      <div class="inv-miniatura inv-miniatura--grande">
+        <img *ngIf="seleccionada.imagen_url"
+             class="adm-img-clic"
+             [src]="urlDe(seleccionada.imagen_url)"
+             [alt]="seleccionada.producto"
+             title="Ver imagen"
+             (click)="abrirVistaImagen(seleccionada.imagen_url, $event)">
+        <i class="bi bi-box" *ngIf="!seleccionada.imagen_url"></i>
+      </div>
+      <div>
+        <div class="adm-tabla__principal">{{ seleccionada.producto }}</div>
+        <div class="adm-tabla__secundario">
+          {{ seleccionada.almacen }} · {{ seleccionada.stock }} {{ seleccionada.unidad_medida }} disponibles
+        </div>
+      </div>
+    </div>
+
+    <!-- Ajuste -->
+    <ng-container *ngIf="modo === 'ajuste'">
+      <div class="inv-tipos inv-espaciado">
+        <button type="button" class="inv-tipo" [class.inv-tipo--entrada]="ajuste.tipo === 'entrada'"
+                (click)="ajuste.tipo = 'entrada'">
+          <i class="bi bi-box-arrow-in-down"></i> Entrada
+        </button>
+        <button type="button" class="inv-tipo" [class.inv-tipo--salida]="ajuste.tipo === 'salida'"
+                (click)="ajuste.tipo = 'salida'">
+          <i class="bi bi-box-arrow-up"></i> Salida
+        </button>
+      </div>
+
+      <div class="adm-fila inv-espaciado">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="inv-cantidad">Cantidad</label>
+          <input id="inv-cantidad" class="adm-input" type="number" min="1" [(ngModel)]="ajuste.cantidad">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="inv-motivo">Motivo</label>
+          <select id="inv-motivo" class="adm-select" [(ngModel)]="ajuste.motivo">
+            <option *ngFor="let m of motivos" [value]="m.valor">{{ m.texto }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="adm-campo inv-espaciado">
+        <label class="adm-etiqueta" for="inv-comentario">Comentario</label>
+        <input id="inv-comentario" class="adm-input" type="text" maxlength="200"
+               placeholder="Número de guía, proveedor, referencia…" [(ngModel)]="ajuste.comentario">
+      </div>
+
+      <div class="inv-proyeccion inv-espaciado" [class.inv-proyeccion--negativa]="stockResultante < 0">
+        <span>Stock después del ajuste</span>
+        <strong>{{ stockResultante }} {{ seleccionada.unidad_medida }}</strong>
+      </div>
+    </ng-container>
+
+    <!-- Transferencia -->
+    <ng-container *ngIf="modo === 'transferencia'">
+      <div class="adm-aviso adm-aviso--info inv-espaciado" *ngIf="!almacenesDestino.length">
+        <i class="bi bi-info-circle"></i>
+        <span>No hay otro almacén registrado al que transferir.</span>
+      </div>
+
+      <div class="adm-campo inv-espaciado" *ngIf="almacenesDestino.length">
+        <label class="adm-etiqueta" for="inv-destino">Almacén de destino</label>
+        <select id="inv-destino" class="adm-select" [(ngModel)]="transferencia.id_almacen_destino">
+          <option *ngFor="let a of almacenesDestino" [ngValue]="a.id_almacen">
+            {{ a.nombre }}<span *ngIf="a.sucursal"> — {{ a.sucursal }}</span>
+          </option>
+        </select>
+      </div>
+
+      <div class="adm-campo inv-espaciado" *ngIf="almacenesDestino.length">
+        <label class="adm-etiqueta" for="inv-cantidad-tr">Cantidad</label>
+        <input id="inv-cantidad-tr" class="adm-input" type="number" min="1"
+               [max]="seleccionada.stock" [(ngModel)]="transferencia.cantidad">
+        <span class="adm-ayuda">Máximo {{ seleccionada.stock }} unidades.</span>
+      </div>
+
+      <div class="adm-campo inv-espaciado" *ngIf="almacenesDestino.length">
+        <label class="adm-etiqueta" for="inv-comentario-tr">Comentario</label>
+        <input id="inv-comentario-tr" class="adm-input" type="text" maxlength="200"
+               [(ngModel)]="transferencia.comentario">
+      </div>
+    </ng-container>
+
+    <!-- Movimientos -->
+    <ng-container *ngIf="modo === 'movimientos'">
+      <div class="inv-cargando inv-espaciado" *ngIf="cargandoMovimientos">
+        <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4]"></div>
+      </div>
+
+      <div class="adm-vacio" *ngIf="!cargandoMovimientos && !movimientos.length">
+        <div class="adm-vacio__icono"><i class="bi bi-clock-history"></i></div>
+        <div class="adm-vacio__titulo">Sin movimientos registrados</div>
+      </div>
+
+      <ul class="inv-linea-tiempo" *ngIf="movimientos.length">
+        <li *ngFor="let m of movimientos; trackBy: identificarMovimiento">
+          <span class="inv-linea-tiempo__punto"
+                [class.inv-linea-tiempo__punto--salida]="m.cantidad < 0"></span>
+          <div>
+            <div class="adm-tabla__principal">
+              {{ m.cantidad > 0 ? '+' : '' }}{{ m.cantidad }} · {{ m.tipo }}
+            </div>
+            <div class="adm-tabla__secundario">{{ m.descripcion || 'Sin detalle' }}</div>
+            <div class="adm-tabla__secundario">{{ m.fecha | date:'dd/MM/yyyy HH:mm' }}</div>
+          </div>
+        </li>
+      </ul>
+    </ng-container>
+  </div>
+
+  <div class="adm-panel__pie" *ngIf="modo !== 'movimientos'">
+    <button type="button" class="adm-btn adm-btn--suave" (click)="cerrarPanel()" [disabled]="procesando">
+      Cancelar
+    </button>
+
+    <button type="button" class="adm-btn adm-btn--primario" *ngIf="modo === 'ajuste'"
+            [disabled]="procesando" (click)="registrarAjuste()">
+      <i class="bi" [ngClass]="procesando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
+      Registrar ajuste
+    </button>
+
+    <button type="button" class="adm-btn adm-btn--primario" *ngIf="modo === 'transferencia'"
+            [disabled]="procesando || !almacenesDestino.length" (click)="registrarTransferencia()">
+      <i class="bi" [ngClass]="procesando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-left-right'"></i>
+      Transferir
+    </button>
+  </div>
+</aside>
+
+<app-visor-imagen [url]="vistaImagen" [alt]="seleccionada?.producto || 'Producto'" (cerrar)="cerrarVistaImagen()"></app-visor-imagen>

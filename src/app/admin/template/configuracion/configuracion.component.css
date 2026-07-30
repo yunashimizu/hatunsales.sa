@@ -1,0 +1,40 @@
+.cfg-espaciado {
+  margin-top: 1rem;
+}
+
+.cfg-atajos {
+  display: grid;
+  gap: .65rem;
+}
+
+.cfg-atajo {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  padding: .85rem 1rem;
+  border: 1px solid var(--adm-borde, #e5e9f2);
+  border-radius: var(--adm-r-md, 12px);
+  background: var(--adm-superficie-2, #f8fafc);
+  text-decoration: none;
+  color: inherit;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.cfg-atajo:hover {
+  background: var(--adm-primario-claro, #eef2ff);
+  border-color: #c7d2fe;
+}
+
+.cfg-atajo i {
+  font-size: 1.15rem;
+  color: var(--adm-primario, #4f46e5);
+}
+
+.cfg-atajo strong {
+  display: block;
+  font-size: .95rem;
+}
+
+.cfg-atajo small {
+  color: var(--adm-texto-suave, #64748b);
+}

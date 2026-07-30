@@ -1,0 +1,20 @@
+<div class="grilla">
+  <a
+    class="categoria"
+    *ngFor="let cat of visibles; let i = index"
+    [routerLink]="['/store/catalogo']"
+    [queryParams]="{ categoria: cat.id_categoria }"
+    [style.animation-delay.ms]="i * 45">
+
+    <span class="icono" [style.background-image]="cat.imagen_url ? 'url(' + cat.imagen_url + ')' : null">
+      <i class="bi" [class]="icono(cat, i)" *ngIf="!cat.imagen_url"></i>
+    </span>
+
+    <span class="texto">
+      <span class="nombre">{{ cat.nombre }}</span>
+      <span class="conteo">{{ cat.total_productos }} {{ cat.total_productos === 1 ? 'producto' : 'productos' }}</span>
+    </span>
+
+    <i class="bi bi-arrow-right flecha"></i>
+  </a>
+</div>

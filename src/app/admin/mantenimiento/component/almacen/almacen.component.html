@@ -1,0 +1,138 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Almacenes</h1>
+      <p class="adm-cabecera__sub">
+        Crea y administra tus ubicaciones de stock. El inventario y el POS usan estos almacenes.
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/inventario">
+        <i class="bi bi-box-seam"></i> Inventario
+      </a>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
+        Actualizar
+      </button>
+      <button type="button" class="adm-btn adm-btn--primario" (click)="nuevo()">
+        <i class="bi bi-plus-lg"></i> Nuevo
+      </button>
+    </div>
+  </header>
+
+  <section class="adm-grid adm-grid--3">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"><i class="bi bi-building"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ almacenes.length }}</div>
+        <div class="adm-metrica__etiqueta">Almacenes</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-boxes"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ totalProductos }}</div>
+        <div class="adm-metrica__etiqueta">SKUs en inventario</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-stack"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ totalUnidades }}</div>
+        <div class="adm-metrica__etiqueta">Unidades totales</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo">
+        <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+        {{ editandoId ? 'Editar almacén' : 'Crear almacén' }}
+      </h2>
+    </div>
+    <div class="adm-tarjeta__cuerpo">
+      <div class="adm-fila">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="alm-nombre">Nombre</label>
+          <input id="alm-nombre" class="adm-input" type="text" [(ngModel)]="modelo.nombre"
+                 placeholder="ej. Almacén principal">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="alm-desc">Descripción</label>
+          <input id="alm-desc" class="adm-input" type="text" [(ngModel)]="modelo.descripcion"
+                 placeholder="Opcional">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="alm-suc">Sucursal</label>
+          <select id="alm-suc" class="adm-select" [(ngModel)]="modelo.id_sucursal">
+            <option [ngValue]="null">Sin sucursal</option>
+            <option *ngFor="let s of sucursales" [ngValue]="s.id_sucursal">{{ s.nombre }}</option>
+          </select>
+        </div>
+        <div class="adm-acciones" style="align-self:end">
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+            {{ guardando ? 'Guardando…' : (editandoId ? 'Actualizar' : 'Crear') }}
+          </button>
+          <button type="button" class="adm-btn adm-btn--suave" *ngIf="editandoId" (click)="cancelar()">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Lista</h2>
+      <span class="adm-insignia adm-insignia--neutra">{{ almacenes.length }}</span>
+    </div>
+
+    <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !almacenes.length">
+      <div class="adm-esqueleto" *ngFor="let n of [1,2,3]"></div>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargando && !almacenes.length">
+      <div class="adm-vacio__icono"><i class="bi bi-building"></i></div>
+      <div class="adm-vacio__titulo">No hay almacenes</div>
+      <p>Crea el primero para ubicar el stock de tus productos.</p>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="almacenes.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Sucursal</th>
+            <th class="adm-num">Productos</th>
+            <th class="adm-num">Unidades</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of almacenes; trackBy: identificarAlmacen" [class.adm-recien-creado]="idDestacado === a.id_almacen">
+            <td data-etiqueta="Nombre">
+              <div class="adm-tabla__principal">{{ a.nombre }}</div>
+              <div class="adm-ayuda" *ngIf="a.descripcion">{{ a.descripcion }}</div>
+            </td>
+            <td data-etiqueta="Sucursal">{{ a.sucursal || '—' }}</td>
+            <td data-etiqueta="Productos" class="adm-num">{{ a.productos ?? 0 }}</td>
+            <td data-etiqueta="Unidades" class="adm-num">{{ a.unidades ?? 0 }}</td>
+            <td data-etiqueta="Acciones">
+              <div class="adm-acciones">
+                <button type="button" class="adm-btn adm-btn--suave" (click)="editar(a)">
+                  <i class="bi bi-pencil"></i> Editar
+                </button>
+                <button type="button" class="adm-btn adm-btn--suave" (click)="eliminar(a)">
+                  <i class="bi bi-trash"></i> Eliminar
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>

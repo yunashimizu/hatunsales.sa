@@ -1,0 +1,272 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Clientes</h1>
+      <p class="adm-cabecera__sub">
+        Personas y empresas. Al registrar un DNI o RUC los datos se traen de SUNAT y quedan guardados.
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
+        Actualizar
+      </button>
+    </div>
+  </header>
+
+  <!-- Alta por documento -->
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-person-plus"></i> Registrar por documento</h2>
+    </div>
+    <div class="adm-tarjeta__cuerpo">
+      <div class="adm-fila">
+        <div class="adm-campo cli-campo--doc">
+          <label class="adm-etiqueta" for="cli-doc">DNI o RUC</label>
+          <input id="cli-doc" class="adm-input" type="text" inputmode="numeric" maxlength="11"
+                 autocomplete="off" placeholder="12345678 o 20123456789"
+                 [(ngModel)]="documento" (keyup.enter)="registrarPorDocumento()">
+          <span class="adm-ayuda">8 dígitos para una persona, 11 para una empresa.</span>
+        </div>
+        <button type="button" class="adm-btn adm-btn--primario"
+                [disabled]="registrando || !documentoValido" (click)="registrarPorDocumento()">
+          <i class="bi" [ngClass]="registrando ? 'bi-arrow-repeat adm-girando' : 'bi-search'"></i>
+          Buscar y registrar
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Listado -->
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <div class="cli-pestanias">
+        <button type="button" class="cli-pestania" [class.cli-pestania--activa]="pestania === 'personas'"
+                (click)="cambiarPestania('personas')">
+          <i class="bi bi-person"></i> Personas
+          <span class="adm-insignia adm-insignia--neutra">{{ clientes.length }}</span>
+        </button>
+        <button type="button" class="cli-pestania" [class.cli-pestania--activa]="pestania === 'empresas'"
+                (click)="cambiarPestania('empresas')">
+          <i class="bi bi-building"></i> Empresas
+          <span class="adm-insignia adm-insignia--neutra">{{ empresas.length }}</span>
+        </button>
+      </div>
+
+      <div class="adm-campo cli-campo--buscar">
+        <input class="adm-input" type="text" autocomplete="off"
+               placeholder="Buscar por nombre, documento o correo…" [(ngModel)]="filtro">
+      </div>
+    </div>
+
+    <div class="adm-tarjeta__cuerpo cli-cargando" *ngIf="cargando && !clientes.length">
+      <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4,5]"></div>
+    </div>
+
+    <!-- Personas -->
+    <ng-container *ngIf="pestania === 'personas'">
+      <div class="adm-vacio" *ngIf="!cargando && !personasFiltradas.length">
+        <div class="adm-vacio__icono"><i class="bi bi-person-x"></i></div>
+        <div class="adm-vacio__titulo">No hay personas registradas</div>
+        <p>Escriba un DNI arriba y se traerán los datos de SUNAT.</p>
+      </div>
+
+      <div class="adm-tabla-envoltorio" *ngIf="personasFiltradas.length">
+        <table class="adm-tabla adm-tabla--adaptable">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>DNI</th>
+              <th>Contacto</th>
+              <th>Dirección</th>
+              <th class="adm-centro">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of personasFiltradas; trackBy: identificarCliente"
+                [class.adm-recien-creado]="idDestacado === c.id_cliente">
+              <td data-etiqueta="Cliente">
+                <div class="adm-tabla__principal">{{ nombreDe(c) }}</div>
+                <div class="adm-tabla__secundario" *ngIf="c.tiene_cuenta">Con cuenta en la tienda</div>
+              </td>
+              <td data-etiqueta="DNI">{{ c.dni || '—' }}</td>
+              <td data-etiqueta="Contacto">
+                <div>{{ c.telefono || '—' }}</div>
+                <div class="adm-tabla__secundario">{{ c.email || '' }}</div>
+              </td>
+              <td data-etiqueta="Dirección">{{ c.direccion || '—' }}</td>
+              <td data-etiqueta="Acciones" class="adm-centro">
+                <button type="button" class="adm-btn-icono" (click)="editarPersona(c)" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+
+    <!-- Empresas -->
+    <ng-container *ngIf="pestania === 'empresas'">
+      <div class="adm-vacio" *ngIf="!empresasFiltradas.length">
+        <div class="adm-vacio__icono"><i class="bi bi-building-x"></i></div>
+        <div class="adm-vacio__titulo">No hay empresas registradas</div>
+        <p>Escriba un RUC arriba y se traerán los datos de SUNAT.</p>
+      </div>
+
+      <div class="adm-tabla-envoltorio" *ngIf="empresasFiltradas.length">
+        <table class="adm-tabla adm-tabla--adaptable">
+          <thead>
+            <tr>
+              <th>Empresa</th>
+              <th>RUC</th>
+              <th>Situación</th>
+              <th>Dirección</th>
+              <th class="adm-centro">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let e of empresasFiltradas; trackBy: identificarEmpresa"
+                [class.adm-recien-creado]="idDestacado === e.id_empresa">
+              <td data-etiqueta="Empresa">
+                <div class="adm-tabla__principal">{{ e.razon_social }}</div>
+                <div class="adm-tabla__secundario" *ngIf="e.nombre_comercial">{{ e.nombre_comercial }}</div>
+              </td>
+              <td data-etiqueta="RUC">{{ e.ruc }}</td>
+              <td data-etiqueta="Situación">
+                <span class="adm-insignia"
+                      [ngClass]="e.estado === 'ACTIVO' ? 'adm-insignia--exito' : 'adm-insignia--aviso'">
+                  {{ e.estado || 'Sin dato' }}
+                </span>
+                <div class="adm-tabla__secundario">{{ e.condicion || '' }}</div>
+              </td>
+              <td data-etiqueta="Dirección">
+                <div>{{ e.direccion || '—' }}</div>
+                <div class="adm-tabla__secundario" *ngIf="e.distrito">
+                  {{ e.distrito }}<span *ngIf="e.provincia"> · {{ e.provincia }}</span>
+                </div>
+              </td>
+              <td data-etiqueta="Acciones" class="adm-centro">
+                <button type="button" class="adm-btn-icono" (click)="editarEmpresa(e)" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+  </section>
+</div>
+
+<!-- Panel de edición -->
+<div class="adm-velo" *ngIf="panelAbierto" (click)="cerrarPanel()"></div>
+
+<aside class="adm-panel" *ngIf="panelAbierto && editando">
+  <div class="adm-panel__cabecera">
+    <h2 class="adm-tarjeta__titulo">
+      <i class="bi" [ngClass]="editando.tipo === 'empresa' ? 'bi-building' : 'bi-person'"></i>
+      {{ editando.tipo === 'empresa' ? 'Editar empresa' : 'Editar cliente' }}
+    </h2>
+    <button type="button" class="adm-btn-icono" (click)="cerrarPanel()" aria-label="Cerrar">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="adm-panel__cuerpo">
+    <div class="adm-aviso adm-aviso--info">
+      <i class="bi bi-info-circle"></i>
+      <span>
+        El documento no se puede cambiar: identifica al cliente ante SUNAT.
+        <strong>{{ editando.tipo === 'empresa' ? editando.ruc : editando.dni }}</strong>
+      </span>
+    </div>
+
+    <!-- Persona -->
+    <ng-container *ngIf="editando.tipo === 'cliente'">
+      <div class="adm-campo cli-espaciado">
+        <label class="adm-etiqueta" for="p-nombre">Nombres</label>
+        <input id="p-nombre" class="adm-input" type="text" [(ngModel)]="formularioPersona.nombre">
+      </div>
+
+      <div class="adm-fila cli-espaciado">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="p-paterno">Apellido paterno</label>
+          <input id="p-paterno" class="adm-input" type="text" [(ngModel)]="formularioPersona.apellido_paterno">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="p-materno">Apellido materno</label>
+          <input id="p-materno" class="adm-input" type="text" [(ngModel)]="formularioPersona.apellido_materno">
+        </div>
+      </div>
+
+      <div class="adm-fila cli-espaciado">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="p-telefono">Teléfono</label>
+          <input id="p-telefono" class="adm-input" type="tel" [(ngModel)]="formularioPersona.telefono">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="p-email">Correo</label>
+          <input id="p-email" class="adm-input" type="email" [(ngModel)]="formularioPersona.email">
+          <span class="adm-ayuda">Se usa para enviarle el comprobante.</span>
+        </div>
+      </div>
+
+      <div class="adm-campo cli-espaciado">
+        <label class="adm-etiqueta" for="p-direccion">Dirección</label>
+        <input id="p-direccion" class="adm-input" type="text" [(ngModel)]="formularioPersona.direccion">
+      </div>
+    </ng-container>
+
+    <!-- Empresa -->
+    <ng-container *ngIf="editando.tipo === 'empresa'">
+      <div class="adm-campo cli-espaciado">
+        <label class="adm-etiqueta" for="e-razon">Razón social</label>
+        <input id="e-razon" class="adm-input" type="text" [(ngModel)]="formularioEmpresa.razon_social">
+      </div>
+
+      <div class="adm-campo cli-espaciado">
+        <label class="adm-etiqueta" for="e-comercial">Nombre comercial</label>
+        <input id="e-comercial" class="adm-input" type="text" [(ngModel)]="formularioEmpresa.nombre_comercial">
+      </div>
+
+      <div class="adm-fila cli-espaciado">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="e-telefonos">Teléfonos</label>
+          <input id="e-telefonos" class="adm-input" type="text" [(ngModel)]="formularioEmpresa.telefonos">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="e-departamento">Departamento</label>
+          <input id="e-departamento" class="adm-input" type="text" [(ngModel)]="formularioEmpresa.departamento">
+        </div>
+      </div>
+
+      <div class="adm-fila cli-espaciado">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="e-provincia">Provincia</label>
+          <input id="e-provincia" class="adm-input" type="text" [(ngModel)]="formularioEmpresa.provincia">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="e-distrito">Distrito</label>
+          <input id="e-distrito" class="adm-input" type="text" [(ngModel)]="formularioEmpresa.distrito">
+        </div>
+      </div>
+
+      <div class="adm-campo cli-espaciado">
+        <label class="adm-etiqueta" for="e-direccion">Dirección fiscal</label>
+        <input id="e-direccion" class="adm-input" type="text" [(ngModel)]="formularioEmpresa.direccion">
+      </div>
+    </ng-container>
+  </div>
+
+  <div class="adm-panel__pie">
+    <button type="button" class="adm-btn adm-btn--suave" (click)="cerrarPanel()" [disabled]="guardando">
+      Cancelar
+    </button>
+    <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+      <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
+      Guardar cambios
+    </button>
+  </div>
+</aside>

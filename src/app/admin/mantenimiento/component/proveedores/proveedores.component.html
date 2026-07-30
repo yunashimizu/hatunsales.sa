@@ -1,0 +1,137 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Proveedores</h1>
+      <p class="adm-cabecera__sub">
+        Catálogo de proveedores para recepciones de mercadería. Puedes cargar datos por RUC (SUNAT).
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
+        Actualizar
+      </button>
+      <button type="button" class="adm-btn adm-btn--primario" (click)="nuevo()">
+        <i class="bi bi-plus-lg"></i> Nuevo
+      </button>
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/recepcion">
+        <i class="bi bi-box-seam"></i> Ir a recepción
+      </a>
+    </div>
+  </header>
+
+  <section class="adm-grid adm-grid--3">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"><i class="bi bi-truck"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ proveedores.length }}</div>
+        <div class="adm-metrica__etiqueta">Proveedores</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo">
+        <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+        {{ editandoId ? 'Editar proveedor' : 'Crear proveedor' }}
+      </h2>
+    </div>
+    <div class="adm-tarjeta__cuerpo">
+      <div class="adm-fila">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="prov-ruc">RUC</label>
+          <div class="adm-acciones" style="gap:.5rem;align-items:stretch">
+            <input id="prov-ruc" class="adm-input" type="text" maxlength="11"
+                   [(ngModel)]="modelo.ruc" placeholder="20123456789" style="flex:1">
+            <button type="button" class="adm-btn adm-btn--suave" (click)="buscarRuc()"
+                    [disabled]="consultandoRuc">
+              {{ consultandoRuc ? '…' : 'SUNAT' }}
+            </button>
+          </div>
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="prov-nombre">Nombre / razón social</label>
+          <input id="prov-nombre" class="adm-input" type="text" [(ngModel)]="modelo.nombre"
+                 placeholder="Distribuidora …">
+        </div>
+      </div>
+      <div class="adm-fila">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="prov-tel">Teléfono</label>
+          <input id="prov-tel" class="adm-input" type="text" [(ngModel)]="modelo.telefono">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="prov-email">Email</label>
+          <input id="prov-email" class="adm-input" type="email" [(ngModel)]="modelo.email">
+        </div>
+      </div>
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="prov-dir">Dirección</label>
+        <input id="prov-dir" class="adm-input" type="text" [(ngModel)]="modelo.direccion">
+      </div>
+      <div class="adm-acciones" style="margin-top:1rem">
+        <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+          {{ guardando ? 'Guardando…' : (editandoId ? 'Actualizar' : 'Crear') }}
+        </button>
+        <button type="button" class="adm-btn adm-btn--suave" *ngIf="editandoId" (click)="cancelar()">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Lista</h2>
+      <span class="adm-insignia adm-insignia--neutra">{{ proveedores.length }}</span>
+    </div>
+
+    <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !proveedores.length">
+      <div class="adm-esqueleto" *ngFor="let n of [1,2,3]"></div>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargando && !proveedores.length">
+      <div class="adm-vacio__icono"><i class="bi bi-truck"></i></div>
+      <div class="adm-vacio__titulo">No hay proveedores</div>
+      <p>Crea el primero o búscalo por RUC.</p>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="proveedores.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th>Proveedor</th>
+            <th>RUC</th>
+            <th>Contacto</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of proveedores; trackBy: identificarProveedor" [class.adm-recien-creado]="idDestacado === p.id_proveedor">
+            <td data-etiqueta="Proveedor">
+              <div class="adm-tabla__principal">{{ p.nombre }}</div>
+              <div class="adm-ayuda" *ngIf="p.direccion">{{ p.direccion }}</div>
+            </td>
+            <td data-etiqueta="RUC">{{ p.ruc || '—' }}</td>
+            <td data-etiqueta="Contacto">
+              <div>{{ p.telefono || '—' }}</div>
+              <div class="adm-ayuda">{{ p.email }}</div>
+            </td>
+            <td data-etiqueta="Acciones">
+              <div class="adm-acciones">
+                <button type="button" class="adm-btn adm-btn--suave" (click)="editar(p)">
+                  <i class="bi bi-pencil"></i> Editar
+                </button>
+                <button type="button" class="adm-btn adm-btn--suave" (click)="eliminar(p)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

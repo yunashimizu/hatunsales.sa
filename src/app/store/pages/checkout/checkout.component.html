@@ -1,0 +1,373 @@
+<div class="contenedor">
+
+  <nav class="migas" aria-label="Ruta de navegación">
+    <a routerLink="/store/carrito">Carrito</a>
+    <i class="bi bi-chevron-right"></i>
+    <span>Finalizar compra</span>
+  </nav>
+
+  <h1>Finalizar compra</h1>
+
+  <!-- Progreso -->
+  <ol class="progreso" aria-label="Pasos del checkout">
+    <li
+      *ngFor="let p of pasos"
+      [class.actual]="p.numero === paso"
+      [class.completado]="p.numero < paso"
+      [attr.aria-current]="p.numero === paso ? 'step' : null">
+      <button type="button" (click)="irAPaso(p.numero)" [disabled]="p.numero >= paso">
+        <span class="circulo">
+          <i class="bi" [class]="p.numero < paso ? 'bi-check-lg' : p.icono"></i>
+        </span>
+        <span class="rotulo">{{ p.titulo }}</span>
+      </button>
+    </li>
+  </ol>
+
+  <div class="disposicion" *ngIf="!cargando">
+
+    <section class="panel">
+
+      <!-- Paso 1: datos -->
+      <div class="paso" *ngIf="paso === 1">
+        <h2>Tus datos</h2>
+        <p class="ayuda">Usaremos esta información para emitir tu comprobante.</p>
+
+        <div class="campos">
+          <label class="campo">
+            <span>Nombre completo *</span>
+            <input type="text" [(ngModel)]="datos.nombre" placeholder="Ej. Ana Quispe Rojas" />
+          </label>
+
+          <label class="campo">
+            <span>Correo electrónico</span>
+            <input type="email" [(ngModel)]="datos.email" placeholder="tucorreo@ejemplo.com" />
+          </label>
+
+          <label class="campo">
+            <span>Teléfono</span>
+            <input type="tel" [(ngModel)]="datos.telefono" placeholder="999 999 999" />
+          </label>
+
+          <div class="campo">
+            <span>Tipo de comprobante</span>
+            <div class="opciones-linea">
+              <button type="button" [class.activo]="datos.tipo_comprobante === 'boleta'" (click)="datos.tipo_comprobante = 'boleta'">
+                <i class="bi bi-receipt"></i>Boleta
+              </button>
+              <button type="button" [class.activo]="datos.tipo_comprobante === 'factura'" (click)="datos.tipo_comprobante = 'factura'">
+                <i class="bi bi-building"></i>Factura
+              </button>
+            </div>
+          </div>
+
+          <label class="campo">
+            <span>{{ datos.tipo_comprobante === 'factura' ? 'RUC *' : 'DNI' }}</span>
+            <input
+              type="text"
+              [(ngModel)]="datos.documento"
+              [maxlength]="datos.tipo_comprobante === 'factura' ? 11 : 8"
+              [placeholder]="datos.tipo_comprobante === 'factura' ? '20123456789' : '12345678'" />
+          </label>
+
+          <label class="campo ancho" *ngIf="datos.tipo_comprobante === 'factura'">
+            <span>Razón social *</span>
+            <input type="text" [(ngModel)]="datos.razon_social" placeholder="Nombre de la empresa" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Paso 2: dirección -->
+      <div class="paso" *ngIf="paso === 2">
+        <h2>Dirección de entrega</h2>
+        <p class="ayuda">Elige dónde quieres recibir tu pedido.</p>
+
+        <div class="tarjetas" *ngIf="direcciones.length > 0">
+          <button
+            type="button"
+            class="tarjeta-opcion"
+            *ngFor="let d of direcciones"
+            [class.activa]="idDireccion === d.id_direccion"
+            (click)="idDireccion = d.id_direccion">
+            <span class="radio"></span>
+            <span class="detalle">
+              <strong>{{ d.alias || 'Dirección' }}<span class="etiqueta-mini" *ngIf="d.es_predeterminada">Predeterminada</span></strong>
+              <small>{{ textoDireccion(d) }}</small>
+              <small *ngIf="d.referencia">Ref: {{ d.referencia }}</small>
+              <small *ngIf="d.destinatario">Recibe: {{ d.destinatario }} <span *ngIf="d.telefono">· {{ d.telefono }}</span></small>
+            </span>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="boton-secundario"
+          *ngIf="!mostrarFormularioDireccion"
+          (click)="mostrarFormularioDireccion = true">
+          <i class="bi bi-plus-lg"></i>Agregar nueva dirección
+        </button>
+
+        <div class="formulario" *ngIf="mostrarFormularioDireccion">
+          <h3>Nueva dirección</h3>
+
+          <div class="campos">
+            <label class="campo">
+              <span>Alias</span>
+              <input type="text" [(ngModel)]="nuevaDireccion.alias" placeholder="Casa, oficina, obra…" />
+            </label>
+            <label class="campo">
+              <span>Quién recibe</span>
+              <input type="text" [(ngModel)]="nuevaDireccion.destinatario" placeholder="Nombre del destinatario" />
+            </label>
+            <label class="campo">
+              <span>Teléfono de contacto</span>
+              <input type="tel" [(ngModel)]="nuevaDireccion.telefono" placeholder="999 999 999" />
+            </label>
+            <label class="campo">
+              <span>Departamento</span>
+              <input type="text" [(ngModel)]="nuevaDireccion.departamento" placeholder="Lima" />
+            </label>
+            <label class="campo">
+              <span>Provincia</span>
+              <input type="text" [(ngModel)]="nuevaDireccion.provincia" placeholder="Lima" />
+            </label>
+            <label class="campo">
+              <span>Distrito</span>
+              <input type="text" [(ngModel)]="nuevaDireccion.distrito" placeholder="San Miguel" />
+            </label>
+            <label class="campo ancho">
+              <span>Dirección *</span>
+              <input type="text" [(ngModel)]="nuevaDireccion.direccion" placeholder="Av. La Marina 1234, Dpto. 501" />
+            </label>
+            <label class="campo ancho">
+              <span>Referencia</span>
+              <input type="text" [(ngModel)]="nuevaDireccion.referencia" placeholder="Frente al parque, portón azul" />
+            </label>
+          </div>
+
+          <div class="acciones-formulario">
+            <button type="button" class="boton-primario" (click)="guardarDireccion()" [disabled]="guardandoDireccion">
+              {{ guardandoDireccion ? 'Guardando…' : 'Guardar dirección' }}
+            </button>
+            <button type="button" class="boton-texto" *ngIf="direcciones.length > 0" (click)="mostrarFormularioDireccion = false">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Paso 3: envío -->
+      <div class="paso" *ngIf="paso === 3">
+        <h2>Método de envío</h2>
+        <p class="ayuda">Elige cómo quieres recibir tu pedido.</p>
+
+        <div class="tarjetas">
+          <button
+            type="button"
+            class="tarjeta-opcion"
+            *ngFor="let m of metodosEnvio"
+            [class.activa]="idMetodoEnvio === m.id_metodo_envio"
+            (click)="idMetodoEnvio = m.id_metodo_envio">
+            <span class="radio"></span>
+            <span class="detalle">
+              <strong>{{ m.nombre }}</strong>
+              <small>{{ m.descripcion }}</small>
+              <small class="entrega"><i class="bi bi-clock"></i>{{ entregaEstimada(m) }}</small>
+            </span>
+            <span class="costo">{{ m.costo > 0 ? ('S/ ' + (m.costo | number: '1.2-2')) : 'Gratis' }}</span>
+          </button>
+        </div>
+
+        <p class="nota" *ngIf="metodosEnvio.length === 0">
+          <i class="bi bi-info-circle"></i>
+          No hay métodos de envío configurados. Ejecuta la migración de la base de datos para cargarlos.
+        </p>
+      </div>
+
+      <!-- Paso 4: pago -->
+      <div class="paso" *ngIf="paso === 4">
+        <h2>Método de pago</h2>
+        <p class="ayuda">Tu pago se procesa de forma segura.</p>
+
+        <div class="tarjetas">
+          <button
+            type="button"
+            class="tarjeta-opcion"
+            *ngFor="let m of metodosPago"
+            [class.activa]="idMetodoPago === m.id_metodo"
+            (click)="elegirPago(m)">
+            <span class="radio"></span>
+            <span class="icono-pago"><i class="bi" [class]="iconoPago(m)"></i></span>
+            <span class="detalle">
+              <strong>{{ m.nombre }}</strong>
+              <small>{{ m.descripcion }}</small>
+            </span>
+          </button>
+        </div>
+
+        <!-- Panel tarjeta (estilo store): Culqi abre al confirmar -->
+        <div class="panel-tarjeta" *ngIf="eligeTarjeta">
+          <div class="panel-tarjeta__cabecera">
+            <i class="bi bi-credit-card-2-front"></i>
+            <div>
+              <strong>Datos de tarjeta</strong>
+              <small *ngIf="pasarelaLista">
+                Al confirmar el pedido se abrirá la ventana segura de {{ pasarela.proveedor | titlecase }}.
+              </small>
+              <small *ngIf="!pasarelaLista">
+                El pago con tarjeta aún no está configurado en este entorno.
+              </small>
+            </div>
+          </div>
+
+          <div class="panel-tarjeta__mock" *ngIf="pasarelaLista" aria-hidden="true">
+            <div class="campo">
+              <span>Número de tarjeta</span>
+              <div class="campo-falso"><i class="bi bi-lock-fill"></i> Se ingresa en {{ pasarela.proveedor | titlecase }}</div>
+            </div>
+            <div class="campos-tarjeta">
+              <div class="campo">
+                <span>Vencimiento</span>
+                <div class="campo-falso">MM / AA</div>
+              </div>
+              <div class="campo">
+                <span>CVV</span>
+                <div class="campo-falso">•••</div>
+              </div>
+            </div>
+            <div class="campo">
+              <span>Nombre en la tarjeta</span>
+              <div class="campo-falso">Como aparece en tu tarjeta</div>
+            </div>
+          </div>
+
+          <p class="nota" *ngIf="pasarelaLista">
+            <i class="bi bi-shield-lock"></i>
+            Tus datos de tarjeta van cifrados directo a la pasarela. HatunSales no los guarda.
+          </p>
+
+          <p class="nota nota--aviso" *ngIf="!pasarelaLista">
+            <i class="bi bi-exclamation-triangle"></i>
+            Puedes elegir Yape, transferencia u otro método, o configurar Culqi en el servidor para cobrar con tarjeta.
+          </p>
+        </div>
+
+        <p class="nota" *ngIf="!eligeTarjeta && pagoSeleccionado">
+          <i class="bi bi-info-circle"></i>
+          Registraremos tu pedido y validaremos el pago de {{ pagoSeleccionado.nombre }} antes de prepararlo.
+        </p>
+
+        <label class="campo ancho notas">
+          <span>Notas para el pedido (opcional)</span>
+          <textarea [(ngModel)]="notas" rows="3" placeholder="Horario de entrega preferido, indicaciones especiales…"></textarea>
+        </label>
+      </div>
+
+      <!-- Paso 5: confirmación -->
+      <div class="paso" *ngIf="paso === 5">
+        <h2>Revisa y confirma</h2>
+        <p class="ayuda">Verifica que todo esté correcto antes de cerrar la compra.</p>
+
+        <div class="revision">
+          <div class="bloque-revision">
+            <span class="rotulo-revision">Comprobante</span>
+            <strong>{{ datos.tipo_comprobante === 'factura' ? 'Factura' : 'Boleta' }} · {{ datos.nombre }}</strong>
+            <small *ngIf="datos.documento">{{ datos.tipo_comprobante === 'factura' ? 'RUC' : 'DNI' }} {{ datos.documento }}</small>
+            <button type="button" class="editar" (click)="irAPaso(1)">Editar</button>
+          </div>
+
+          <div class="bloque-revision" *ngIf="!esRecojoEnTienda && direccionSeleccionada">
+            <span class="rotulo-revision">Entrega</span>
+            <strong>{{ direccionSeleccionada.alias || 'Dirección' }}</strong>
+            <small>{{ textoDireccion(direccionSeleccionada) }}</small>
+            <button type="button" class="editar" (click)="irAPaso(2)">Editar</button>
+          </div>
+
+          <div class="bloque-revision">
+            <span class="rotulo-revision">Envío</span>
+            <strong>{{ envioSeleccionado?.nombre }}</strong>
+            <small *ngIf="envioSeleccionado">{{ entregaEstimada(envioSeleccionado) }}</small>
+            <button type="button" class="editar" (click)="irAPaso(3)">Editar</button>
+          </div>
+
+          <div class="bloque-revision">
+            <span class="rotulo-revision">Pago</span>
+            <strong>{{ pagoSeleccionado?.nombre }}</strong>
+            <small>{{ pagoSeleccionado?.descripcion }}</small>
+            <button type="button" class="editar" (click)="irAPaso(4)">Editar</button>
+          </div>
+        </div>
+
+        <div class="productos-revision">
+          <span class="rotulo-revision">{{ carrito.cantidad_items }} productos</span>
+          <div class="fila-producto" *ngFor="let item of carrito.items">
+            <img [src]="imagen(item)" [alt]="item.nombre" loading="lazy" />
+            <span class="nombre">{{ item.nombre }}</span>
+            <span class="cant">×{{ item.cantidad }}</span>
+            <span class="monto">S/ {{ item.subtotal | number: '1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navegación -->
+      <div class="navegacion">
+        <button type="button" class="boton-texto" (click)="anterior()" *ngIf="paso > 1">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+        <a class="boton-texto" routerLink="/store/carrito" *ngIf="paso === 1">
+          <i class="bi bi-arrow-left"></i>Volver al carrito
+        </a>
+
+        <button type="button" class="boton-primario" (click)="siguiente()" *ngIf="paso < 5">
+          Continuar<i class="bi bi-arrow-right"></i>
+        </button>
+
+        <button type="button" class="boton-primario confirmar" (click)="confirmarPedido()" *ngIf="paso === 5" [disabled]="procesando">
+          <i class="bi bi-shield-check"></i>{{ procesando ? 'Procesando…' : 'Confirmar pedido' }}
+        </button>
+      </div>
+    </section>
+
+    <!-- Resumen -->
+    <aside class="resumen">
+      <h2>Resumen</h2>
+
+      <div class="mini-lista">
+        <div class="mini-item" *ngFor="let item of carrito.items">
+          <img [src]="imagen(item)" [alt]="item.nombre" loading="lazy" />
+          <span class="mini-nombre">{{ item.nombre }}</span>
+          <span class="mini-cant">×{{ item.cantidad }}</span>
+        </div>
+      </div>
+
+      <div class="linea">
+        <span>Valor de venta</span>
+        <span>S/ {{ carrito.subtotal | number: '1.2-2' }}</span>
+      </div>
+      <div class="linea">
+        <span>IGV (18%)</span>
+        <span>S/ {{ carrito.igv | number: '1.2-2' }}</span>
+      </div>
+      <div class="linea descuento" *ngIf="descuento > 0">
+        <span>Cupón {{ cupon?.codigo }}</span>
+        <span>− S/ {{ descuento | number: '1.2-2' }}</span>
+      </div>
+      <div class="linea">
+        <span>Envío</span>
+        <span>{{ costoEnvio > 0 ? ('S/ ' + (costoEnvio | number: '1.2-2')) : 'Gratis' }}</span>
+      </div>
+
+      <div class="linea total">
+        <span>Total</span>
+        <span>S/ {{ total | number: '1.2-2' }}</span>
+      </div>
+
+      <p class="seguridad"><i class="bi bi-lock-fill"></i>Compra protegida y datos cifrados</p>
+    </aside>
+  </div>
+
+  <div class="cargando" *ngIf="cargando">
+    <div class="esqueleto bloque"></div>
+    <div class="esqueleto lateral"></div>
+  </div>
+</div>

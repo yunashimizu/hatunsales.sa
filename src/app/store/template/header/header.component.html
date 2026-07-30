@@ -1,0 +1,134 @@
+<div class="franja">
+  <div class="contenedor franja-contenido">
+    <span><i class="bi bi-truck"></i>Envío gratis en compras mayores a S/ 250</span>
+    <span class="oculta-movil"><i class="bi bi-shield-check"></i>Garantía oficial en todas las marcas</span>
+    <span class="oculta-movil"><i class="bi bi-headset"></i>Asesoría técnica especializada</span>
+    <a class="franja-acceso" routerLink="/auth" title="Login de personal (admin, caja, vendedor)">
+      <i class="bi bi-briefcase"></i>Acceso personal
+    </a>
+  </div>
+</div>
+
+<header class="cabecera" [class.compacta]="compacto">
+  <div class="contenedor barra">
+
+    <a class="logo" routerLink="/store" (click)="cerrarTodo()">
+      <span class="logo-marca"><i class="bi bi-tools"></i></span>
+      <span class="logo-texto">
+        <strong>HatunSales</strong>
+        <small>Ferretería y construcción</small>
+      </span>
+    </a>
+
+    <div class="buscador">
+      <i class="bi bi-search icono-buscar"></i>
+
+      <input
+        type="search"
+        [(ngModel)]="termino"
+        (input)="alEscribir()"
+        (keyup.enter)="buscar()"
+        placeholder="Busca por nombre, SKU, código o marca…"
+        aria-label="Buscar productos"
+        autocomplete="off" />
+
+      <i class="bi bi-arrow-repeat girando icono-cargando" *ngIf="buscando"></i>
+
+      <div class="sugerencias" *ngIf="sugerencias.length > 0" role="listbox">
+        <button type="button" class="sugerencia" *ngFor="let p of sugerencias" (click)="irAProducto(p)" role="option">
+          <img [src]="imagen(p)" [alt]="p.nombre" loading="lazy" />
+          <span class="info">
+            <span class="nombre">{{ p.nombre }}</span>
+            <span class="meta">{{ p.marca || p.categoria || 'Producto' }}</span>
+          </span>
+          <span class="precio">S/ {{ p.precio_final | number: '1.2-2' }}</span>
+        </button>
+
+        <button type="button" class="ver-todo" (click)="buscar()">
+          Ver todos los resultados de "{{ termino }}"<i class="bi bi-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <nav class="iconos" aria-label="Acciones de cuenta">
+      <a class="icono-boton" routerLink="/store/favoritos" aria-label="Favoritos" *ngIf="autenticado">
+        <i class="bi bi-heart"></i>
+        <span class="globo" *ngIf="favoritos > 0">{{ favoritos }}</span>
+        <span class="etiqueta-icono">Favoritos</span>
+      </a>
+
+      <div class="cuenta">
+        <button type="button" class="icono-boton" (click)="alternarCuenta()" [attr.aria-expanded]="menuCuentaAbierto">
+          <i class="bi bi-person"></i>
+          <span class="etiqueta-icono">{{ autenticado ? (nombreUsuario || 'Mi cuenta') : 'Ingresar' }}</span>
+        </button>
+
+        <div class="desplegable" *ngIf="menuCuentaAbierto">
+          <ng-container *ngIf="autenticado; else invitado">
+            <span class="saludo">Hola, {{ nombreUsuario || 'cliente' }}</span>
+            <a routerLink="/store/perfil" (click)="cerrarTodo()"><i class="bi bi-person-gear"></i>Mi cuenta</a>
+            <a routerLink="/store/pedidos" (click)="cerrarTodo()"><i class="bi bi-box-seam"></i>Mis pedidos</a>
+            <a routerLink="/store/favoritos" (click)="cerrarTodo()"><i class="bi bi-heart"></i>Favoritos</a>
+            <a routerLink="/store/contacto" (click)="cerrarTodo()"><i class="bi bi-geo-alt"></i>Contacto</a>
+            <button type="button" class="salir" (click)="cerrarSesion()"><i class="bi bi-box-arrow-right"></i>Cerrar sesión</button>
+          </ng-container>
+
+          <ng-template #invitado>
+            <span class="saludo">Bienvenido</span>
+            <a routerLink="/auth" (click)="cerrarTodo()"><i class="bi bi-box-arrow-in-right"></i>Iniciar sesión</a>
+            <a routerLink="/auth/registro" (click)="cerrarTodo()"><i class="bi bi-person-plus"></i>Crear cuenta</a>
+            <a routerLink="/auth" class="acceso-personal" (click)="cerrarTodo()">
+              <i class="bi bi-briefcase"></i>Acceso personal
+            </a>
+          </ng-template>
+        </div>
+      </div>
+
+      <button type="button" class="icono-boton carrito" (click)="abrirCarrito()" aria-label="Abrir carrito">
+        <i class="bi bi-bag"></i>
+        <span class="globo" *ngIf="cantidadCarrito > 0">{{ cantidadCarrito }}</span>
+        <span class="etiqueta-icono">Carrito</span>
+      </button>
+
+      <button type="button" class="hamburguesa" (click)="alternarMenu()" aria-label="Abrir menú">
+        <i class="bi" [class.bi-list]="!menuAbierto" [class.bi-x-lg]="menuAbierto"></i>
+      </button>
+    </nav>
+  </div>
+
+  <nav class="navegacion" [class.abierta]="menuAbierto" aria-label="Categorías">
+    <div class="contenedor nav-contenido">
+
+      <div class="mega">
+        <button type="button" class="boton-mega" (click)="alternarMega()" [attr.aria-expanded]="megaMenuAbierto">
+          <i class="bi bi-grid-3x3-gap-fill"></i>Categorías<i class="bi bi-chevron-down mini"></i>
+        </button>
+
+        <div class="mega-panel" *ngIf="megaMenuAbierto">
+          <a
+            *ngFor="let cat of categorias"
+            [routerLink]="['/store/catalogo']"
+            [queryParams]="{ categoria: cat.id_categoria }"
+            (click)="cerrarTodo()">
+            <i class="bi" [class]="cat.icono || 'bi-tag'"></i>
+            <span>
+              <strong>{{ cat.nombre }}</strong>
+              <small>{{ cat.total_productos }} productos</small>
+            </span>
+          </a>
+
+          <span class="mega-vacio" *ngIf="categorias.length === 0">Aún no hay categorías registradas</span>
+        </div>
+      </div>
+
+      <a routerLink="/store" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }" (click)="cerrarTodo()">Inicio</a>
+      <a routerLink="/store/catalogo" routerLinkActive="activo" (click)="cerrarTodo()">Catálogo</a>
+      <a [routerLink]="['/store/catalogo']" [queryParams]="{ oferta: 1 }" (click)="cerrarTodo()" class="destacado">
+        <i class="bi bi-fire"></i>Ofertas
+      </a>
+      <a routerLink="/store/contacto" routerLinkActive="activo" (click)="cerrarTodo()">Contacto</a>
+      <a routerLink="/store/perfil" routerLinkActive="activo" (click)="cerrarTodo()" *ngIf="autenticado">Mi cuenta</a>
+      <a routerLink="/store/pedidos" routerLinkActive="activo" (click)="cerrarTodo()" *ngIf="autenticado">Mis pedidos</a>
+    </div>
+  </nav>
+</header>

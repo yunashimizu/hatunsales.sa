@@ -1,0 +1,60 @@
+<section
+  class="hero"
+  *ngIf="slides.length > 0"
+  (mouseenter)="pausar()"
+  (mouseleave)="reanudar()"
+  (focusin)="pausar()"
+  (focusout)="reanudar()"
+  aria-roledescription="carrusel"
+  aria-label="Promociones destacadas">
+
+  <div class="pistas">
+    <div
+      class="pista"
+      *ngFor="let s of slides; let i = index"
+      [class.activa]="i === actual"
+      [attr.aria-hidden]="i !== actual">
+
+      <div class="fondo" [style.background-image]="s.imagen_url ? 'url(' + s.imagen_url + ')' : null"></div>
+      <div class="velo"></div>
+
+      <div class="contenido">
+        <span class="etiqueta" *ngIf="s.etiqueta">
+          <i class="bi bi-lightning-charge-fill"></i>{{ s.etiqueta }}
+        </span>
+
+        <h1 class="titulo">{{ s.titulo }}</h1>
+        <p class="subtitulo" *ngIf="s.subtitulo">{{ s.subtitulo }}</p>
+
+        <div class="acciones" *ngIf="s.cta_texto">
+          <button type="button" class="cta" (click)="irACta()">
+            {{ s.cta_texto }}<i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-container *ngIf="slides.length > 1">
+    <button type="button" class="flecha izq" (click)="anterior()" aria-label="Promoción anterior">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+
+    <button type="button" class="flecha der" (click)="siguiente()" aria-label="Promoción siguiente">
+      <i class="bi bi-chevron-right"></i>
+    </button>
+
+    <div class="puntos" role="tablist" aria-label="Seleccionar promoción">
+      <button
+        type="button"
+        *ngFor="let s of slides; let i = index"
+        class="punto"
+        [class.activo]="i === actual"
+        role="tab"
+        [attr.aria-selected]="i === actual"
+        [attr.aria-label]="'Promoción ' + (i + 1)"
+        (click)="ir(i)">
+      </button>
+    </div>
+  </ng-container>
+</section>

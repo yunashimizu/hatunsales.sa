@@ -1,0 +1,134 @@
+<div class="contenedor">
+
+  <nav class="migas" aria-label="Ruta de navegación">
+    <a routerLink="/store">Inicio</a>
+    <i class="bi bi-chevron-right"></i>
+    <span>Carrito</span>
+  </nav>
+
+  <h1>Tu carrito</h1>
+
+  <div class="vacio" *ngIf="!cargando && carrito.items.length === 0">
+    <div class="ilustracion"><i class="bi bi-bag"></i></div>
+    <h2>Todavía no agregaste nada</h2>
+    <p>Explora el catálogo y arma tu pedido con las herramientas y materiales que necesitas.</p>
+    <a class="boton-primario" routerLink="/store/catalogo">Ir al catálogo<i class="bi bi-arrow-right"></i></a>
+  </div>
+
+  <div class="disposicion" *ngIf="carrito.items.length > 0">
+
+    <section class="lista">
+      <div class="lista-cabecera">
+        <span>{{ carrito.cantidad_items }} {{ carrito.cantidad_items === 1 ? 'producto' : 'productos' }}</span>
+        <button type="button" class="vaciar" (click)="vaciar()"><i class="bi bi-trash3"></i>Vaciar carrito</button>
+      </div>
+
+      <div class="aviso" *ngIf="hayProblemasDeStock">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        Algunos productos superan el stock disponible. Ajusta las cantidades para continuar.
+      </div>
+
+      <article class="fila" *ngFor="let item of carrito.items" [class.ocupado]="itemOcupado === item.id_item">
+        <a class="miniatura" [routerLink]="['/store/producto', item.id_producto]">
+          <img [src]="imagen(item)" [alt]="item.nombre" loading="lazy" />
+        </a>
+
+        <div class="info">
+          <span class="marca" *ngIf="item.marca">{{ item.marca }}</span>
+          <a class="nombre" [routerLink]="['/store/producto', item.id_producto]">{{ item.nombre }}</a>
+          <span class="unitario">S/ {{ item.precio_unitario | number: '1.2-2' }} c/u</span>
+
+          <span class="alerta-stock" *ngIf="item.excede_stock">
+            <i class="bi bi-exclamation-triangle-fill"></i>Solo quedan {{ item.stock_disponible }} unidades
+          </span>
+        </div>
+
+        <div class="cantidad">
+          <button type="button" (click)="cambiar(item, -1)" [disabled]="item.cantidad <= 1" aria-label="Quitar una unidad">
+            <i class="bi bi-dash"></i>
+          </button>
+          <span>{{ item.cantidad }}</span>
+          <button type="button" (click)="cambiar(item, 1)" aria-label="Agregar una unidad">
+            <i class="bi bi-plus"></i>
+          </button>
+        </div>
+
+        <span class="subtotal">S/ {{ item.subtotal | number: '1.2-2' }}</span>
+
+        <button type="button" class="quitar" (click)="quitar(item)" aria-label="Quitar del carrito">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </article>
+
+      <a class="seguir" routerLink="/store/catalogo"><i class="bi bi-arrow-left"></i>Seguir comprando</a>
+    </section>
+
+    <aside class="resumen">
+      <h2>Resumen del pedido</h2>
+
+      <div class="cupon">
+        <div class="cupon-campo" *ngIf="!cupon">
+          <input
+            type="text"
+            [(ngModel)]="codigoCupon"
+            (keyup.enter)="aplicarCupon()"
+            placeholder="Código de cupón"
+            aria-label="Código de cupón" />
+          <button type="button" (click)="aplicarCupon()" [disabled]="validandoCupon || !codigoCupon.trim()">
+            {{ validandoCupon ? '…' : 'Aplicar' }}
+          </button>
+        </div>
+
+        <div class="cupon-activo" *ngIf="cupon">
+          <span><i class="bi bi-ticket-perforated-fill"></i>{{ cupon.codigo }}</span>
+          <button type="button" (click)="quitarCupon()" aria-label="Quitar cupón"><i class="bi bi-x-lg"></i></button>
+        </div>
+      </div>
+
+      <div class="linea">
+        <span>Valor de venta</span>
+        <span>S/ {{ carrito.subtotal | number: '1.2-2' }}</span>
+      </div>
+      <div class="linea">
+        <span>IGV (18%)</span>
+        <span>S/ {{ carrito.igv | number: '1.2-2' }}</span>
+      </div>
+      <div class="linea descuento" *ngIf="descuento > 0">
+        <span>Descuento</span>
+        <span>− S/ {{ descuento | number: '1.2-2' }}</span>
+      </div>
+      <div class="linea envio">
+        <span>Envío</span>
+        <span>Se calcula al finalizar</span>
+      </div>
+
+      <div class="linea total">
+        <span>Total</span>
+        <span>S/ {{ totalFinal | number: '1.2-2' }}</span>
+      </div>
+
+      <button type="button" class="boton-primario ancho" (click)="continuar()">
+        Continuar con la compra<i class="bi bi-arrow-right"></i>
+      </button>
+
+      <ul class="garantias">
+        <li><i class="bi bi-shield-lock"></i>Pago 100% seguro</li>
+        <li><i class="bi bi-truck"></i>Envío a todo el Perú</li>
+        <li><i class="bi bi-arrow-repeat"></i>Cambios dentro de 7 días</li>
+      </ul>
+    </aside>
+  </div>
+
+  <section class="sugeridos" *ngIf="sugeridos.length > 0 && carrito.items.length > 0">
+    <h2>También te puede interesar</h2>
+    <div class="grilla">
+      <app-producto-card
+        *ngFor="let p of sugeridos"
+        [producto]="p"
+        [esFavorito]="esFavorito(p)"
+        (agregar)="agregarSugerido($event)"
+        (alternarFavorito)="alternarFavorito($event)">
+      </app-producto-card>
+    </div>
+  </section>
+</div>

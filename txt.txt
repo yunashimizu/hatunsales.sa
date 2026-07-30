@@ -1,0 +1,78 @@
+Lo que falta desde mi punto de vista
+El flujo ya está bastante avanzado, pero para que quede realmente "listo para usar" faltan estas cosas importantes:
+
+1. Autenticación completa en el frontend
+El login ya está conectado, pero todavía hay que validar que:
+el token se guarde y se reutilice bien,
+las rutas protegidas respondan correctamente,
+los roles de admin/vendedor/caja funcionen de forma consistente.
+2. Integración real de creación de comprobantes
+Ahora la UI manda al backend, pero conviene probar:
+boleta,
+factura,
+proforma,
+y verificar que el backend devuelva respuestas correctas y claras.
+3. Mejor manejo de errores y feedback
+Falta mostrar mensajes más claros cuando:
+no hay conexión con el backend,
+el cliente no existe,
+SUNAT falla,
+el comprobante no se genera.
+4. Búsqueda y selección de clientes más robusta
+Hoy funciona, pero sería mejor que:
+al escribir un DNI/RUC, se busque automáticamente,
+si el cliente no existe, se cree al instante,
+se pueda elegir entre cliente existente o nuevo.
+5. Validaciones de negocio
+Faltan reglas como:
+no permitir emitir una venta sin producto,
+no permitir cantidades negativas,
+validar que el total sea correcto,
+evitar duplicados en comprobantes.
+6. Vista de documentos y comprobantes
+La pantalla de documentos existe, pero falta que muestre:
+estado de SUNAT,
+enlace al PDF/XML,
+estado de aceptación o rechazo,
+posibilidad de anular comprobantes.
+7. Panel de ventas más profesional
+Lo básico ya está, pero para que se vea más serio faltaría:
+tabla de items,
+edición de cantidades desde la tabla,
+eliminar líneas,
+mostrar totales más claros,
+botones de acciones más intuitivos.
+8. Pruebas reales del flujo completo
+Lo más importante ahora es probar:
+login,
+crear/seleccionar cliente,
+crear producto,
+generar comprobante,
+revisar en el backend que se haya guardado.
+9. Mejoras de UX y rutas
+Faltaría dejar:
+navegación más limpia,
+breadcrumbs,
+loading states,
+toasts/notificaciones,
+redirecciones correctas al entrar y salir del admin.
+Mi recomendación
+Si lo quieres dejar realmente “terminado” para pruebas, yo haría esto en este orden:
+
+Probar el flujo completo de login → venta → comprobante.
+Corregir todos los errores que aparezcan en esa ruta.
+Añadir mensajes y validaciones.
+Mejorar la vista de documentos y comprobantes.
+Dejar la UI más pulida.
+Si quieres, en el siguiente paso puedo ayudarte a dejarlo en un estado mucho más “producto listo” con:
+
+validaciones reales,
+mejores mensajes,
+tabla de items,
+y un flujo de venta mucho más profesional.
+
+
+${{ Postgres.DATABASE_URL }}
+postgresql://postgres:bhIIAPOxvaOpaKxjVgyJgyNEAeRKuotI@sakura.proxy.rlwy.net:23642/railway
+PGPASSWORD=bhIIAPOxvaOpaKxjVgyJgyNEAeRKuotI psql -h sakura.proxy.rlwy.net -U postgres -p 23642 -d railway
+railway connect Postgres

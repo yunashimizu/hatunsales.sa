@@ -1,0 +1,43 @@
+<div class="contenedor">
+
+  <nav class="migas" aria-label="Ruta de navegación">
+    <a routerLink="/store">Inicio</a>
+    <i class="bi bi-chevron-right"></i>
+    <span>Favoritos</span>
+  </nav>
+
+  <header class="cabecera">
+    <div>
+      <h1>Mis favoritos</h1>
+      <p class="subtitulo" *ngIf="!cargando">
+        {{ productos.length }} {{ productos.length === 1 ? 'producto guardado' : 'productos guardados' }}
+        <span *ngIf="disponibles < productos.length"> · {{ productos.length - disponibles }} sin stock</span>
+      </p>
+    </div>
+
+    <button type="button" class="boton-primario" *ngIf="disponibles > 0" (click)="agregarTodos()">
+      <i class="bi bi-cart-plus"></i>Agregar todo al carrito
+    </button>
+  </header>
+
+  <div class="rejilla" *ngIf="cargando">
+    <div class="esqueleto" *ngFor="let i of [1, 2, 3, 4]"></div>
+  </div>
+
+  <div class="vacio" *ngIf="!cargando && productos.length === 0">
+    <div class="ilustracion"><i class="bi bi-heart"></i></div>
+    <h2>Aún no guardas nada</h2>
+    <p>Toca el corazón en cualquier producto para guardarlo y comparar con calma antes de comprar.</p>
+    <a class="boton-primario" routerLink="/store/catalogo">Explorar productos<i class="bi bi-arrow-right"></i></a>
+  </div>
+
+  <div class="rejilla" *ngIf="!cargando && productos.length > 0">
+    <app-producto-card
+      *ngFor="let producto of productos"
+      [producto]="producto"
+      [esFavorito]="true"
+      (agregar)="agregar($event)"
+      (alternarFavorito)="quitar($event)">
+    </app-producto-card>
+  </div>
+</div>

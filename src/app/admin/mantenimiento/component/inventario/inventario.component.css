@@ -1,0 +1,182 @@
+:host { display: block; }
+
+.inv-campo--ancho { flex: 2 1 280px; }
+
+.inv-cargando {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inv-espaciado { margin-top: 14px; }
+
+.inv-filtro--activo {
+  color: var(--adm-primario);
+  background: var(--adm-primario-claro);
+  border-color: var(--adm-primario);
+}
+
+.inv-col-img { width: 56px; }
+
+.inv-miniatura {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-sm);
+  background: var(--adm-superficie-3);
+  color: var(--adm-texto-tenue);
+}
+
+.inv-miniatura img { width: 100%; height: 100%; object-fit: cover; }
+
+.inv-miniatura--grande { width: 56px; height: 56px; flex-shrink: 0; }
+
+.inv-acciones {
+  display: inline-flex;
+  gap: 2px;
+  justify-content: center;
+}
+
+/* ── Stock mínimo editable ───────────────────────────────────── */
+
+.inv-minimo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-texto-suave);
+  background: transparent;
+  border: 1px dashed var(--adm-borde-fuerte);
+  border-radius: var(--adm-r-sm);
+  cursor: pointer;
+  transition: all var(--adm-transicion);
+}
+
+.inv-minimo i { font-size: 11px; opacity: 0; transition: opacity var(--adm-transicion); }
+.inv-minimo:hover { color: var(--adm-primario); border-color: var(--adm-primario); }
+.inv-minimo:hover i { opacity: 1; }
+
+.inv-minimo-edicion {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.inv-minimo-input {
+  width: 72px;
+  padding: 5px 8px;
+  text-align: right;
+}
+
+/* ── Panel ───────────────────────────────────────────────────── */
+
+.inv-resumen {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--adm-superficie-2);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+}
+
+.inv-tipos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.inv-tipo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--adm-texto-suave);
+  background: var(--adm-superficie-2);
+  border: 1.5px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  cursor: pointer;
+  transition: all var(--adm-transicion);
+}
+
+.inv-tipo:hover { border-color: var(--adm-borde-fuerte); }
+
+.inv-tipo--entrada {
+  color: var(--adm-exito);
+  background: var(--adm-exito-claro);
+  border-color: var(--adm-exito);
+}
+
+.inv-tipo--salida {
+  color: var(--adm-peligro);
+  background: var(--adm-peligro-claro);
+  border-color: var(--adm-peligro);
+}
+
+.inv-proyeccion {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  background: var(--adm-superficie-3);
+  border-radius: var(--adm-r-md);
+}
+
+.inv-proyeccion span { font-size: 13px; color: var(--adm-texto-suave); }
+
+.inv-proyeccion strong {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.inv-proyeccion--negativa {
+  background: var(--adm-peligro-claro);
+}
+
+.inv-proyeccion--negativa strong { color: var(--adm-peligro); }
+
+/* ── Línea de tiempo de movimientos ──────────────────────────── */
+
+.inv-linea-tiempo {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0 0 0 18px;
+  border-left: 2px solid var(--adm-borde);
+}
+
+.inv-linea-tiempo li {
+  position: relative;
+  padding: 0 0 18px 14px;
+}
+
+.inv-linea-tiempo__punto {
+  position: absolute;
+  top: 5px;
+  left: -23px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--adm-exito);
+  box-shadow: 0 0 0 3px var(--adm-exito-claro);
+}
+
+.inv-linea-tiempo__punto--salida {
+  background: var(--adm-peligro);
+  box-shadow: 0 0 0 3px var(--adm-peligro-claro);
+}
+
+@media (max-width: 640px) {
+  .inv-col-img { display: none; }
+  .inv-acciones { justify-content: flex-end; }
+  .inv-minimo-edicion { justify-content: flex-end; }
+}

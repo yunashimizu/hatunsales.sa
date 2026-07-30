@@ -1,0 +1,49 @@
+<nav class="topbar">
+
+  <button class="toggle-btn"
+          type="button"
+          aria-label="Abrir o cerrar menú"
+          [class.open]="sidebarAbierto"
+          (click)="onToggleSidebar.emit()">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <div class="tb-title" *ngIf="paginaActual">
+    <span class="tb-title__text">{{ paginaActual }}</span>
+  </div>
+
+  <div class="tb-actions">
+    <div class="user-pill" (click)="toggleUser()">
+      <div class="user-avatar" aria-hidden="true">
+        <img class="user-avatar__img"
+             src="assets/img/avatar-default.svg"
+             alt=""
+             width="30"
+             height="30">
+      </div>
+      <div class="user-info">
+        <span class="user-name">{{ sesion.nombre || 'Usuario' }}</span>
+        <span class="user-role">{{ etiquetaRol }}</span>
+      </div>
+      <i class="fas fa-chevron-down tb-chevron" [class.rotated]="showUser"></i>
+
+      <div class="user-dropdown" [class.show]="showUser" (click)="$event.stopPropagation()">
+        <div class="ud-meta" *ngIf="sesion.email">
+          <small>{{ sesion.email }}</small>
+        </div>
+        <a class="ud-item" routerLink="/dashboard/perfil">
+          <i class="fas fa-user"></i> Mi Perfil
+        </a>
+        <a class="ud-item" routerLink="/dashboard/configuracion">
+          <i class="fas fa-cog"></i> Configuración
+        </a>
+        <div class="ud-divider"></div>
+        <a class="ud-item ud-logout" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>

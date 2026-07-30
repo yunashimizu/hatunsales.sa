@@ -1,0 +1,9 @@
+.rol-campo--nombre {
+  flex: 1.4;
+  min-width: 220px;
+}
+
+.rol-acciones-form {
+  align-self: end;
+  padding-bottom: 2px;
+}

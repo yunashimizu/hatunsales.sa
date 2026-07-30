@@ -1,0 +1,43 @@
+:host { display: block; }
+
+.placeholder-shell {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+}
+
+.placeholder-panel {
+  width: 100%;
+  max-width: 770px;
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  padding: 48px;
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.07);
+  text-align: center;
+}
+
+.placeholder-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+  font-size: 1.9rem;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.95rem;
+  color: #0f172a;
+}
+
+p {
+  margin-top: 16px;
+  color: #475569;
+  line-height: 1.8;
+  font-size: 0.98rem;
+}

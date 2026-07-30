@@ -1,0 +1,138 @@
+<div class="contenedor">
+
+  <nav class="migas" aria-label="Ruta de navegación">
+    <a routerLink="/store">Inicio</a>
+    <i class="bi bi-chevron-right"></i>
+    <a routerLink="/store/pedidos">Mis pedidos</a>
+    <i class="bi bi-chevron-right"></i>
+    <span>{{ pedido?.codigo || 'Detalle' }}</span>
+  </nav>
+
+  <div class="cargando" *ngIf="cargando">
+    <div class="esqueleto alto"></div>
+    <div class="esqueleto bajo"></div>
+  </div>
+
+  <div class="vacio" *ngIf="error && !cargando">
+    <div class="ilustracion"><i class="bi bi-exclamation-triangle"></i></div>
+    <h2>No encontramos este pedido</h2>
+    <p>Puede que el enlace sea incorrecto o que el pedido pertenezca a otra cuenta.</p>
+    <a class="boton-primario" routerLink="/store/pedidos">Ver mis pedidos</a>
+  </div>
+
+  <ng-container *ngIf="pedido && !cargando">
+
+    <header class="cabecera">
+      <div>
+        <h1>Pedido {{ pedido.codigo }}</h1>
+        <p class="subtitulo">Realizado el {{ pedido.creado_en | date: 'dd \'de\' MMMM \'de\' yyyy, HH:mm' }}</p>
+      </div>
+
+      <div class="acciones">
+        <button type="button" class="boton-secundario" (click)="volverAComprar()">
+          <i class="bi bi-arrow-repeat"></i>Volver a comprar
+        </button>
+        <button type="button" class="boton-peligro" *ngIf="puedeCancelar" (click)="cancelar()">
+          <i class="bi bi-x-circle"></i>Cancelar pedido
+        </button>
+      </div>
+    </header>
+
+    <!-- Seguimiento -->
+    <section class="tarjeta seguimiento" *ngIf="!cancelado">
+      <h2>Seguimiento</h2>
+
+      <ol class="linea-tiempo">
+        <li
+          *ngFor="let p of pasos; let i = index"
+          [class.hecho]="i <= pasoActual"
+          [class.activo]="i === pasoActual">
+          <span class="punto"><i class="bi" [class]="i < pasoActual ? 'bi-check-lg' : p.icono"></i></span>
+          <div class="texto">
+            <strong>{{ p.etiqueta }}</strong>
+            <small *ngIf="fechaDe(p.estado)">{{ fechaDe(p.estado) | date: 'dd MMM, HH:mm' }}</small>
+            <small class="comentario" *ngIf="comentarioDe(p.estado)">{{ comentarioDe(p.estado) }}</small>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="tarjeta aviso-cancelado" *ngIf="cancelado">
+      <i class="bi bi-x-octagon"></i>
+      <div>
+        <strong>Pedido cancelado</strong>
+        <p>Este pedido fue anulado. Si necesitas ayuda, escríbenos y lo revisamos contigo.</p>
+      </div>
+    </section>
+
+    <div class="disposicion">
+
+      <section class="tarjeta">
+        <h2>Productos</h2>
+
+        <div class="fila" *ngFor="let item of pedido.items">
+          <img [src]="imagen(item)" [alt]="item.nombre" loading="lazy" />
+
+          <div class="info">
+            <a *ngIf="item.id_producto" [routerLink]="['/store/producto', item.id_producto]">{{ item.nombre }}</a>
+            <span *ngIf="!item.id_producto">{{ item.nombre }}</span>
+            <small>S/ {{ item.precio_unitario | number: '1.2-2' }} × {{ item.cantidad }}</small>
+          </div>
+
+          <strong class="monto">S/ {{ item.total | number: '1.2-2' }}</strong>
+        </div>
+      </section>
+
+      <aside class="lateral">
+
+        <section class="tarjeta">
+          <h2>Resumen</h2>
+
+          <div class="linea"><span>Valor de venta</span><span>S/ {{ pedido.subtotal | number: '1.2-2' }}</span></div>
+          <div class="linea"><span>IGV (18%)</span><span>S/ {{ pedido.igv | number: '1.2-2' }}</span></div>
+          <div class="linea descuento" *ngIf="pedido.descuento > 0">
+            <span>Descuento</span><span>− S/ {{ pedido.descuento | number: '1.2-2' }}</span>
+          </div>
+          <div class="linea">
+            <span>Envío</span>
+            <span>{{ pedido.costo_envio > 0 ? ('S/ ' + (pedido.costo_envio | number: '1.2-2')) : 'Gratis' }}</span>
+          </div>
+          <div class="linea total"><span>Total</span><span>S/ {{ pedido.total | number: '1.2-2' }}</span></div>
+        </section>
+
+        <section class="tarjeta">
+          <h2>Detalles de entrega</h2>
+
+          <div class="bloque" *ngIf="pedido.direccion_envio">
+            <span class="rotulo">Dirección</span>
+            <p>{{ pedido.direccion_envio }}</p>
+          </div>
+
+          <div class="bloque" *ngIf="pedido.metodo_envio">
+            <span class="rotulo">Envío</span>
+            <p>{{ pedido.metodo_envio }}</p>
+          </div>
+
+          <div class="bloque" *ngIf="pedido.metodo_pago">
+            <span class="rotulo">Pago</span>
+            <p>{{ pedido.metodo_pago }}</p>
+          </div>
+
+          <div class="bloque" *ngIf="pedido.tipo_comprobante">
+            <span class="rotulo">Comprobante</span>
+            <p>
+              {{ pedido.tipo_comprobante | titlecase }}
+              <span *ngIf="pedido.nombre_receptor"> · {{ pedido.nombre_receptor }}</span>
+              <span *ngIf="pedido.documento_receptor"> ({{ pedido.documento_receptor }})</span>
+            </p>
+          </div>
+
+          <div class="bloque" *ngIf="pedido.notas">
+            <span class="rotulo">Notas</span>
+            <p>{{ pedido.notas }}</p>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </ng-container>
+</div>

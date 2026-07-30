@@ -1,0 +1,28 @@
+.stock-guia {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.stock-filtros {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.stock-prod {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.stock-prod__img {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f1f5f9;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  flex-shrink: 0;
+}

@@ -1,0 +1,296 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Documentos</h1>
+      <p class="adm-cabecera__sub">
+        Comprobantes electrónicos emitidos. Un documento enviado a SUNAT solo puede anularse, nunca editarse.
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
+        Actualizar
+      </button>
+    </div>
+  </header>
+
+  <!-- Filtros -->
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cuerpo">
+      <div class="adm-fila">
+        <div class="adm-campo doc-campo--ancho">
+          <label class="adm-etiqueta" for="doc-texto">Buscar</label>
+          <input id="doc-texto" class="adm-input" type="text" autocomplete="off"
+                 placeholder="Serie, número, cliente o documento…"
+                 [(ngModel)]="filtro.texto" (ngModelChange)="alFiltrar()">
+        </div>
+
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="doc-tipo">Tipo</label>
+          <select id="doc-tipo" class="adm-select" [(ngModel)]="filtro.id_tipo" (ngModelChange)="cargar(1)">
+            <option value="">Todos</option>
+            <option [ngValue]="1">Facturas</option>
+            <option [ngValue]="2">Boletas</option>
+            <option [ngValue]="7">Notas de crédito</option>
+            <option [ngValue]="8">Notas de débito</option>
+          </select>
+        </div>
+
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="doc-estado">Estado</label>
+          <select id="doc-estado" class="adm-select" [(ngModel)]="filtro.estado" (ngModelChange)="cargar(1)">
+            <option value="">Todos</option>
+            <option value="emitido">Emitidos</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="error">Rechazados</option>
+            <option value="anulado">Anulados</option>
+          </select>
+        </div>
+
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="doc-desde">Desde</label>
+          <input id="doc-desde" class="adm-input" type="date"
+                 [(ngModel)]="filtro.desde" (ngModelChange)="cargar(1)">
+        </div>
+
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="doc-hasta">Hasta</label>
+          <input id="doc-hasta" class="adm-input" type="date"
+                 [(ngModel)]="filtro.hasta" (ngModelChange)="cargar(1)">
+        </div>
+
+        <button type="button" class="adm-btn adm-btn--fantasma" (click)="limpiarFiltros()">
+          <i class="bi bi-eraser"></i> Limpiar
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Listado -->
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cuerpo doc-cargando" *ngIf="cargando && !comprobantes.length">
+      <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4,5,6]"></div>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargando && !comprobantes.length">
+      <div class="adm-vacio__icono"><i class="bi bi-file-earmark-x"></i></div>
+      <div class="adm-vacio__titulo">No hay documentos que coincidan</div>
+      <p>Pruebe con otros filtros o emita una venta desde el punto de venta.</p>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="comprobantes.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th>Documento</th>
+            <th>Cliente</th>
+            <th>Emisión</th>
+            <th class="adm-num">Total</th>
+            <th>Estado</th>
+            <th class="adm-centro">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let fila of comprobantes; trackBy: identificarFila"
+              [class.doc-fila--anulada]="fila.anulado">
+            <td data-etiqueta="Documento">
+              <div class="adm-tabla__principal">{{ fila.numero_formateado }}</div>
+              <div class="adm-tabla__secundario">{{ fila.tipo_nombre }}</div>
+            </td>
+
+            <td data-etiqueta="Cliente">
+              <div class="adm-tabla__principal">{{ fila.cliente_denominacion }}</div>
+              <div class="adm-tabla__secundario">{{ fila.cliente_numero_doc }}</div>
+            </td>
+
+            <td data-etiqueta="Emisión">{{ fila.fecha_de_emision }}</td>
+
+            <td data-etiqueta="Total" class="adm-num adm-tabla__principal">
+              {{ fila.moneda_simbolo }} {{ fila.total | number:'1.2-2' }}
+            </td>
+
+            <td data-etiqueta="Estado">
+              <span class="adm-insignia" [ngClass]="claseEstado(fila.estado)">
+                {{ textoEstado(fila.estado) }}
+              </span>
+              <div class="adm-tabla__secundario doc-error" *ngIf="fila.error_mensaje && fila.estado === 'error'">
+                {{ fila.error_mensaje }}
+              </div>
+            </td>
+
+            <td data-etiqueta="Acciones" class="adm-centro">
+              <div class="doc-acciones">
+                <button type="button" class="adm-btn-icono" (click)="verDetalle(fila)" title="Ver detalle">
+                  <i class="bi bi-eye"></i>
+                </button>
+
+                <button type="button" class="adm-btn-icono"
+                        *ngIf="fila.estado !== 'anulado'"
+                        [disabled]="idEnProceso === fila.id_comprobante || !fila.enlace_pdf"
+                        (click)="descargarPdf(fila)"
+                        [title]="fila.enlace_pdf ? 'Descargar PDF' : 'PDF aún no disponible (espera respuesta de SUNAT/NUBEFACT)'">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                </button>
+
+                <button type="button" class="adm-btn-icono" *ngIf="fila.estado === 'error' || fila.estado === 'pendiente'"
+                        [disabled]="idEnProceso === fila.id_comprobante"
+                        (click)="reintentar(fila)" title="Reconsultar en SUNAT">
+                  <i class="bi bi-arrow-repeat"></i>
+                </button>
+
+                <button type="button" class="adm-btn-icono adm-btn-icono--peligro" *ngIf="fila.puede_anular"
+                        [disabled]="idEnProceso === fila.id_comprobante"
+                        (click)="anular(fila)" title="Anular">
+                  <i class="bi bi-x-octagon"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="adm-paginacion" *ngIf="total > porPagina">
+      <span>{{ total }} documentos · página {{ pagina }} de {{ totalPaginas }}</span>
+      <div class="adm-acciones">
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                [disabled]="pagina === 1" (click)="irA(pagina - 1)">
+          <i class="bi bi-chevron-left"></i> Anterior
+        </button>
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                [disabled]="pagina === totalPaginas" (click)="irA(pagina + 1)">
+          Siguiente <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Panel de detalle -->
+<div class="adm-velo" *ngIf="detalle || cargandoDetalle" (click)="cerrarDetalle()"></div>
+
+<aside class="adm-panel" *ngIf="detalle || cargandoDetalle">
+  <div class="adm-panel__cabecera">
+    <h2 class="adm-tarjeta__titulo">
+      <i class="bi bi-receipt"></i>
+      {{ detalle?.numero_formateado || 'Cargando…' }}
+    </h2>
+    <button type="button" class="adm-btn-icono" (click)="cerrarDetalle()" aria-label="Cerrar">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="adm-panel__cuerpo">
+    <div class="doc-cargando" *ngIf="cargandoDetalle">
+      <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4,5]"></div>
+    </div>
+
+    <div class="adm-ticket" *ngIf="detalle">
+      <div class="adm-ticket__cabecera">
+        <div class="adm-ticket__emisor">
+          <strong>{{ detalle.emisor.razon_social }}</strong>
+          <div>{{ detalle.emisor.direccion }}</div>
+          <div>{{ detalle.emisor.ubicacion }}</div>
+        </div>
+        <div class="adm-ticket__recuadro">
+          <small>RUC {{ detalle.emisor.ruc }}</small>
+          <small>{{ detalle.tipo_nombre }}</small>
+          <div class="adm-ticket__numero">{{ detalle.numero_formateado }}</div>
+        </div>
+      </div>
+
+      <div class="adm-ticket__seccion">
+        <div class="adm-ticket__dato">
+          <span>Cliente</span><span>{{ detalle.receptor.denominacion }}</span>
+        </div>
+        <div class="adm-ticket__dato">
+          <span>{{ detalle.receptor.tipo_documento === 6 ? 'RUC' : 'DNI' }}</span>
+          <span>{{ detalle.receptor.numero_documento }}</span>
+        </div>
+        <div class="adm-ticket__dato" *ngIf="detalle.receptor.direccion">
+          <span>Dirección</span><span>{{ detalle.receptor.direccion }}</span>
+        </div>
+        <div class="adm-ticket__dato">
+          <span>Emisión</span><span>{{ detalle.fecha_de_emision }}</span>
+        </div>
+      </div>
+
+      <div class="adm-ticket__seccion">
+        <table class="adm-ticket__tabla">
+          <thead>
+            <tr>
+              <th>Descripción</th>
+              <th class="adm-num">Cant.</th>
+              <th class="adm-num">P. unit.</th>
+              <th class="adm-num">Importe</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of detalle.items; trackBy: identificarItemDetalle">
+              <td>{{ item.descripcion }}</td>
+              <td class="adm-num">{{ item.cantidad }}</td>
+              <td class="adm-num">{{ item.precio_unitario | number:'1.2-2' }}</td>
+              <td class="adm-num">{{ item.total | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="adm-ticket__totales">
+        <div class="adm-ticket__total-fila">
+          <span>Op. gravada</span>
+          <span>{{ detalle.moneda.simbolo }} {{ detalle.totales.gravada | number:'1.2-2' }}</span>
+        </div>
+        <div class="adm-ticket__total-fila" *ngIf="detalle.totales.exonerada">
+          <span>Op. exonerada</span>
+          <span>{{ detalle.moneda.simbolo }} {{ detalle.totales.exonerada | number:'1.2-2' }}</span>
+        </div>
+        <div class="adm-ticket__total-fila">
+          <span>IGV ({{ detalle.porcentaje_igv }}%)</span>
+          <span>{{ detalle.moneda.simbolo }} {{ detalle.totales.igv | number:'1.2-2' }}</span>
+        </div>
+        <div class="adm-ticket__total-fila adm-ticket__total-fila--destacada">
+          <span>Importe total</span>
+          <span>{{ detalle.moneda.simbolo }} {{ detalle.totales.total | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="adm-ticket__letras">Son: {{ detalle.importe_en_letras }}</div>
+    </div>
+
+    <div class="adm-aviso adm-aviso--peligro doc-espaciado" *ngIf="detalle?.anulado">
+      <i class="bi bi-x-octagon"></i>
+      <span>Documento anulado. Motivo: {{ detalle.motivo_anulacion || 'sin especificar' }}</span>
+    </div>
+
+    <div class="adm-aviso adm-aviso--peligro doc-espaciado" *ngIf="detalle?.error_mensaje">
+      <i class="bi bi-exclamation-octagon"></i>
+      <span>{{ detalle.error_mensaje }}</span>
+    </div>
+
+    <div class="adm-aviso adm-aviso--exito doc-espaciado" *ngIf="detalle?.sunat_description">
+      <i class="bi bi-patch-check"></i><span>{{ detalle.sunat_description }}</span>
+    </div>
+  </div>
+
+  <div class="adm-panel__pie" *ngIf="detalle">
+    <button type="button" class="adm-btn adm-btn--suave" *ngIf="detalle.enlace"
+            (click)="abrirEnlace(detalle.enlace)">
+      <i class="bi bi-box-arrow-up-right"></i> Ver en NUBEFACT
+    </button>
+    <button type="button" class="adm-btn adm-btn--suave" *ngIf="detalle.enlace_pdf"
+            (click)="abrirEnlace(detalle.enlace_pdf)">
+      <i class="bi bi-box-arrow-up-right"></i> Abrir PDF
+    </button>
+    <button type="button" class="adm-btn adm-btn--primario"
+            *ngIf="detalle.enlace_pdf"
+            [disabled]="idEnProceso === detalle.id_comprobante"
+            (click)="descargarPdf(detalle)">
+      <i class="bi bi-download"></i> Descargar PDF
+    </button>
+    <span class="adm-ayuda" *ngIf="!detalle.enlace_pdf && detalle.estado !== 'anulado'">
+      PDF aún no disponible para este comprobante.
+    </span>
+  </div>
+</aside>

@@ -1,0 +1,258 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Cuentas por cobrar</h1>
+      <p class="adm-cabecera__sub">
+        Créditos a clientes y empresas. Abona pagos parciales o totales sin tocar el POS.
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <a routerLink="/dashboard/mantenimiento/ventas" class="adm-btn adm-btn--suave">
+        <i class="bi bi-cash-coin"></i> Ir al POS
+      </a>
+      <button type="button" class="adm-btn adm-btn--primario" (click)="cargar()" [disabled]="cargando">
+        <i class="bi bi-arrow-clockwise"></i> Actualizar
+      </button>
+    </div>
+  </header>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-bank"></i> Cuentas bancarias (transferencias)</h2>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="nuevaCuenta()">Nueva</button>
+    </div>
+    <div class="adm-tarjeta__cuerpo">
+      <div class="adm-fila">
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Banco</label>
+          <input class="adm-input" [(ngModel)]="cuentaForm.banco" placeholder="BCP, BBVA…">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Alias</label>
+          <input class="adm-input" [(ngModel)]="cuentaForm.alias" placeholder="Cuenta principal">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Nº cuenta</label>
+          <input class="adm-input" [(ngModel)]="cuentaForm.numero_cuenta">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta">CCI</label>
+          <input class="adm-input" [(ngModel)]="cuentaForm.cci">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Titular</label>
+          <input class="adm-input" [(ngModel)]="cuentaForm.titular">
+        </div>
+        <div class="adm-acciones" style="align-self:end">
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardarCuenta()" [disabled]="guardandoCuenta">
+            {{ editandoCuentaId ? 'Actualizar' : 'Agregar' }}
+          </button>
+        </div>
+      </div>
+      <p class="adm-ayuda">Estas cuentas aparecen en el POS al cobrar por transferencia.</p>
+
+      <div class="adm-tabla-envoltorio" *ngIf="cuentasBancarias.length">
+        <table class="adm-tabla adm-tabla--adaptable">
+          <thead>
+            <tr>
+              <th>Banco</th>
+              <th>Cuenta</th>
+              <th>CCI</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of cuentasBancarias; trackBy: identificarCuentaBancaria">
+              <td data-etiqueta="Banco">
+                <div class="adm-tabla__principal">{{ c.banco }}</div>
+                <div class="adm-ayuda">{{ c.alias || c.titular }}</div>
+              </td>
+              <td data-etiqueta="Cuenta">{{ c.numero_cuenta || '—' }}</td>
+              <td data-etiqueta="CCI">{{ c.cci || '—' }}</td>
+              <td data-etiqueta="Estado">
+                <span class="adm-insignia" [ngClass]="c.activo === false ? 'adm-insignia--neutra' : 'adm-insignia--exito'">
+                  {{ c.activo === false ? 'Inactiva' : 'Activa' }}
+                </span>
+              </td>
+              <td>
+                <div class="adm-acciones">
+                  <button type="button" class="adm-btn adm-btn--suave" (click)="editarCuenta(c)">Editar</button>
+                  <button type="button" class="adm-btn adm-btn--suave" *ngIf="c.activo !== false" (click)="desactivarCuenta(c)">Desactivar</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-sliders"></i> Activar crédito (admin)</h2>
+    </div>
+    <div class="adm-tarjeta__cuerpo">
+      <div class="adm-fila">
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Tipo</label>
+          <select class="adm-select" [(ngModel)]="config.tipo">
+            <option value="cliente">Cliente (DNI)</option>
+            <option value="empresa">Empresa (RUC)</option>
+          </select>
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta">ID {{ config.tipo }}</label>
+          <input class="adm-input" type="number" [(ngModel)]="config.id" placeholder="ej. 12">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Límite S/</label>
+          <input class="adm-input" type="number" min="0" step="0.01" [(ngModel)]="config.limite_credito">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Días de plazo</label>
+          <input class="adm-input" type="number" min="1" [(ngModel)]="config.dias_credito">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Estado</label>
+          <select class="adm-select" [(ngModel)]="config.credito_activo">
+            <option [ngValue]="true">Activo</option>
+            <option [ngValue]="false">Inactivo</option>
+          </select>
+        </div>
+        <div class="adm-acciones" style="align-self:end">
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardarConfig()" [disabled]="guardandoConfig">
+            Guardar línea
+          </button>
+        </div>
+      </div>
+      <p class="adm-ayuda">El ID lo ves en Clientes / al buscar en el POS. Sin crédito activo no se puede fiado.</p>
+    </div>
+  </section>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Cuentas ({{ total }})</h2>
+    </div>
+    <div class="adm-tarjeta__cuerpo">
+      <div class="adm-fila">
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Estado</label>
+          <select class="adm-select" [(ngModel)]="filtroEstado" (ngModelChange)="cargar()">
+            <option value="">Todos</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="parcial">Parcial</option>
+            <option value="vencido">Vencido</option>
+            <option value="pagado">Pagado</option>
+          </select>
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Buscar</label>
+          <input class="adm-input" type="search" [(ngModel)]="filtroTexto"
+                 placeholder="Cliente, RUC, n° venta" (keyup.enter)="cargar()">
+        </div>
+        <div class="adm-acciones" style="align-self:end">
+          <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">Filtrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargando && !cuentas.length">
+      <div class="adm-vacio__titulo">Sin cuentas por cobrar</div>
+      <p>Cuando vendas a crédito desde el POS aparecerán aquí.</p>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="cuentas.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th>Deudor</th>
+            <th>Venta</th>
+            <th>Vence</th>
+            <th class="adm-num">Total</th>
+            <th class="adm-num">Saldo</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of cuentas; trackBy: identificarCuenta">
+            <td data-etiqueta="Deudor">
+              <div class="adm-tabla__principal">{{ c.deudor }}</div>
+              <div class="adm-ayuda">{{ c.documento }}</div>
+            </td>
+            <td data-etiqueta="Venta">#{{ c.id_venta }}</td>
+            <td data-etiqueta="Vence">{{ c.fecha_vencimiento | date:'dd/MM/yyyy' }}</td>
+            <td data-etiqueta="Total" class="adm-num">S/ {{ c.monto_total | number:'1.2-2' }}</td>
+            <td data-etiqueta="Saldo" class="adm-num">S/ {{ c.saldo | number:'1.2-2' }}</td>
+            <td data-etiqueta="Estado">
+              <span class="adm-insignia"
+                    [ngClass]="{
+                      'adm-insignia--aviso': c.estado === 'pendiente' || c.estado === 'parcial',
+                      'adm-insignia--peligro': c.estado === 'vencido',
+                      'adm-insignia--exito': c.estado === 'pagado'
+                    }">{{ c.estado }}</span>
+            </td>
+            <td>
+              <button type="button" class="adm-btn adm-btn--suave" (click)="ver(c)">Abonar</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="adm-tarjeta" *ngIf="seleccion">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo">
+        Abono · {{ seleccion.deudor }} · Venta #{{ seleccion.id_venta }}
+      </h2>
+      <button type="button" class="adm-btn-icono" (click)="seleccion = null"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="adm-tarjeta__cuerpo">
+      <p class="adm-ayuda">
+        Saldo: <strong>S/ {{ seleccion.saldo | number:'1.2-2' }}</strong>
+        · Vence {{ seleccion.fecha_vencimiento | date:'dd/MM/yyyy' }}
+      </p>
+      <div class="adm-fila" *ngIf="seleccion.estado !== 'pagado'">
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Monto</label>
+          <input class="adm-input" type="number" min="0.01" step="0.01" [(ngModel)]="abono.monto">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Medio</label>
+          <select class="adm-select" [(ngModel)]="abono.id_metodo">
+            <option *ngFor="let m of metodos" [ngValue]="m.id_metodo">{{ m.nombre }}</option>
+          </select>
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta">Referencia</label>
+          <input class="adm-input" type="text" [(ngModel)]="abono.referencia" placeholder="N° op. Yape…">
+        </div>
+        <div class="adm-acciones" style="align-self:end">
+          <button type="button" class="adm-btn adm-btn--exito" (click)="registrarAbono()" [disabled]="abonando">
+            {{ abonando ? 'Guardando…' : 'Registrar abono' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="adm-tabla-envoltorio" *ngIf="seleccion.abonos?.length">
+        <table class="adm-tabla">
+          <thead>
+            <tr><th>Fecha</th><th>Método</th><th class="adm-num">Monto</th><th>Ref.</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let a of seleccion.abonos; trackBy: identificarAbono">
+              <td>{{ a.creado_en | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ a.metodo || '—' }}</td>
+              <td class="adm-num">S/ {{ a.monto | number:'1.2-2' }}</td>
+              <td>{{ a.referencia || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</div>

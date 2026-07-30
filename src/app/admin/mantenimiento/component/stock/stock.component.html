@@ -1,0 +1,183 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Stock</h1>
+      <p class="adm-cabecera__sub">
+        Niveles y alertas por almacén. Para ajustar o transferir usa Inventario.
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/inventario">
+        <i class="bi bi-box-seam"></i> Ir a Inventario
+      </a>
+      <button type="button" class="adm-btn adm-btn--primario" (click)="actualizarTodo()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
+        Actualizar
+      </button>
+    </div>
+  </header>
+
+  <!-- KPIs -->
+  <section class="adm-grid adm-grid--4" *ngIf="resumen">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"><i class="bi bi-boxes"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ resumen.productos }}</div>
+        <div class="adm-metrica__etiqueta">Productos con stock</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--peligro"><i class="bi bi-x-circle"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ resumen.sin_stock }}</div>
+        <div class="adm-metrica__etiqueta">Sin stock</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-exclamation-triangle"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ resumen.bajo_stock }}</div>
+        <div class="adm-metrica__etiqueta">Bajo mínimo</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-cash-coin"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ moneda(resumen.valorizado) }}</div>
+        <div class="adm-metrica__etiqueta">Valorizado</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Guía rápida -->
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cuerpo stock-guia">
+      <div>
+        <div class="adm-etiqueta">Cómo leerlo</div>
+        <p class="adm-ayuda" style="margin:.35rem 0 0">
+          <strong>Sin stock</strong> = 0 unidades.
+          <strong> Bajo mínimo</strong> = por debajo del stock mínimo.
+          <strong> OK</strong> = nivel saludable.
+          Total alertas actuales: <strong>{{ totalAlertas }}</strong>.
+        </p>
+      </div>
+      <div class="adm-ayuda">
+        Unidades totales: <strong>{{ resumen?.unidades ?? 0 }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filtros -->
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-funnel"></i> Filtros</h2>
+    </div>
+    <div class="adm-tarjeta__cuerpo">
+      <div class="adm-acciones stock-filtros">
+        <button type="button" class="adm-btn"
+                [class.adm-btn--primario]="filtroEstado === 'alertas'"
+                [class.adm-btn--suave]="filtroEstado !== 'alertas'"
+                (click)="cambiarFiltro('alertas')">Alertas</button>
+        <button type="button" class="adm-btn"
+                [class.adm-btn--primario]="filtroEstado === 'sin_stock'"
+                [class.adm-btn--suave]="filtroEstado !== 'sin_stock'"
+                (click)="cambiarFiltro('sin_stock')">Sin stock</button>
+        <button type="button" class="adm-btn"
+                [class.adm-btn--primario]="filtroEstado === 'bajo'"
+                [class.adm-btn--suave]="filtroEstado !== 'bajo'"
+                (click)="cambiarFiltro('bajo')">Bajo mínimo</button>
+        <button type="button" class="adm-btn"
+                [class.adm-btn--primario]="filtroEstado === 'ok'"
+                [class.adm-btn--suave]="filtroEstado !== 'ok'"
+                (click)="cambiarFiltro('ok')">OK</button>
+        <button type="button" class="adm-btn"
+                [class.adm-btn--primario]="filtroEstado === 'todos'"
+                [class.adm-btn--suave]="filtroEstado !== 'todos'"
+                (click)="cambiarFiltro('todos')">Todos</button>
+      </div>
+
+      <div class="adm-fila" style="margin-top:1rem">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="stock-buscar">Buscar</label>
+          <input id="stock-buscar" class="adm-input" type="search"
+                 [(ngModel)]="texto" placeholder="Producto, SKU, almacén…">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="stock-almacen">Almacén</label>
+          <select id="stock-almacen" class="adm-select" [(ngModel)]="idAlmacen" (ngModelChange)="alCambiarAlmacen()">
+            <option [ngValue]="''">Todos</option>
+            <option *ngFor="let a of almacenes" [ngValue]="a.id_almacen">
+              {{ a.nombre }}{{ a.sucursal ? ' · ' + a.sucursal : '' }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tabla -->
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Niveles de stock</h2>
+      <span class="adm-insignia adm-insignia--neutra">{{ filasVisibles.length }}</span>
+    </div>
+
+    <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !filas.length">
+      <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4,5]"></div>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargando && !filasVisibles.length">
+      <div class="adm-vacio__icono"><i class="bi bi-check2-circle"></i></div>
+      <div class="adm-vacio__titulo">
+        {{ filtroEstado === 'alertas' ? 'Sin alertas de stock' : 'Sin resultados' }}
+      </div>
+      <p *ngIf="filtroEstado === 'alertas'">Todo el inventario está en niveles OK según el mínimo configurado.</p>
+      <p *ngIf="filtroEstado !== 'alertas'">Prueba otro filtro o ve a Inventario para registrar stock.</p>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="filasVisibles.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Almacén</th>
+            <th class="adm-num">Stock</th>
+            <th class="adm-num">Mínimo</th>
+            <th>Estado</th>
+            <th class="adm-num">Valorizado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let f of filasVisibles; trackBy: identificarFila">
+            <td data-etiqueta="Producto">
+              <div class="stock-prod">
+                <img *ngIf="urlDe(f.imagen_url)" class="stock-prod__img" [src]="urlDe(f.imagen_url)" alt="">
+                <div>
+                  <div class="adm-tabla__principal">{{ f.producto }}</div>
+                  <div class="adm-ayuda">
+                    {{ f.sku || f.codigo_barras || 'Sin código' }}
+                    <span *ngIf="f.categoria"> · {{ f.categoria }}</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td data-etiqueta="Almacén">
+              <div class="adm-tabla__principal">{{ f.almacen || '—' }}</div>
+              <div class="adm-ayuda" *ngIf="f.sucursal">{{ f.sucursal }}</div>
+            </td>
+            <td data-etiqueta="Stock" class="adm-num"><strong>{{ f.stock }}</strong></td>
+            <td data-etiqueta="Mínimo" class="adm-num">{{ f.stock_minimo }}</td>
+            <td data-etiqueta="Estado">
+              <span class="adm-insignia" [ngClass]="claseEstado(f.estado)">
+                {{ etiquetaEstado(f.estado) }}
+              </span>
+            </td>
+            <td data-etiqueta="Valorizado" class="adm-num">{{ moneda(f.valorizado) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>

@@ -1,0 +1,84 @@
+<footer class="pie">
+  <div class="contenedor">
+
+    <div class="ventajas">
+      <div class="ventaja">
+        <i class="bi bi-truck"></i>
+        <span><strong>Envíos a todo el Perú</strong><small>Delivery en 24 a 72 horas</small></span>
+      </div>
+      <div class="ventaja">
+        <i class="bi bi-shield-check"></i>
+        <span><strong>Garantía oficial</strong><small>Productos originales y certificados</small></span>
+      </div>
+      <div class="ventaja">
+        <i class="bi bi-credit-card-2-back"></i>
+        <span><strong>Pago seguro</strong><small>Tarjetas, Yape, Plin y transferencia</small></span>
+      </div>
+      <div class="ventaja">
+        <i class="bi bi-headset"></i>
+        <span><strong>Asesoría técnica</strong><small>Te ayudamos a elegir</small></span>
+      </div>
+    </div>
+
+    <div class="columnas">
+      <div class="columna marca-col">
+        <a class="logo" routerLink="/store">
+          <span class="logo-marca"><i class="bi bi-tools"></i></span>
+          <strong>HatunSales</strong>
+        </a>
+        <p>Todo lo que necesitas para construir tus proyectos: herramientas, materiales y equipos de las mejores marcas.</p>
+
+        <div class="redes">
+          <a [href]="empresa.facebook" target="_blank" rel="noopener" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+          <a [href]="empresa.instagram" target="_blank" rel="noopener" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+          <a [href]="waHref" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+          <a [href]="empresa.tiktok" target="_blank" rel="noopener" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>
+        </div>
+      </div>
+
+      <div class="columna">
+        <h3>Categorías</h3>
+        <a *ngFor="let cat of categorias; trackBy: trackCat" [routerLink]="['/store/catalogo']" [queryParams]="{ categoria: cat.id_categoria }">
+          {{ cat.nombre }}
+        </a>
+        <a routerLink="/store/catalogo" *ngIf="categorias.length === 0">Ver catálogo</a>
+      </div>
+
+      <div class="columna">
+        <h3>Tu cuenta</h3>
+        <a routerLink="/store/perfil">Mi cuenta</a>
+        <a routerLink="/store/pedidos">Mis pedidos</a>
+        <a routerLink="/store/favoritos">Favoritos</a>
+        <a routerLink="/store/carrito">Mi carrito</a>
+      </div>
+
+      <div class="columna">
+        <h3>Ayuda</h3>
+        <a routerLink="/store/contacto">Contacto y ubicación</a>
+        <a routerLink="/store/contacto">Cómo llegar</a>
+        <a [href]="waHref" target="_blank" rel="noopener">WhatsApp</a>
+        <a routerLink="/store/catalogo">Catálogo</a>
+      </div>
+
+      <div class="columna">
+        <h3>Contacto</h3>
+        <span class="dato"><i class="bi bi-geo-alt"></i>{{ empresa.direccion }}</span>
+        <a class="dato enlace" [href]="telHref"><i class="bi bi-telephone"></i>{{ empresa.telefonoMostrar }}</a>
+        <a class="dato enlace" [href]="mailHref"><i class="bi bi-envelope"></i>{{ empresa.email }}</a>
+        <span class="dato"><i class="bi bi-clock"></i>{{ empresa.horario }}</span>
+        <a class="dato enlace" routerLink="/store/contacto"><i class="bi bi-map"></i>Ver mapa</a>
+      </div>
+    </div>
+
+    <div class="base">
+      <span>© {{ anio }} HatunSales. Todos los derechos reservados.</span>
+      <div class="pagos">
+        <i class="bi bi-credit-card-2-front" title="Tarjetas"></i>
+        <i class="bi bi-wallet2" title="Billeteras digitales"></i>
+        <i class="bi bi-bank" title="Transferencia bancaria"></i>
+        <i class="bi bi-cash-coin" title="Contra entrega"></i>
+      </div>
+    </div>
+
+  </div>
+</footer>

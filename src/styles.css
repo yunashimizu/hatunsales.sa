@@ -1,0 +1,92 @@
+:root {
+  font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color-scheme: light;
+  color: #111827;
+  background: #f7f8fb;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --surface-muted: #eef2ff;
+  --border: rgba(148, 163, 184, 0.24);
+  --text-strong: #0f172a;
+  --text-muted: #475569;
+  --accent-indigo: #6366f1;
+  --accent-violet: #7c3aed;
+  --accent-cyan: #22d3ee;
+}
+
+@import 'tailwindcss';
+
+/* Sistema de diseño del panel. Todas sus clases van con prefijo `adm-`, así que
+   no interfiere con Bootstrap ni con SB Admin 2. */
+@import './app/admin/styles/admin-ui.css';
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  min-height: 100vh;
+  color: var(--text-strong);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ---------------------------------------------------------------------------
+   Tokens del módulo tienda. Se usan solo dentro de /store, por lo que no
+   afectan al panel administrativo que corre sobre Bootstrap + SB Admin 2.
+   --------------------------------------------------------------------------- */
+:root {
+  --t-fondo: #f7f8fc;
+  --t-superficie: #ffffff;
+  --t-superficie-2: #f4f6fb;
+  --t-borde: #e6e9f2;
+  --t-borde-fuerte: #d3d8e8;
+
+  --t-texto: #0d1220;
+  --t-texto-suave: #5b6377;
+  --t-texto-tenue: #8b93a7;
+
+  --t-primario: #4f46e5;
+  --t-primario-osc: #4338ca;
+  --t-primario-claro: #eef0ff;
+  --t-acento: #f97316;
+  --t-exito: #10b981;
+  --t-peligro: #ef4444;
+  --t-aviso: #f59e0b;
+  --t-estrella: #fbbf24;
+
+  --t-r-sm: 12px;
+  --t-r-md: 16px;
+  --t-r-lg: 24px;
+  --t-r-full: 999px;
+
+  --t-sombra-sm: 0 1px 2px rgba(13, 18, 32, 0.04), 0 1px 3px rgba(13, 18, 32, 0.06);
+  --t-sombra-md: 0 4px 12px rgba(13, 18, 32, 0.06), 0 2px 4px rgba(13, 18, 32, 0.04);
+  --t-sombra-lg: 0 18px 40px rgba(13, 18, 32, 0.1), 0 4px 12px rgba(13, 18, 32, 0.05);
+  --t-sombra-xl: 0 32px 64px rgba(13, 18, 32, 0.16);
+
+  --t-transicion: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tienda *,
+  .tienda *::before,
+  .tienda *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,157 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Configuración</h1>
+      <p class="adm-cabecera__sub">
+        Resumen de tu sesión, acceso y preferencias. Los datos de cuenta se editan en Mi perfil.
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <a routerLink="/dashboard/perfil" class="adm-btn adm-btn--primario">
+        <i class="bi bi-person"></i> Editar perfil
+      </a>
+    </div>
+  </header>
+
+  <section class="adm-grid adm-grid--4">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"><i class="bi bi-person-circle"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ sesion.iniciales || '—' }}</div>
+        <div class="adm-metrica__etiqueta">Cuenta</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-shield"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ etiquetaRol }}</div>
+        <div class="adm-metrica__etiqueta">Rol</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-shop-window"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ destinoAcceso }}</div>
+        <div class="adm-metrica__etiqueta">Destino al entrar</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-key"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ sesion.permisos.length || 0 }}</div>
+        <div class="adm-metrica__etiqueta">Permisos listados</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="adm-grid adm-grid--2">
+
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-info-circle"></i> Sesión actual</h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo">
+        <div class="adm-fila">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="cfg-nombre">Nombre</label>
+            <input id="cfg-nombre" class="adm-input" type="text" [value]="sesion.nombre" disabled>
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="cfg-email">Correo</label>
+            <input id="cfg-email" class="adm-input" type="text" [value]="sesion.email" disabled>
+          </div>
+        </div>
+        <div class="adm-fila cfg-espaciado">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="cfg-id">ID usuario</label>
+            <input id="cfg-id" class="adm-input" type="text" [value]="sesion.idUsuario" disabled>
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="cfg-rol">Rol (ID)</label>
+            <input id="cfg-rol" class="adm-input" type="text"
+                   [value]="etiquetaRol + ' · #' + sesion.rolId" disabled>
+          </div>
+        </div>
+        <p class="adm-ayuda cfg-espaciado">
+          Estos campos son de solo lectura. Para cambiar nombre, correo o contraseña usa Mi perfil.
+        </p>
+      </div>
+    </section>
+
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-lightning"></i> Atajos</h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo">
+        <div class="cfg-atajos">
+          <a routerLink="/dashboard/perfil" class="cfg-atajo">
+            <i class="bi bi-person"></i>
+            <span>
+              <strong>Mi perfil</strong>
+              <small>Nombre, correo y contraseña</small>
+            </span>
+          </a>
+          <a routerLink="/dashboard/mantenimiento/roles" class="cfg-atajo" *ngIf="esAdminPuro">
+            <i class="bi bi-people"></i>
+            <span>
+              <strong>Roles</strong>
+              <small>IDs de acceso del sistema</small>
+            </span>
+          </a>
+          <a routerLink="/dashboard/mantenimiento/usuarios" class="cfg-atajo" *ngIf="esAdminPuro">
+            <i class="bi bi-person-gear"></i>
+            <span>
+              <strong>Usuarios</strong>
+              <small>Altas y cambio de rol</small>
+            </span>
+          </a>
+          <a routerLink="/dashboard/home" class="cfg-atajo">
+            <i class="bi bi-house"></i>
+            <span>
+              <strong>Dashboard</strong>
+              <small>Volver al panel principal</small>
+            </span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-list-check"></i> Permisos de la sesión</h2>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!sesion.permisos.length">
+      <div class="adm-vacio__icono"><i class="bi bi-shield"></i></div>
+      <div class="adm-vacio__titulo">Sin permisos individuales</div>
+      <p>Tu acceso se controla por el rol <strong>{{ etiquetaRol }}</strong> (ID {{ sesion.rolId }}).</p>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="sesion.permisos.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Permiso</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of sesion.permisos; let i = index">
+            <td data-etiqueta="#">{{ i + 1 }}</td>
+            <td data-etiqueta="Permiso">
+              <div class="adm-tabla__principal">{{ p }}</div>
+            </td>
+            <td data-etiqueta="Estado">
+              <span class="adm-insignia adm-insignia--exito">Activo</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>

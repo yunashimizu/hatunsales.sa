@@ -1,0 +1,104 @@
+<aside class="filtros" [class.abierto]="abiertoEnMovil" aria-label="Filtros de búsqueda">
+
+  <header class="cabecera">
+    <h2><i class="bi bi-sliders"></i>Filtros</h2>
+
+    <div class="acciones">
+      <button type="button" class="limpiar" *ngIf="totalActivos > 0" (click)="limpiar.emit()">
+        Limpiar ({{ totalActivos }})
+      </button>
+      <button type="button" class="cerrar-movil" (click)="cerrarEnMovil.emit()" aria-label="Cerrar filtros">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </header>
+
+  <div class="cuerpo">
+
+    <!-- Categorías -->
+    <section class="bloque" *ngIf="disponibles.categorias.length > 0">
+      <button type="button" class="titulo-bloque" (click)="alternar('categorias')" [attr.aria-expanded]="!estaColapsada('categorias')">
+        Categorías<i class="bi" [class.bi-chevron-down]="estaColapsada('categorias')" [class.bi-chevron-up]="!estaColapsada('categorias')"></i>
+      </button>
+
+      <ul class="opciones" *ngIf="!estaColapsada('categorias')">
+        <li *ngFor="let cat of disponibles.categorias">
+          <button type="button" [class.activo]="seleccion.id_categoria === cat.id_categoria" (click)="elegirCategoria(cat.id_categoria)">
+            <span class="marca-check"><i class="bi bi-check"></i></span>
+            <span class="etiqueta">{{ cat.nombre }}</span>
+            <span class="cantidad">{{ cat.total_productos }}</span>
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Marcas -->
+    <section class="bloque" *ngIf="disponibles.marcas.length > 0">
+      <button type="button" class="titulo-bloque" (click)="alternar('marcas')" [attr.aria-expanded]="!estaColapsada('marcas')">
+        Marcas<i class="bi" [class.bi-chevron-down]="estaColapsada('marcas')" [class.bi-chevron-up]="!estaColapsada('marcas')"></i>
+      </button>
+
+      <ul class="opciones" *ngIf="!estaColapsada('marcas')">
+        <li *ngFor="let m of disponibles.marcas">
+          <button type="button" [class.activo]="seleccion.id_marca === m.id_marca" (click)="elegirMarca(m.id_marca)">
+            <span class="marca-check"><i class="bi bi-check"></i></span>
+            <span class="etiqueta">{{ m.nombre }}</span>
+            <span class="cantidad">{{ m.total_productos }}</span>
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Precio -->
+    <section class="bloque">
+      <button type="button" class="titulo-bloque" (click)="alternar('precio')" [attr.aria-expanded]="!estaColapsada('precio')">
+        Precio<i class="bi" [class.bi-chevron-down]="estaColapsada('precio')" [class.bi-chevron-up]="!estaColapsada('precio')"></i>
+      </button>
+
+      <div class="rango" *ngIf="!estaColapsada('precio')">
+        <label>
+          <span>Desde</span>
+          <input type="number" min="0" [(ngModel)]="seleccion.precio_min" (change)="cambiarPrecio()" placeholder="0" />
+        </label>
+        <label>
+          <span>Hasta</span>
+          <input type="number" min="0" [(ngModel)]="seleccion.precio_max" (change)="cambiarPrecio()" [placeholder]="disponibles.precio_max" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Disponibilidad -->
+    <section class="bloque">
+      <button type="button" class="titulo-bloque" (click)="alternar('estado')" [attr.aria-expanded]="!estaColapsada('estado')">
+        Disponibilidad<i class="bi" [class.bi-chevron-down]="estaColapsada('estado')" [class.bi-chevron-up]="!estaColapsada('estado')"></i>
+      </button>
+
+      <div class="interruptores" *ngIf="!estaColapsada('estado')">
+        <button type="button" class="interruptor" [class.activo]="seleccion.solo_stock" (click)="alternarStock()">
+          <span class="pastilla"></span>Solo con stock
+        </button>
+        <button type="button" class="interruptor" [class.activo]="seleccion.solo_oferta" (click)="alternarOferta()">
+          <span class="pastilla"></span>Solo en oferta
+        </button>
+      </div>
+    </section>
+
+    <!-- Especificaciones -->
+    <section class="bloque" *ngFor="let attr of disponibles.atributos">
+      <button type="button" class="titulo-bloque" (click)="alternar(attr.nombre)" [attr.aria-expanded]="!estaColapsada(attr.nombre)">
+        {{ attr.nombre }}<i class="bi" [class.bi-chevron-down]="estaColapsada(attr.nombre)" [class.bi-chevron-up]="!estaColapsada(attr.nombre)"></i>
+      </button>
+
+      <div class="chips" *ngIf="!estaColapsada(attr.nombre)">
+        <button
+          type="button"
+          class="chip"
+          *ngFor="let v of attr.valores"
+          [class.activo]="atributoActivo(attr.nombre, v.valor)"
+          (click)="elegirAtributo(attr.nombre, v.valor)">
+          {{ v.valor }}
+        </button>
+      </div>
+    </section>
+  </div>
+</aside>

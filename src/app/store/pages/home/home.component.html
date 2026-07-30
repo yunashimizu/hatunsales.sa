@@ -1,0 +1,149 @@
+<div class="contenedor">
+
+  <!-- Hero -->
+  <section class="seccion-hero">
+    <app-hero-banner [slides]="banners" *ngIf="banners.length > 0"></app-hero-banner>
+
+    <div class="hero-respaldo" *ngIf="banners.length === 0 && !cargando">
+      <div class="hero-texto">
+        <span class="etiqueta"><i class="bi bi-lightning-charge-fill"></i>Nuevo catálogo en línea</span>
+        <h1>Todo lo que necesitas para construir tus proyectos</h1>
+        <p>Herramientas, materiales y equipos de las mejores marcas, con envío a todo el Perú.</p>
+        <a class="cta" routerLink="/store/catalogo">Explorar catálogo<i class="bi bi-arrow-right"></i></a>
+      </div>
+    </div>
+
+    <div class="hero-esqueleto esqueleto" *ngIf="cargando"></div>
+  </section>
+
+  <!-- Categorías -->
+  <section class="seccion" *ngIf="categorias.length > 0">
+    <header class="cabecera-seccion">
+      <div>
+        <h2>Compra por categoría</h2>
+        <p>Encuentra rápido lo que buscas dentro de nuestro catálogo</p>
+      </div>
+      <a class="ver-mas" routerLink="/store/catalogo">Ver todo<i class="bi bi-arrow-right"></i></a>
+    </header>
+
+    <app-categorias-grid [categorias]="categorias" [limite]="8"></app-categorias-grid>
+  </section>
+
+  <!-- Ofertas -->
+  <section class="seccion" *ngIf="ofertas.length > 0">
+    <header class="cabecera-seccion">
+      <div>
+        <h2><i class="bi bi-fire icono-fuego"></i>Ofertas de la semana</h2>
+        <p>Precios rebajados por tiempo limitado</p>
+      </div>
+      <a class="ver-mas" [routerLink]="['/store/catalogo']" [queryParams]="{ oferta: 1 }">
+        Ver todas<i class="bi bi-arrow-right"></i>
+      </a>
+    </header>
+
+    <div class="grilla-productos">
+      <app-producto-card
+        *ngFor="let p of ofertas; trackBy: trackProducto"
+        [producto]="p"
+        [esFavorito]="esFavorito(p)"
+        (agregar)="agregar($event)"
+        (alternarFavorito)="alternarFavorito($event)">
+      </app-producto-card>
+    </div>
+  </section>
+
+  <!-- Destacados -->
+  <section class="seccion" *ngIf="destacados.length > 0 || cargando">
+    <header class="cabecera-seccion">
+      <div>
+        <h2>Productos destacados</h2>
+        <p>Los favoritos de nuestros clientes</p>
+      </div>
+      <a class="ver-mas" routerLink="/store/catalogo">Ver catálogo<i class="bi bi-arrow-right"></i></a>
+    </header>
+
+    <div class="grilla-productos">
+      <ng-container *ngIf="!cargando">
+        <app-producto-card
+          *ngFor="let p of destacados; trackBy: trackProducto"
+          [producto]="p"
+          [esFavorito]="esFavorito(p)"
+          (agregar)="agregar($event)"
+          (alternarFavorito)="alternarFavorito($event)">
+        </app-producto-card>
+      </ng-container>
+
+      <div class="tarjeta-esqueleto esqueleto" *ngFor="let i of esqueletos" [hidden]="!cargando"></div>
+    </div>
+  </section>
+
+  <!-- Banda promocional -->
+  <section class="seccion">
+    <div class="banda">
+      <div class="banda-texto">
+        <span class="etiqueta-clara">Servicio profesional</span>
+        <h2>¿Necesitas cotizar un proyecto completo?</h2>
+        <p>Nuestro equipo prepara una proforma con precios especiales por volumen y coordina la entrega en obra.</p>
+        <a class="cta-clara" routerLink="/store/catalogo">Armar mi pedido<i class="bi bi-arrow-right"></i></a>
+      </div>
+      <div class="banda-arte" aria-hidden="true">
+        <i class="bi bi-hammer"></i>
+        <i class="bi bi-wrench-adjustable"></i>
+        <i class="bi bi-nut"></i>
+      </div>
+    </div>
+  </section>
+
+  <!-- Novedades -->
+  <section class="seccion" *ngIf="nuevos.length > 0">
+    <header class="cabecera-seccion">
+      <div>
+        <h2>Recién llegados</h2>
+        <p>Lo último que sumamos al catálogo</p>
+      </div>
+      <a class="ver-mas" [routerLink]="['/store/catalogo']" [queryParams]="{ orden: 'nuevo' }">
+        Ver novedades<i class="bi bi-arrow-right"></i>
+      </a>
+    </header>
+
+    <div class="grilla-productos">
+      <app-producto-card
+        *ngFor="let p of nuevos; trackBy: trackProducto"
+        [producto]="p"
+        [esFavorito]="esFavorito(p)"
+        (agregar)="agregar($event)"
+        (alternarFavorito)="alternarFavorito($event)">
+      </app-producto-card>
+    </div>
+  </section>
+
+  <!-- Marcas -->
+  <section class="seccion" *ngIf="marcas.length > 0">
+    <header class="cabecera-seccion">
+      <div>
+        <h2>Marcas que trabajamos</h2>
+        <p>Productos originales con garantía del fabricante</p>
+      </div>
+    </header>
+
+    <div class="marcas">
+      <a
+        class="marca"
+        *ngFor="let m of marcas"
+        [routerLink]="['/store/catalogo']"
+        [queryParams]="{ marca: m.id_marca }">
+        <img *ngIf="m.logo_url" [src]="m.logo_url" [alt]="m.nombre" loading="lazy" />
+        <span *ngIf="!m.logo_url">{{ m.nombre }}</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Sin datos -->
+  <section class="seccion" *ngIf="!cargando && !hayContenido">
+    <div class="vacio">
+      <i class="bi bi-box-seam"></i>
+      <h2>El catálogo aún está vacío</h2>
+      <p>Cuando registres productos desde el panel administrativo aparecerán aquí automáticamente.</p>
+    </div>
+  </section>
+</div>

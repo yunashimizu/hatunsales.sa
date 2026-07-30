@@ -1,0 +1,29 @@
+.tienda {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--t-fondo);
+}
+
+main {
+  flex: 1;
+}
+
+.saltar {
+  position: absolute;
+  top: -60px;
+  left: 16px;
+  z-index: 2000;
+  padding: 10px 18px;
+  border-radius: 0 0 var(--t-r-sm) var(--t-r-sm);
+  background: var(--t-primario);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top var(--t-transicion);
+}
+
+.saltar:focus {
+  top: 0;
+}

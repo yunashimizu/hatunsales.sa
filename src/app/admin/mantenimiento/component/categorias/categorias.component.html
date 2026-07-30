@@ -1,0 +1,95 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Categorías</h1>
+      <p class="adm-cabecera__sub">Organizan el catálogo de productos en el panel y en la tienda.</p>
+    </div>
+    <div class="adm-acciones">
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
+        Actualizar
+      </button>
+    </div>
+  </header>
+
+  <div class="adm-grid adm-grid--2">
+
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo">
+          <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+          {{ editandoId ? 'Editar categoría' : 'Crear categoría' }}
+        </h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cat-nombre">Nombre</label>
+          <input id="cat-nombre" class="adm-input" type="text" [(ngModel)]="modelo.nombre">
+        </div>
+        <div class="adm-campo" style="margin-top:0.85rem">
+          <label class="adm-etiqueta" for="cat-desc">Descripción</label>
+          <textarea id="cat-desc" class="adm-textarea" rows="3" [(ngModel)]="modelo.descripcion"></textarea>
+        </div>
+        <div class="adm-campo" style="margin-top:0.85rem">
+          <label class="adm-etiqueta" for="cat-color">Color</label>
+          <input id="cat-color" class="adm-input" type="color" [(ngModel)]="modelo.color">
+        </div>
+        <div class="adm-acciones" style="margin-top:1rem;gap:.5rem">
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+            {{ guardando ? 'Guardando…' : (editandoId ? 'Actualizar' : 'Crear') }}
+          </button>
+          <button type="button" class="adm-btn adm-btn--suave" *ngIf="editandoId" (click)="cancelarEdicion()">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-tags"></i> Lista</h2>
+        <span class="adm-insignia adm-insignia--neutra">{{ categorias.length }}</span>
+      </div>
+
+      <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !categorias.length">
+        <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4]"></div>
+      </div>
+
+      <div class="adm-vacio" *ngIf="!cargando && !categorias.length">
+        <div class="adm-vacio__icono"><i class="bi bi-tags"></i></div>
+        <div class="adm-vacio__titulo">No hay categorías</div>
+      </div>
+
+      <div class="adm-tabla-envoltorio" *ngIf="categorias.length">
+        <table class="adm-tabla adm-tabla--adaptable">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of categorias; trackBy: identificarCategoria" [class.adm-recien-creado]="idDestacado === c.id_categoria">
+              <td data-etiqueta="Nombre">
+                <div class="adm-tabla__principal" style="display:flex;align-items:center;gap:.5rem">
+                  <span class="cat-color" [style.background]="c.color || '#cbd5e1'"></span>
+                  {{ c.nombre }}
+                </div>
+              </td>
+              <td data-etiqueta="Descripción">{{ c.descripcion || '—' }}</td>
+              <td data-etiqueta="Acciones">
+                <div class="adm-acciones">
+                  <button type="button" class="adm-btn adm-btn--suave" (click)="editar(c)">Editar</button>
+                  <button type="button" class="adm-btn adm-btn--suave" (click)="eliminar(c.id_categoria)">Eliminar</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+</div>

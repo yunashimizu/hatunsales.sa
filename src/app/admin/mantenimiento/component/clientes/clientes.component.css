@@ -1,0 +1,45 @@
+:host { display: block; }
+
+.cli-campo--doc { flex: 0 1 260px; }
+.cli-campo--buscar { flex: 1 1 260px; max-width: 340px; }
+
+.cli-cargando {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cli-espaciado { margin-top: 14px; }
+
+.cli-pestanias {
+  display: flex;
+  gap: 4px;
+}
+
+.cli-pestania {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--adm-texto-suave);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--adm-r-sm);
+  cursor: pointer;
+  transition: all var(--adm-transicion);
+}
+
+.cli-pestania:hover { background: var(--adm-superficie-3); }
+
+.cli-pestania--activa {
+  color: var(--adm-primario);
+  background: var(--adm-superficie);
+  border-color: var(--adm-borde);
+  box-shadow: var(--adm-sombra-sm);
+}
+
+@media (max-width: 640px) {
+  .cli-campo--buscar { max-width: none; }
+}

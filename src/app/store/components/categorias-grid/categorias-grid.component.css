@@ -1,0 +1,92 @@
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.categoria {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  background: var(--t-superficie);
+  border: 1px solid var(--t-borde);
+  border-radius: var(--t-r-md);
+  text-decoration: none;
+  overflow: hidden;
+  transition: transform var(--t-transicion), box-shadow var(--t-transicion), border-color var(--t-transicion);
+  animation: aparecer 460ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.categoria:hover {
+  transform: translateY(-3px);
+  border-color: var(--t-primario);
+  box-shadow: var(--t-sombra-md);
+}
+
+.categoria:focus-visible {
+  outline: 2px solid var(--t-primario);
+  outline-offset: 2px;
+}
+
+.icono {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--t-r-sm);
+  background: var(--t-primario-claro);
+  background-size: cover;
+  background-position: center;
+  color: var(--t-primario);
+  font-size: 1.35rem;
+  transition: all var(--t-transicion);
+}
+
+.categoria:hover .icono {
+  background-color: var(--t-primario);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.texto {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.nombre {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--t-texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conteo {
+  font-size: 0.78rem;
+  color: var(--t-texto-tenue);
+}
+
+.flecha {
+  margin-left: auto;
+  color: var(--t-texto-tenue);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: all var(--t-transicion);
+}
+
+.categoria:hover .flecha {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--t-primario);
+}

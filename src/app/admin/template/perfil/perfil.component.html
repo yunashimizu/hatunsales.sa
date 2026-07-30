@@ -1,0 +1,116 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Mi perfil</h1>
+      <p class="adm-cabecera__sub">
+        Datos de la cuenta con la que ingresaste. El rol y el ID no se editan aquí.
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <a routerLink="/dashboard/configuracion" class="adm-btn adm-btn--suave">
+        <i class="bi bi-gear"></i> Configuración
+      </a>
+    </div>
+  </header>
+
+  <section class="adm-grid adm-grid--3">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"><i class="bi bi-person-badge"></i></div>
+      <div>
+        <div class="adm-metrica__valor">#{{ sesion.idUsuario || '—' }}</div>
+        <div class="adm-metrica__etiqueta">ID de usuario</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-shield-check"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ etiquetaRol }}</div>
+        <div class="adm-metrica__etiqueta">Rol asignado</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-key"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ sesion.permisos.length || 'Por rol' }}</div>
+        <div class="adm-metrica__etiqueta">Permisos</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="adm-grid adm-grid--2">
+
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-person"></i> Datos personales</h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo">
+        <div class="adm-fila perfil-identidad">
+          <div class="perfil-avatar" aria-hidden="true">{{ sesion.iniciales }}</div>
+          <div>
+            <div class="adm-tabla__principal">{{ sesion.nombre || 'Usuario' }}</div>
+            <div class="adm-tabla__secundario">{{ sesion.email || 'Sin correo' }}</div>
+          </div>
+        </div>
+
+        <div class="adm-fila">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="perfil-id">ID usuario</label>
+            <input id="perfil-id" class="adm-input" type="text" [value]="sesion.idUsuario" disabled>
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="perfil-rol">Rol</label>
+            <input id="perfil-rol" class="adm-input" type="text" [value]="etiquetaRol + ' (#' + sesion.rolId + ')'" disabled>
+            <span class="adm-ayuda">Solo un administrador puede cambiar el rol.</span>
+          </div>
+        </div>
+
+        <div class="adm-campo perfil-espaciado">
+          <label class="adm-etiqueta" for="perfil-nombre">Nombre</label>
+          <input id="perfil-nombre" class="adm-input" type="text" [(ngModel)]="formulario.nombre" autocomplete="name">
+        </div>
+
+        <div class="adm-campo perfil-espaciado">
+          <label class="adm-etiqueta" for="perfil-email">Correo</label>
+          <input id="perfil-email" class="adm-input" type="email" [(ngModel)]="formulario.email" autocomplete="email">
+        </div>
+      </div>
+    </section>
+
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-lock"></i> Seguridad</h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo">
+        <p class="adm-ayuda perfil-ayuda">Déjalo vacío si no quieres cambiar la contraseña.</p>
+
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="perfil-pass-actual">Contraseña actual</label>
+          <input id="perfil-pass-actual" class="adm-input" type="password"
+                 [(ngModel)]="formulario.password_actual" autocomplete="current-password">
+        </div>
+
+        <div class="adm-fila perfil-espaciado">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="perfil-pass-nueva">Nueva contraseña</label>
+            <input id="perfil-pass-nueva" class="adm-input" type="password"
+                   [(ngModel)]="formulario.password_nueva" autocomplete="new-password">
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="perfil-pass-confirma">Confirmar</label>
+            <input id="perfil-pass-confirma" class="adm-input" type="password"
+                   [(ngModel)]="formulario.password_confirma" autocomplete="new-password">
+          </div>
+        </div>
+
+        <div class="adm-acciones perfil-espaciado">
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
+            {{ guardando ? 'Guardando…' : 'Guardar cambios' }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>

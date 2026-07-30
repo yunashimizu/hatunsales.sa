@@ -1,0 +1,74 @@
+<section
+  #shellRoot
+  class="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-violet-50 to-sky-100"
+>
+  <!-- Orbes de fondo -->
+  <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+    <div class="absolute -left-24 top-10 h-72 w-72 rounded-full bg-violet-300/40 blur-3xl"></div>
+    <div class="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-sky-300/40 blur-3xl"></div>
+    <div class="absolute left-1/3 top-1/2 h-64 w-64 rounded-full bg-fuchsia-200/30 blur-3xl"></div>
+  </div>
+
+  <div class="relative mx-auto grid min-h-screen max-w-7xl grid-cols-1 lg:grid-cols-2">
+
+    <!-- ── Aside branding ── -->
+    <aside class="relative flex flex-col justify-between px-8 py-10 lg:px-14 lg:py-12" data-auth-enter>
+      <a routerLink="/store" class="inline-flex items-center gap-3">
+        <span class="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/30">
+          <i class="bi bi-building-gear text-xl"></i>
+        </span>
+        <span>
+          <span class="block text-lg font-bold tracking-tight text-slate-900">Hatunsales S.A.C</span>
+          <span class="block text-xs text-slate-500">Todo para construir tus sueños</span>
+        </span>
+      </a>
+
+      <div class="my-10 flex flex-1 flex-col justify-center">
+        <h2 class="max-w-md text-3xl font-bold leading-tight text-slate-900 sm:text-4xl" data-auth-enter>
+          {{ modo === 'login' ? 'Bienvenido de nuevo.' : 'Construye más, con lo mejor.' }}
+        </h2>
+        <p class="mt-4 max-w-md text-sm leading-relaxed text-slate-600 sm:text-base" data-auth-enter>
+          Accede a miles de productos de ferretería, herramientas y materiales con la confianza de Hatunsales S.A.C.
+        </p>
+
+        <div class="relative mx-auto mt-8 h-56 w-full max-w-md sm:h-64" data-auth-enter>
+          <div class="absolute inset-x-10 bottom-4 h-8 rounded-full bg-violet-400/20 blur-xl"></div>
+          <div #lottieHost class="relative z-10 mx-auto h-full w-full max-w-sm"></div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" data-auth-enter>
+          <div
+            *ngFor="let b of beneficios"
+            class="rounded-2xl border border-white/60 bg-white/70 p-3 shadow-sm backdrop-blur-xl"
+          >
+            <div class="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-xl text-sm" [ngClass]="b.tono">
+              <i class="bi" [ngClass]="b.icono"></i>
+            </div>
+            <div class="text-xs font-semibold text-slate-800">{{ b.titulo }}</div>
+            <div class="text-[11px] text-slate-500">{{ b.texto }}</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="flex items-center gap-2 text-xs text-slate-500" data-auth-enter>
+        <i class="bi bi-shield-lock"></i>
+        Conexión segura · Datos cifrados · Hatunsales S.A.C
+      </p>
+    </aside>
+
+    <!-- ── Formulario (contenido proyectado) ── -->
+    <main class="flex items-center justify-center px-5 py-10 sm:px-10" data-auth-enter>
+      <div class="auth-card w-full max-w-md rounded-[2rem] border border-white/50 bg-white/80 p-7 shadow-2xl backdrop-blur-xl sm:p-9">
+        <ng-content></ng-content>
+      </div>
+    </main>
+  </div>
+
+  <footer class="pointer-events-none absolute inset-x-0 bottom-0 hidden border-t border-white/40 bg-white/40 px-8 py-3 text-xs text-slate-500 backdrop-blur-md lg:flex lg:items-center lg:justify-between">
+    <span class="inline-flex items-center gap-3">
+      <span class="inline-flex items-center gap-1"><i class="bi bi-shield-check"></i> SSL</span>
+      <span class="inline-flex items-center gap-1"><i class="bi bi-lock"></i> Privacidad</span>
+    </span>
+    <span>© {{ 2026 }} Hatunsales S.A.C</span>
+  </footer>
+</section>

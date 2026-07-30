@@ -1,0 +1,26 @@
+<div id="wrapper" [class.sb-collapsed]="sidebarCollapsed">
+
+  <button
+    *ngIf="!sidebarCollapsed"
+    type="button"
+    class="sb-backdrop"
+    aria-label="Cerrar menú"
+    (click)="toggleSidebar()">
+  </button>
+
+  <app-sidebar [collapsed]="sidebarCollapsed"></app-sidebar>
+
+  <div id="main-wrapper">
+    <app-header
+      [sidebarAbierto]="!sidebarCollapsed"
+      (onToggleSidebar)="toggleSidebar()">
+    </app-header>
+
+    <div class="main-content">
+      <router-outlet></router-outlet>
+    </div>
+
+    <app-footer></app-footer>
+  </div>
+</div>
+<app-toasts></app-toasts>

@@ -1,0 +1,60 @@
+<div class="sidebar" [class.collapsed]="collapsed">
+
+  <div class="sb-brand">
+    <div class="brand-text">
+      <span class="brand-name">Hatunsales</span>
+      <span class="brand-suffix">S.A.C</span>
+    </div>
+  </div>
+
+  <div class="sb-menu-wrap">
+
+    <div class="sb-section" *ngFor="let seccion of secciones" [hidden]="!seccionVisible(seccion)">
+      <button
+        type="button"
+        class="sb-section-label sb-section-toggle"
+        [class.open]="estaAbierta(seccion.titulo)"
+        (click)="toggleSeccion(seccion.titulo)"
+        [attr.aria-expanded]="estaAbierta(seccion.titulo)"
+      >
+        <span>{{ seccion.titulo }}</span>
+        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+      </button>
+
+      <div class="sb-section-body" [class.open]="estaAbierta(seccion.titulo)">
+        <div class="sb-section-inner">
+          <ul class="sb-menu">
+            <li *ngFor="let item of seccion.items" routerLinkActive="active" [hidden]="!visible(item)">
+              <a [routerLink]="item.ruta">
+                <i class="fas" [ngClass]="item.icono"></i>
+                <span>{{ item.etiqueta }}</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-section-label" *ngIf="cuenta.some(i => visible(i))">Cuenta</div>
+    <ul class="sb-menu">
+      <li *ngFor="let item of cuenta" routerLinkActive="active" [hidden]="!visible(item)">
+        <a [routerLink]="item.ruta">
+          <i class="fas" [ngClass]="item.icono"></i>
+          <span>{{ item.etiqueta }}</span>
+        </a>
+      </li>
+    </ul>
+
+  </div>
+
+  <div class="sb-footer">
+    <div class="sb-footer-info">
+      <i class="fas fa-user-circle"></i>
+      <div class="sb-footer-text">
+        <small>{{ etiquetaRol }}</small>
+        <strong>{{ sesion.nombre || 'Usuario' }}</strong>
+      </div>
+    </div>
+  </div>
+
+</div>

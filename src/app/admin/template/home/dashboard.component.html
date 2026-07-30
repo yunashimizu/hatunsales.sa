@@ -1,0 +1,95 @@
+<div class="dashboard-shell">
+  <section class="hero-panel">
+    <div class="hero-copy">
+      <span class="eyebrow">{{ saludo }}</span>
+      <h1>{{ sesion.nombre || 'Usuario' }}</h1>
+      <p>
+        Bienvenido al panel administrativo.
+        Estás conectado como <strong>{{ etiquetaRol }}</strong>
+        <span *ngIf="sesion.email"> · {{ sesion.email }}</span>.
+      </p>
+    </div>
+
+    <div class="hero-actions">
+      <a class="btn-primary" routerLink="/dashboard/mantenimiento/ventas">Ir a ventas</a>
+      <a class="btn-secondary" routerLink="/dashboard/perfil">Mi perfil</a>
+    </div>
+  </section>
+
+  <section class="stats-grid">
+    <article class="stat-card card-glow">
+      <div class="stat-head">
+        <span>Acceso rápido</span>
+      </div>
+      <strong>Operación</strong>
+      <p>Usa el menú lateral según tu rol.</p>
+    </article>
+
+    <article class="stat-card card-glow">
+      <div class="stat-head">
+        <span>Tu rol</span>
+      </div>
+      <strong>{{ etiquetaRol }}</strong>
+      <p>Define qué módulos puedes ver.</p>
+    </article>
+
+    <article class="stat-card card-glow">
+      <div class="stat-head">
+        <span>Permisos</span>
+      </div>
+      <strong>{{ sesion.permisos.length || 'Por rol' }}</strong>
+      <p>Detalle en Configuración.</p>
+    </article>
+
+    <article class="stat-card card-glow">
+      <div class="stat-head">
+        <span>Cuenta</span>
+      </div>
+      <strong>{{ sesion.iniciales }}</strong>
+      <p>Actualiza tus datos cuando quieras.</p>
+    </article>
+  </section>
+
+  <section class="overview-layout">
+    <div class="overview-card chart-card">
+      <div class="section-header">
+        <div>
+          <span class="section-eyebrow">Atajos</span>
+          <h2>Empezar el día</h2>
+        </div>
+      </div>
+      <div class="endpoint-grid">
+        <a class="module-pill" routerLink="/dashboard/mantenimiento/productos">
+          <strong>Productos</strong>
+          <span>Catálogo e imágenes</span>
+        </a>
+        <a class="module-pill" routerLink="/dashboard/mantenimiento/inventario">
+          <strong>Inventario</strong>
+          <span>Stock y ajustes</span>
+        </a>
+        <a class="module-pill" routerLink="/dashboard/mantenimiento/clientes">
+          <strong>Clientes</strong>
+          <span>Personas y empresas</span>
+        </a>
+        <a class="module-pill" routerLink="/dashboard/mantenimiento/doc">
+          <strong>Documentos</strong>
+          <span>Comprobantes electrónicos</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="right-grid">
+      <article class="info-card">
+        <span class="info-title">Sesión activa</span>
+        <strong>{{ sesion.email || 'Sin correo' }}</strong>
+        <p>Los datos del encabezado y del menú salen de tu usuario real.</p>
+      </article>
+
+      <article class="info-card accent-card">
+        <span class="info-title">Configuración</span>
+        <strong>Cuenta</strong>
+        <p><a routerLink="/dashboard/configuracion">Ver permisos y preferencias</a></p>
+      </article>
+    </div>
+  </section>
+</div>

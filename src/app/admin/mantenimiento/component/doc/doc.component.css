@@ -1,0 +1,34 @@
+:host { display: block; }
+
+.doc-campo--ancho { flex: 2 1 280px; }
+
+.doc-cargando {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+}
+
+.doc-acciones {
+  display: inline-flex;
+  gap: 2px;
+  justify-content: center;
+}
+
+.doc-error {
+  max-width: 260px;
+  margin-top: 4px;
+  color: var(--adm-peligro);
+  white-space: normal;
+}
+
+.doc-espaciado { margin-top: 14px; }
+
+/* Un documento anulado sigue visible, pero se nota que ya no vale. */
+.doc-fila--anulada { opacity: 0.62; }
+.doc-fila--anulada .adm-tabla__principal { text-decoration: line-through; }
+
+@media (max-width: 640px) {
+  .doc-acciones { justify-content: flex-end; }
+  .doc-error { max-width: none; text-align: right; }
+}

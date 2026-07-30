@@ -10,7 +10,28 @@
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
-          "style": "scss"
+          "type": "component"
+        },
+        "@schematics/angular:directive": {
+          "type": "directive"
+        },
+        "@schematics/angular:service": {
+          "type": "service"
+        },
+        "@schematics/angular:guard": {
+          "typeSeparator": "."
+        },
+        "@schematics/angular:interceptor": {
+          "typeSeparator": "."
+        },
+        "@schematics/angular:module": {
+          "typeSeparator": "."
+        },
+        "@schematics/angular:pipe": {
+          "typeSeparator": "."
+        },
+        "@schematics/angular:resolver": {
+          "typeSeparator": "."
         }
       },
       "root": "",
@@ -21,6 +42,7 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
+            "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -30,7 +52,15 @@
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "node_modules/bootstrap/dist/css/bootstrap.min.css",
+              "node_modules/startbootstrap-sb-admin-2/css/sb-admin-2.min.css",
+              "node_modules/bootstrap-icons/font/bootstrap-icons.css",
+              "src/styles.css"
+            ],
+            "scripts": [
+              "node_modules/jquery/dist/jquery.min.js",
+              "node_modules/bootstrap/dist/js/bootstrap.bundle.min.js",
+              "node_modules/startbootstrap-sb-admin-2/js/sb-admin-2.min.js"
             ],
             "server": "src/main.server.ts",
             "outputMode": "server",
@@ -46,13 +76,13 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "2MB",
+                  "maximumError": "3MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "16kB",
+                  "maximumError": "20kB"
                 }
               ],
               "outputHashing": "all"

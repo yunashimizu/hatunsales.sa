@@ -1,0 +1,156 @@
+<app-auth-shell modo="registro">
+  <div #cardInner>
+
+    <div class="mb-5 flex items-start justify-between gap-3">
+      <div>
+        <div class="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+          <i class="bi bi-person-plus text-lg"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Crea tu cuenta</h1>
+        <p class="mt-1 text-sm text-slate-500">
+          Solo para clientes. Compra más rápido y sigue tus pedidos.
+        </p>
+      </div>
+      <span class="hidden shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 sm:inline-flex">
+        <i class="bi bi-shield-check"></i> Registro seguro
+      </span>
+    </div>
+
+    <div
+      *ngIf="errorMsg"
+      class="mb-4 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700"
+      role="alert"
+    >
+      <i class="bi bi-exclamation-circle mt-0.5"></i>
+      <span>{{ errorMsg }}</span>
+    </div>
+
+    <app-google-sign-in
+      class="block"
+      etiqueta="Continuar con Google"
+      [cargando]="googleCargando || cargando"
+      (credential)="onGoogle($event)"
+      (fallo)="onGoogleError($event)"
+    ></app-google-sign-in>
+
+    <div class="my-5 flex items-center gap-3 text-xs text-slate-400">
+      <span class="h-px flex-1 bg-slate-200"></span>
+      o crea una cuenta con tu correo
+      <span class="h-px flex-1 bg-slate-200"></span>
+    </div>
+
+    <form [formGroup]="form" class="space-y-3.5" (ngSubmit)="submit()" autocomplete="on">
+
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <label class="mb-1.5 block text-xs font-semibold text-slate-700" for="reg-nombres">Nombres</label>
+          <div class="relative">
+            <i class="bi bi-person absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input id="reg-nombres" type="text" formControlName="nombres" placeholder="Juan"
+              class="w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3 pl-10 pr-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100" />
+          </div>
+        </div>
+        <div>
+          <label class="mb-1.5 block text-xs font-semibold text-slate-700" for="reg-apellidos">Apellidos</label>
+          <div class="relative">
+            <i class="bi bi-person absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input id="reg-apellidos" type="text" formControlName="apellidos" placeholder="Pérez"
+              class="w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3 pl-10 pr-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100" />
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <label class="mb-1.5 block text-xs font-semibold text-slate-700" for="reg-email">Correo electrónico</label>
+          <div class="relative">
+            <i class="bi bi-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input id="reg-email" type="email" formControlName="email" placeholder="tu@correo.com"
+              class="w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3 pl-10 pr-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100" />
+          </div>
+        </div>
+        <div>
+          <label class="mb-1.5 block text-xs font-semibold text-slate-700" for="reg-tel">Celular</label>
+          <div class="relative">
+            <i class="bi bi-phone absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input id="reg-tel" type="tel" formControlName="telefono" placeholder="999 999 999"
+              class="w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3 pl-10 pr-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100" />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="mb-1.5 block text-xs font-semibold text-slate-700" for="reg-pass">Contraseña</label>
+        <div class="relative">
+          <i class="bi bi-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input id="reg-pass" [type]="mostrarPassword ? 'text' : 'password'" formControlName="password" placeholder="Mínimo 8 caracteres"
+            class="w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3 pl-10 pr-11 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100" />
+          <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" (click)="mostrarPassword = !mostrarPassword">
+            <i class="bi" [ngClass]="mostrarPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+          </button>
+        </div>
+
+        <div class="mt-2" *ngIf="password">
+          <div class="mb-1 flex items-center justify-between text-[11px]">
+            <span class="text-slate-500">Seguridad</span>
+            <span class="font-semibold text-slate-700">{{ fuerza.etiqueta }}</span>
+          </div>
+          <div class="flex gap-1">
+            <span *ngFor="let n of [1,2,3,4,5]"
+                  class="h-1.5 flex-1 rounded-full transition"
+                  [ngClass]="fuerza.nivel >= n ? fuerza.color : 'bg-slate-200'"></span>
+          </div>
+          <ul class="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
+            <li *ngFor="let r of requisitos" class="flex items-center gap-1.5 text-[11px]"
+                [ngClass]="r.ok ? 'text-emerald-600' : 'text-slate-400'">
+              <i class="bi" [ngClass]="r.ok ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+              {{ r.texto }}
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div>
+        <label class="mb-1.5 block text-xs font-semibold text-slate-700" for="reg-pass2">Confirmar contraseña</label>
+        <div class="relative">
+          <i class="bi bi-lock-fill absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input id="reg-pass2" [type]="mostrarConfirm ? 'text' : 'password'" formControlName="password_confirm" placeholder="Repite tu contraseña"
+            class="w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3 pl-10 pr-11 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100" />
+          <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" (click)="mostrarConfirm = !mostrarConfirm">
+            <i class="bi" [ngClass]="mostrarConfirm ? 'bi-eye-slash' : 'bi-eye'"></i>
+          </button>
+        </div>
+        <p *ngIf="form.hasError('mismatch') && form.get('password_confirm')?.touched" class="mt-1 text-xs text-rose-600">
+          Las contraseñas no coinciden
+        </p>
+      </div>
+
+      <label class="flex items-start gap-2 text-xs text-slate-600">
+        <input type="checkbox" formControlName="terminos" class="mt-0.5 rounded border-slate-300 text-violet-600 focus:ring-violet-500" />
+        <span>Acepto los términos y la política de privacidad de Hatunsales S.A.C.</span>
+      </label>
+
+      <label class="flex items-start gap-2 text-xs text-slate-600">
+        <input type="checkbox" formControlName="ofertas" class="mt-0.5 rounded border-slate-300 text-violet-600 focus:ring-violet-500" />
+        <span>Quiero recibir ofertas y novedades (opcional)</span>
+      </label>
+
+      <button
+        type="submit"
+        class="group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/30 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+        [disabled]="cargando || googleCargando"
+      >
+        <span *ngIf="!cargando">Crear cuenta <i class="bi bi-arrow-right"></i></span>
+        <span *ngIf="cargando" class="inline-flex items-center gap-2">
+          <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+          Creando…
+        </span>
+      </button>
+    </form>
+
+    <p class="mt-5 text-center text-sm text-slate-500">
+      ¿Ya tienes una cuenta?
+      <a routerLink="/auth" class="font-semibold text-violet-600 hover:text-violet-700">Iniciar sesión</a>
+    </p>
+  </div>
+</app-auth-shell>

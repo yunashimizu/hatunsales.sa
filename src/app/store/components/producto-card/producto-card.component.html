@@ -1,0 +1,56 @@
+<article class="tarjeta" [class.agotado]="producto.stock <= 0">
+
+  <a class="marco" [routerLink]="['/store/producto', producto.id_producto]" [attr.aria-label]="producto.nombre">
+    <img [src]="imagen" [alt]="producto.nombre" loading="lazy" (error)="imagenAlternativa($event)" />
+
+    <div class="insignias">
+      <span class="insignia oferta" *ngIf="producto.descuento > 0">-{{ producto.descuento }}%</span>
+      <span class="insignia nuevo" *ngIf="producto.destacado && producto.descuento <= 0">Destacado</span>
+    </div>
+
+    <button
+      type="button"
+      class="favorito"
+      [class.activo]="esFavorito"
+      (click)="onFavorito($event)"
+      [attr.aria-label]="esFavorito ? 'Quitar de favoritos' : 'Guardar en favoritos'"
+      [attr.aria-pressed]="esFavorito">
+      <i class="bi" [class.bi-heart-fill]="esFavorito" [class.bi-heart]="!esFavorito"></i>
+    </button>
+  </a>
+
+  <div class="cuerpo">
+    <span class="marca" *ngIf="producto.marca">{{ producto.marca }}</span>
+
+    <a class="nombre" [routerLink]="['/store/producto', producto.id_producto]">{{ producto.nombre }}</a>
+
+    <app-estrellas
+      class="rating"
+      [valor]="producto.rating"
+      [total]="producto.total_resenas"
+      *ngIf="producto.total_resenas > 0">
+    </app-estrellas>
+
+    <div class="precios">
+      <span class="precio">S/ {{ producto.precio_final | number: '1.2-2' }}</span>
+      <span class="precio-antes" *ngIf="ahorro > 0">S/ {{ producto.precio | number: '1.2-2' }}</span>
+    </div>
+
+    <span class="ahorro" *ngIf="ahorro > 0">Ahorras S/ {{ ahorro | number: '1.2-2' }}</span>
+
+    <div class="pie">
+      <span class="stock" [class]="etiquetaStock.clase">
+        <i class="bi bi-circle-fill"></i>{{ etiquetaStock.texto }}
+      </span>
+
+      <button
+        type="button"
+        class="agregar"
+        (click)="onAgregar($event)"
+        [disabled]="producto.stock <= 0 || cargando">
+        <i class="bi" [class.bi-bag-plus]="!cargando" [class.bi-arrow-repeat]="cargando" [class.girando]="cargando"></i>
+        <span>{{ producto.stock > 0 ? 'Agregar' : 'Agotado' }}</span>
+      </button>
+    </div>
+  </div>
+</article>

@@ -1,0 +1,108 @@
+<div class="contenedor">
+
+  <nav class="migas" aria-label="Ruta de navegación">
+    <a routerLink="/store">Inicio</a>
+    <i class="bi bi-chevron-right"></i>
+    <span>Contacto</span>
+  </nav>
+
+  <header class="hero-contacto">
+    <span class="etiqueta"><i class="bi bi-geo-alt-fill"></i>Centro de atención</span>
+    <h1>Contacto y ubicación</h1>
+    <p>
+      Pedidos, stock y asesoría técnica. Llama, escribe por WhatsApp
+      o ven a nuestra tienda — elige el canal que prefieras.
+    </p>
+  </header>
+
+  <div class="rejilla-canales">
+    <a class="canal" [href]="telHref">
+      <span class="canal-icono"><i class="bi bi-telephone-fill"></i></span>
+      <span class="canal-cuerpo">
+        <strong>Llamar ahora</strong>
+        <small>{{ empresa.telefonoMostrar }}</small>
+      </span>
+      <i class="bi bi-chevron-right flecha"></i>
+    </a>
+
+    <a class="canal canal--wa" [href]="waHref" target="_blank" rel="noopener">
+      <span class="canal-icono"><i class="bi bi-whatsapp"></i></span>
+      <span class="canal-cuerpo">
+        <strong>WhatsApp</strong>
+        <small>Respuesta en minutos</small>
+      </span>
+      <i class="bi bi-chevron-right flecha"></i>
+    </a>
+
+    <a class="canal" [href]="mailHref">
+      <span class="canal-icono"><i class="bi bi-envelope-fill"></i></span>
+      <span class="canal-cuerpo">
+        <strong>Correo</strong>
+        <small>{{ empresa.email }}</small>
+      </span>
+      <i class="bi bi-chevron-right flecha"></i>
+    </a>
+
+    <button type="button" class="canal" (click)="copiar(empresa.telefonoMostrar, 'Teléfono')">
+      <span class="canal-icono"><i class="bi bi-clipboard"></i></span>
+      <span class="canal-cuerpo">
+        <strong>Copiar teléfono</strong>
+        <small>Listo para pegar</small>
+      </span>
+      <i class="bi bi-chevron-right flecha"></i>
+    </button>
+  </div>
+
+  <div class="disposicion">
+    <section class="panel">
+      <h2><i class="bi bi-shop"></i> Cómo llegar</h2>
+      <p class="ayuda">{{ empresa.direccion }}</p>
+      <p class="ayuda" *ngIf="empresa.referencia"><i class="bi bi-signpost-2"></i> {{ empresa.referencia }}</p>
+
+      <div class="mapa">
+        <iframe
+          [src]="mapaEmbed"
+          title="Mapa de HatunSales"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen>
+        </iframe>
+      </div>
+
+      <div class="acciones-mapa">
+        <a class="boton-primario" [href]="mapaAbrir" target="_blank" rel="noopener">
+          <i class="bi bi-map"></i>Abrir en Google Maps
+        </a>
+        <a class="boton-secundario" [href]="waHref" target="_blank" rel="noopener">
+          <i class="bi bi-whatsapp"></i>Escribir por WhatsApp
+        </a>
+      </div>
+    </section>
+
+    <aside class="panel panel-lateral">
+      <h2><i class="bi bi-clock"></i> Horario</h2>
+      <ul class="lista-horario">
+        <li><span>Atención</span><strong>{{ empresa.horario }}</strong></li>
+        <li><span>Domingo</span><strong>{{ empresa.horarioDomingo }}</strong></li>
+      </ul>
+
+      <h2 class="mt"><i class="bi bi-info-circle"></i> Datos de la empresa</h2>
+      <ul class="lista-datos">
+        <li><i class="bi bi-buildings"></i>{{ empresa.nombre }}</li>
+        <li><i class="bi bi-geo-alt"></i>{{ empresa.direccion }}</li>
+        <li><i class="bi bi-telephone"></i>{{ empresa.telefonoMostrar }}</li>
+        <li><i class="bi bi-envelope"></i>{{ empresa.email }}</li>
+      </ul>
+
+      <a class="boton-secundario ancho" routerLink="/store/catalogo">
+        <i class="bi bi-grid"></i>Ver catálogo
+      </a>
+      <a class="boton-secundario ancho" routerLink="/store/perfil">
+        <i class="bi bi-person"></i>Mi cuenta
+      </a>
+      <button type="button" class="boton-secundario ancho" (click)="copiar(empresa.email, 'Correo')">
+        <i class="bi bi-clipboard"></i>Copiar correo
+      </button>
+    </aside>
+  </div>
+</div>

@@ -1,0 +1,353 @@
+.capa {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 18, 32, 0.42);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 280ms ease, visibility 280ms;
+  z-index: 1040;
+}
+
+.capa.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(430px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--t-superficie);
+  box-shadow: var(--t-sombra-xl);
+  transform: translateX(100%);
+  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 1050;
+}
+
+.panel.visible {
+  transform: translateX(0);
+}
+
+/* ---------------------------------------------------------------- cabecera */
+
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--t-borde);
+}
+
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titulo i {
+  font-size: 1.2rem;
+  color: var(--t-primario);
+}
+
+.titulo h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--t-texto);
+}
+
+.conteo {
+  padding: 2px 9px;
+  border-radius: var(--t-r-full);
+  background: var(--t-primario-claro);
+  color: var(--t-primario);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.cerrar {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--t-superficie-2);
+  color: var(--t-texto-suave);
+  cursor: pointer;
+  transition: all var(--t-transicion);
+}
+
+.cerrar:hover {
+  background: var(--t-borde);
+  color: var(--t-texto);
+}
+
+/* ------------------------------------------------------------------- lista */
+
+.lista {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 22px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--t-borde);
+  transition: opacity var(--t-transicion);
+}
+
+.item.ocupado {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.miniatura {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  padding: 6px;
+  background: var(--t-superficie-2);
+  border-radius: var(--t-r-sm);
+}
+
+.datos {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.marca {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--t-texto-tenue);
+}
+
+.nombre {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--t-texto);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.precio {
+  font-size: 0.78rem;
+  color: var(--t-texto-suave);
+}
+
+.alerta-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--t-aviso);
+}
+
+.controles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.cantidad {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--t-borde);
+  border-radius: var(--t-r-full);
+  overflow: hidden;
+}
+
+.cantidad button {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--t-texto-suave);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: background var(--t-transicion);
+}
+
+.cantidad button:hover:not(:disabled) {
+  background: var(--t-superficie-2);
+  color: var(--t-primario);
+}
+
+.cantidad button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.cantidad span {
+  min-width: 26px;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.eliminar {
+  border: none;
+  background: transparent;
+  color: var(--t-texto-tenue);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color var(--t-transicion);
+}
+
+.eliminar:hover {
+  color: var(--t-peligro);
+}
+
+.subtotal {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--t-texto);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------- vacío */
+
+.vacio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 30px;
+  text-align: center;
+}
+
+.ilustracion {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--t-superficie-2);
+  color: var(--t-texto-tenue);
+  font-size: 1.9rem;
+  margin-bottom: 6px;
+}
+
+.vacio h3 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--t-texto);
+}
+
+.vacio p {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 0.85rem;
+  color: var(--t-texto-suave);
+  line-height: 1.55;
+}
+
+/* --------------------------------------------------------------------- pie */
+
+.pie {
+  padding: 18px 22px 22px;
+  border-top: 1px solid var(--t-borde);
+  background: var(--t-superficie-2);
+}
+
+.linea {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--t-texto-suave);
+  padding: 4px 0;
+}
+
+.linea.total {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--t-borde-fuerte);
+  font-size: 1.06rem;
+  font-weight: 700;
+  color: var(--t-texto);
+}
+
+.boton-primario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border: none;
+  border-radius: var(--t-r-full);
+  background: var(--t-primario);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--t-transicion);
+}
+
+.boton-primario:hover {
+  background: var(--t-primario-osc);
+  box-shadow: 0 8px 22px rgba(79, 70, 229, 0.32);
+}
+
+.boton-primario.grande {
+  width: 100%;
+  margin-top: 14px;
+  padding: 14px 22px;
+  font-size: 0.95rem;
+}
+
+.secundarias {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.secundarias a,
+.secundarias button {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--t-texto-suave);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--t-transicion);
+}
+
+.secundarias a:hover { color: var(--t-primario); }
+.secundarias button:hover { color: var(--t-peligro); }
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--t-primario);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
