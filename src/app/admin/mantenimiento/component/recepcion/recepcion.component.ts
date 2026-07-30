@@ -15,7 +15,7 @@ import { VisorImagenComponent } from '../../../../shared/components/visor-imagen
 import { AlertService } from '../../../../shared/services/alert.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
-import { mensajeDeError } from '../../../service/api-base.service';
+import { mensajeDeError, escapeHtmlAlerta } from '../../../service/api-base.service';
 import { PuntoVentaService } from '../../../service/punto-venta.service';
 import { RecepcionService } from '../../../service/recepcion.service';
 import { GestionService } from '../../service/gestion.service';
@@ -280,6 +280,7 @@ export class RecepcionComponent implements OnInit {
 
     const ok = await this.alerta.confirm({
       title: '¿Confirmar recepción?',
+      allowHtml: true,
       message: 'Lo <strong>OK</strong> entra al inventario. Lo <strong>observado</strong> espera visto bueno.',
       confirmText: 'Confirmar',
       cancelText: 'Cancelar',
@@ -359,7 +360,8 @@ export class RecepcionComponent implements OnInit {
   async aprobar(obs: any): Promise<void> {
     const ok = await this.alerta.confirm({
       title: '¿Dar visto bueno?',
-      message: `Se ingresarán <strong>${obs.cantidad}</strong> de <strong>${obs.producto}</strong> al inventario.`,
+      allowHtml: true,
+      message: `Se ingresarán <strong>${escapeHtmlAlerta(String(obs.cantidad))}</strong> de <strong>${escapeHtmlAlerta(obs.producto)}</strong> al inventario.`,
       confirmText: 'Visto bueno',
     });
     if (!ok.isConfirmed) return;

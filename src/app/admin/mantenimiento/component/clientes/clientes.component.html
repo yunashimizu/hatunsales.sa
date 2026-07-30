@@ -22,19 +22,22 @@
     </div>
     <div class="adm-tarjeta__cuerpo">
       <div class="adm-fila">
-        <div class="adm-campo cli-campo--doc">
+        <div class="adm-campo adm-campo--grande cli-campo--doc">
           <label class="adm-etiqueta" for="cli-doc">DNI o RUC</label>
           <input id="cli-doc" class="adm-input" type="text" inputmode="numeric" maxlength="11"
                  autocomplete="off" placeholder="12345678 o 20123456789"
                  [(ngModel)]="documento" (keyup.enter)="registrarPorDocumento()">
-          <span class="adm-ayuda">8 dígitos para una persona, 11 para una empresa.</span>
         </div>
-        <button type="button" class="adm-btn adm-btn--primario"
-                [disabled]="registrando || !documentoValido" (click)="registrarPorDocumento()">
-          <i class="bi" [ngClass]="registrando ? 'bi-arrow-repeat adm-girando' : 'bi-search'"></i>
-          Buscar y registrar
-        </button>
+        <div class="adm-campo adm-campo--accion">
+          <label class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</label>
+          <button type="button" class="adm-btn adm-btn--primario"
+                  [disabled]="registrando || !documentoValido" (click)="registrarPorDocumento()">
+            <i class="bi" [ngClass]="registrando ? 'bi-arrow-repeat adm-girando' : 'bi-search'"></i>
+            Buscar y registrar
+          </button>
+        </div>
       </div>
+      <p class="adm-ayuda" style="margin-top:6px">8 dígitos para una persona, 11 para una empresa.</p>
     </div>
   </section>
 

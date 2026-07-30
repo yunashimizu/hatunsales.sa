@@ -12,6 +12,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
+import { ComprobanteService } from '../../service/comprobante.service';
 
 interface ItemMenu {
   etiqueta: string;
@@ -19,6 +20,8 @@ interface ItemMenu {
   icono: string;
   roles: string[];
   permisos?: string[];
+  /** Clave de badge opcional (ej. cpe_atencion). */
+  badgeKey?: string;
 }
 
 interface SeccionMenu {
@@ -41,6 +44,7 @@ export class SidebarComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly comprobantes = inject(ComprobanteService);
 
   sesion: SesionUsuario = {
     idUsuario: 0,
@@ -51,6 +55,9 @@ export class SidebarComponent implements OnInit {
     permisos: [],
     iniciales: '?',
   };
+
+  /** Contadores para badges del menú. */
+  badges: Record<string, number> = {};
 
   /** Secciones abiertas (varias a la vez). */
   abiertas: Record<string, boolean> = {};
@@ -64,7 +71,7 @@ export class SidebarComponent implements OnInit {
           etiqueta: 'Dashboard',
           ruta: '/dashboard/home',
           icono: 'fa-tachometer-alt',
-          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+          roles: ['admin', 'superadmin', 'vendedor', 'caja', 'consulta'],
         },
       ],
     },
@@ -78,10 +85,17 @@ export class SidebarComponent implements OnInit {
           roles: ['admin', 'superadmin', 'vendedor', 'caja'],
         },
         {
+          etiqueta: 'Caja',
+          ruta: '/dashboard/mantenimiento/caja-sesion',
+          icono: 'fa-cash-register',
+          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+        },
+        {
           etiqueta: 'Documentos',
           ruta: '/dashboard/mantenimiento/doc',
           icono: 'fa-file-alt',
           roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+          badgeKey: 'cpe_atencion',
         },
         {
           etiqueta: 'Clientes',
@@ -104,19 +118,19 @@ export class SidebarComponent implements OnInit {
           etiqueta: 'Productos',
           ruta: '/dashboard/mantenimiento/productos',
           icono: 'fa-box',
-          roles: ['admin', 'superadmin', 'vendedor'],
+          roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
         },
         {
           etiqueta: 'Categorías',
           ruta: '/dashboard/mantenimiento/categorias',
           icono: 'fa-tags',
-          roles: ['admin', 'superadmin', 'vendedor'],
+          roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
         },
         {
           etiqueta: 'Marcas',
           ruta: '/dashboard/mantenimiento/marcas',
           icono: 'fa-award',
-          roles: ['admin', 'superadmin', 'vendedor'],
+          roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
         },
       ],
     },
@@ -133,7 +147,7 @@ export class SidebarComponent implements OnInit {
           etiqueta: 'Stock',
           ruta: '/dashboard/mantenimiento/stock',
           icono: 'fa-layer-group',
-          roles: ['admin', 'superadmin', 'vendedor'],
+          roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
         },
         {
           etiqueta: 'Almacén',
@@ -151,7 +165,7 @@ export class SidebarComponent implements OnInit {
           etiqueta: 'Recepción',
           ruta: '/dashboard/mantenimiento/recepcion',
           icono: 'fa-box-seam',
-          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+          roles: ['admin', 'superadmin', 'vendedor'],
         },
       ],
     },
@@ -191,23 +205,25 @@ export class SidebarComponent implements OnInit {
       etiqueta: 'Mi perfil',
       ruta: '/dashboard/perfil',
       icono: 'fa-user',
-      roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      roles: ['admin', 'superadmin', 'vendedor', 'caja', 'consulta'],
     },
     {
       etiqueta: 'Configuración',
       ruta: '/dashboard/configuracion',
       icono: 'fa-cog',
-      roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      roles: ['admin', 'superadmin'],
     },
   ];
 
   ngOnInit(): void {
     this.refrescar();
     this.abrirSeccionActiva(this.router.url);
+    this.cargarBadges();
 
     this.auth.data$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.refrescar();
       this.abrirSeccionActiva(this.router.url);
+      this.cargarBadges();
       this.cdr.markForCheck();
     });
 
@@ -218,6 +234,9 @@ export class SidebarComponent implements OnInit {
       )
       .subscribe((e) => {
         this.abrirSeccionActiva(e.urlAfterRedirects);
+        if (e.urlAfterRedirects.includes('/mantenimiento/doc')) {
+          this.cargarBadges();
+        }
         this.cdr.markForCheck();
       });
   }
@@ -242,6 +261,11 @@ export class SidebarComponent implements OnInit {
     this.abiertas = { ...this.abiertas, [titulo]: !this.abiertas[titulo] };
   }
 
+  badgeDe(item: ItemMenu): number {
+    if (!item.badgeKey) return 0;
+    return Number(this.badges[item.badgeKey] ?? 0) || 0;
+  }
+
   /** Abre la sección de la ruta actual (sin cerrar las que el usuario ya abrió). */
   private abrirSeccionActiva(url: string): void {
     const path = url.split('?')[0];
@@ -255,5 +279,19 @@ export class SidebarComponent implements OnInit {
 
   private refrescar(): void {
     this.sesion = this.auth.getSesion();
+  }
+
+  private cargarBadges(): void {
+    if (!this.sesion.idUsuario) return;
+    this.comprobantes.monitorAtencion().subscribe({
+      next: (r) => {
+        this.badges = { ...this.badges, cpe_atencion: Number(r?.total ?? 0) };
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.badges = { ...this.badges, cpe_atencion: 0 };
+        this.cdr.markForCheck();
+      },
+    });
   }
 }

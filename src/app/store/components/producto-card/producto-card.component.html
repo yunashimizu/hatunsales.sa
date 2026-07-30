@@ -1,6 +1,6 @@
 <article class="tarjeta" [class.agotado]="producto.stock <= 0">
 
-  <a class="marco" [routerLink]="['/store/producto', producto.id_producto]" [attr.aria-label]="producto.nombre">
+  <a class="marco" [routerLink]="['/store/producto', producto.id_producto]" [attr.aria-label]="producto.nombre" (click)="alIrADetalle()">
     <img [src]="imagen" [alt]="producto.nombre" loading="lazy" (error)="imagenAlternativa($event)" />
 
     <div class="insignias">
@@ -22,7 +22,7 @@
   <div class="cuerpo">
     <span class="marca" *ngIf="producto.marca">{{ producto.marca }}</span>
 
-    <a class="nombre" [routerLink]="['/store/producto', producto.id_producto]">{{ producto.nombre }}</a>
+    <a class="nombre" [routerLink]="['/store/producto', producto.id_producto]" (click)="alIrADetalle()">{{ producto.nombre }}</a>
 
     <app-estrellas
       class="rating"

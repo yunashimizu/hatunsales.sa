@@ -8,7 +8,7 @@ import { CatalogoService } from '../../service/catalogo.service';
 import { CheckoutService } from '../../service/checkout.service';
 import { CuentaTiendaService } from '../../service/cuenta.service';
 import { PasarelaService } from '../../service/pasarela.service';
-import { AlertService } from '../../../shared/services/alert.service';
+import { AlertService, escapeHtml } from '../../../shared/services/alert.service';
 import {
   Carrito,
   CarritoItem,
@@ -391,7 +391,8 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     this.alerta
       .success({
         title: '¡Pedido confirmado!',
-        message: `Tu número de pedido es <strong>${pedido.codigo}</strong>. Te enviaremos las novedades por correo.`,
+        allowHtml: true,
+        message: `Tu número de pedido es <strong>${escapeHtml(pedido.codigo)}</strong>. Te enviaremos las novedades por correo.`,
         confirmText: 'Ver mi pedido',
       })
       .then(() => this.router.navigate(['/store/pedidos', pedido.id_pedido]));

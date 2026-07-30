@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, switchMap, takeUntil } from 'rxjs';
 import { EstrellasComponent } from '../../components/estrellas/estrellas.component';
 import { ProductoCardComponent } from '../../components/producto-card/producto-card.component';
 import { CatalogoService } from '../../service/catalogo.service';
@@ -42,9 +42,27 @@ export class ProductoDetalleComponent implements OnInit, OnDestroy {
   private favoritos = new Set<number>();
 
   ngOnInit(): void {
-    this.ruta.params.pipe(takeUntil(this.destruir$)).subscribe((params) => {
-      this.cargar(Number(params['id']));
-    });
+    this.ruta.params
+      .pipe(
+        takeUntil(this.destruir$),
+        switchMap((params) => {
+          const id = Number(params['id']);
+          this.prepararVista(id);
+          this.cargarResenas(id);
+          return this.catalogo.detalle(id);
+        }),
+      )
+      .subscribe({
+        next: (detalle) => {
+          this.producto = detalle;
+          this.imagenActiva = detalle.imagenes.find((i) => i.is_primary) ?? detalle.imagenes[0];
+          this.cargando = false;
+        },
+        error: () => {
+          this.cargando = false;
+          if (!this.producto) this.noEncontrado = true;
+        },
+      });
 
     this.cuenta.favoritos$.pipe(takeUntil(this.destruir$)).subscribe((ids) => (this.favoritos = ids));
   }
@@ -166,29 +184,30 @@ export class ProductoDetalleComponent implements OnInit, OnDestroy {
 
   // --------------------------------------------------------------- privados
 
-  private cargar(id: number): void {
-    this.cargando = true;
+  /** Preview desde card (si hay) + estado inicial antes de hidratar con el API. */
+  private prepararVista(id: number): void {
     this.noEncontrado = false;
     this.cantidad = 1;
     this.pestana = 'descripcion';
 
-    this.catalogo
-      .detalle(id)
-      .pipe(takeUntil(this.destruir$))
-      .subscribe({
-        next: (detalle) => {
-          this.producto = detalle;
-          this.imagenActiva = detalle.imagenes.find((i) => i.is_primary) ?? detalle.imagenes[0];
-          this.cargando = false;
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        },
-        error: () => {
-          this.cargando = false;
-          this.noEncontrado = true;
-        },
-      });
-
-    this.cargarResenas(id);
+    const preview = this.catalogo.tomarPreview(id);
+    if (preview) {
+      this.producto = {
+        ...preview,
+        imagenes: preview.imagen
+          ? [{ id_imagen: 0, url: preview.imagen, is_primary: true }]
+          : [],
+        especificaciones: [],
+        stock_sucursales: [],
+        relacionados: [],
+      };
+      this.imagenActiva = this.producto.imagenes[0];
+      this.cargando = false;
+    } else {
+      this.cargando = true;
+      this.producto = undefined;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   private cargarResenas(id: number): void {

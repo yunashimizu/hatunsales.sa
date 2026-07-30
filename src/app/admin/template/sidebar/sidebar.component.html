@@ -28,6 +28,9 @@
               <a [routerLink]="item.ruta">
                 <i class="fas" [ngClass]="item.icono"></i>
                 <span>{{ item.etiqueta }}</span>
+                <span class="sb-badge" *ngIf="badgeDe(item) > 0" [attr.title]="badgeDe(item) + ' por revisar'">
+                  {{ badgeDe(item) > 99 ? '99+' : badgeDe(item) }}
+                </span>
               </a>
             </li>
           </ul>

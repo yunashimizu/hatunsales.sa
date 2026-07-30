@@ -24,6 +24,18 @@
 
 .doc-espaciado { margin-top: 14px; }
 
+.doc-monitor {
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.doc-monitor > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 /* Un documento anulado sigue visible, pero se nota que ya no vale. */
 .doc-fila--anulada { opacity: 0.62; }
 .doc-fila--anulada .adm-tabla__principal { text-decoration: line-through; }

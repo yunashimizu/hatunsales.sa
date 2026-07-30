@@ -5,7 +5,7 @@ import { Subject, switchMap, takeUntil } from 'rxjs';
 import { PASOS_PEDIDO, PedidoService } from '../../service/pedido.service';
 import { CatalogoService } from '../../service/catalogo.service';
 import { CartService } from '../../service/cart.service';
-import { AlertService } from '../../../shared/services/alert.service';
+import { AlertService, escapeHtml } from '../../../shared/services/alert.service';
 import { EstadoPedido, Pedido, PedidoItem } from '../../models/tienda.models';
 
 @Component({
@@ -88,7 +88,8 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
 
     const resultado = await this.alerta.confirm({
       title: '¿Cancelar este pedido?',
-      message: `Se anulará el pedido <strong>${this.pedido.codigo}</strong>. Esta acción no se puede deshacer.`,
+      allowHtml: true,
+      message: `Se anulará el pedido <strong>${escapeHtml(this.pedido.codigo)}</strong>. Esta acción no se puede deshacer.`,
       confirmText: 'Sí, cancelar',
       cancelText: 'No, mantenerlo',
     });

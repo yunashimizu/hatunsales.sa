@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { BannerTienda } from '../../models/tienda.models';
@@ -8,6 +8,7 @@ const INTERVALO_MS = 6000;
 @Component({
   selector: 'app-hero-banner',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   templateUrl: './hero-banner.component.html',
   styleUrl: './hero-banner.component.css',
@@ -20,7 +21,8 @@ export class HeroBannerComponent implements OnInit, OnDestroy {
   private temporizador?: ReturnType<typeof setInterval>;
   private pausado = false;
 
-  constructor(private readonly router: Router) {}
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     this.iniciar();
@@ -37,6 +39,7 @@ export class HeroBannerComponent implements OnInit, OnDestroy {
   ir(indice: number): void {
     if (this.slides.length === 0) return;
     this.actual = (indice + this.slides.length) % this.slides.length;
+    this.cdr.markForCheck();
     this.reiniciar();
   }
 
@@ -71,7 +74,10 @@ export class HeroBannerComponent implements OnInit, OnDestroy {
     if (this.slides.length <= 1) return;
 
     this.temporizador = setInterval(() => {
-      if (!this.pausado) this.actual = (this.actual + 1) % this.slides.length;
+      if (!this.pausado) {
+        this.actual = (this.actual + 1) % this.slides.length;
+        this.cdr.markForCheck();
+      }
     }, INTERVALO_MS);
   }
 

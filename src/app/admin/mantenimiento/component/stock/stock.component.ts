@@ -11,6 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 
+import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { InventarioAdminService } from '../../../service/inventario-admin.service';
 import { mensajeDeError } from '../../../service/api-base.service';
@@ -43,7 +44,13 @@ export class StockComponent implements OnInit, OnDestroy {
   constructor(
     private readonly service: InventarioAdminService,
     private readonly alerta: AlertService,
+    private readonly auth: AuthService,
   ) {}
+
+  /** Inventario (ajustes) solo admin/vendedor. */
+  get puedeIrInventario(): boolean {
+    return this.auth.puedeEditarCatalogo();
+  }
 
   ngOnInit(): void {
     this.cargarResumen();

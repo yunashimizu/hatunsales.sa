@@ -6,7 +6,13 @@ import { UsuarioLoginResponse } from '../models/usuario-login-response.model';
 import { RolResponse } from '../models/role-responde';
 import { loginRequest } from '../models/login-request';
 import { urlConstants } from '../../constants/urlConstants';
-import { esRolStaff, rolPermitido } from '../roles.constants';
+import {
+  esRolCliente,
+  esRolConsulta,
+  esRolStaff,
+  puedeEditarCatalogo,
+  rolPermitido,
+} from '../roles.constants';
 
 export interface SesionUsuario {
   idUsuario: number;
@@ -200,6 +206,9 @@ export class AuthService {
       superadmin: 'Superadmin',
       vendedor: 'Vendedor',
       caja: 'Caja',
+      consulta: 'Consulta',
+      demo: 'Consulta',
+      visor: 'Consulta',
       cliente: 'Cliente',
     };
     const clave = (rol ?? '').toLowerCase();
@@ -217,7 +226,23 @@ export class AuthService {
   }
 
   isCliente(): boolean {
-    return !this.isAdmin() && this.isLoggedIn();
+    const rolId = Number(sessionStorage.getItem('rolId'));
+    const rolNombre = sessionStorage.getItem('rolNombre') ?? sessionStorage.getItem('rol') ?? '';
+    if (esRolCliente(rolId, rolNombre)) return true;
+    // Sin rol staff reconocible y con sesión → tratar como tienda (no panel).
+    return this.isLoggedIn() && !esRolStaff(rolId, rolNombre);
+  }
+
+  /** Rol consulta / demo: ve catálogo, no edita. */
+  esConsulta(): boolean {
+    const sesion = this.getSesion();
+    return esRolConsulta(sesion.rolId, sesion.rolNombre);
+  }
+
+  /** Admin o vendedor pueden mutar catálogo. */
+  puedeEditarCatalogo(): boolean {
+    const sesion = this.getSesion();
+    return puedeEditarCatalogo(sesion.rolId, sesion.rolNombre);
   }
 
   tienePermiso(permiso: string): boolean {

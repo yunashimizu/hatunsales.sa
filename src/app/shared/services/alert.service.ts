@@ -10,6 +10,21 @@ export interface AlertConfig {
   allowOutsideClick?: boolean;
   allowEscapeKey?: boolean;
   timer?: number;
+  /**
+   * Si true, `message` se interpreta como HTML (Fase 8).
+   * Por defecto se escapa para evitar XSS con mensajes de API / datos de usuario.
+   */
+  allowHtml?: boolean;
+}
+
+/** Escapa texto para uso seguro en HTML (Alert2 / Swal). */
+export function escapeHtml(texto: string): string {
+  return String(texto ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 @Injectable({
@@ -61,11 +76,19 @@ export class AlertService {
     document.head.appendChild(style);
   }
 
+  /** Cuerpo del diálogo: HTML confiable o texto escapado. */
+  private cuerpoMensaje(config: AlertConfig): { html?: string; text?: string } {
+    const msg = config.message ?? '';
+    if (!msg) return {};
+    if (config.allowHtml) return { html: msg };
+    return { text: msg };
+  }
+
   success(config: AlertConfig = {}) {
     return Swal.fire({
       icon: 'success',
       title: config.title || 'Éxito',
-      html: config.message || '',
+      ...this.cuerpoMensaje(config),
       confirmButtonText: config.confirmText || 'Aceptar',
       allowOutsideClick: config.allowOutsideClick ?? false,
       allowEscapeKey: config.allowEscapeKey ?? true,
@@ -78,7 +101,7 @@ export class AlertService {
     return Swal.fire({
       icon: 'error',
       title: config.title || 'Error',
-      html: config.message || '',
+      ...this.cuerpoMensaje(config),
       confirmButtonText: config.confirmText || 'Aceptar',
       allowOutsideClick: config.allowOutsideClick ?? false,
       allowEscapeKey: config.allowEscapeKey ?? true,
@@ -89,7 +112,7 @@ export class AlertService {
     return Swal.fire({
       icon: 'warning',
       title: config.title || 'Advertencia',
-      html: config.message || '',
+      ...this.cuerpoMensaje(config),
       confirmButtonText: config.confirmText || 'Aceptar',
       allowOutsideClick: config.allowOutsideClick ?? false,
       allowEscapeKey: config.allowEscapeKey ?? true,
@@ -100,7 +123,7 @@ export class AlertService {
     return Swal.fire({
       icon: 'info',
       title: config.title || 'Información',
-      html: config.message || '',
+      ...this.cuerpoMensaje(config),
       confirmButtonText: config.confirmText || 'Aceptar',
       allowOutsideClick: config.allowOutsideClick ?? false,
       allowEscapeKey: config.allowEscapeKey ?? true,
@@ -113,7 +136,7 @@ export class AlertService {
     return Swal.fire({
       icon: 'question',
       title: config.title || '¿Confirmar?',
-      html: config.message || '',
+      ...this.cuerpoMensaje(config),
       showCancelButton: true,
       confirmButtonText: config.confirmText || 'Sí, confirmar',
       cancelButtonText: config.cancelText || 'Cancelar',
@@ -126,7 +149,7 @@ export class AlertService {
     return Swal.fire({
       icon: config.type || 'info',
       title: config.title,
-      html: config.message,
+      ...this.cuerpoMensaje(config),
       toast: true,
       position,
       showConfirmButton: false,

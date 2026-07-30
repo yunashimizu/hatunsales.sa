@@ -33,7 +33,7 @@ const routes: Routes = [
     path: 'categorias',
     canActivate: [roleGuard],
     data: {
-      roles: ['admin', 'vendedor'],
+      roles: ['admin', 'vendedor', 'consulta'],
       title: 'Categorías',
       subtitle: 'Gestiona categorías de productos.',
       icon: 'fa-tags',
@@ -44,7 +44,7 @@ const routes: Routes = [
     path: 'marcas',
     canActivate: [roleGuard],
     data: {
-      roles: ['admin', 'vendedor'],
+      roles: ['admin', 'vendedor', 'consulta'],
       title: 'Marcas',
       subtitle: 'Catálogo de marcas de productos.',
       icon: 'fa-award',
@@ -55,7 +55,7 @@ const routes: Routes = [
     path: 'productos',
     canActivate: [roleGuard],
     data: {
-      roles: ['admin', 'vendedor'],
+      roles: ['admin', 'vendedor', 'consulta'],
       title: 'Productos',
       subtitle: 'Catálogo de productos y variantes.',
       icon: 'fa-box',
@@ -88,7 +88,7 @@ const routes: Routes = [
     path: 'stock',
     canActivate: [roleGuard],
     data: {
-      roles: ['admin', 'vendedor'],
+      roles: ['admin', 'vendedor', 'consulta'],
       title: 'Stock',
       subtitle: 'Resumen de stock y transferencias.',
       icon: 'fa-chart-pie',
@@ -129,6 +129,18 @@ const routes: Routes = [
     loadComponent: () => import('./component/ventas/ventas.component').then((c) => c.VentasComponent),
   },
   {
+    path: 'caja-sesion',
+    canActivate: [roleGuard],
+    data: {
+      roles: ['admin', 'vendedor', 'caja'],
+      title: 'Caja',
+      subtitle: 'Abre y cierra tu turno de caja.',
+      icon: 'fa-cash-register',
+    },
+    loadComponent: () =>
+      import('./component/caja-sesion/caja-sesion.component').then((c) => c.CajaSesionComponent),
+  },
+  {
     path: 'cuentas-por-cobrar',
     canActivate: [roleGuard],
     data: {
@@ -165,7 +177,7 @@ const routes: Routes = [
     path: 'recepcion',
     canActivate: [roleGuard],
     data: {
-      roles: ['admin', 'vendedor', 'caja'],
+      roles: ['admin', 'vendedor'],
       title: 'Recepción',
       subtitle: 'Ingreso de mercadería y observaciones.',
       icon: 'fa-box-seam',

@@ -4,7 +4,7 @@
   <section class="seccion-hero">
     <app-hero-banner [slides]="banners" *ngIf="banners.length > 0"></app-hero-banner>
 
-    <div class="hero-respaldo" *ngIf="banners.length === 0 && !cargando">
+    <div class="hero-respaldo" *ngIf="banners.length === 0 && !cargandoHero">
       <div class="hero-texto">
         <span class="etiqueta"><i class="bi bi-lightning-charge-fill"></i>Nuevo catálogo en línea</span>
         <h1>Todo lo que necesitas para construir tus proyectos</h1>
@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <div class="hero-esqueleto esqueleto" *ngIf="cargando"></div>
+    <div class="hero-esqueleto esqueleto" *ngIf="cargandoHero"></div>
   </section>
 
   <!-- Categorías -->

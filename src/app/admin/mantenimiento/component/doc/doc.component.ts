@@ -13,7 +13,7 @@ import Swal from 'sweetalert2';
 
 import { AlertService } from '../../../../shared/services/alert.service';
 import { ComprobanteService, FiltroComprobantes } from '../../../service/comprobante.service';
-import { mensajeDeError } from '../../../service/api-base.service';
+import { mensajeDeError, escapeHtmlAlerta } from '../../../service/api-base.service';
 import { ComprobanteFila } from '../../../models/admin.models';
 
 /**
@@ -38,6 +38,8 @@ export class DocComponent implements OnInit, OnDestroy {
   pagina = 1;
   porPagina = 20;
   cargando = false;
+  /** CPE pendiente + error (monitor diario). */
+  atencion = { pendientes: 0, errores: 0, total: 0 };
 
   filtro: FiltroComprobantes = { texto: '', id_tipo: '', estado: '', desde: '', hasta: '' };
 
@@ -59,6 +61,30 @@ export class DocComponent implements OnInit, OnDestroy {
       .pipe(debounceTime(320), takeUntil(this.destruir$))
       .subscribe(() => this.cargar(1));
 
+    this.cargarMonitor();
+    this.cargar(1);
+  }
+
+  cargarMonitor(): void {
+    this.service.monitorAtencion().pipe(takeUntil(this.destruir$)).subscribe({
+      next: (r) => {
+        this.atencion = {
+          pendientes: Number(r?.pendientes ?? 0),
+          errores: Number(r?.errores ?? 0),
+          total: Number(r?.total ?? 0),
+        };
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.atencion = { pendientes: 0, errores: 0, total: 0 };
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  verSoloAtencion(): void {
+    // Prioriza errores; si no hay, pendientes.
+    this.filtro.estado = this.atencion.errores > 0 ? 'error' : 'pendiente';
     this.cargar(1);
   }
 
@@ -82,6 +108,7 @@ export class DocComponent implements OnInit, OnDestroy {
           this.comprobantes = respuesta.datos;
           this.total = respuesta.total;
           this.pagina = respuesta.pagina;
+          this.cargarMonitor();
           this.cdr.markForCheck();
         },
         error: (error) => {
@@ -188,7 +215,7 @@ export class DocComponent implements OnInit, OnDestroy {
         ? 'Este documento nunca llegó a SUNAT, así que solo se marcará como anulado en el sistema.'
         : `Se enviará la baja a SUNAT. Esta acción no se puede deshacer.
            <div style="margin-top:8px;color:#64748b;font-size:13px">
-             ${fila.cliente_denominacion} · S/ ${fila.total.toFixed(2)}
+             ${escapeHtmlAlerta(fila.cliente_denominacion)} · S/ ${Number(fila.total).toFixed(2)}
            </div>`,
       input: 'text',
       inputLabel: 'Motivo de la anulación',

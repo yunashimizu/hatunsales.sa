@@ -16,19 +16,19 @@ const routes: Routes = [
         path: 'home',
         component: DashboardComponent,
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'vendedor', 'caja'] },
+        data: { roles: ['admin', 'vendedor', 'caja', 'consulta'] },
       },
       {
         path: 'perfil',
         component: AdminPerfilComponent,
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'vendedor', 'caja'] },
+        data: { roles: ['admin', 'vendedor', 'caja', 'consulta'] },
       },
       {
         path: 'configuracion',
         component: AdminConfiguracionComponent,
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'vendedor', 'caja'] },
+        data: { roles: ['admin'] },
       },
       {
         path: 'mantenimiento',

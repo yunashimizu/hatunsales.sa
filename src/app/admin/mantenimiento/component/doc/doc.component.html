@@ -15,6 +15,16 @@
     </div>
   </header>
 
+  <div class="adm-aviso adm-aviso--peligro doc-monitor" *ngIf="atencion.total > 0" role="status">
+    <div>
+      <strong>{{ atencion.total }} comprobante(s) requieren atención</strong>
+      <span>
+        {{ atencion.errores }} con error · {{ atencion.pendientes }} pendiente(s). Revisa o reintenta el envío a SUNAT.
+      </span>
+    </div>
+    <button type="button" class="adm-btn adm-btn--suave" (click)="verSoloAtencion()">Ver ahora</button>
+  </div>
+
   <!-- Filtros -->
   <section class="adm-tarjeta">
     <div class="adm-tarjeta__cuerpo">

@@ -50,6 +50,11 @@ export class ProductoCardComponent {
     this.alternarFavorito.emit(this.producto);
   }
 
+  /** Guarda preview para que el detalle abra sin esperar el API. */
+  alIrADetalle(): void {
+    this.catalogo.guardarPreview(this.producto);
+  }
+
   imagenAlternativa(evento: Event): void {
     (evento.target as HTMLImageElement).src = 'assets/img/producto-sin-imagen.svg';
   }

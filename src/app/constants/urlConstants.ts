@@ -88,6 +88,7 @@ export const urlConstants = {
     metodosPago: `${dominio}venta/metodos-pago`,
     preview: `${dominio}venta/preview`,
     anular: (id: string | number) => `${dominio}venta/${id}/anular`,
+    contextoPos: `${dominio}venta/contexto-pos`,
   },
 
   credito: {
@@ -105,6 +106,10 @@ export const urlConstants = {
     cuentaBancaria: (id: string | number) => `${dominio}caja/cuentas-bancarias/${id}`,
     yapeIniciar: `${dominio}caja/yape/iniciar`,
     yapeVerificar: (orderId: string) => `${dominio}caja/yape/verificar/${orderId}`,
+    sesion: `${dominio}caja/sesion`,
+    disponibles: `${dominio}caja/disponibles`,
+    abrir: `${dominio}caja/abrir`,
+    cerrar: `${dominio}caja/cerrar`,
   },
 
   guiaRemision: {
@@ -122,6 +127,7 @@ export const urlConstants = {
     consultar: `${dominio}comprobante/consultar`,
     anular: `${dominio}comprobante/anular`,
     motivos: `${dominio}comprobante/catalogos/motivos`,
+    monitorAtencion: `${dominio}comprobante/monitor/atencion`,
     byId: (id: string | number) => `${dominio}comprobante/${id}`,
     detalle: (id: string | number) => `${dominio}comprobante/${id}/detalle`,
     reintentar: (id: string | number) => `${dominio}comprobante/${id}/reintentar`,

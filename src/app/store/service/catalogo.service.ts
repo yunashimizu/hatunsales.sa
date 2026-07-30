@@ -25,10 +25,26 @@ export class CatalogoService {
   private categoriasCache?: Observable<CategoriaTienda[]>;
   private marcasCache?: Observable<MarcaTienda[]>;
 
+  /** Preview al navegar desde una card → detalle se pinta al instante. */
+  private previewProducto: ProductoTienda | null = null;
+
   /** Tras CRUD en admin: limpia caché para que la tienda vea datos frescos. */
   invalidarCatalogos(): void {
     this.categoriasCache = undefined;
     this.marcasCache = undefined;
+  }
+
+  guardarPreview(producto: ProductoTienda): void {
+    this.previewProducto = producto;
+  }
+
+  tomarPreview(idProducto: number): ProductoTienda | null {
+    if (this.previewProducto?.id_producto === idProducto) {
+      const p = this.previewProducto;
+      this.previewProducto = null;
+      return p;
+    }
+    return null;
   }
 
   listarProductos(consulta: ConsultaCatalogo = {}): Observable<Pagina<ProductoTienda>> {

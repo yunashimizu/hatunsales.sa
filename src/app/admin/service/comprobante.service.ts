@@ -35,6 +35,14 @@ export class ComprobanteService {
     });
   }
 
+  /** Contador de CPE pendiente/error para el badge del menú Documentos. */
+  monitorAtencion(): Observable<{ pendientes: number; errores: number; total: number }> {
+    return this.http.get<{ pendientes: number; errores: number; total: number }>(
+      urlConstants.comprobante.monitorAtencion,
+      opcionesHttp(),
+    );
+  }
+
   preview(solicitud: Record<string, any>): Observable<PreviewComprobante> {
     return this.http.post<PreviewComprobante>(urlConstants.comprobante.preview, solicitud, opcionesHttp());
   }

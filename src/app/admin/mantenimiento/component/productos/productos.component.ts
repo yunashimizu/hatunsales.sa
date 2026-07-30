@@ -12,6 +12,7 @@ import { RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 
 import { VisorImagenComponent } from '../../../../shared/components/visor-imagen/visor-imagen.component';
+import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { mensajeDeError } from '../../../service/api-base.service';
@@ -83,7 +84,13 @@ export class ProductosComponent implements OnInit, OnDestroy {
     private readonly service: ProductoAdminService,
     private readonly imagenService: ProductoImagenService,
     private readonly alerta: AlertService,
+    private readonly auth: AuthService,
   ) {}
+
+  /** false = rol consulta (solo lectura). */
+  get puedeEditar(): boolean {
+    return this.auth.puedeEditarCatalogo();
+  }
 
   ngOnInit(): void {
     this.cargar();
@@ -190,6 +197,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
   // ── Formulario ───────────────────────────────────────────────
 
   abrirNuevo(): void {
+    if (!this.puedeEditar) return;
     this.editando = null;
     this.formulario = { ...FORMULARIO_VACIO };
     this.imagenes = [];
@@ -227,6 +235,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
   }
 
   guardar(): void {
+    if (!this.puedeEditar) return;
     const nombre = this.formulario.nombre?.trim();
     if (!nombre) {
       this.alerta.toast({ type: 'warning', title: 'El nombre es obligatorio' });
@@ -294,6 +303,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
   }
 
   async eliminar(producto: ProductoAdmin): Promise<void> {
+    if (!this.puedeEditar) return;
     const respuesta = await this.alerta.confirm({
       title: `¿Eliminar ${producto.nombre}?`,
       message: 'Se quitará del catálogo. Si ya tiene ventas registradas, conviene desactivarlo en lugar de borrarlo.',
@@ -319,6 +329,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
   }
 
   alternarEstado(producto: ProductoAdmin): void {
+    if (!this.puedeEditar) return;
     this.service
       .actualizar(producto.id_producto, { nombre: producto.nombre, estado: !producto.estado })
       .pipe(takeUntil(this.destruir$))

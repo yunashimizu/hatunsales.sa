@@ -4,11 +4,15 @@
     <div>
       <h1 class="adm-cabecera__titulo">Stock</h1>
       <p class="adm-cabecera__sub">
-        Niveles y alertas por almacén. Para ajustar o transferir usa Inventario.
+        Niveles y alertas por almacén.
+        <ng-container *ngIf="puedeIrInventario"> Para ajustar o transferir usa Inventario.</ng-container>
+      </p>
+      <p class="adm-ayuda" *ngIf="!puedeIrInventario" style="margin-top:0.35rem">
+        Solo lectura: consulta de niveles, sin ajustes ni transferencias.
       </p>
     </div>
     <div class="adm-acciones">
-      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/inventario">
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/inventario" *ngIf="puedeIrInventario">
         <i class="bi bi-box-seam"></i> Ir a Inventario
       </a>
       <button type="button" class="adm-btn adm-btn--primario" (click)="actualizarTodo()" [disabled]="cargando">

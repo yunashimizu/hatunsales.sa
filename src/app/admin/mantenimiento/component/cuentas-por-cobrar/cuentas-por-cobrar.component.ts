@@ -3,14 +3,19 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  OnDestroy,
   OnInit,
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Subject, debounceTime, distinctUntilChanged, of, switchMap, takeUntil } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { PuntoVentaService } from '../../../service/punto-venta.service';
-import { NotificationService } from '../../../../shared/services/notification.service';
-import { mensajeDeError } from '../../../service/api-base.service';
+import { ReceptorService } from '../../../service/receptor.service';
+import { AlertService } from '../../../../shared/services/alert.service';
+import { mensajeDeError, errorOperativo, escapeHtmlAlerta } from '../../../service/api-base.service';
+import { SugerenciaReceptor } from '../../../models/admin.models';
 
 @Component({
   selector: 'app-cuentas-por-cobrar',
@@ -20,7 +25,7 @@ import { mensajeDeError } from '../../../service/api-base.service';
   templateUrl: './cuentas-por-cobrar.component.html',
   styleUrl: './cuentas-por-cobrar.component.css',
 })
-export class CuentasPorCobrarComponent implements OnInit {
+export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   cuentas: any[] = [];
   total = 0;
   cargando = false;
@@ -32,7 +37,6 @@ export class CuentasPorCobrarComponent implements OnInit {
   abono = { monto: null as number | null, id_metodo: null as number | null, referencia: '' };
   abonando = false;
 
-  // Cuentas bancarias (transferencias)
   cuentasBancarias: any[] = [];
   cuentaForm = {
     banco: '',
@@ -47,21 +51,27 @@ export class CuentasPorCobrarComponent implements OnInit {
   editandoCuentaId: number | null = null;
   guardandoCuenta = false;
 
-  // Configurar línea de crédito rápida
   config = {
     tipo: 'cliente' as 'cliente' | 'empresa',
     id: null as number | null,
-    credito_activo: true,
-    limite_credito: 1000,
+    credito_activo: false,
+    limite_credito: 0,
     dias_credito: 15,
   };
+  textoBusqueda = '';
+  sugerencias: SugerenciaReceptor[] = [];
+  seleccionado: SugerenciaReceptor | null = null;
+  buscandoEntidad = false;
   guardandoConfig = false;
 
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destruir$ = new Subject<void>();
+  private readonly buscar$ = new Subject<string>();
 
   constructor(
     private readonly pv: PuntoVentaService,
-    private readonly ns: NotificationService,
+    private readonly receptor: ReceptorService,
+    private readonly alerta: AlertService,
   ) {}
 
   ngOnInit(): void {
@@ -78,6 +88,44 @@ export class CuentasPorCobrarComponent implements OnInit {
         this.cdr.markForCheck();
       },
     });
+
+    this.buscar$
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((texto) => {
+          const q = texto.trim();
+          if (q.length < 2) return of([] as SugerenciaReceptor[]);
+          this.buscandoEntidad = true;
+          this.cdr.markForCheck();
+          return this.receptor.sugerencias(q, 10).pipe(
+            catchError(() => of([] as SugerenciaReceptor[])),
+          );
+        }),
+        takeUntil(this.destruir$),
+      )
+      .subscribe((lista) => {
+        this.sugerencias = (lista || []).filter((s) => s.tipo === this.config.tipo);
+        this.buscandoEntidad = false;
+
+        // Si hay un solo match claro (doc exacto), lo elige solo.
+        if (!this.seleccionado && this.sugerencias.length === 1) {
+          const s = this.sugerencias[0];
+          const digitos = this.textoBusqueda.replace(/\D/g, '');
+          const doc = (s.numero_documento || '').replace(/\D/g, '');
+          if (digitos && digitos === doc && (digitos.length === 8 || digitos.length === 11)) {
+            this.elegirSugerencia(s);
+            return;
+          }
+        }
+
+        this.cdr.markForCheck();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destruir$.next();
+    this.destruir$.complete();
   }
 
   identificarCuenta(_i: number, c: any): number {
@@ -90,6 +138,66 @@ export class CuentasPorCobrarComponent implements OnInit {
 
   identificarCuentaBancaria(_i: number, c: any): number {
     return c.id_cuenta;
+  }
+
+  identificarSugerencia(_i: number, s: SugerenciaReceptor): string {
+    return `${s.tipo}-${s.id_cliente ?? s.id_empresa}-${s.numero_documento}`;
+  }
+
+  alCambiarTipo(): void {
+    this.limpiarSeleccionCredito();
+    if (this.textoBusqueda.trim().length >= 2) this.buscar$.next(this.textoBusqueda);
+  }
+
+  alEscribirBusqueda(): void {
+    this.seleccionado = null;
+    this.config.id = null;
+    this.buscar$.next(this.textoBusqueda);
+  }
+
+  elegirSugerencia(s: SugerenciaReceptor): void {
+    this.seleccionado = s;
+    this.config.tipo = s.tipo;
+    this.config.id = s.tipo === 'empresa' ? Number(s.id_empresa) : Number(s.id_cliente);
+    this.textoBusqueda = `${s.denominacion} · ${s.numero_documento}`;
+    this.sugerencias = [];
+    this.cargarLineaCredito();
+    this.cdr.markForCheck();
+  }
+
+  limpiarSeleccionCredito(): void {
+    this.seleccionado = null;
+    this.config.id = null;
+    this.config.credito_activo = false;
+    this.config.limite_credito = 0;
+    this.config.dias_credito = 15;
+    this.textoBusqueda = '';
+    this.sugerencias = [];
+    this.cdr.markForCheck();
+  }
+
+  /** Carga la línea existente; si no hay, deja defaults seguros (inactivo / 0). */
+  private cargarLineaCredito(): void {
+    if (!this.config.id) return;
+    const params =
+      this.config.tipo === 'empresa'
+        ? { id_empresa: Number(this.config.id) }
+        : { id_cliente: Number(this.config.id) };
+
+    this.pv.lineaCredito(params).subscribe({
+      next: (linea) => {
+        this.config.credito_activo = Boolean(linea?.credito_activo);
+        this.config.limite_credito = Number(linea?.limite_credito ?? 0) || 0;
+        this.config.dias_credito = Number(linea?.dias_credito ?? 15) || 15;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.config.credito_activo = false;
+        this.config.limite_credito = 0;
+        this.config.dias_credito = 15;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   cargarCuentas(): void {
@@ -135,7 +243,7 @@ export class CuentasPorCobrarComponent implements OnInit {
 
   guardarCuenta(): void {
     if (!this.cuentaForm.banco.trim()) {
-      this.ns.error('El banco es obligatorio');
+      void this.alerta.toast({ type: 'warning', title: 'El banco es obligatorio' });
       return;
     }
     this.guardandoCuenta = true;
@@ -148,14 +256,17 @@ export class CuentasPorCobrarComponent implements OnInit {
       next: () => {
         this.guardandoCuenta = false;
         this.cdr.markForCheck();
-        this.ns.success(this.editandoCuentaId ? 'Cuenta actualizada' : 'Cuenta creada');
+        void this.alerta.toast({
+          type: 'success',
+          title: this.editandoCuentaId ? 'Cuenta actualizada' : 'Cuenta creada',
+        });
         this.nuevaCuenta();
         this.cargarCuentas();
       },
       error: (e) => {
         this.guardandoCuenta = false;
         this.cdr.markForCheck();
-        this.ns.error(mensajeDeError(e));
+        void this.alerta.error({ message: mensajeDeError(e) });
       },
     });
   }
@@ -164,12 +275,12 @@ export class CuentasPorCobrarComponent implements OnInit {
     this.pv.eliminarCuentaBancaria(Number(c.id_cuenta)).subscribe({
       next: () => {
         this.cdr.markForCheck();
-        this.ns.success('Cuenta desactivada');
+        void this.alerta.toast({ type: 'success', title: 'Cuenta desactivada' });
         this.cargarCuentas();
       },
       error: (e) => {
         this.cdr.markForCheck();
-        this.ns.error(mensajeDeError(e));
+        void this.alerta.error({ message: mensajeDeError(e) });
       },
     });
   }
@@ -191,7 +302,10 @@ export class CuentasPorCobrarComponent implements OnInit {
       error: (e) => {
         this.cargando = false;
         this.cdr.markForCheck();
-        this.ns.error(mensajeDeError(e, 'No se pudieron cargar las cuentas'));
+        void this.alerta.error({
+          title: 'No se pudieron cargar las cuentas',
+          message: mensajeDeError(e),
+        });
       },
     });
   }
@@ -205,7 +319,7 @@ export class CuentasPorCobrarComponent implements OnInit {
       },
       error: (e) => {
         this.cdr.markForCheck();
-        this.ns.error(mensajeDeError(e));
+        void this.alerta.error({ message: mensajeDeError(e) });
       },
     });
   }
@@ -223,22 +337,45 @@ export class CuentasPorCobrarComponent implements OnInit {
         this.abonando = false;
         this.seleccion = detalle;
         this.cdr.markForCheck();
-        this.ns.success('Abono registrado');
+        void this.alerta.toast({ type: 'success', title: 'Abono registrado' });
         this.cargar();
       },
       error: (e) => {
         this.abonando = false;
         this.cdr.markForCheck();
-        this.ns.error(mensajeDeError(e, 'No se pudo registrar el abono'));
+        void this.alerta.error({
+          title: 'No se pudo registrar el abono',
+          message: mensajeDeError(e),
+        });
       },
     });
   }
 
-  guardarConfig(): void {
-    if (!this.config.id) {
-      this.ns.error('Indique el ID de cliente o empresa');
+  async guardarConfig(): Promise<void> {
+    if (!this.config.id || !this.seleccionado) {
+      void this.alerta.error({
+        title: 'Selecciona cliente o empresa',
+        message: 'Busca por DNI, RUC o nombre y elige un resultado de la lista antes de guardar.',
+      });
       return;
     }
+
+    const quien = this.seleccionado;
+    const estado = this.config.credito_activo ? 'activo' : 'inactivo';
+    const conf = await this.alerta.confirm({
+      title: '¿Guardar línea de crédito?',
+      allowHtml: true,
+      message:
+        `<div style="text-align:left">` +
+        `<div><strong>${escapeHtmlAlerta(quien.denominacion)}</strong></div>` +
+        `<div>${quien.tipo === 'empresa' ? 'RUC' : 'DNI'}: ${escapeHtmlAlerta(quien.numero_documento)}</div>` +
+        `<div>ID interno: ${this.config.id}</div>` +
+        `<div>Límite: S/ ${Number(this.config.limite_credito || 0).toFixed(2)} · ${this.config.dias_credito} días · ${estado}</div>` +
+        `</div>`,
+      confirmText: 'Sí, guardar',
+    });
+    if (!conf.isConfirmed) return;
+
     this.guardandoConfig = true;
     this.cdr.markForCheck();
     const body = {
@@ -254,13 +391,23 @@ export class CuentasPorCobrarComponent implements OnInit {
       next: () => {
         this.guardandoConfig = false;
         this.cdr.markForCheck();
-        this.ns.success('Línea de crédito actualizada');
+        void this.alerta.toast({
+          type: 'success',
+          title: 'Crédito actualizado',
+          message: quien.denominacion,
+          timer: 2800,
+        });
         this.cargar();
       },
       error: (e) => {
         this.guardandoConfig = false;
         this.cdr.markForCheck();
-        this.ns.error(mensajeDeError(e));
+        const op = errorOperativo(e, 'No se pudo guardar el crédito');
+        void this.alerta.error({
+          title: op.title,
+          message: op.message,
+          allowHtml: op.allowHtml,
+        });
       },
     });
   }

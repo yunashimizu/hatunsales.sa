@@ -37,6 +37,20 @@ export interface SolicitudVenta {
   }[];
 }
 
+export interface AlmacenPos {
+  id_almacen: number;
+  nombre: string;
+  sucursal: string;
+  id_sucursal: number | null;
+}
+
+export interface ContextoPos {
+  almacenes: AlmacenPos[];
+  almacen_default?: number;
+}
+
+const CATALOGO_TTL_MS = 3 * 60 * 1000;
+
 @Injectable({ providedIn: 'root' })
 export class PuntoVentaService {
 
@@ -44,6 +58,9 @@ export class PuntoVentaService {
   private catalogo: ProductoVenta[] = [];
   private catalogoListo = false;
   private catalogoEnCurso$: Observable<ProductoVenta[]> | null = null;
+  /** Almacén con el que se cargó el catálogo en cache. */
+  private idAlmacenCatalogo: number | null = null;
+  private catalogoCargadoEn = 0;
 
   constructor(private http: HttpClient) {}
 
@@ -51,28 +68,56 @@ export class PuntoVentaService {
     return this.catalogoListo && this.catalogo.length > 0;
   }
 
+  get catalogoExpirado(): boolean {
+    if (!this.catalogoListo || !this.catalogoCargadoEn) return true;
+    return Date.now() - this.catalogoCargadoEn > CATALOGO_TTL_MS;
+  }
+
+  /** Fuerza recarga en el próximo cargarCatalogo. */
+  invalidarCatalogo(): void {
+    this.catalogoListo = false;
+    this.catalogoEnCurso$ = null;
+    this.catalogoCargadoEn = 0;
+  }
+
+  contextoPos(): Observable<ContextoPos> {
+    return this.http.get<ContextoPos>(urlConstants.puntoVenta.contextoPos, opcionesHttp()).pipe(
+      catchError(() => of({ almacenes: [] as AlmacenPos[] })),
+    );
+  }
+
   /**
-   * Carga una vez el catálogo activo desde el API.
-   * Si ya está en memoria, no vuelve a pedir (salvo forzar).
+   * Carga el catálogo activo desde el API.
+   * Si el almacén cambia o el TTL (3 min) venció, recarga.
    */
-  cargarCatalogo(forzar = false): Observable<ProductoVenta[]> {
-    if (this.catalogoListo && !forzar) {
+  cargarCatalogo(forzar = false, idAlmacen?: number | null): Observable<ProductoVenta[]> {
+    const alm = idAlmacen != null && Number(idAlmacen) > 0 ? Number(idAlmacen) : null;
+    const cambioAlmacen = alm !== this.idAlmacenCatalogo;
+    const expirado = this.catalogoExpirado;
+    const debeForzar = forzar || cambioAlmacen || expirado;
+
+    if (this.catalogoListo && !debeForzar) {
       return of(this.catalogo);
     }
-    if (this.catalogoEnCurso$ && !forzar) {
+    if (this.catalogoEnCurso$ && !debeForzar) {
       return this.catalogoEnCurso$;
     }
+
+    let params = new HttpParams().set('limite', '5000');
+    if (alm != null) params = params.set('id_almacen', String(alm));
 
     this.catalogoEnCurso$ = this.http
       .get<ProductoVenta[]>(urlConstants.puntoVenta.catalogoProductos, {
         ...opcionesHttp(),
-        params: new HttpParams().set('limite', '5000'),
+        params,
       })
       .pipe(
         catchError(() => of(this.catalogo)),
         tap((lista) => {
           this.catalogo = Array.isArray(lista) ? lista : [];
           this.catalogoListo = this.catalogo.length > 0;
+          this.idAlmacenCatalogo = alm;
+          this.catalogoCargadoEn = Date.now();
           this.catalogoEnCurso$ = null;
         }),
         shareReplay(1),
@@ -139,8 +184,11 @@ export class PuntoVentaService {
     });
   }
 
-  buscarProductos(termino: string, limite = 12): Observable<ProductoVenta[]> {
-    const params = new HttpParams().set('q', termino).set('limite', String(limite));
+  buscarProductos(termino: string, limite = 12, idAlmacen?: number | null): Observable<ProductoVenta[]> {
+    let params = new HttpParams().set('q', termino).set('limite', String(limite));
+    if (idAlmacen != null && Number(idAlmacen) > 0) {
+      params = params.set('id_almacen', String(idAlmacen));
+    }
     return this.http.get<ProductoVenta[]>(urlConstants.puntoVenta.productos, {
       headers: cabecerasAutenticadas(),
       withCredentials: true,
@@ -148,8 +196,15 @@ export class PuntoVentaService {
     });
   }
 
-  porCodigoBarras(codigo: string): Observable<ProductoVenta> {
-    return this.http.get<ProductoVenta>(urlConstants.puntoVenta.porCodigoBarras(codigo), opcionesHttp());
+  porCodigoBarras(codigo: string, idAlmacen?: number | null): Observable<ProductoVenta> {
+    let params = new HttpParams();
+    if (idAlmacen != null && Number(idAlmacen) > 0) {
+      params = params.set('id_almacen', String(idAlmacen));
+    }
+    return this.http.get<ProductoVenta>(urlConstants.puntoVenta.porCodigoBarras(codigo), {
+      ...opcionesHttp(),
+      params,
+    });
   }
 
   metodosPago(): Observable<{ id_metodo: number; nombre: string; tipo?: string }[]> {

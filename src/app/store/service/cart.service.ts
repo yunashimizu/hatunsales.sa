@@ -69,6 +69,55 @@ export class CartService {
       .pipe(tap((carrito) => this.aplicar(carrito)));
   }
 
+  /**
+   * Actualiza el carrito en pantalla al instante (badge/panel) mientras llega el API.
+   * Si el POST falla, llamar `cargar(true)` para revertir.
+   */
+  aplicarAgregarOptimistico(
+    producto: { id_producto: number; nombre: string; imagen: string | null; marca?: string; precio_final: number; stock: number },
+    cantidad = 1,
+  ): void {
+    const actual = this.carrito.value;
+    const items = [...(actual.items ?? [])];
+    const idx = items.findIndex((i) => i.id_producto === producto.id_producto);
+
+    if (idx >= 0) {
+      const prev = items[idx];
+      const nuevaCantidad = prev.cantidad + cantidad;
+      items[idx] = {
+        ...prev,
+        cantidad: nuevaCantidad,
+        subtotal: Math.round((nuevaCantidad * prev.precio_unitario + Number.EPSILON) * 100) / 100,
+      };
+    } else {
+      const precio = Number(producto.precio_final) || 0;
+      items.push({
+        id_item: -Date.now(),
+        id_producto: producto.id_producto,
+        nombre: producto.nombre,
+        imagen: producto.imagen,
+        marca: producto.marca,
+        cantidad,
+        precio_unitario: precio,
+        subtotal: Math.round((precio * cantidad + Number.EPSILON) * 100) / 100,
+        stock_disponible: producto.stock,
+        excede_stock: false,
+      });
+    }
+
+    const cantidad_items = items.reduce((s, i) => s + i.cantidad, 0);
+    const subtotal = Math.round((items.reduce((s, i) => s + i.subtotal, 0) + Number.EPSILON) * 100) / 100;
+
+    this.carrito.next({
+      ...actual,
+      items,
+      cantidad_items,
+      subtotal,
+      igv: actual.igv,
+      total: subtotal,
+    });
+  }
+
   cambiarCantidad(idItem: number, cantidad: number): Observable<Carrito> {
     return this.http
       .put<Carrito>(urlConstants.tienda.carritoItem(idItem), {

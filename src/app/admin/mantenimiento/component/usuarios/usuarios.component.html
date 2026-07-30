@@ -62,7 +62,6 @@
           <input id="usr-pass" class="adm-input" type="password" [(ngModel)]="formulario.password"
                  [placeholder]="editando ? 'Dejar vacío para no cambiar' : ''"
                  autocomplete="new-password">
-          <span class="adm-ayuda" *ngIf="editando">Opcional al editar.</span>
         </div>
         <div class="adm-campo">
           <label class="adm-etiqueta" for="usr-rol">Rol</label>
@@ -77,16 +76,20 @@
             <option [ngValue]="false">Inactivo</option>
           </select>
         </div>
-        <div class="adm-acciones" style="align-self:end">
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
-            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
-            {{ guardando ? 'Guardando…' : (editando ? 'Actualizar' : 'Guardar') }}
-          </button>
-          <button type="button" class="adm-btn adm-btn--suave" *ngIf="editando" (click)="cancelar()">
-            Cancelar
-          </button>
+        <div class="adm-campo adm-campo--accion">
+          <label class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</label>
+          <div class="adm-acciones">
+            <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+              <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
+              {{ guardando ? 'Guardando…' : (editando ? 'Actualizar' : 'Guardar') }}
+            </button>
+            <button type="button" class="adm-btn adm-btn--suave" *ngIf="editando" (click)="cancelar()">
+              Cancelar
+            </button>
+          </div>
         </div>
       </div>
+      <p class="adm-ayuda" *ngIf="editando" style="margin-top:6px">Contraseña: déjala vacía si no quieres cambiarla.</p>
     </div>
   </section>
 

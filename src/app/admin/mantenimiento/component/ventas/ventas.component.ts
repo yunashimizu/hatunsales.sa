@@ -1,18 +1,22 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, of, switchMap, takeUntil, catchError } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, of, switchMap, takeUntil, catchError, EMPTY } from 'rxjs';
 
 import { AlertService } from '../../../../shared/services/alert.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { ReceptorService } from '../../../service/receptor.service';
-import { PuntoVentaService, SolicitudVenta } from '../../../service/punto-venta.service';
-import { mensajeDeError } from '../../../service/api-base.service';
+import { AlmacenPos, PuntoVentaService, SolicitudVenta } from '../../../service/punto-venta.service';
+import { CajaSesionService } from '../../../service/caja-sesion.service';
+import { mensajeDeError, errorOperativo, escapeHtmlAlerta } from '../../../service/api-base.service';
 import {
   LineaVenta, PreviewComprobante, ProductoVenta, Receptor, SugerenciaReceptor,
   VentaRegistrada, TIPO_BOLETA, TIPO_FACTURA,
 } from '../../../models/admin.models';
+
+const LS_ALMACEN = 'pos_id_almacen';
+const lsSerie = (idAlmacen: number, idTipo: number) => `pos_serie_${idAlmacen}_${idTipo}`;
 
 /**
  * Punto de venta de mostrador.
@@ -43,6 +47,10 @@ export class VentasComponent implements OnInit, OnDestroy {
   observaciones = '';
   enviarPorCorreo = false;
   emitirComprobante = true;
+
+  /** Almacén activo del POS (caja → almacén; se puede cambiar). */
+  almacenes: AlmacenPos[] = [];
+  idAlmacen: number | null = null;
 
   // ── Receptor ──────────────────────────────────────────────────
   textoReceptor = '';
@@ -86,6 +94,9 @@ export class VentasComponent implements OnInit, OnDestroy {
   pasarelaInfo: any = null;
   yapeCargando = false;
 
+  /** Chip informativo: turno de caja (modo blando no bloquea cobro). */
+  cajaChip: { abierta: boolean; etiqueta: string; modo: string } | null = null;
+
   private lineaPagoVacia() {
     return {
       id_metodo: null as number | null,
@@ -119,14 +130,19 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   private claveIdempotencia = '';
   private readonly buscarReceptor$ = new Subject<string>();
+  private readonly documentoExacto$ = new Subject<string>();
   private readonly buscarProducto$ = new Subject<string>();
   private readonly recalcular$ = new Subject<void>();
   private readonly destruir$ = new Subject<void>();
+  /** Evita re-disparar la misma búsqueda automática de DNI/RUC. */
+  private ultimoDocumentoAuto = '';
+  private autoEligiendoReceptor = false;
 
   constructor(
     private readonly receptorService: ReceptorService,
     private readonly puntoVenta: PuntoVentaService,
     private readonly alerta: AlertService,
+    private readonly cajaSesion: CajaSesionService,
   ) {}
 
   ngOnInit(): void {
@@ -135,13 +151,103 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.escucharBusquedaProducto();
     this.escucharRecalculo();
     this.cargarMetodosPago();
-    // Prefetch real del API → filtro local al instante (sin cambiar la UI).
-    this.puntoVenta.cargarCatalogo().pipe(takeUntil(this.destruir$)).subscribe();
+    this.cargarContextoPos();
+    this.cargarChipCaja();
+  }
+
+  private cargarChipCaja(): void {
+    this.cajaSesion.sesion().pipe(takeUntil(this.destruir$), catchError(() => of(null))).subscribe((s) => {
+      if (!s) {
+        this.cajaChip = null;
+        return;
+      }
+      this.cajaChip = {
+        abierta: !!s.abierta,
+        modo: s.modo || 'blando',
+        etiqueta: s.abierta
+          ? `Caja: ${s.apertura?.caja_nombre || 'abierta'}`
+          : 'Caja: sin apertura',
+      };
+    });
   }
 
   ngOnDestroy(): void {
     this.destruir$.next();
     this.destruir$.complete();
+  }
+
+  /** Soft refresh del catálogo al volver a la pestaña (si TTL venció). */
+  @HostListener('document:visibilitychange')
+  onVisibilidad(): void {
+    if (document.visibilityState !== 'visible') return;
+    if (!this.puntoVenta.catalogoExpirado) return;
+    this.puntoVenta
+      .cargarCatalogo(false, this.idAlmacen)
+      .pipe(takeUntil(this.destruir$))
+      .subscribe();
+  }
+
+  private cargarContextoPos(): void {
+    this.puntoVenta.contextoPos().pipe(takeUntil(this.destruir$)).subscribe((ctx) => {
+      this.almacenes = ctx.almacenes ?? [];
+
+      const guardado = Number(localStorage.getItem(LS_ALMACEN) || 0);
+      const enLista = this.almacenes.some((a) => a.id_almacen === guardado);
+      if (enLista) {
+        this.idAlmacen = guardado;
+      } else if (ctx.almacen_default && this.almacenes.some((a) => a.id_almacen === ctx.almacen_default)) {
+        this.idAlmacen = ctx.almacen_default;
+      } else {
+        this.idAlmacen = this.almacenes[0]?.id_almacen ?? null;
+      }
+
+      if (this.idAlmacen) {
+        localStorage.setItem(LS_ALMACEN, String(this.idAlmacen));
+      }
+
+      this.restaurarSerie();
+      this.puntoVenta
+        .cargarCatalogo(true, this.idAlmacen)
+        .pipe(takeUntil(this.destruir$))
+        .subscribe();
+    });
+  }
+
+  cambiarAlmacen(id: number | string): void {
+    const nuevo = Number(id);
+    if (!Number.isFinite(nuevo) || nuevo <= 0 || nuevo === this.idAlmacen) return;
+
+    this.guardarSerieActual();
+    this.idAlmacen = nuevo;
+    localStorage.setItem(LS_ALMACEN, String(nuevo));
+    this.sugerenciasProducto = [];
+    this.textoProducto = '';
+    this.restaurarSerie();
+
+    const nombre = this.almacenes.find((a) => a.id_almacen === nuevo)?.nombre ?? `Almacén ${nuevo}`;
+    this.puntoVenta
+      .cargarCatalogo(true, nuevo)
+      .pipe(takeUntil(this.destruir$))
+      .subscribe(() => {
+        this.alerta.toast({ type: 'info', title: `Stock de ${nombre}`, timer: 2500 });
+      });
+  }
+
+  private claveSerie(): string | null {
+    if (!this.idAlmacen) return null;
+    return lsSerie(this.idAlmacen, this.idTipo);
+  }
+
+  private guardarSerieActual(): void {
+    const clave = this.claveSerie();
+    if (!clave) return;
+    localStorage.setItem(clave, (this.serie || '').trim());
+  }
+
+  private restaurarSerie(): void {
+    const clave = this.claveSerie();
+    if (!clave) return;
+    this.serie = localStorage.getItem(clave) ?? '';
   }
 
   // ── Búsqueda del cliente ─────────────────────────────────────
@@ -153,6 +259,8 @@ export class VentasComponent implements OnInit, OnDestroy {
         distinctUntilChanged(),
         switchMap((termino) => {
           if (termino.trim().length < 2) return of([] as SugerenciaReceptor[]);
+          // DNI/RUC completo lo resuelve documentoExacto$ (base o SUNAT).
+          if (this.esDocumentoExacto(termino)) return of([] as SugerenciaReceptor[]);
           this.buscandoReceptor = true;
           return this.receptorService.sugerencias(termino).pipe(catchError(() => of([])));
         }),
@@ -162,17 +270,88 @@ export class VentasComponent implements OnInit, OnDestroy {
         this.buscandoReceptor = false;
         this.sugerenciasReceptor = sugerencias;
         this.indiceReceptor = -1;
+        this.intentarAutocompletarSugerencia(sugerencias);
+      });
+
+    this.documentoExacto$
+      .pipe(
+        debounceTime(280),
+        distinctUntilChanged(),
+        switchMap((documento) => {
+          this.buscandoReceptor = true;
+          this.sugerenciasReceptor = [];
+          return this.receptorService.buscar(documento).pipe(
+            catchError((error) => {
+              this.buscandoReceptor = false;
+              this.ultimoDocumentoAuto = '';
+              void this.alerta.error({
+                title: 'No se encontró el documento',
+                message: mensajeDeError(error, 'Verifique el número e intente de nuevo'),
+              });
+              return EMPTY;
+            }),
+          );
+        }),
+        takeUntil(this.destruir$),
+      )
+      .subscribe((receptor) => {
+        this.buscandoReceptor = false;
+        this.aplicarReceptor(receptor);
       });
   }
 
   alEscribirReceptor(): void {
+    const texto = this.textoReceptor.trim();
+    if (this.esDocumentoExacto(texto)) {
+      const documento = texto.replace(/\D/g, '');
+      if (documento !== this.ultimoDocumentoAuto) {
+        this.ultimoDocumentoAuto = documento;
+        this.documentoExacto$.next(documento);
+      }
+      return;
+    }
+
+    this.ultimoDocumentoAuto = '';
     this.buscarReceptor$.next(this.textoReceptor);
+  }
+
+  private esDocumentoExacto(texto: string): boolean {
+    const limpio = texto.trim();
+    if (!/^\d+$/.test(limpio)) return false;
+    return limpio.length === 8 || limpio.length === 11;
+  }
+
+  /** Si la base ya tiene un match claro, lo aplica solo (sin click). */
+  private intentarAutocompletarSugerencia(sugerencias: SugerenciaReceptor[]): void {
+    if (this.autoEligiendoReceptor || !sugerencias.length) return;
+
+    const texto = this.textoReceptor.trim().toLowerCase();
+    const digitos = this.textoReceptor.replace(/\D/g, '');
+
+    const exactaPorDoc = sugerencias.find(
+      (s) => (s.numero_documento || '').replace(/\D/g, '') === digitos
+        && (digitos.length === 8 || digitos.length === 11),
+    );
+    if (exactaPorDoc) {
+      this.autoEligiendoReceptor = true;
+      this.elegirSugerenciaReceptor(exactaPorDoc);
+      return;
+    }
+
+    if (sugerencias.length === 1 && texto.length >= 3) {
+      const unica = sugerencias[0];
+      const nombre = (unica.denominacion || '').toLowerCase();
+      const doc = (unica.numero_documento || '').replace(/\D/g, '');
+      if (nombre.includes(texto) || texto.includes(doc) || doc.startsWith(digitos)) {
+        this.autoEligiendoReceptor = true;
+        this.elegirSugerenciaReceptor(unica);
+      }
+    }
   }
 
   /** El documento completo se busca directo, sin esperar a las sugerencias. */
   get documentoCompleto(): boolean {
-    const digitos = this.textoReceptor.replace(/\D/g, '');
-    return digitos.length === 8 || digitos.length === 11;
+    return this.esDocumentoExacto(this.textoReceptor);
   }
 
   buscarDocumento(): void {
@@ -182,25 +361,8 @@ export class VentasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.buscandoReceptor = true;
-    this.sugerenciasReceptor = [];
-
-    this.receptorService
-      .buscar(documento)
-      .pipe(takeUntil(this.destruir$))
-      .subscribe({
-        next: (receptor) => {
-          this.buscandoReceptor = false;
-          this.aplicarReceptor(receptor);
-        },
-        error: (error) => {
-          this.buscandoReceptor = false;
-          this.alerta.error({
-            title: 'No se encontró el documento',
-            message: mensajeDeError(error, 'Verifique el número e intente de nuevo'),
-          });
-        },
-      });
+    this.ultimoDocumentoAuto = documento;
+    this.documentoExacto$.next(documento);
   }
 
   elegirSugerenciaReceptor(sugerencia: SugerenciaReceptor): void {
@@ -210,8 +372,14 @@ export class VentasComponent implements OnInit, OnDestroy {
       : this.receptorService.porCliente(sugerencia.id_cliente!);
 
     consulta$.pipe(takeUntil(this.destruir$)).subscribe({
-      next: (receptor) => this.aplicarReceptor(receptor),
-      error: (error) => this.alerta.error({ message: mensajeDeError(error) }),
+      next: (receptor) => {
+        this.autoEligiendoReceptor = false;
+        this.aplicarReceptor(receptor);
+      },
+      error: (error) => {
+        this.autoEligiendoReceptor = false;
+        this.alerta.error({ message: mensajeDeError(error) });
+      },
     });
   }
 
@@ -227,9 +395,16 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.cargarLineaCredito();
     this.textoReceptor = '';
     this.sugerenciasReceptor = [];
+    this.ultimoDocumentoAuto = '';
+    this.autoEligiendoReceptor = false;
 
     // Con RUC lo natural es factura; con DNI, boleta.
-    this.idTipo = receptor.tipo_documento === 6 ? TIPO_FACTURA : TIPO_BOLETA;
+    const tipoNuevo = receptor.tipo_documento === 6 ? TIPO_FACTURA : TIPO_BOLETA;
+    if (tipoNuevo !== this.idTipo) {
+      this.guardarSerieActual();
+      this.idTipo = tipoNuevo;
+      this.restaurarSerie();
+    }
 
     if (receptor.advertencia) {
       this.alerta.toast({ type: 'warning', title: receptor.advertencia, timer: 5000 });
@@ -272,7 +447,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
         // Catálogo aún no listo: mismo API de siempre como respaldo.
         this.buscandoProducto = true;
-        this.puntoVenta.buscarProductos(texto).pipe(
+        this.puntoVenta.buscarProductos(texto, 12, this.idAlmacen).pipe(
           catchError(() => of([] as ProductoVenta[])),
           takeUntil(this.destruir$),
         ).subscribe((productos) => {
@@ -347,7 +522,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
     this.escaneandoCodigo = true;
     this.buscandoProducto = true;
-    this.puntoVenta.porCodigoBarras(codigo).subscribe({
+    this.puntoVenta.porCodigoBarras(codigo, this.idAlmacen).subscribe({
       next: (producto) => {
         this.escaneandoCodigo = false;
         this.buscandoProducto = false;
@@ -396,7 +571,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
     // Sin cache aún: buscar en API (mismo comportamiento de respaldo).
     this.buscandoProducto = true;
-    this.puntoVenta.buscarProductos(termino).pipe(catchError(() => of([] as ProductoVenta[]))).subscribe({
+    this.puntoVenta.buscarProductos(termino, 12, this.idAlmacen).pipe(catchError(() => of([] as ProductoVenta[]))).subscribe({
       next: (productos) => {
         this.buscandoProducto = false;
         this.sugerenciasProducto = productos;
@@ -564,7 +739,14 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
   cambiarTipo(idTipo: number): void {
+    this.guardarSerieActual();
     this.idTipo = Number(idTipo);
+    this.restaurarSerie();
+    this.pedirRecalculo();
+  }
+
+  alCambiarSerie(): void {
+    this.guardarSerieActual();
     this.pedirRecalculo();
   }
 
@@ -642,6 +824,8 @@ export class VentasComponent implements OnInit, OnDestroy {
         descuento: l.descuento || undefined,
       })),
     };
+
+    if (this.idAlmacen) solicitud.id_almacen = this.idAlmacen;
 
     if (this.receptor?.numero_documento && this.receptor.numero_documento !== '00000000') {
       solicitud.documento = this.receptor.numero_documento;
@@ -823,6 +1007,14 @@ export class VentasComponent implements OnInit, OnDestroy {
   cobrar(): void {
     if (!this.puedeEmitir) return;
 
+    if (this.errorPreview) {
+      void this.alerta.error({
+        title: 'Comprobante inválido',
+        message: this.errorPreview,
+      });
+      return;
+    }
+
     // Una sola línea sin monto → asume el total (flujo rápido).
     if (this.lineasPago.length === 1 && !Number(this.lineasPago[0].monto)) {
       this.lineasPago[0].monto = this.total;
@@ -833,19 +1025,49 @@ export class VentasComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const bloqueoCredito = this.validarCreditoAntesDeCobrar();
+    if (bloqueoCredito) {
+      void this.alerta.error({
+        title: 'No se puede cobrar a crédito',
+        message: bloqueoCredito,
+      });
+      return;
+    }
+
     const resumen = `
       <div style="text-align:left;font-size:14px">
-        <div><strong>${this.preview?.tipo_nombre ?? 'Comprobante'}</strong> ${this.preview?.numero_formateado ?? ''}</div>
-        <div>Cliente: ${this.receptor?.denominacion ?? 'CLIENTES VARIOS'}</div>
+        <div><strong>${escapeHtmlAlerta(this.preview?.tipo_nombre ?? 'Comprobante')}</strong> ${escapeHtmlAlerta(this.preview?.numero_formateado ?? '')}</div>
+        <div>Cliente: ${escapeHtmlAlerta(this.receptor?.denominacion ?? 'CLIENTES VARIOS')}</div>
         <div>IGV (${this.preview?.porcentaje_igv ?? 18}%): S/ ${(this.preview?.totales.igv ?? 0).toFixed(2)}</div>
         <div style="margin-top:6px;font-size:18px"><strong>Total: S/ ${this.total.toFixed(2)}</strong></div>
       </div>`;
 
     this.alerta
-      .confirm({ title: '¿Confirmar la venta?', message: resumen, confirmText: 'Sí, cobrar' })
+      .confirm({ title: '¿Confirmar la venta?', message: resumen, confirmText: 'Sí, cobrar', allowHtml: true })
       .then((resultado) => {
         if (resultado.isConfirmed) this.registrar();
       });
+  }
+
+  /** Misma reglas que el backend, para avisar antes del POST /venta. */
+  private validarCreditoAntesDeCobrar(): string | null {
+    const montoCredito = this.lineasPago.reduce((suma, pago) => {
+      if (!this.esCredito(pago.id_metodo)) return suma;
+      return suma + (Number(pago.monto) || 0);
+    }, 0);
+    if (montoCredito <= 0) return null;
+
+    if (!this.receptor?.id_cliente && !this.receptor?.id_empresa) {
+      return 'El crédito solo aplica a clientes o empresas registradas. Busque DNI/RUC antes de cobrar.';
+    }
+    if (!this.lineaCredito?.credito_activo) {
+      return 'Este cliente/empresa no tiene crédito activo. Actívelo en Cuentas por cobrar (límite y días).';
+    }
+    const disponible = Number(this.lineaCredito.disponible) || 0;
+    if (montoCredito > disponible + 0.05) {
+      return `Crédito insuficiente. Disponible S/ ${disponible.toFixed(2)} (límite ${Number(this.lineaCredito.limite_credito).toFixed(2)}, deuda ${Number(this.lineaCredito.saldo_pendiente).toFixed(2)}).`;
+    }
+    return null;
   }
 
   private registrar(): void {
@@ -863,7 +1085,8 @@ export class VentasComponent implements OnInit, OnDestroy {
             // La venta quedó registrada; solo falló el envío a NUBEFACT.
             this.alerta.warning({
               title: 'Venta registrada, comprobante pendiente',
-              message: `${venta.comprobante_error}<br><br>Puede reintentar el envío desde la pantalla de Documentos.`,
+              allowHtml: true,
+              message: `${escapeHtmlAlerta(venta.comprobante_error)}<br><br>Puede reintentar el envío desde la pantalla de Documentos.`,
             });
           } else {
             this.alerta.toast({
@@ -876,13 +1099,19 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.puntoVenta.descontarStockLocal(
             this.lineas.map((l) => ({ id_producto: l.id_producto, cantidad: l.cantidad })),
           );
+          this.puntoVenta
+            .cargarCatalogo(true, this.idAlmacen)
+            .pipe(takeUntil(this.destruir$))
+            .subscribe();
           this.limpiarParaSiguienteVenta();
         },
         error: (error) => {
           this.emitiendo = false;
+          const op = errorOperativo(error, 'No se pudo registrar la venta');
           this.alerta.error({
-            title: 'No se pudo registrar la venta',
-            message: mensajeDeError(error),
+            title: op.title,
+            message: op.message,
+            allowHtml: op.allowHtml,
           });
         },
       });
@@ -906,7 +1135,9 @@ export class VentasComponent implements OnInit, OnDestroy {
       id_metodo: this.metodosPago[0]?.id_metodo ?? null,
     }];
     this.lineaCredito = null;
+    this.guardarSerieActual();
     this.idTipo = TIPO_BOLETA;
+    this.restaurarSerie();
     this.claveIdempotencia = this.puntoVenta.nuevaClaveIdempotencia();
 
     setTimeout(() => document.getElementById('adm-buscar-producto')?.focus(), 60);

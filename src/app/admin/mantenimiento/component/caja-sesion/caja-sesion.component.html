@@ -1,0 +1,163 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Caja</h1>
+      <p class="adm-cabecera__sub">
+        Abre y cierra tu turno. En modo blando puedes cobrar aunque no hayas abierto caja.
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/ventas">
+        <i class="bi bi-receipt"></i> Ir al POS
+      </a>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargarTodo()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
+        Actualizar
+      </button>
+    </div>
+  </header>
+
+  <section class="adm-grid adm-grid--3">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"
+           [class.adm-metrica__icono--exito]="sesion?.abierta"
+           [class.adm-metrica__icono--aviso]="sesion && !sesion.abierta">
+        <i class="bi" [ngClass]="sesion?.abierta ? 'bi-unlock' : 'bi-lock'"></i>
+      </div>
+      <div>
+        <div class="adm-metrica__valor">{{ sesion?.abierta ? 'Abierta' : (cargando ? '…' : 'Cerrada') }}</div>
+        <div class="adm-metrica__etiqueta">Tu sesión</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"><i class="bi bi-cash-stack"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ apertura?.caja_nombre || '—' }}</div>
+        <div class="adm-metrica__etiqueta">Caja actual</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-sliders"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ etiquetaModo(sesion?.modo) }}</div>
+        <div class="adm-metrica__etiqueta">Modo del sistema</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="adm-grid adm-grid--2">
+
+    <!-- Estado / cerrar -->
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-info-circle"></i> Estado del turno</h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !sesion">
+        <div class="adm-esqueleto" *ngFor="let n of [1,2,3]"></div>
+      </div>
+      <div class="adm-tarjeta__cuerpo" *ngIf="!cargando || sesion">
+        <ng-container *ngIf="apertura; else sinApertura">
+          <p class="adm-ayuda" style="margin-top:0">
+            Turno abierto. Tus cobros preferirán esta caja.
+          </p>
+          <div class="adm-fila" style="margin-top:0.75rem">
+            <div class="adm-campo">
+              <span class="adm-etiqueta">Caja</span>
+              <div class="adm-tabla__principal">{{ apertura.caja_nombre }}</div>
+            </div>
+            <div class="adm-campo">
+              <span class="adm-etiqueta">Sucursal</span>
+              <div>{{ apertura.sucursal_nombre || '—' }}</div>
+            </div>
+          </div>
+          <div class="adm-fila" style="margin-top:0.75rem">
+            <div class="adm-campo">
+              <span class="adm-etiqueta">Apertura</span>
+              <div>{{ apertura.fecha ? (apertura.fecha | date:'short') : '—' }}</div>
+            </div>
+            <div class="adm-campo">
+              <span class="adm-etiqueta">Monto inicial</span>
+              <div>{{ apertura.monto_inicial != null ? (apertura.monto_inicial | number:'1.2-2') : '—' }}</div>
+            </div>
+          </div>
+
+          <div class="adm-fila" style="margin-top:1rem">
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="monto-conteo">Monto al cerrar (opcional)</label>
+              <input id="monto-conteo" class="adm-input" type="number" min="0" step="0.01"
+                     [(ngModel)]="montoConteo" placeholder="0.00">
+            </div>
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="obs-cierre">Observación</label>
+              <input id="obs-cierre" class="adm-input" type="text" [(ngModel)]="observacion"
+                     placeholder="Opcional">
+            </div>
+          </div>
+          <p class="adm-ayuda">Solo se guarda si la base tiene esas columnas; no afecta el cobro.</p>
+
+          <div class="adm-acciones" style="margin-top:1rem">
+            <button type="button" class="adm-btn adm-btn--primario" (click)="cerrar()" [disabled]="cerrando">
+              <i class="bi" [ngClass]="cerrando ? 'bi-arrow-repeat adm-girando' : 'bi-lock'"></i>
+              {{ cerrando ? 'Cerrando…' : 'Cerrar caja' }}
+            </button>
+          </div>
+        </ng-container>
+        <ng-template #sinApertura>
+          <div class="adm-vacio" style="padding:1.5rem 0">
+            <div class="adm-vacio__icono"><i class="bi bi-cash-register"></i></div>
+            <div class="adm-vacio__titulo">Sin turno abierto</div>
+            <p>Abre una caja libre para asociar tus cobros a tu sesión.</p>
+          </div>
+        </ng-template>
+      </div>
+    </section>
+
+    <!-- Abrir -->
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-unlock"></i> Abrir caja</h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo">
+        <ng-container *ngIf="!apertura; else yaAbierta">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="caja-sel">Caja</label>
+            <select id="caja-sel" class="adm-select" [(ngModel)]="idCajaElegida">
+              <option [ngValue]="null" disabled>Selecciona…</option>
+              <option *ngFor="let c of cajas" [ngValue]="c.id_caja" [disabled]="c.ocupada">
+                {{ c.nombre }}
+                <ng-container *ngIf="c.sucursal_nombre"> — {{ c.sucursal_nombre }}</ng-container>
+                <ng-container *ngIf="c.ocupada"> (ocupada)</ng-container>
+              </option>
+            </select>
+          </div>
+          <p class="adm-ayuda">Las ocupadas ya tienen un turno abierto.</p>
+
+          <div class="adm-campo" style="margin-top:0.85rem">
+            <label class="adm-etiqueta" for="monto-ini">Monto inicial (opcional)</label>
+            <input id="monto-ini" class="adm-input" type="number" min="0" step="0.01"
+                   [(ngModel)]="montoInicial" placeholder="0.00">
+          </div>
+          <p class="adm-ayuda">Efectivo con el que arrancas el turno.</p>
+
+          <div class="adm-acciones" style="margin-top:1rem">
+            <button type="button" class="adm-btn adm-btn--primario"
+                    (click)="abrir()" [disabled]="abriendo || !idCajaElegida || !cajasLibres.length">
+              <i class="bi" [ngClass]="abriendo ? 'bi-arrow-repeat adm-girando' : 'bi-unlock'"></i>
+              {{ abriendo ? 'Abriendo…' : 'Abrir turno' }}
+            </button>
+          </div>
+          <p class="adm-ayuda" *ngIf="!cajas.length && !cargando">
+            No hay cajas registradas en el sistema. Crea cajas en la base o pide a un admin.
+          </p>
+        </ng-container>
+        <ng-template #yaAbierta>
+          <p class="adm-ayuda" style="margin:0">
+            Ya tienes un turno abierto. Ciérralo a la izquierda si necesitas cambiar de caja.
+          </p>
+        </ng-template>
+      </div>
+    </section>
+
+  </div>
+</div>

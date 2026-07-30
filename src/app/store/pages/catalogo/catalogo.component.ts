@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnIni
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, switchMap, takeUntil } from 'rxjs';
 import { FiltrosComponent } from '../../components/filtros/filtros.component';
 import { ProductoCardComponent } from '../../components/producto-card/producto-card.component';
 import { CatalogoService } from '../../service/catalogo.service';
@@ -50,17 +50,37 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   ];
 
   ngOnInit(): void {
-    // Datos frescos al entrar (admin pudo crear marcas/categorías).
-    this.catalogo.invalidarCatalogos();
+    // switchMap cancela la petición anterior si el usuario cambia filtros/búsqueda rápido.
+    this.ruta.queryParams
+      .pipe(
+        takeUntil(this.destruir$),
+        switchMap((params) => {
+          this.consulta = this.desdeParams(params);
+          this.cargando = true;
+          this.cdr.markForCheck();
+          return this.catalogo.listarProductos(this.consulta);
+        }),
+      )
+      .subscribe((pagina) => {
+        this.productos = pagina.items;
+        this.total = pagina.total;
+        this.totalPaginas = pagina.total_paginas;
+        this.cargando = false;
+        this.cdr.markForCheck();
+      });
 
-    this.ruta.queryParams.pipe(takeUntil(this.destruir$)).subscribe((params) => {
-      this.consulta = this.desdeParams(params);
-      this.cargarProductos();
-      this.catalogo.filtros(this.consulta.id_categoria).pipe(takeUntil(this.destruir$)).subscribe((f) => {
+    this.ruta.queryParams
+      .pipe(
+        takeUntil(this.destruir$),
+        switchMap((params) => {
+          const idCategoria = params['categoria'] ? Number(params['categoria']) : undefined;
+          return this.catalogo.filtros(idCategoria);
+        }),
+      )
+      .subscribe((f) => {
         this.disponibles = f;
         this.cdr.markForCheck();
       });
-    });
 
     this.cuenta.favoritos$.pipe(takeUntil(this.destruir$)).subscribe((ids) => {
       this.favoritos = ids;
@@ -139,22 +159,6 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   }
 
   // --------------------------------------------------------------- privados
-
-  private cargarProductos(): void {
-    this.cargando = true;
-    this.cdr.markForCheck();
-
-    this.catalogo
-      .listarProductos(this.consulta)
-      .pipe(takeUntil(this.destruir$))
-      .subscribe((pagina) => {
-        this.productos = pagina.items;
-        this.total = pagina.total;
-        this.totalPaginas = pagina.total_paginas;
-        this.cargando = false;
-        this.cdr.markForCheck();
-      });
-  }
 
   /** La URL es la fuente de verdad de los filtros: así se puede compartir y volver atrás. */
   private navegar(consulta: ConsultaCatalogo): void {

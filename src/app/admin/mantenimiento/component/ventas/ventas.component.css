@@ -1,5 +1,29 @@
 :host { display: block; }
 
+.pv-caja-chip {
+  margin: 0.4rem 0 0;
+}
+
+.pv-caja-chip .adm-insignia {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pv-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.pv-cabecera__almacen {
+  min-width: 200px;
+  max-width: 280px;
+  margin: 0;
+}
+
 .pv-columna {
   display: flex;
   flex-direction: column;

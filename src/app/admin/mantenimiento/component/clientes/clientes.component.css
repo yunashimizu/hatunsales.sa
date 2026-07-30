@@ -1,6 +1,6 @@
 :host { display: block; }
 
-.cli-campo--doc { flex: 0 1 260px; }
+.cli-campo--doc { flex: 2 1 320px !important; min-width: 240px; max-width: none; }
 .cli-campo--buscar { flex: 1 1 260px; max-width: 340px; }
 
 .cli-cargando {

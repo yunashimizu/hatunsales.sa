@@ -1,1 +1,14 @@
-/* Estilos compartidos en admin-ui.css */
+/* Estilos compartidos en admin-ui.css; solo refuerzo local del overlay */
+:host {
+  display: block;
+}
+
+/* La lista de crédito debe quedar por encima del bloque de cuentas */
+.adm-tarjeta--desbordable {
+  position: relative;
+  z-index: 5;
+}
+
+.adm-tarjeta--desbordable .adm-sugerencias {
+  z-index: 90;
+}

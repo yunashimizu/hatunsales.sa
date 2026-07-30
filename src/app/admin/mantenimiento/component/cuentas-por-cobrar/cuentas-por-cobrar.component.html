@@ -44,13 +44,14 @@
           <label class="adm-etiqueta">Titular</label>
           <input class="adm-input" [(ngModel)]="cuentaForm.titular">
         </div>
-        <div class="adm-acciones" style="align-self:end">
+        <div class="adm-campo adm-campo--accion">
+          <label class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</label>
           <button type="button" class="adm-btn adm-btn--primario" (click)="guardarCuenta()" [disabled]="guardandoCuenta">
             {{ editandoCuentaId ? 'Actualizar' : 'Agregar' }}
           </button>
         </div>
       </div>
-      <p class="adm-ayuda">Estas cuentas aparecen en el POS al cobrar por transferencia.</p>
+      <p class="adm-ayuda" style="margin-top:6px">Estas cuentas aparecen en el POS al cobrar por transferencia.</p>
 
       <div class="adm-tabla-envoltorio" *ngIf="cuentasBancarias.length">
         <table class="adm-tabla adm-tabla--adaptable">
@@ -89,45 +90,86 @@
     </div>
   </section>
 
-  <section class="adm-tarjeta">
+  <section class="adm-tarjeta adm-tarjeta--desbordable">
     <div class="adm-tarjeta__cabecera">
       <h2 class="adm-tarjeta__titulo"><i class="bi bi-sliders"></i> Activar crédito (admin)</h2>
     </div>
     <div class="adm-tarjeta__cuerpo">
       <div class="adm-fila">
-        <div class="adm-campo">
+        <div class="adm-campo adm-campo--chico">
           <label class="adm-etiqueta">Tipo</label>
-          <select class="adm-select" [(ngModel)]="config.tipo">
-            <option value="cliente">Cliente (DNI)</option>
-            <option value="empresa">Empresa (RUC)</option>
+          <select class="adm-select" [(ngModel)]="config.tipo" (ngModelChange)="alCambiarTipo()">
+            <option value="cliente">Cliente</option>
+            <option value="empresa">Empresa</option>
           </select>
         </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta">ID {{ config.tipo }}</label>
-          <input class="adm-input" type="number" [(ngModel)]="config.id" placeholder="ej. 12">
+        <div class="adm-campo adm-campo--grande adm-autocompletar">
+          <label class="adm-etiqueta">Buscar {{ config.tipo === 'empresa' ? 'RUC / razón social' : 'DNI / nombre' }}</label>
+          <input
+            class="adm-input"
+            type="search"
+            [(ngModel)]="textoBusqueda"
+            (ngModelChange)="alEscribirBusqueda()"
+            [placeholder]="config.tipo === 'empresa' ? 'Ej. 20123456789 o mi empresa' : 'Ej. 12345678 o Juan Pérez'"
+            autocomplete="off">
+          <ul class="adm-sugerencias" *ngIf="sugerencias.length">
+            <li
+              *ngFor="let s of sugerencias; trackBy: identificarSugerencia"
+              class="adm-sugerencia"
+              (click)="elegirSugerencia(s)">
+              <span class="adm-insignia"
+                    [ngClass]="s.tipo === 'empresa' ? 'adm-insignia--primaria' : 'adm-insignia--neutra'">
+                {{ s.tipo === 'empresa' ? 'RUC' : 'DNI' }}
+              </span>
+              <div class="adm-sugerencia__texto">
+                <div class="adm-sugerencia__titulo">{{ s.denominacion }}</div>
+                <div class="adm-sugerencia__detalle">{{ s.numero_documento }} · id {{ s.id_empresa || s.id_cliente }}</div>
+              </div>
+            </li>
+          </ul>
+          <p class="adm-ayuda" *ngIf="buscandoEntidad">Buscando…</p>
         </div>
-        <div class="adm-campo">
+        <div class="adm-campo adm-campo--chico">
           <label class="adm-etiqueta">Límite S/</label>
           <input class="adm-input" type="number" min="0" step="0.01" [(ngModel)]="config.limite_credito">
         </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta">Días de plazo</label>
+        <div class="adm-campo adm-campo--chico">
+          <label class="adm-etiqueta">Días</label>
           <input class="adm-input" type="number" min="1" [(ngModel)]="config.dias_credito">
         </div>
-        <div class="adm-campo">
+        <div class="adm-campo adm-campo--chico">
           <label class="adm-etiqueta">Estado</label>
           <select class="adm-select" [(ngModel)]="config.credito_activo">
             <option [ngValue]="true">Activo</option>
             <option [ngValue]="false">Inactivo</option>
           </select>
         </div>
-        <div class="adm-acciones" style="align-self:end">
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardarConfig()" [disabled]="guardandoConfig">
-            Guardar línea
-          </button>
+        <div class="adm-campo adm-campo--accion">
+          <label class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</label>
+          <div class="adm-acciones">
+            <button type="button" class="adm-btn adm-btn--suave" (click)="limpiarSeleccionCredito()" *ngIf="seleccionado">
+              Limpiar
+            </button>
+            <button type="button" class="adm-btn adm-btn--primario" (click)="guardarConfig()" [disabled]="guardandoConfig">
+              Guardar línea
+            </button>
+          </div>
         </div>
       </div>
-      <p class="adm-ayuda">El ID lo ves en Clientes / al buscar en el POS. Sin crédito activo no se puede fiado.</p>
+
+      <div class="adm-aviso adm-aviso--info" *ngIf="seleccionado as sel" style="margin-top:0.75rem">
+        <i class="bi bi-person-check"></i>
+        <span>
+          Vas a configurar crédito de
+          <strong>{{ sel.denominacion }}</strong>
+          ({{ sel.tipo === 'empresa' ? 'RUC' : 'DNI' }} {{ sel.numero_documento }},
+          id {{ config.id }}).
+          Debe existir antes en Clientes.
+        </span>
+      </div>
+      <p class="adm-ayuda" *ngIf="!seleccionado">
+        Elige un resultado de la lista. Si no aparece, créalo primero en Clientes y vuelve a buscar.
+      </p>
     </div>
   </section>
 
@@ -137,7 +179,7 @@
     </div>
     <div class="adm-tarjeta__cuerpo">
       <div class="adm-fila">
-        <div class="adm-campo">
+        <div class="adm-campo adm-campo--chico">
           <label class="adm-etiqueta">Estado</label>
           <select class="adm-select" [(ngModel)]="filtroEstado" (ngModelChange)="cargar()">
             <option value="">Todos</option>
@@ -147,12 +189,13 @@
             <option value="pagado">Pagado</option>
           </select>
         </div>
-        <div class="adm-campo">
+        <div class="adm-campo adm-campo--grande">
           <label class="adm-etiqueta">Buscar</label>
           <input class="adm-input" type="search" [(ngModel)]="filtroTexto"
                  placeholder="Cliente, RUC, n° venta" (keyup.enter)="cargar()">
         </div>
-        <div class="adm-acciones" style="align-self:end">
+        <div class="adm-campo adm-campo--accion">
+          <label class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</label>
           <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">Filtrar</button>
         </div>
       </div>

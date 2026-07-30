@@ -51,27 +51,32 @@
     </div>
     <div class="adm-tarjeta__cuerpo">
       <div class="adm-fila">
-        <div class="adm-campo" *ngIf="editando">
+        <div class="adm-campo adm-campo--chico" *ngIf="editando">
           <label class="adm-etiqueta" for="rol-id">ID</label>
           <input id="rol-id" class="adm-input" type="text" [value]="editando.id_rol" disabled>
-          <span class="adm-ayuda">El ID no se puede cambiar.</span>
         </div>
         <div class="adm-campo rol-campo--nombre">
           <label class="adm-etiqueta" for="rol-nombre">Nombre</label>
           <input id="rol-nombre" class="adm-input" type="text" [(ngModel)]="nombre"
                  placeholder="ej. cliente" autocomplete="off">
-          <span class="adm-ayuda">Se guarda en minúsculas. Para clientes usa exactamente: cliente</span>
         </div>
-        <div class="adm-acciones rol-acciones-form">
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
-            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
-            {{ guardando ? 'Guardando…' : 'Guardar' }}
-          </button>
-          <button type="button" class="adm-btn adm-btn--suave" *ngIf="editando" (click)="cancelar()">
-            Cancelar
-          </button>
+        <div class="adm-campo adm-campo--accion">
+          <label class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</label>
+          <div class="adm-acciones">
+            <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+              <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
+              {{ guardando ? 'Guardando…' : 'Guardar' }}
+            </button>
+            <button type="button" class="adm-btn adm-btn--suave" *ngIf="editando" (click)="cancelar()">
+              Cancelar
+            </button>
+          </div>
         </div>
       </div>
+      <p class="adm-ayuda" style="margin-top:6px">
+        Se guarda en minúsculas. Para clientes usa exactamente: cliente
+        <span *ngIf="editando"> · El ID no se puede cambiar.</span>
+      </p>
     </div>
   </section>
 

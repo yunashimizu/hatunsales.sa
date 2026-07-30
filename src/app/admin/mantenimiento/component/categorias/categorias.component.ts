@@ -7,6 +7,7 @@ import {
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../../auth/service/auth.service';
 import { GestionService } from '../../service/gestion.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { CatalogoService } from '../../../../store/service/catalogo.service';
@@ -34,7 +35,12 @@ export class CategoriasComponent implements OnInit {
     private gestion: GestionService,
     private ns: NotificationService,
     private catalogoTienda: CatalogoService,
+    private readonly auth: AuthService,
   ) {}
+
+  get puedeEditar(): boolean {
+    return this.auth.puedeEditarCatalogo();
+  }
 
   ngOnInit(): void {
     this.cargar();
@@ -62,6 +68,7 @@ export class CategoriasComponent implements OnInit {
   }
 
   guardar(): void {
+    if (!this.puedeEditar) return;
     const nombre = this.modelo.nombre?.trim();
     if (!nombre) {
       this.ns.error('Nombre requerido');
@@ -128,6 +135,7 @@ export class CategoriasComponent implements OnInit {
   }
 
   eliminar(id: number): void {
+    if (!this.puedeEditar) return;
     if (!confirm('¿Eliminar categoría?')) return;
     this.gestion.eliminarCategoria(id).subscribe({
       next: () => {

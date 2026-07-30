@@ -7,6 +7,7 @@ import {
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../../auth/service/auth.service';
 import { GestionService } from '../../service/gestion.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { AlertService } from '../../../../shared/services/alert.service';
@@ -37,7 +38,12 @@ export class MarcasComponent implements OnInit {
     private readonly ns: NotificationService,
     private readonly alerta: AlertService,
     private readonly catalogoTienda: CatalogoService,
+    private readonly auth: AuthService,
   ) {}
+
+  get puedeEditar(): boolean {
+    return this.auth.puedeEditarCatalogo();
+  }
 
   ngOnInit(): void {
     this.cargar();
@@ -73,6 +79,7 @@ export class MarcasComponent implements OnInit {
   }
 
   nuevo(): void {
+    if (!this.puedeEditar) return;
     this.editandoId = null;
     this.modelo = { nombre: '', logo_url: '', activo: true };
   }
@@ -91,6 +98,7 @@ export class MarcasComponent implements OnInit {
   }
 
   guardar(): void {
+    if (!this.puedeEditar) return;
     const nombre = this.modelo.nombre?.trim();
     if (!nombre) {
       this.ns.error('El nombre es obligatorio');
@@ -143,6 +151,7 @@ export class MarcasComponent implements OnInit {
   }
 
   async eliminar(m: any): Promise<void> {
+    if (!this.puedeEditar) return;
     const ok = await this.alerta.confirm({
       title: `¿Eliminar marca "${m.nombre}"?`,
       message: 'Solo si ningún producto la usa. En Productos puedes cambiar la marca antes.',

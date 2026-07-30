@@ -1,11 +1,30 @@
 <div class="adm-pagina">
 
-  <header class="adm-cabecera">
+  <header class="adm-cabecera pv-cabecera">
     <div>
       <h1 class="adm-cabecera__titulo">Punto de venta</h1>
       <p class="adm-cabecera__sub">
         Busque el producto, identifique al cliente y emita el comprobante. Los precios ya incluyen IGV.
       </p>
+      <p class="pv-caja-chip" *ngIf="cajaChip">
+        <a routerLink="/dashboard/mantenimiento/caja-sesion"
+           class="adm-insignia"
+           [class.adm-insignia--exito]="cajaChip.abierta"
+           [class.adm-insignia--neutra]="!cajaChip.abierta"
+           [title]="cajaChip.modo === 'estricto' ? 'Modo estricto: abrir caja antes de cobrar' : 'Modo blando: puedes cobrar sin abrir'">
+          {{ cajaChip.etiqueta }}
+        </a>
+      </p>
+    </div>
+    <div class="adm-campo pv-cabecera__almacen" *ngIf="almacenes.length">
+      <label class="adm-etiqueta" for="adm-almacen-pos">Almacén</label>
+      <select id="adm-almacen-pos" class="adm-select"
+              [ngModel]="idAlmacen"
+              (ngModelChange)="cambiarAlmacen($event)">
+        <option *ngFor="let a of almacenes" [ngValue]="a.id_almacen">
+          {{ a.nombre }}<ng-container *ngIf="a.sucursal"> · {{ a.sucursal }}</ng-container>
+        </option>
+      </select>
     </div>
   </header>
 
@@ -415,7 +434,7 @@
               <label class="adm-etiqueta" for="adm-serie">Serie</label>
               <input id="adm-serie" class="adm-input" type="text" maxlength="4"
                      [placeholder]="idTipo === TIPO_FACTURA ? 'FFF1' : 'BBB1'"
-                     [(ngModel)]="serie" (ngModelChange)="cambiarTipo(idTipo)">
+                     [(ngModel)]="serie" (ngModelChange)="alCambiarSerie()">
             </div>
           </div>
 
@@ -448,13 +467,19 @@
             Incluye IGV ({{ preview.porcentaje_igv }}%) de S/ {{ preview.totales.igv | number:'1.2-2' }}
           </div>
 
-          <div class="adm-aviso adm-aviso--info pv-espaciado" *ngIf="lineaCredito as lc">
-            <i class="bi bi-credit-card-2-front"></i>
+          <div
+            class="adm-aviso pv-espaciado"
+            [ngClass]="lc.credito_activo ? 'adm-aviso--info' : 'adm-aviso--aviso'"
+            *ngIf="lineaCredito as lc">
+            <i class="bi" [ngClass]="lc.credito_activo ? 'bi-credit-card-2-front' : 'bi-exclamation-triangle'"></i>
             <span>
               Crédito {{ lc.credito_activo ? 'activo' : 'inactivo' }} ·
               Disponible S/ {{ lc.disponible | number:'1.2-2' }}
               (límite {{ lc.limite_credito | number:'1.2-2' }}, deuda {{ lc.saldo_pendiente | number:'1.2-2' }},
               {{ lc.dias_credito }} días)
+              <ng-container *ngIf="!lc.credito_activo">
+                · Actívalo en Cuentas por cobrar antes de fiado.
+              </ng-container>
             </span>
           </div>
 

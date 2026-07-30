@@ -4,6 +4,9 @@
     <div>
       <h1 class="adm-cabecera__titulo">Categorías</h1>
       <p class="adm-cabecera__sub">Organizan el catálogo de productos en el panel y en la tienda.</p>
+      <p class="adm-ayuda" *ngIf="!puedeEditar" style="margin-top:0.35rem">
+        Solo lectura: puede ver las categorías, sin crear ni editar.
+      </p>
     </div>
     <div class="adm-acciones">
       <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
@@ -13,9 +16,9 @@
     </div>
   </header>
 
-  <div class="adm-grid adm-grid--2">
+  <div class="adm-grid" [class.adm-grid--2]="puedeEditar">
 
-    <section class="adm-tarjeta">
+    <section class="adm-tarjeta" *ngIf="puedeEditar">
       <div class="adm-tarjeta__cabecera">
         <h2 class="adm-tarjeta__titulo">
           <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
@@ -67,7 +70,7 @@
             <tr>
               <th>Nombre</th>
               <th>Descripción</th>
-              <th></th>
+              <th *ngIf="puedeEditar"></th>
             </tr>
           </thead>
           <tbody>
@@ -79,7 +82,7 @@
                 </div>
               </td>
               <td data-etiqueta="Descripción">{{ c.descripcion || '—' }}</td>
-              <td data-etiqueta="Acciones">
+              <td data-etiqueta="Acciones" *ngIf="puedeEditar">
                 <div class="adm-acciones">
                   <button type="button" class="adm-btn adm-btn--suave" (click)="editar(c)">Editar</button>
                   <button type="button" class="adm-btn adm-btn--suave" (click)="eliminar(c.id_categoria)">Eliminar</button>

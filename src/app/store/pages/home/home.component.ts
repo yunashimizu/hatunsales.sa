@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Subject, forkJoin, takeUntil } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { HeroBannerComponent } from '../../components/hero-banner/hero-banner.component';
 import { CategoriasGridComponent } from '../../components/categorias-grid/categorias-grid.component';
 import { ProductoCardComponent } from '../../components/producto-card/producto-card.component';
@@ -33,30 +33,66 @@ export class HomeComponent implements OnInit, OnDestroy {
   ofertas: ProductoTienda[] = [];
   nuevos: ProductoTienda[] = [];
 
+  /** Hero y vacíos: se liberan al llegar banners (o al fallar). */
+  cargandoHero = true;
+  /** Skeletons de destacados + estado vacío de la página. */
   cargando = true;
   readonly esqueletos = Array.from({ length: 8 }, (_, i) => i);
   private favoritos = new Set<number>();
 
   ngOnInit(): void {
-    forkJoin({
-      banners: this.catalogo.banners(),
-      categorias: this.catalogo.categorias(),
-      marcas: this.catalogo.marcas(),
-      destacados: this.catalogo.destacados(8),
-      ofertas: this.catalogo.ofertas(4),
-      nuevos: this.catalogo.listarProductos({ orden: 'nuevo', limite: 4 }),
-    })
-      .pipe(takeUntil(this.destruir$))
-      .subscribe((datos) => {
-        this.banners = datos.banners;
-        this.categorias = datos.categorias;
-        this.marcas = datos.marcas.filter((m) => m.total_productos > 0).slice(0, 8);
-        this.destacados = datos.destacados;
-        this.ofertas = datos.ofertas;
-        this.nuevos = datos.nuevos.items;
+    // Carga por sección: la portada no espera a que terminen las 6 APIs.
+    this.catalogo.banners().pipe(takeUntil(this.destruir$)).subscribe({
+      next: (banners) => {
+        this.banners = banners;
+        this.cargandoHero = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.cargandoHero = false;
+        this.cdr.markForCheck();
+      },
+    });
+
+    this.catalogo.categorias().pipe(takeUntil(this.destruir$)).subscribe({
+      next: (categorias) => {
+        this.categorias = categorias;
+        this.cdr.markForCheck();
+      },
+    });
+
+    this.catalogo.marcas().pipe(takeUntil(this.destruir$)).subscribe({
+      next: (marcas) => {
+        this.marcas = marcas.filter((m) => m.total_productos > 0).slice(0, 8);
+        this.cdr.markForCheck();
+      },
+    });
+
+    this.catalogo.destacados(8).pipe(takeUntil(this.destruir$)).subscribe({
+      next: (destacados) => {
+        this.destacados = destacados;
         this.cargando = false;
         this.cdr.markForCheck();
-      });
+      },
+      error: () => {
+        this.cargando = false;
+        this.cdr.markForCheck();
+      },
+    });
+
+    this.catalogo.ofertas(4).pipe(takeUntil(this.destruir$)).subscribe({
+      next: (ofertas) => {
+        this.ofertas = ofertas;
+        this.cdr.markForCheck();
+      },
+    });
+
+    this.catalogo.listarProductos({ orden: 'nuevo', limite: 4 }).pipe(takeUntil(this.destruir$)).subscribe({
+      next: (pagina) => {
+        this.nuevos = pagina.items;
+        this.cdr.markForCheck();
+      },
+    });
 
     this.cuenta.favoritos$.pipe(takeUntil(this.destruir$)).subscribe((ids) => {
       this.favoritos = ids;

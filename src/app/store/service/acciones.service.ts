@@ -21,20 +21,25 @@ export class AccionesTiendaService {
     return typeof sessionStorage !== 'undefined' && !!sessionStorage.getItem('token');
   }
 
+  /**
+   * Feedback al instante (toast + panel + badge); el API confirma detrás.
+   * Si falla, se recarga el carrito real y se avisa.
+   */
   agregarAlCarrito(producto: ProductoTienda, cantidad = 1, abrirPanel = true): Promise<boolean> {
+    this.cart.aplicarAgregarOptimistico(producto, cantidad);
+    this.alerta.toast({
+      type: 'success',
+      title: 'Agregado al carrito',
+      message: producto.nombre,
+      timer: 1800,
+    });
+    if (abrirPanel) this.cart.abrirPanel();
+
     return new Promise((resolver) => {
       this.cart.agregar(producto.id_producto, cantidad).subscribe({
-        next: () => {
-          this.alerta.toast({
-            type: 'success',
-            title: 'Agregado al carrito',
-            message: producto.nombre,
-            timer: 2200,
-          });
-          if (abrirPanel) this.cart.abrirPanel();
-          resolver(true);
-        },
+        next: () => resolver(true),
         error: (err) => {
+          this.cart.cargar(true).subscribe();
           this.alerta.toast({
             type: 'error',
             title: 'No se pudo agregar',

@@ -1,5 +1,13 @@
 :host { display: block; }
 
+/* fieldset sin borde: solo para deshabilitar el formulario en modo consulta */
+.prod-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
 .prod-campo--ancho { flex: 2 1 280px; }
 
 .prod-cargando {
@@ -9,6 +17,23 @@
 }
 
 .prod-espaciado { margin-top: 14px; }
+
+/* Filas del formulario: etiquetas e inputs al mismo nivel (sin “escalera”). */
+.prod-fila {
+  align-items: flex-start;
+}
+
+/* Ayudas bajo la fila, en las mismas columnas que los campos. */
+.prod-ayudas {
+  margin-top: 4px;
+  gap: 12px;
+}
+
+.prod-ayudas > .adm-ayuda {
+  flex: 1 1 180px;
+  margin: 0;
+  min-width: 0;
+}
 
 .prod-obligatorio { color: var(--adm-peligro); }
 

@@ -10,7 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
-import { mensajeDeError } from '../../../service/api-base.service';
+import { mensajeDeError, escapeHtmlAlerta } from '../../../service/api-base.service';
 import { RecepcionService } from '../../../service/recepcion.service';
 
 @Component({
@@ -161,7 +161,8 @@ export class ProveedoresComponent implements OnInit {
   async eliminar(p: any): Promise<void> {
     const ok = await this.alerta.confirm({
       title: '¿Eliminar proveedor?',
-      message: `Se eliminará <strong>${p.nombre}</strong>.`,
+      allowHtml: true,
+      message: `Se eliminará <strong>${escapeHtmlAlerta(p.nombre)}</strong>.`,
       type: 'warning',
       confirmText: 'Sí, eliminar',
       cancelText: 'Cancelar',

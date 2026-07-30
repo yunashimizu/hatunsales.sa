@@ -246,6 +246,30 @@
 
 .adm-fila > .adm-campo { flex: 1 1 180px; }
 
+/* Anchos útiles en formularios de una fila */
+.adm-campo--chico  { flex: 0 1 140px !important; max-width: 168px; }
+.adm-campo--medio  { flex: 1 1 180px !important; }
+.adm-campo--grande { flex: 2 1 280px !important; min-width: 220px; }
+
+/* Misma estructura que un campo: etiqueta fantasma + botón → queda nivelado */
+.adm-etiqueta--fantasma {
+  visibility: hidden;
+  user-select: none;
+  pointer-events: none;
+}
+
+.adm-campo--accion {
+  flex: 0 0 auto !important;
+  min-width: 0;
+}
+
+.adm-campo--accion .adm-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 /* ── Botones ─────────────────────────────────────────────────── */
 
 .adm-btn {

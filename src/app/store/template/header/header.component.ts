@@ -70,7 +70,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     this.termino$
       .pipe(
-        debounceTime(350),
+        debounceTime(220),
         distinctUntilChanged(),
         switchMap((texto) => this.catalogo.buscar(texto)),
         takeUntil(this.destruir$),
@@ -126,10 +126,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     if (texto.length < 2) {
       this.sugerencias = [];
+      this.buscando = false;
+      this.cdr.markForCheck();
       return;
     }
 
     this.buscando = true;
+    this.cdr.markForCheck();
     this.termino$.next(texto);
   }
 
@@ -145,6 +148,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   irAProducto(producto: ProductoTienda): void {
     this.sugerencias = [];
     this.termino = '';
+    this.catalogo.guardarPreview(producto);
     this.router.navigate(['/store/producto', producto.id_producto]);
   }
 
@@ -189,6 +193,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.autenticado = false;
     this.nombreUsuario = '';
     this.cerrarTodo();
+    this.cdr.markForCheck();
 
     this.alerta.toast({ type: 'success', title: 'Sesión cerrada' });
     this.router.navigate([destino]);

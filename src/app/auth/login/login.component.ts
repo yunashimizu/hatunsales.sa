@@ -96,9 +96,16 @@ export class LoginComponent {
   }
 
   private navegarSegunRol(): void {
-    // Staff → panel. Cliente → tienda (entrada pública de la app).
-    if (this.auth.isAdmin()) this.router.navigate(['/dashboard']);
-    else this.router.navigate(['/store']);
+    // Staff (admin/vendedor/caja/consulta) → panel. Cliente → tienda.
+    if (this.auth.isCliente()) {
+      this.router.navigate(['/store']);
+      return;
+    }
+    if (this.auth.isAdmin()) {
+      this.router.navigate(['/dashboard']);
+      return;
+    }
+    this.router.navigate(['/store']);
   }
 
   private shake(): void {
