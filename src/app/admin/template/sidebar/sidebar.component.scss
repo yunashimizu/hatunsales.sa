@@ -108,13 +108,14 @@
     }
 
     i {
-      font-size: 9px;
+      font-size: 11px;
       width: 12px;
       min-width: 12px;
       text-align: center;
       color: #6b6a9a;
       transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s;
       flex-shrink: 0;
+      line-height: 1;
     }
 
     &:hover {
@@ -171,17 +172,29 @@
         transition: background 0.15s, color 0.15s;
         cursor: pointer;
 
-        i {
-          font-size: 14px;
+        /* Icono limpio (Bootstrap Icons): sin cajita; color del tema del sidebar */
+        .sb-nav-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           width: var(--sb-icon);
           min-width: var(--sb-icon);
+          height: var(--sb-icon);
+          font-size: 15px;
+          line-height: 1;
           text-align: center;
           flex-shrink: 0;
-          transition: color 0.15s;
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          color: #6366f1;
+          opacity: 0.88;
+          transition: color 0.15s, opacity 0.15s;
         }
 
         span {
           line-height: 1.2;
+          min-width: 0;
         }
 
         .sb-badge {
@@ -197,11 +210,19 @@
           line-height: 18px;
           text-align: center;
           flex-shrink: 0;
+
+          &--peligro { background: #dc2626; color: #fff; }
+          &--aviso { background: #d97706; color: #fff; }
         }
 
         &:hover {
           background: rgba(99, 102, 241, 0.08);
           color: #0f172a;
+
+          .sb-nav-icon {
+            color: #4f46e5;
+            opacity: 1;
+          }
         }
       }
 
@@ -209,7 +230,10 @@
         background: rgba(99, 102, 241, 0.16);
         color: #0f172a;
 
-        i { color: #6366f1; }
+        .sb-nav-icon {
+          color: #4f46e5;
+          opacity: 1;
+        }
       }
     }
   }
@@ -224,12 +248,14 @@
       gap: var(--sb-gap);
 
       i {
-        color: #6b6a9a;
-        font-size: 14px;
+        color: #6366f1;
+        font-size: 16px;
         width: var(--sb-icon);
         min-width: var(--sb-icon);
         text-align: center;
         flex-shrink: 0;
+        line-height: 1;
+        opacity: 0.9;
       }
 
       .sb-footer-text {

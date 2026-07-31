@@ -15,6 +15,13 @@
   </div>
 
   <div class="tb-actions">
+    <a class="tb-link-tienda"
+       routerLink="/store"
+       title="Ver la tienda online (sin cerrar sesión)">
+      <i class="fas fa-store"></i>
+      <span>Ir a la tienda</span>
+    </a>
+
     <div class="user-pill" (click)="toggleUser()">
       <div class="user-avatar" aria-hidden="true">
         <img class="user-avatar__img"
@@ -33,6 +40,9 @@
         <div class="ud-meta" *ngIf="sesion.email">
           <small>{{ sesion.email }}</small>
         </div>
+        <a class="ud-item" routerLink="/store">
+          <i class="fas fa-store"></i> Ir a la tienda
+        </a>
         <a class="ud-item" routerLink="/dashboard/perfil">
           <i class="fas fa-user"></i> Mi Perfil
         </a>

@@ -12,6 +12,7 @@ import {
   inject,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Title } from '@angular/platform-browser';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
@@ -45,6 +46,7 @@ export class HeaderComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly titleDoc = inject(Title);
 
   ngOnInit(): void {
     this.refrescarSesion();
@@ -54,6 +56,7 @@ export class HeaderComponent implements OnInit {
     });
 
     this.paginaActual = this.tituloDe(this.router.url);
+    this.aplicarTituloPestana(this.paginaActual);
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -61,9 +64,15 @@ export class HeaderComponent implements OnInit {
       )
       .subscribe((e) => {
         this.paginaActual = this.tituloDe(e.urlAfterRedirects);
+        this.aplicarTituloPestana(this.paginaActual);
         this.showUser = false;
         this.cdr.markForCheck();
       });
+  }
+
+  private aplicarTituloPestana(pagina: string): void {
+    const base = 'HatunSales S.A.C';
+    this.titleDoc.setTitle(pagina && pagina !== base ? `${pagina} | ${base}` : base);
   }
 
   get etiquetaRol(): string {

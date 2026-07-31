@@ -20,10 +20,10 @@
   <section class="adm-tarjeta">
     <div class="adm-tarjeta__cabecera">
       <h2 class="adm-tarjeta__titulo"><i class="bi bi-bank"></i> Cuentas bancarias (transferencias)</h2>
-      <button type="button" class="adm-btn adm-btn--suave" (click)="nuevaCuenta()">Nueva</button>
+      <button type="button" class="adm-btn adm-btn--suave" *ngIf="esAdmin" (click)="nuevaCuenta()">Nueva</button>
     </div>
     <div class="adm-tarjeta__cuerpo">
-      <div class="adm-fila">
+      <div class="adm-fila" *ngIf="esAdmin">
         <div class="adm-campo">
           <label class="adm-etiqueta">Banco</label>
           <input class="adm-input" [(ngModel)]="cuentaForm.banco" placeholder="BCP, BBVA…">
@@ -51,7 +51,11 @@
           </button>
         </div>
       </div>
-      <p class="adm-ayuda" style="margin-top:6px">Estas cuentas aparecen en el POS al cobrar por transferencia.</p>
+      <p class="adm-ayuda" style="margin-top:6px">
+        Estas cuentas aparecen en el POS al cobrar por transferencia.
+        <span *ngIf="esAdmin"> Desactivar no borra historial (soft-delete).</span>
+        <span *ngIf="!esAdmin"> Solo el administrador puede crear o desactivar cuentas.</span>
+      </p>
 
       <div class="adm-tabla-envoltorio" *ngIf="cuentasBancarias.length">
         <table class="adm-tabla adm-tabla--adaptable">
@@ -61,7 +65,7 @@
               <th>Cuenta</th>
               <th>CCI</th>
               <th>Estado</th>
-              <th></th>
+              <th *ngIf="esAdmin"></th>
             </tr>
           </thead>
           <tbody>
@@ -77,10 +81,12 @@
                   {{ c.activo === false ? 'Inactiva' : 'Activa' }}
                 </span>
               </td>
-              <td>
+              <td *ngIf="esAdmin">
                 <div class="adm-acciones">
                   <button type="button" class="adm-btn adm-btn--suave" (click)="editarCuenta(c)">Editar</button>
-                  <button type="button" class="adm-btn adm-btn--suave" *ngIf="c.activo !== false" (click)="desactivarCuenta(c)">Desactivar</button>
+                  <button type="button" class="adm-btn adm-btn--peligro" *ngIf="c.activo !== false" (click)="desactivarCuenta(c)">
+                    Desactivar
+                  </button>
                 </div>
               </td>
             </tr>

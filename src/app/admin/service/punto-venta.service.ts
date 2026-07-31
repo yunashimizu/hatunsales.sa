@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { catchError, shareReplay, tap } from 'rxjs/operators';
 import { urlConstants } from '../../constants/urlConstants';
 import {
@@ -61,6 +61,8 @@ export class PuntoVentaService {
   /** Almacén con el que se cargó el catálogo en cache. */
   private idAlmacenCatalogo: number | null = null;
   private catalogoCargadoEn = 0;
+  /** Descarta respuestas HTTP viejas si el cajero cambia de almacén rápido. */
+  private catalogoReqId = 0;
 
   constructor(private http: HttpClient) {}
 
@@ -78,6 +80,7 @@ export class PuntoVentaService {
     this.catalogoListo = false;
     this.catalogoEnCurso$ = null;
     this.catalogoCargadoEn = 0;
+    this.catalogoReqId += 1;
   }
 
   contextoPos(): Observable<ContextoPos> {
@@ -106,24 +109,41 @@ export class PuntoVentaService {
     let params = new HttpParams().set('limite', '5000');
     if (alm != null) params = params.set('id_almacen', String(alm));
 
+    const reqId = ++this.catalogoReqId;
+
     this.catalogoEnCurso$ = this.http
       .get<ProductoVenta[]>(urlConstants.puntoVenta.catalogoProductos, {
         ...opcionesHttp(),
         params,
       })
       .pipe(
-        catchError(() => of(this.catalogo)),
         tap((lista) => {
+          if (reqId !== this.catalogoReqId) return;
           this.catalogo = Array.isArray(lista) ? lista : [];
-          this.catalogoListo = this.catalogo.length > 0;
+          // Vacío es válido para ese almacén.
+          this.catalogoListo = true;
           this.idAlmacenCatalogo = alm;
           this.catalogoCargadoEn = Date.now();
           this.catalogoEnCurso$ = null;
         }),
-        shareReplay(1),
+        catchError((err) => {
+          if (reqId === this.catalogoReqId) {
+            this.catalogoEnCurso$ = null;
+          }
+          // No pisar idAlmacenCatalogo ni stock viejo con un almacén nuevo fallido.
+          return throwError(() => err);
+        }),
+        shareReplay({ bufferSize: 1, refCount: true }),
       );
 
     return this.catalogoEnCurso$;
+  }
+
+  /** Busca en el catálogo en memoria (tras cargarCatalogo del almacén activo). */
+  productoPorId(idProducto: number): ProductoVenta | null {
+    const id = Number(idProducto);
+    if (!Number.isFinite(id) || id <= 0 || !this.catalogo.length) return null;
+    return this.catalogo.find((p) => Number(p.id_producto) === id) ?? null;
   }
 
   /** Autocompletado local: mismos criterios de prioridad que el backend. */

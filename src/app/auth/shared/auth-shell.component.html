@@ -13,15 +13,21 @@
 
     <!-- ── Aside branding ── -->
     <aside class="relative flex flex-col justify-between px-8 py-10 lg:px-14 lg:py-12" data-auth-enter>
-      <a routerLink="/store" class="inline-flex items-center gap-3">
-        <span class="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/30">
-          <i class="bi bi-building-gear text-xl"></i>
-        </span>
-        <span>
-          <span class="block text-lg font-bold tracking-tight text-slate-900">Hatunsales S.A.C</span>
-          <span class="block text-xs text-slate-500">Todo para construir tus sueños</span>
-        </span>
-      </a>
+      <div>
+        <a routerLink="/store" class="inline-flex items-center gap-3" title="Ir a la tienda">
+          <span class="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/30">
+            <i class="bi bi-building-gear text-xl"></i>
+          </span>
+          <span>
+            <span class="block text-lg font-bold tracking-tight text-slate-900">HatunSales S.A.C</span>
+            <span class="block text-xs text-slate-500">Todo para construir tus sueños</span>
+          </span>
+        </a>
+        <a routerLink="/store"
+           class="mt-3 inline-flex w-fit items-center gap-2 rounded-xl border border-violet-200 bg-white/80 px-3 py-2 text-xs font-semibold text-violet-700 shadow-sm backdrop-blur hover:bg-violet-50">
+          <i class="bi bi-shop"></i> Visitar tienda online
+        </a>
+      </div>
 
       <div class="my-10 flex flex-1 flex-col justify-center">
         <h2 class="max-w-md text-3xl font-bold leading-tight text-slate-900 sm:text-4xl" data-auth-enter>

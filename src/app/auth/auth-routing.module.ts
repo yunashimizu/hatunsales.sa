@@ -4,8 +4,8 @@ import { LoginComponent } from './login/login.component';
 import { RegisterComponent } from './register/register.component';
 
 const routes: Routes = [
-  { path: '', component: LoginComponent },
-  { path: 'registro', component: RegisterComponent }
+  { path: '', component: LoginComponent, title: 'Acceso | HatunSales S.A.C' },
+  { path: 'registro', component: RegisterComponent, title: 'Registro | HatunSales S.A.C' },
 ];
 
 @NgModule({

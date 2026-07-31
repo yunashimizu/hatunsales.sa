@@ -13,6 +13,8 @@ import { Subject, debounceTime, distinctUntilChanged, of, switchMap, takeUntil }
 import { catchError } from 'rxjs/operators';
 import { PuntoVentaService } from '../../../service/punto-venta.service';
 import { ReceptorService } from '../../../service/receptor.service';
+import { AuthService } from '../../../../auth/service/auth.service';
+import { rolPermitido } from '../../../../auth/roles.constants';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { mensajeDeError, errorOperativo, escapeHtmlAlerta } from '../../../service/api-base.service';
 import { SugerenciaReceptor } from '../../../models/admin.models';
@@ -65,8 +67,15 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   guardandoConfig = false;
 
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly auth = inject(AuthService);
   private readonly destruir$ = new Subject<void>();
   private readonly buscar$ = new Subject<string>();
+
+  /** Crear / editar / desactivar cuentas bancarias: solo admin (API también lo exige). */
+  get esAdmin(): boolean {
+    const s = this.auth.getSesion();
+    return rolPermitido(s.rolNombre, ['admin', 'superadmin'], s.rolId);
+  }
 
   constructor(
     private readonly pv: PuntoVentaService,
@@ -242,6 +251,14 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   }
 
   guardarCuenta(): void {
+    if (!this.esAdmin) {
+      void this.alerta.toast({
+        type: 'warning',
+        title: 'Solo el administrador puede gestionar cuentas bancarias',
+        timer: 3500,
+      });
+      return;
+    }
     if (!this.cuentaForm.banco.trim()) {
       void this.alerta.toast({ type: 'warning', title: 'El banco es obligatorio' });
       return;
@@ -272,17 +289,40 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   }
 
   desactivarCuenta(c: any): void {
-    this.pv.eliminarCuentaBancaria(Number(c.id_cuenta)).subscribe({
-      next: () => {
-        this.cdr.markForCheck();
-        void this.alerta.toast({ type: 'success', title: 'Cuenta desactivada' });
-        this.cargarCuentas();
-      },
-      error: (e) => {
-        this.cdr.markForCheck();
-        void this.alerta.error({ message: mensajeDeError(e) });
-      },
-    });
+    if (!this.esAdmin) {
+      void this.alerta.toast({
+        type: 'warning',
+        title: 'Solo el administrador puede desactivar cuentas',
+        timer: 3500,
+      });
+      return;
+    }
+    const id = Number(c?.id_cuenta);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    const nombre = [c?.banco, c?.alias || c?.numero_cuenta].filter(Boolean).join(' · ');
+    void this.alerta
+      .confirm({
+        title: '¿Desactivar esta cuenta bancaria?',
+        message: `${nombre || 'Cuenta'} dejará de aparecer en el POS al cobrar por transferencia. No se borra el historial.`,
+        confirmText: 'Desactivar',
+        cancelText: 'Cancelar',
+        type: 'warning',
+      })
+      .then((resultado) => {
+        if (!resultado.isConfirmed) return;
+        this.pv.eliminarCuentaBancaria(id).subscribe({
+          next: () => {
+            this.cdr.markForCheck();
+            void this.alerta.toast({ type: 'success', title: 'Cuenta desactivada' });
+            this.cargarCuentas();
+          },
+          error: (e) => {
+            this.cdr.markForCheck();
+            void this.alerta.error({ message: mensajeDeError(e) });
+          },
+        });
+      });
   }
 
   cargar(): void {

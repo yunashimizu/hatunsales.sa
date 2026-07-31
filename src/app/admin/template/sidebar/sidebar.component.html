@@ -2,7 +2,7 @@
 
   <div class="sb-brand">
     <div class="brand-text">
-      <span class="brand-name">Hatunsales</span>
+      <span class="brand-name">HatunSales</span>
       <span class="brand-suffix">S.A.C</span>
     </div>
   </div>
@@ -18,7 +18,7 @@
         [attr.aria-expanded]="estaAbierta(seccion.titulo)"
       >
         <span>{{ seccion.titulo }}</span>
-        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+        <i class="bi bi-chevron-down" aria-hidden="true"></i>
       </button>
 
       <div class="sb-section-body" [class.open]="estaAbierta(seccion.titulo)">
@@ -26,9 +26,13 @@
           <ul class="sb-menu">
             <li *ngFor="let item of seccion.items" routerLinkActive="active" [hidden]="!visible(item)">
               <a [routerLink]="item.ruta">
-                <i class="fas" [ngClass]="item.icono"></i>
+                <i class="bi sb-nav-icon" [ngClass]="item.icono" aria-hidden="true"></i>
                 <span>{{ item.etiqueta }}</span>
-                <span class="sb-badge" *ngIf="badgeDe(item) > 0" [attr.title]="badgeDe(item) + ' por revisar'">
+                <span class="sb-badge"
+                      *ngIf="badgeDe(item) > 0"
+                      [class.sb-badge--peligro]="tonoBadge(item) === 'peligro'"
+                      [class.sb-badge--aviso]="tonoBadge(item) === 'aviso'"
+                      [attr.title]="tituloBadge(item)">
                   {{ badgeDe(item) > 99 ? '99+' : badgeDe(item) }}
                 </span>
               </a>
@@ -42,8 +46,14 @@
     <ul class="sb-menu">
       <li *ngFor="let item of cuenta" routerLinkActive="active" [hidden]="!visible(item)">
         <a [routerLink]="item.ruta">
-          <i class="fas" [ngClass]="item.icono"></i>
+          <i class="bi sb-nav-icon" [ngClass]="item.icono" aria-hidden="true"></i>
           <span>{{ item.etiqueta }}</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/store" title="Ver la tienda online sin cerrar sesión">
+          <i class="bi sb-nav-icon bi-shop" aria-hidden="true"></i>
+          <span>Ir a la tienda</span>
         </a>
       </li>
     </ul>
@@ -52,7 +62,7 @@
 
   <div class="sb-footer">
     <div class="sb-footer-info">
-      <i class="fas fa-user-circle"></i>
+      <i class="bi bi-person-circle" aria-hidden="true"></i>
       <div class="sb-footer-text">
         <small>{{ etiquetaRol }}</small>
         <strong>{{ sesion.nombre || 'Usuario' }}</strong>

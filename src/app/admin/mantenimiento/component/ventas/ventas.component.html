@@ -1,32 +1,56 @@
 <div class="adm-pagina">
 
   <header class="adm-cabecera pv-cabecera">
-    <div>
+    <div class="pv-cabecera__info">
       <h1 class="adm-cabecera__titulo">Punto de venta</h1>
       <p class="adm-cabecera__sub">
         Busque el producto, identifique al cliente y emita el comprobante. Los precios ya incluyen IGV.
       </p>
-      <p class="pv-caja-chip" *ngIf="cajaChip">
-        <a routerLink="/dashboard/mantenimiento/caja-sesion"
+    </div>
+  </header>
+
+  <!-- Contexto operativo: caja + almacén siempre visibles (estilo adm-*) -->
+  <section class="adm-tarjeta pv-barra-contexto"
+           *ngIf="almacenes.length || cajaChip || cargandoContextoPos">
+    <div class="adm-tarjeta__cuerpo pv-barra-contexto__cuerpo">
+      <div class="pv-barra-contexto__chips">
+        <a *ngIf="cajaChip"
+           routerLink="/dashboard/mantenimiento/caja-sesion"
            class="adm-insignia"
            [class.adm-insignia--exito]="cajaChip.abierta"
            [class.adm-insignia--neutra]="!cajaChip.abierta"
            [title]="cajaChip.modo === 'estricto' ? 'Modo estricto: abrir caja antes de cobrar' : 'Modo blando: puedes cobrar sin abrir'">
-          {{ cajaChip.etiqueta }}
+          <i class="bi bi-cash-drawer"></i> {{ cajaChip.etiqueta }}
         </a>
+        <span class="adm-insignia adm-insignia--neutra" *ngIf="nombreAlmacenActivo && !cambiandoAlmacen">
+          <i class="bi bi-building"></i> {{ nombreAlmacenActivo }}
+        </span>
+        <span class="adm-insignia adm-insignia--aviso" *ngIf="cambiandoAlmacen">
+          <i class="bi bi-arrow-repeat adm-girando"></i> Actualizando stock…
+        </span>
+      </div>
+
+      <div class="adm-campo pv-barra-contexto__almacen" *ngIf="almacenes.length">
+        <label class="adm-etiqueta" for="adm-almacen-pos">Almacén / sede</label>
+        <select id="adm-almacen-pos"
+                class="adm-select"
+                [ngModel]="idAlmacen"
+                (ngModelChange)="cambiarAlmacen($event)"
+                [disabled]="cambiandoAlmacen || emitiendo">
+          <option *ngFor="let a of almacenes" [ngValue]="a.id_almacen">
+            {{ a.nombre }}<ng-container *ngIf="a.sucursal"> · {{ a.sucursal }}</ng-container>
+          </option>
+        </select>
+        <span class="adm-ayuda">
+          El stock y la búsqueda usan este almacén. El cambio refresca el catálogo sin vaciar el carrito.
+        </span>
+      </div>
+
+      <p class="adm-ayuda" *ngIf="!almacenes.length && !cargandoContextoPos">
+        No hay almacenes disponibles para este usuario. Contacte al administrador.
       </p>
     </div>
-    <div class="adm-campo pv-cabecera__almacen" *ngIf="almacenes.length">
-      <label class="adm-etiqueta" for="adm-almacen-pos">Almacén</label>
-      <select id="adm-almacen-pos" class="adm-select"
-              [ngModel]="idAlmacen"
-              (ngModelChange)="cambiarAlmacen($event)">
-        <option *ngFor="let a of almacenes" [ngValue]="a.id_almacen">
-          {{ a.nombre }}<ng-container *ngIf="a.sucursal"> · {{ a.sucursal }}</ng-container>
-        </option>
-      </select>
-    </div>
-  </header>
+  </section>
 
   <!-- Resultado de la última venta -->
   <div class="adm-tarjeta pv-resultado adm-recien-creado" *ngIf="ultimaVenta">
@@ -74,9 +98,19 @@
 
       <!-- Buscador de productos -->
       <section class="adm-tarjeta adm-tarjeta--desbordable">
+        <div class="adm-tarjeta__cabecera" *ngIf="nombreAlmacenActivo">
+          <h2 class="adm-tarjeta__titulo">
+            <i class="bi bi-upc-scan"></i> Agregar producto
+          </h2>
+          <span class="adm-insignia adm-insignia--neutra" [title]="'Almacén activo'">
+            <i class="bi bi-building"></i> {{ nombreAlmacenActivo }}
+          </span>
+        </div>
         <div class="adm-tarjeta__cuerpo">
           <div class="adm-campo adm-autocompletar">
-            <label class="adm-etiqueta" for="adm-buscar-producto">Agregar producto</label>
+            <label class="adm-etiqueta" for="adm-buscar-producto">
+              {{ nombreAlmacenActivo ? 'Código o nombre' : 'Agregar producto' }}
+            </label>
             <div class="pv-buscador">
               <i class="bi bi-upc-scan pv-buscador__icono"></i>
               <input #inputProducto

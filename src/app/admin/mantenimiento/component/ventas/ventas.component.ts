@@ -2,12 +2,15 @@ import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } fro
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, of, switchMap, takeUntil, catchError, EMPTY } from 'rxjs';
+import {
+  Subject, debounceTime, distinctUntilChanged, of, switchMap, takeUntil,
+  catchError, EMPTY, finalize, tap,
+} from 'rxjs';
 
 import { AlertService } from '../../../../shared/services/alert.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { ReceptorService } from '../../../service/receptor.service';
-import { AlmacenPos, PuntoVentaService, SolicitudVenta } from '../../../service/punto-venta.service';
+import { AlmacenPos, ContextoPos, PuntoVentaService, SolicitudVenta } from '../../../service/punto-venta.service';
 import { CajaSesionService } from '../../../service/caja-sesion.service';
 import { mensajeDeError, errorOperativo, escapeHtmlAlerta } from '../../../service/api-base.service';
 import {
@@ -51,6 +54,9 @@ export class VentasComponent implements OnInit, OnDestroy {
   /** Almacén activo del POS (caja → almacén; se puede cambiar). */
   almacenes: AlmacenPos[] = [];
   idAlmacen: number | null = null;
+  /** Evita doble cambio / UI mientras recarga catálogo del almacén. */
+  cambiandoAlmacen = false;
+  cargandoContextoPos = true;
 
   // ── Receptor ──────────────────────────────────────────────────
   textoReceptor = '';
@@ -133,10 +139,13 @@ export class VentasComponent implements OnInit, OnDestroy {
   private readonly documentoExacto$ = new Subject<string>();
   private readonly buscarProducto$ = new Subject<string>();
   private readonly recalcular$ = new Subject<void>();
+  private readonly cambiarAlmacen$ = new Subject<number>();
   private readonly destruir$ = new Subject<void>();
   /** Evita re-disparar la misma búsqueda automática de DNI/RUC. */
   private ultimoDocumentoAuto = '';
   private autoEligiendoReceptor = false;
+  /** Generación para no apagar el spinner si un cambio de almacén canceló al anterior. */
+  private generacionAlmacen = 0;
 
   constructor(
     private readonly receptorService: ReceptorService,
@@ -150,9 +159,17 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.escucharBusquedaReceptor();
     this.escucharBusquedaProducto();
     this.escucharRecalculo();
+    this.escucharCambioAlmacen();
     this.cargarMetodosPago();
     this.cargarContextoPos();
     this.cargarChipCaja();
+  }
+
+  get nombreAlmacenActivo(): string {
+    if (!this.idAlmacen) return '';
+    const a = this.almacenes.find((x) => x.id_almacen === this.idAlmacen);
+    if (!a) return '';
+    return a.sucursal ? `${a.nombre} · ${a.sucursal}` : a.nombre;
   }
 
   private cargarChipCaja(): void {
@@ -180,15 +197,26 @@ export class VentasComponent implements OnInit, OnDestroy {
   @HostListener('document:visibilitychange')
   onVisibilidad(): void {
     if (document.visibilityState !== 'visible') return;
+    if (this.cambiandoAlmacen || this.emitiendo) return;
     if (!this.puntoVenta.catalogoExpirado) return;
     this.puntoVenta
       .cargarCatalogo(false, this.idAlmacen)
-      .pipe(takeUntil(this.destruir$))
-      .subscribe();
+      .pipe(
+        takeUntil(this.destruir$),
+        catchError(() => EMPTY),
+      )
+      .subscribe((lista) => {
+        if (lista) this.sincronizarStockCarritoDesdeCatalogo(false);
+      });
   }
 
   private cargarContextoPos(): void {
-    this.puntoVenta.contextoPos().pipe(takeUntil(this.destruir$)).subscribe((ctx) => {
+    this.cargandoContextoPos = true;
+    this.puntoVenta.contextoPos().pipe(
+      takeUntil(this.destruir$),
+      catchError(() => of({ almacenes: [] as AlmacenPos[], almacen_default: undefined } as ContextoPos)),
+      finalize(() => { this.cargandoContextoPos = false; }),
+    ).subscribe((ctx) => {
       this.almacenes = ctx.almacenes ?? [];
 
       const guardado = Number(localStorage.getItem(LS_ALMACEN) || 0);
@@ -206,31 +234,147 @@ export class VentasComponent implements OnInit, OnDestroy {
       }
 
       this.restaurarSerie();
+      if (!this.idAlmacen) return;
+
       this.puntoVenta
         .cargarCatalogo(true, this.idAlmacen)
-        .pipe(takeUntil(this.destruir$))
+        .pipe(
+          takeUntil(this.destruir$),
+          catchError(() => {
+            this.alerta.toast({
+              type: 'warning',
+              title: 'No se pudo cargar el stock del almacén',
+              timer: 4000,
+            });
+            return EMPTY;
+          }),
+        )
         .subscribe();
     });
   }
 
+  /**
+   * Cambia el almacén del POS. El cobro no se toca: solo catálogo + stock del carrito.
+   * Si la API falla, se revierte al almacén anterior.
+   */
   cambiarAlmacen(id: number | string): void {
     const nuevo = Number(id);
     if (!Number.isFinite(nuevo) || nuevo <= 0 || nuevo === this.idAlmacen) return;
+    if (this.emitiendo) return;
+    this.cambiarAlmacen$.next(nuevo);
+  }
 
-    this.guardarSerieActual();
-    this.idAlmacen = nuevo;
-    localStorage.setItem(LS_ALMACEN, String(nuevo));
-    this.sugerenciasProducto = [];
-    this.textoProducto = '';
-    this.restaurarSerie();
+  private escucharCambioAlmacen(): void {
+    this.cambiarAlmacen$
+      .pipe(
+        switchMap((nuevo) => {
+          const anterior = this.idAlmacen;
+          // Comparar aquí (no distinctUntilChanged): tras un fallo se revierte
+          // y el usuario debe poder reintentar el mismo almacén.
+          if (nuevo === anterior) return EMPTY;
 
-    const nombre = this.almacenes.find((a) => a.id_almacen === nuevo)?.nombre ?? `Almacén ${nuevo}`;
-    this.puntoVenta
-      .cargarCatalogo(true, nuevo)
-      .pipe(takeUntil(this.destruir$))
-      .subscribe(() => {
-        this.alerta.toast({ type: 'info', title: `Stock de ${nombre}`, timer: 2500 });
+          const gen = ++this.generacionAlmacen;
+          this.cambiandoAlmacen = true;
+          this.guardarSerieActual();
+          this.idAlmacen = nuevo;
+          localStorage.setItem(LS_ALMACEN, String(nuevo));
+          this.sugerenciasProducto = [];
+          this.textoProducto = '';
+          this.indiceProducto = -1;
+          this.restaurarSerie();
+
+          const nombre =
+            this.almacenes.find((a) => a.id_almacen === nuevo)?.nombre ?? `Almacén ${nuevo}`;
+
+          this.puntoVenta.invalidarCatalogo();
+          return this.puntoVenta.cargarCatalogo(true, nuevo).pipe(
+            tap(() => {
+              this.sincronizarStockCarritoDesdeCatalogo(true);
+              this.alerta.toast({
+                type: 'info',
+                title: `Stock de ${nombre}`,
+                timer: 2200,
+              });
+            }),
+            catchError(() => {
+              this.idAlmacen = anterior;
+              if (anterior) {
+                localStorage.setItem(LS_ALMACEN, String(anterior));
+              } else {
+                localStorage.removeItem(LS_ALMACEN);
+              }
+              this.restaurarSerie();
+              this.alerta.toast({
+                type: 'error',
+                title: 'No se pudo cambiar el almacén',
+                message: 'Se mantiene el anterior. Reintente en un momento.',
+                timer: 4500,
+              });
+              // Rehidratar catálogo del almacén que quedó activo (sin romper el cobro).
+              if (anterior) {
+                this.puntoVenta
+                  .cargarCatalogo(true, anterior)
+                  .pipe(
+                    takeUntil(this.destruir$),
+                    catchError(() => EMPTY),
+                    tap(() => this.sincronizarStockCarritoDesdeCatalogo(false)),
+                  )
+                  .subscribe();
+              }
+              return EMPTY;
+            }),
+            finalize(() => {
+              if (this.generacionAlmacen === gen) {
+                this.cambiandoAlmacen = false;
+              }
+            }),
+          );
+        }),
+        takeUntil(this.destruir$),
+      )
+      .subscribe();
+  }
+
+  /**
+   * Ajusta stock_disponible de cada línea con el catálogo del almacén activo.
+   * No vacía el carrito; solo avisa si hay líneas sin stock o que exceden.
+   */
+  private sincronizarStockCarritoDesdeCatalogo(avisar: boolean): void {
+    if (!this.lineas.length) return;
+
+    let sinStockEnAlmacen = 0;
+    let exceden = 0;
+
+    for (const linea of this.lineas) {
+      const producto = this.puntoVenta.productoPorId(linea.id_producto);
+      if (!producto) {
+        linea.stock_disponible = 0;
+        sinStockEnAlmacen += 1;
+        continue;
+      }
+      linea.stock_disponible = Number(producto.stock_disponible ?? 0);
+      if (linea.cantidad > linea.stock_disponible) {
+        exceden += 1;
+      }
+    }
+
+    if (avisar && (sinStockEnAlmacen || exceden)) {
+      const partes: string[] = [];
+      if (sinStockEnAlmacen) {
+        partes.push(`${sinStockEnAlmacen} sin stock aquí`);
+      }
+      if (exceden) {
+        partes.push(`${exceden} exceden cantidad`);
+      }
+      this.alerta.toast({
+        type: 'warning',
+        title: `Carrito vs ${this.nombreAlmacenActivo || 'almacén'}`,
+        message: partes.join(' · '),
+        timer: 4500,
       });
+    }
+
+    this.pedirRecalculo();
   }
 
   private claveSerie(): string | null {
@@ -1101,7 +1245,7 @@ export class VentasComponent implements OnInit, OnDestroy {
           );
           this.puntoVenta
             .cargarCatalogo(true, this.idAlmacen)
-            .pipe(takeUntil(this.destruir$))
+            .pipe(takeUntil(this.destruir$), catchError(() => EMPTY))
             .subscribe();
           this.limpiarParaSiguienteVenta();
         },

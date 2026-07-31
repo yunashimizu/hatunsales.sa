@@ -1,27 +1,50 @@
 :host { display: block; }
 
-.pv-caja-chip {
-  margin: 0.4rem 0 0;
-}
-
-.pv-caja-chip .adm-insignia {
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-}
-
 .pv-cabecera {
+  margin-bottom: 0;
+}
+
+.pv-cabecera__info {
+  min-width: 0;
+}
+
+.pv-barra-contexto {
+  margin-bottom: 16px;
+}
+
+.pv-barra-contexto__cuerpo {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 12px 20px;
+  gap: 14px 20px;
 }
 
-.pv-cabecera__almacen {
-  min-width: 200px;
-  max-width: 280px;
+.pv-barra-contexto__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pv-barra-contexto__chips .adm-insignia {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pv-barra-contexto__almacen {
+  min-width: 220px;
+  max-width: 320px;
+  flex: 1 1 220px;
   margin: 0;
+}
+
+.pv-barra-contexto__almacen .adm-select:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .pv-columna {
