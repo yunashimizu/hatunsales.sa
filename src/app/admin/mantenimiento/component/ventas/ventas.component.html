@@ -467,8 +467,11 @@
             <div class="adm-campo">
               <label class="adm-etiqueta" for="adm-serie">Serie</label>
               <input id="adm-serie" class="adm-input" type="text" maxlength="4"
-                     [placeholder]="idTipo === TIPO_FACTURA ? 'FFF1' : 'BBB1'"
-                     [(ngModel)]="serie" (ngModelChange)="alCambiarSerie()">
+                     [value]="serie" readonly tabindex="-1"
+                     [attr.title]="'Asignada automáticamente para ' + (idTipo === TIPO_FACTURA ? 'factura' : 'boleta')">
+              <span class="adm-ayuda">
+                Se elige sola según el tipo (Boleta → B… / Factura → F…). No es editable.
+              </span>
             </div>
           </div>
 
@@ -650,10 +653,20 @@
             <i class="bi bi-x-circle"></i><span>{{ errorPreview }}</span>
           </div>
 
+          <div class="adm-aviso adm-aviso--info pv-espaciado" *ngIf="codigoCotizacionCargada">
+            <i class="bi bi-file-earmark-ruled"></i>
+            <span>Desde cotización {{ codigoCotizacionCargada }}</span>
+          </div>
+
           <button type="button" class="adm-btn adm-btn--exito adm-btn--lg adm-btn--bloque pv-espaciado"
                   [disabled]="!puedeEmitir" (click)="cobrar()">
             <i class="bi" [ngClass]="emitiendo ? 'bi-arrow-repeat adm-girando' : 'bi-cash-coin'"></i>
             {{ emitiendo ? 'Procesando…' : 'Cobrar y emitir' }}
+          </button>
+
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--bloque pv-espaciado"
+                  [disabled]="!lineas.length || emitiendo" (click)="irACotizarCarrito()">
+            <i class="bi bi-file-earmark-ruled"></i> Cotizar este carrito
           </button>
         </div>
       </section>

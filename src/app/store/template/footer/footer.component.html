@@ -22,9 +22,9 @@
 
     <div class="columnas">
       <div class="columna marca-col">
-        <a class="logo" routerLink="/store">
+        <a class="logo" routerLink="/store" [attr.title]="empresa.nombre">
           <span class="logo-marca"><i class="bi bi-tools"></i></span>
-          <strong>HatunSales</strong>
+          <strong>{{ empresa.nombreCorto }}</strong>
         </a>
         <p>Todo lo que necesitas para construir tus proyectos: herramientas, materiales y equipos de las mejores marcas.</p>
 
@@ -71,7 +71,7 @@
     </div>
 
     <div class="base">
-      <span>© {{ anio }} HatunSales. Todos los derechos reservados.</span>
+      <span>© {{ anio }} {{ empresa.nombre }}. Todos los derechos reservados.</span>
       <div class="pagos">
         <i class="bi bi-credit-card-2-front" title="Tarjetas"></i>
         <i class="bi bi-wallet2" title="Billeteras digitales"></i>

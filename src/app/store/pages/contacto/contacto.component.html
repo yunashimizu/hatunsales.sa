@@ -62,7 +62,7 @@
       <div class="mapa">
         <iframe
           [src]="mapaEmbed"
-          title="Mapa de HatunSales"
+          [attr.title]="'Mapa de ' + empresa.nombre"
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
           allowfullscreen>

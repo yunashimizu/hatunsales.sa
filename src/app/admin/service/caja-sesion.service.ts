@@ -15,10 +15,17 @@ export interface AperturaCaja {
   monto_inicial: number | null;
 }
 
+export interface ResumenTurnoCaja {
+  ventas: number;
+  total: number;
+  por_metodo: { metodo: string; total: number; cantidad: number }[];
+}
+
 export interface SesionCaja {
   modo: 'blando' | 'estricto';
   abierta: boolean;
   apertura: AperturaCaja | null;
+  resumen?: ResumenTurnoCaja | null;
 }
 
 export interface CajaDisponible {
@@ -49,12 +56,19 @@ export class CajaSesionService {
     id_apertura?: number;
     monto_conteo?: number | null;
     observacion?: string | null;
-  }): Observable<{ id_apertura: number; id_cierre: number | null; cerrada: boolean; monto_conteo: number | null }> {
+  }): Observable<{
+    id_apertura: number;
+    id_cierre: number | null;
+    cerrada: boolean;
+    monto_conteo: number | null;
+    resumen?: ResumenTurnoCaja;
+  }> {
     return this.http.post<{
       id_apertura: number;
       id_cierre: number | null;
       cerrada: boolean;
       monto_conteo: number | null;
+      resumen?: ResumenTurnoCaja;
     }>(urlConstants.caja.cerrar, body, opcionesHttp());
   }
 }

@@ -119,7 +119,7 @@
                      [alt]="p.nombre"
                      loading="lazy"
                      title="Ver imagen"
-                     (click)="abrirVistaImagen(p.imagen_url || p.thumb_url, $event)">
+                     (click)="abrirVistaImagenProducto(p, $event)">
                 <i class="bi bi-image" *ngIf="!p.thumb_url && !p.imagen_url"></i>
               </div>
             </td>
@@ -398,4 +398,9 @@
   </div>
 </aside>
 
-<app-visor-imagen [url]="vistaImagen" (cerrar)="cerrarVistaImagen()"></app-visor-imagen>
+<app-visor-imagen
+  [url]="vistaImagen"
+  [urls]="urlsVista"
+  [indice]="indiceVista"
+  (cerrar)="cerrarVistaImagen()">
+</app-visor-imagen>

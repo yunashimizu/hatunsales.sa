@@ -28,11 +28,18 @@ export class RecepcionService {
     return this.http.post(urlConstants.sunat.rucProveedor, { ruc }, opcionesHttp());
   }
 
-  listarRecepciones(): Observable<any[]> {
+  listarRecepciones(idProveedor?: number): Observable<any[]> {
+    let params = new HttpParams();
+    if (idProveedor) params = params.set('id_proveedor', String(idProveedor));
     return this.http.get<any[]>(urlConstants.recepcion.base, {
       headers: cabecerasAutenticadas(),
       withCredentials: true,
+      params,
     });
+  }
+
+  detalle(id: number): Observable<any> {
+    return this.http.get<any>(urlConstants.recepcion.byId(id), opcionesHttp());
   }
 
   confirmar(payload: any): Observable<any> {

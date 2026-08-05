@@ -78,6 +78,16 @@
 
   <!-- Listado -->
   <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cuerpo" style="padding-bottom:0">
+      <ul class="adm-leyenda" aria-label="Leyenda de estados">
+        <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--exito"></span> OK</li>
+        <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--aviso"></span> Bajo mínimo</li>
+        <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--peligro"></span> Sin stock</li>
+        <li class="adm-leyenda__item"><i class="bi bi-plus-slash-minus"></i> Ajuste</li>
+        <li class="adm-leyenda__item"><i class="bi bi-arrow-left-right"></i> Transferir</li>
+        <li class="adm-leyenda__item"><i class="bi bi-clock-history"></i> Movimientos</li>
+      </ul>
+    </div>
     <div class="adm-tarjeta__cuerpo inv-cargando" *ngIf="cargando && !filas.length">
       <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4,5,6]"></div>
     </div>
@@ -114,7 +124,7 @@
                      [alt]="fila.producto"
                      loading="lazy"
                      title="Ver imagen"
-                     (click)="abrirVistaImagen(fila.imagen_url, $event)">
+                     (click)="abrirVistaImagenFila(fila, $event)">
                 <i class="bi bi-box" *ngIf="!fila.imagen_url"></i>
               </div>
             </td>
@@ -355,4 +365,10 @@
   </div>
 </aside>
 
-<app-visor-imagen [url]="vistaImagen" [alt]="seleccionada?.producto || 'Producto'" (cerrar)="cerrarVistaImagen()"></app-visor-imagen>
+<app-visor-imagen
+  [url]="vistaImagen"
+  [urls]="urlsVista"
+  [indice]="indiceVista"
+  [alt]="seleccionada?.producto || 'Producto'"
+  (cerrar)="cerrarVistaImagen()">
+</app-visor-imagen>

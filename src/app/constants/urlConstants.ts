@@ -76,6 +76,7 @@ export const urlConstants = {
     empresas: `${dominio}receptor/empresas`,
     actualizarCliente: (id: string | number) => `${dominio}receptor/cliente/${id}`,
     actualizarEmpresa: (id: string | number) => `${dominio}receptor/empresa/${id}`,
+    eliminarEmpresa: (id: string | number) => `${dominio}receptor/empresa/${id}`,
   },
 
   // Punto de venta de mostrador
@@ -118,6 +119,9 @@ export const urlConstants = {
 
   proforma: {
     base: `${dominio}proforma`,
+    byId: (id: string | number) => `${dominio}proforma/${id}`,
+    whatsappEstado: `${dominio}proforma/whatsapp/estado`,
+    whatsappEnviar: `${dominio}proforma/whatsapp/enviar`,
   },
 
   comprobante: {
@@ -139,6 +143,11 @@ export const urlConstants = {
     categorias: `${dominio}reportes/categorias`,
     ventasExcel: `${dominio}reportes/ventas/excel`,
     ventasPdf: `${dominio}reportes/ventas/pdf`,
+  },
+
+  configuracion: {
+    series: `${dominio}configuracion/series`,
+    fiscal: `${dominio}configuracion/fiscal`,
   },
 
   stock: {

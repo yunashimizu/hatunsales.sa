@@ -15,6 +15,7 @@ import { AlertService } from '../../../../shared/services/alert.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { mensajeDeError } from '../../../service/api-base.service';
 import { FiltroInventario, InventarioAdminService } from '../../../service/inventario-admin.service';
+import { ProductoImagenService } from '../../../service/producto-imagen.service';
 import {
   Almacen, FilaInventario, MovimientoInventario, ResumenInventario,
 } from '../../../models/admin.models';
@@ -68,6 +69,8 @@ export class InventarioComponent implements OnInit, OnDestroy {
   valorMinimo = 0;
   /** URL abierta en el visor (null = cerrado). */
   vistaImagen: string | null = null;
+  urlsVista: string[] = [];
+  indiceVista = 0;
 
   readonly motivos = MOTIVOS;
   private readonly buscar$ = new Subject<void>();
@@ -76,6 +79,7 @@ export class InventarioComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly service: InventarioAdminService,
+    private readonly imagenes: ProductoImagenService,
     private readonly alerta: AlertService,
   ) {}
 
@@ -407,13 +411,39 @@ export class InventarioComponent implements OnInit, OnDestroy {
     return urlMedia(ruta);
   }
 
+  abrirVistaImagenFila(fila: FilaInventario, evento?: Event): void {
+    evento?.stopPropagation();
+    const fallback = this.urlDe(fila.imagen_url);
+    this.imagenes.listar(fila.id_producto).pipe(takeUntil(this.destruir$)).subscribe({
+      next: (galeria) => {
+        const urls = (galeria || [])
+          .map((i) => this.urlDe(i.url || i.thumb_url))
+          .filter(Boolean);
+        this.urlsVista = urls.length ? urls : fallback ? [fallback] : [];
+        this.indiceVista = 0;
+        this.vistaImagen = this.urlsVista[0] || null;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.urlsVista = fallback ? [fallback] : [];
+        this.indiceVista = 0;
+        this.vistaImagen = fallback;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   abrirVistaImagen(ruta?: string | null, evento?: Event): void {
     evento?.stopPropagation();
     const url = this.urlDe(ruta);
+    this.urlsVista = url ? [url] : [];
+    this.indiceVista = 0;
     if (url) this.vistaImagen = url;
   }
 
   cerrarVistaImagen(): void {
     this.vistaImagen = null;
+    this.urlsVista = [];
+    this.indiceVista = 0;
   }
 }

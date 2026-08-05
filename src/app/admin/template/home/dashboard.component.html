@@ -1,95 +1,118 @@
-<div class="dashboard-shell">
-  <section class="hero-panel">
-    <div class="hero-copy">
-      <span class="eyebrow">{{ saludo }}</span>
-      <h1>{{ sesion.nombre || 'Usuario' }}</h1>
-      <p>
-        Bienvenido al panel administrativo.
-        Estás conectado como <strong>{{ etiquetaRol }}</strong>
-        <span *ngIf="sesion.email"> · {{ sesion.email }}</span>.
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">{{ saludo }}, {{ sesion.nombre || 'Usuario' }}</h1>
+      <p class="adm-cabecera__sub">
+        Panel HatunSales · {{ etiquetaRol }}
+        <span *ngIf="sesion.email"> · {{ sesion.email }}</span>
       </p>
     </div>
-
-    <div class="hero-actions">
-      <a class="btn-primary" routerLink="/dashboard/mantenimiento/ventas">Ir a ventas</a>
-      <a class="btn-secondary" routerLink="/dashboard/perfil">Mi perfil</a>
+    <div class="adm-acciones">
+      <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/ventas">
+        <i class="bi bi-cart"></i> Ir a ventas
+      </a>
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/caja-sesion">
+        <i class="bi bi-cash-drawer"></i> Caja
+      </a>
     </div>
-  </section>
+  </header>
 
-  <section class="stats-grid">
-    <article class="stat-card card-glow">
-      <div class="stat-head">
-        <span>Acceso rápido</span>
+  <section class="adm-grid adm-grid--4">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-graph-up"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!cargandoKpis && ventasHoy != null; else guion">S/ {{ ventasHoy | number:'1.2-2' }}</ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Ventas hoy</div>
       </div>
-      <strong>Operación</strong>
-      <p>Usa el menú lateral según tu rol.</p>
-    </article>
-
-    <article class="stat-card card-glow">
-      <div class="stat-head">
-        <span>Tu rol</span>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--peligro"><i class="bi bi-x-circle"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!cargandoKpis && sinStock != null; else guion">{{ sinStock }}</ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Sin stock</div>
       </div>
-      <strong>{{ etiquetaRol }}</strong>
-      <p>Define qué módulos puedes ver.</p>
-    </article>
-
-    <article class="stat-card card-glow">
-      <div class="stat-head">
-        <span>Permisos</span>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-exclamation-triangle"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!cargandoKpis && (bajoStock != null || cpeAtencion != null); else guion">
+            {{ (bajoStock || 0) + (cpeAtencion || 0) }}
+          </ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Alertas (stock + CPE)</div>
       </div>
-      <strong>{{ sesion.permisos.length || 'Por rol' }}</strong>
-      <p>Detalle en Configuración.</p>
-    </article>
-
-    <article class="stat-card card-glow">
-      <div class="stat-head">
-        <span>Cuenta</span>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono" [class.adm-metrica__icono--exito]="cajaAbierta"
+           [class.adm-metrica__icono--aviso]="cajaAbierta === false">
+        <i class="bi bi-cash-coin"></i>
       </div>
-      <strong>{{ sesion.iniciales }}</strong>
-      <p>Actualiza tus datos cuando quieras.</p>
-    </article>
-  </section>
-
-  <section class="overview-layout">
-    <div class="overview-card chart-card">
-      <div class="section-header">
-        <div>
-          <span class="section-eyebrow">Atajos</span>
-          <h2>Empezar el día</h2>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!cargandoKpis && cajaAbierta != null; else guion">
+            {{ cajaAbierta ? 'Abierta' : 'Cerrada' }}
+          </ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">
+          Caja <span *ngIf="cajaNombre">· {{ cajaNombre }}</span>
+          <span *ngIf="cajaAbierta && turnoTotal != null"> · S/ {{ turnoTotal | number:'1.2-2' }}</span>
         </div>
       </div>
-      <div class="endpoint-grid">
-        <a class="module-pill" routerLink="/dashboard/mantenimiento/productos">
-          <strong>Productos</strong>
-          <span>Catálogo e imágenes</span>
-        </a>
-        <a class="module-pill" routerLink="/dashboard/mantenimiento/inventario">
-          <strong>Inventario</strong>
-          <span>Stock y ajustes</span>
-        </a>
-        <a class="module-pill" routerLink="/dashboard/mantenimiento/clientes">
-          <strong>Clientes</strong>
-          <span>Personas y empresas</span>
-        </a>
-        <a class="module-pill" routerLink="/dashboard/mantenimiento/doc">
-          <strong>Documentos</strong>
-          <span>Comprobantes electrónicos</span>
-        </a>
-      </div>
-    </div>
-
-    <div class="right-grid">
-      <article class="info-card">
-        <span class="info-title">Sesión activa</span>
-        <strong>{{ sesion.email || 'Sin correo' }}</strong>
-        <p>Los datos del encabezado y del menú salen de tu usuario real.</p>
-      </article>
-
-      <article class="info-card accent-card">
-        <span class="info-title">Configuración</span>
-        <strong>Cuenta</strong>
-        <p><a routerLink="/dashboard/configuracion">Ver permisos y preferencias</a></p>
-      </article>
     </div>
   </section>
+  <ng-template #guion>—</ng-template>
+
+  <ul class="adm-leyenda" style="margin-bottom:12px">
+    <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--exito"></span> Operación OK</li>
+    <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--aviso"></span> Bajo stock / revisión</li>
+    <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--peligro"></span> Sin stock / CPE pendiente</li>
+  </ul>
+
+  <div class="adm-grid adm-grid--2">
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-lightning"></i> Atajos del día</h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo">
+        <div class="adm-acciones" style="flex-wrap:wrap;gap:8px">
+          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/ventas"><i class="bi bi-cart"></i> Ventas</a>
+          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/cotizaciones"><i class="bi bi-file-earmark-ruled"></i> Cotizaciones</a>
+          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/recepcion"><i class="bi bi-box-seam"></i> Recepción</a>
+          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/inventario"><i class="bi bi-boxes"></i> Inventario</a>
+          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/doc"><i class="bi bi-file-earmark-text"></i> Documentos
+            <span class="adm-insignia adm-insignia--aviso" *ngIf="cpeAtencion">{{ cpeAtencion }}</span>
+          </a>
+          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/stock"><i class="bi bi-clipboard-data"></i> Stock</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-info-circle"></i> Turno</h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo">
+        <p class="adm-ayuda" *ngIf="cajaAbierta">
+          Caja abierta: <strong>{{ turnoVentas ?? 0 }}</strong> ventas ·
+          total <strong>S/ {{ (turnoTotal ?? 0) | number:'1.2-2' }}</strong>
+        </p>
+        <p class="adm-ayuda" *ngIf="cajaAbierta === false">
+          No hay caja abierta. En modo blando igual puede vender; abra turno en Caja para llevar control.
+        </p>
+        <p class="adm-ayuda" *ngIf="cajaAbierta == null && !cargandoKpis">
+          No se pudo leer el estado de caja.
+        </p>
+        <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/caja-sesion" style="margin-top:8px">
+          Gestionar caja
+        </a>
+      </div>
+    </section>
+  </div>
+
 </div>

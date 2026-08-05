@@ -13,7 +13,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { GestionService } from '../../service/gestion.service';
 import { ReceptorService } from '../../../service/receptor.service';
-import { mensajeDeError } from '../../../service/api-base.service';
+import { errorOperativo, mensajeDeError } from '../../../service/api-base.service';
 
 type Pestania = 'personas' | 'empresas';
 
@@ -257,6 +257,65 @@ export class ClientesComponent implements OnInit, OnDestroy {
       distrito: empresa.distrito ?? '',
     };
     this.panelAbierto = true;
+  }
+
+  async eliminarPersona(cliente: any): Promise<void> {
+    const id = Number(cliente?.id_cliente);
+    if (!id) return;
+
+    const nombre = this.nombreDe(cliente);
+    const ok = await this.alerta.confirm({
+      title: `¿Eliminar a ${nombre}?`,
+      message: cliente.tiene_cuenta
+        ? 'Se quitará del padrón. Si tenía cuenta en la tienda, ese acceso quedará desactivado. No se puede deshacer.'
+        : 'Se quitará del padrón de clientes. No se puede deshacer.',
+      confirmText: 'Sí, eliminar',
+    });
+    if (!ok.isConfirmed) return;
+
+    this.gestion.eliminarCliente(id).pipe(takeUntil(this.destruir$)).subscribe({
+      next: () => {
+        this.clientes = this.clientes.filter((c) => Number(c.id_cliente) !== id);
+        if (this.editando && Number(this.editando.id_cliente) === id) {
+          this.cerrarPanel();
+        }
+        this.cdr.markForCheck();
+        this.alerta.toast({ type: 'success', title: 'Cliente eliminado' });
+      },
+      error: (error) => {
+        this.cdr.markForCheck();
+        const info = errorOperativo(error, 'No se pudo eliminar el cliente');
+        this.alerta.error(info);
+      },
+    });
+  }
+
+  async eliminarEmpresa(empresa: any): Promise<void> {
+    const id = Number(empresa?.id_empresa);
+    if (!id) return;
+
+    const ok = await this.alerta.confirm({
+      title: `¿Eliminar ${empresa.razon_social || 'esta empresa'}?`,
+      message: 'Se quitará del padrón. Si tiene ventas o crédito, la operación será rechazada.',
+      confirmText: 'Sí, eliminar',
+    });
+    if (!ok.isConfirmed) return;
+
+    this.receptor.eliminarEmpresa(id).pipe(takeUntil(this.destruir$)).subscribe({
+      next: () => {
+        this.empresas = this.empresas.filter((e) => Number(e.id_empresa) !== id);
+        if (this.editando && Number(this.editando.id_empresa) === id) {
+          this.cerrarPanel();
+        }
+        this.cdr.markForCheck();
+        this.alerta.toast({ type: 'success', title: 'Empresa eliminada' });
+      },
+      error: (error) => {
+        this.cdr.markForCheck();
+        const info = errorOperativo(error, 'No se pudo eliminar la empresa');
+        this.alerta.error(info);
+      },
+    });
   }
 
   cerrarPanel(): void {

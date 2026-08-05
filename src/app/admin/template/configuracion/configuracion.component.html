@@ -45,6 +45,69 @@
     </div>
   </section>
 
+  <section class="adm-tarjeta" *ngIf="esAdminPuro">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-receipt"></i> Emisor y series (Nubefact)</h2>
+      <button type="button" class="adm-btn adm-btn--primario adm-btn--sm"
+              (click)="guardarFiscal()" [disabled]="guardandoFiscal || cargandoFiscal">
+        {{ guardandoFiscal ? 'Guardando…' : 'Guardar' }}
+      </button>
+    </div>
+    <div class="adm-tarjeta__cuerpo" *ngIf="cargandoFiscal">
+      <div class="adm-esqueleto"></div>
+    </div>
+    <div class="adm-tarjeta__cuerpo" *ngIf="!cargandoFiscal">
+      <p class="adm-ayuda" style="margin-top:0">
+        Las series del POS se eligen solas (boleta = B…, factura = F…) y <strong>no son editables</strong> en Ventas.
+        Deben coincidir con las de su cuenta Nubefact.
+      </p>
+      <div class="adm-fila">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cfg-serie-b">Serie boleta</label>
+          <input id="cfg-serie-b" class="adm-input" type="text" maxlength="4"
+                 [(ngModel)]="formSeries.serie_boleta" placeholder="BBB1">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cfg-serie-f">Serie factura</label>
+          <input id="cfg-serie-f" class="adm-input" type="text" maxlength="4"
+                 [(ngModel)]="formSeries.serie_factura" placeholder="FFF1">
+        </div>
+      </div>
+      <div class="adm-fila cfg-espaciado">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cfg-ruc-e">RUC emisor</label>
+          <input id="cfg-ruc-e" class="adm-input" type="text" [(ngModel)]="formEmisor.ruc">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cfg-razon">Razón social</label>
+          <input id="cfg-razon" class="adm-input" type="text" [(ngModel)]="formEmisor.razon_social">
+        </div>
+      </div>
+      <div class="adm-fila cfg-espaciado">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cfg-dir">Dirección</label>
+          <input id="cfg-dir" class="adm-input" type="text" [(ngModel)]="formEmisor.direccion">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cfg-ubi">Ubicación</label>
+          <input id="cfg-ubi" class="adm-input" type="text" [(ngModel)]="formEmisor.ubicacion">
+        </div>
+      </div>
+      <ul class="adm-leyenda" style="margin-top:12px" *ngIf="fiscal">
+        <li class="adm-leyenda__item">
+          <span class="adm-leyenda__punto"
+                [class.adm-leyenda__punto--exito]="fiscal.estados.nubefact_configurado"
+                [class.adm-leyenda__punto--aviso]="!fiscal.estados.nubefact_configurado"></span>
+          Nubefact {{ fiscal.estados.nubefact_configurado ? 'configurado' : 'revisar variables' }}
+        </li>
+        <li class="adm-leyenda__item">
+          <span class="adm-leyenda__punto adm-leyenda__punto--info"></span>
+          Caja: {{ fiscal.estados.caja_modo }}
+        </li>
+      </ul>
+    </div>
+  </section>
+
   <div class="adm-grid adm-grid--2">
 
     <section class="adm-tarjeta">

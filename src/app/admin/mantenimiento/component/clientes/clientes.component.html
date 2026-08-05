@@ -103,6 +103,10 @@
                 <button type="button" class="adm-btn-icono" (click)="editarPersona(c)" title="Editar">
                   <i class="bi bi-pencil"></i>
                 </button>
+                <button type="button" class="adm-btn-icono adm-btn-icono--peligro"
+                        (click)="eliminarPersona(c)" title="Eliminar">
+                  <i class="bi bi-trash"></i>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -153,6 +157,10 @@
               <td data-etiqueta="Acciones" class="adm-centro">
                 <button type="button" class="adm-btn-icono" (click)="editarEmpresa(e)" title="Editar">
                   <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="adm-btn-icono adm-btn-icono--peligro"
+                        (click)="eliminarEmpresa(e)" title="Eliminar">
+                  <i class="bi bi-trash"></i>
                 </button>
               </td>
             </tr>

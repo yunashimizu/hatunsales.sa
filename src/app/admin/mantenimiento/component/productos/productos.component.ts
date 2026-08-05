@@ -57,6 +57,8 @@ export class ProductosComponent implements OnInit, OnDestroy {
   cargando = false;
   /** URL abierta en el visor moderado (null = cerrado). */
   vistaImagen: string | null = null;
+  urlsVista: string[] = [];
+  indiceVista = 0;
 
   filtro = '';
   filtroCategoria: number | '' = '';
@@ -548,14 +550,57 @@ export class ProductosComponent implements OnInit, OnDestroy {
     return urlMedia(ruta);
   }
 
+  /** Desde la lista: si hay varias imágenes, las carga y permite pasar una a una. */
+  abrirVistaImagenProducto(producto: ProductoAdmin, evento?: Event): void {
+    evento?.stopPropagation();
+    const fallback = this.urlDe(producto.imagen_url || producto.thumb_url);
+    if (Number(producto.total_imagenes) > 1) {
+      this.imagenService.listar(producto.id_producto).pipe(takeUntil(this.destruir$)).subscribe({
+        next: (galeria) => {
+          const urls = (galeria || [])
+            .map((i) => this.urlDe(i.url || i.thumb_url))
+            .filter(Boolean);
+          this.urlsVista = urls.length ? urls : fallback ? [fallback] : [];
+          this.indiceVista = 0;
+          this.vistaImagen = this.urlsVista[0] || null;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.urlsVista = fallback ? [fallback] : [];
+          this.indiceVista = 0;
+          this.vistaImagen = fallback;
+          this.cdr.markForCheck();
+        },
+      });
+      return;
+    }
+    this.abrirVistaImagen(producto.imagen_url || producto.thumb_url);
+  }
+
   abrirVistaImagen(ruta?: string | null, evento?: Event): void {
     evento?.stopPropagation();
+    // Desde la galería del panel: navegar todas las imágenes del producto
+    if (this.imagenes.length > 1) {
+      const urls = this.imagenes
+        .map((i) => this.urlDe(i.url || i.thumb_url))
+        .filter(Boolean);
+      const clicked = this.urlDe(ruta);
+      const idx = Math.max(0, urls.indexOf(clicked));
+      this.urlsVista = urls;
+      this.indiceVista = idx >= 0 ? idx : 0;
+      this.vistaImagen = urls[this.indiceVista] || clicked || null;
+      return;
+    }
     const url = this.urlDe(ruta);
+    this.urlsVista = url ? [url] : [];
+    this.indiceVista = 0;
     if (url) this.vistaImagen = url;
   }
 
   cerrarVistaImagen(): void {
     this.vistaImagen = null;
+    this.urlsVista = [];
+    this.indiceVista = 0;
   }
 
   identificarProducto(_indice: number, producto: ProductoAdmin): number {

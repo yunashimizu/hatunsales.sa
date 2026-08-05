@@ -55,6 +55,19 @@ const HINTS: Record<string, string> = {
   CAJA_YA_CERRADA: 'Esa apertura ya estaba cerrada.',
   CAJA_CIERRE_NO_PERMITIDO: 'Solo puedes cerrar tu propia apertura (o un admin).',
   CAJA_NO_ABIERTA: 'Ve a Caja y abre tu turno antes de cobrar.',
+  CLIENTE_CON_HISTORIAL: 'Conserve el cliente; tiene ventas, crédito u otros vínculos.',
+  EMPRESA_CON_HISTORIAL: 'Conserve la empresa; tiene ventas o crédito vinculados.',
+  COTIZACION_SIN_ITEMS: 'Agregue productos al carrito de la cotización.',
+  COTIZACION_SIN_CLIENTE: 'Busque un cliente/empresa o escriba un nombre.',
+  COTIZACION_TELEFONO_INVALIDO: 'Celular Perú: 9 dígitos empezando en 9.',
+  COTIZACION_NO_ENCONTRADA: 'Vuelva a la lista e intente de nuevo.',
+  COTIZACION_VENCIDA: 'Puede continuar con precios actuales si confirma.',
+  COTIZACION_YA_CONVERTIDA: 'Abra la venta asociada o cree una cotización nueva.',
+  SERIE_INVALIDA: 'La serie debe tener 4 caracteres y empezar con B (boleta) o F (factura).',
+  SERIE_NO_CONFIGURADA: 'Configure las series en Configuración (admin).',
+  INVENTARIO_STOCK_NEGATIVO: 'No hay suficientes unidades en ese almacén.',
+  RECEPCION_SIN_ITEMS: 'Agregue al menos un producto a la recepción.',
+  COMPROBANTE_EMISION_FALLIDA: 'La venta pudo quedar registrada; reintente en Documentos.',
 };
 
 const TITULOS: Record<string, string> = {
@@ -74,6 +87,19 @@ const TITULOS: Record<string, string> = {
   CAJA_YA_CERRADA: 'Ya cerrada',
   CAJA_CIERRE_NO_PERMITIDO: 'Cierre no permitido',
   CAJA_NO_ABIERTA: 'Abre caja primero',
+  CLIENTE_CON_HISTORIAL: 'No se puede eliminar',
+  EMPRESA_CON_HISTORIAL: 'No se puede eliminar',
+  COTIZACION_SIN_ITEMS: 'Sin productos',
+  COTIZACION_SIN_CLIENTE: 'Cliente requerido',
+  COTIZACION_TELEFONO_INVALIDO: 'Teléfono inválido',
+  COTIZACION_NO_ENCONTRADA: 'Cotización no encontrada',
+  COTIZACION_VENCIDA: 'Cotización vencida',
+  COTIZACION_YA_CONVERTIDA: 'Ya convertida en venta',
+  SERIE_INVALIDA: 'Serie inválida',
+  SERIE_NO_CONFIGURADA: 'Configure series en Configuración',
+  INVENTARIO_STOCK_NEGATIVO: 'Stock insuficiente',
+  RECEPCION_SIN_ITEMS: 'Sin productos en recepción',
+  COMPROBANTE_EMISION_FALLIDA: 'Error al emitir comprobante',
 };
 
 /**

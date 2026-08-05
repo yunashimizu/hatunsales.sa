@@ -4,8 +4,7 @@
     <div>
       <h1 class="adm-cabecera__titulo">Stock</h1>
       <p class="adm-cabecera__sub">
-        Niveles y alertas por almacén.
-        <ng-container *ngIf="puedeIrInventario"> Para ajustar o transferir usa Inventario.</ng-container>
+        Consulta de niveles y alertas (solo lectura). Inventario es donde se ajusta y transfiere.
       </p>
       <p class="adm-ayuda" *ngIf="!puedeIrInventario" style="margin-top:0.35rem">
         Solo lectura: consulta de niveles, sin ajustes ni transferencias.
@@ -59,11 +58,14 @@
     <div class="adm-tarjeta__cuerpo stock-guia">
       <div>
         <div class="adm-etiqueta">Cómo leerlo</div>
+        <ul class="adm-leyenda" style="margin:.5rem 0 0">
+          <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--exito"></span> OK — nivel saludable</li>
+          <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--aviso"></span> Bajo mínimo</li>
+          <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--peligro"></span> Sin stock (0)</li>
+        </ul>
         <p class="adm-ayuda" style="margin:.35rem 0 0">
-          <strong>Sin stock</strong> = 0 unidades.
-          <strong> Bajo mínimo</strong> = por debajo del stock mínimo.
-          <strong> OK</strong> = nivel saludable.
-          Total alertas actuales: <strong>{{ totalAlertas }}</strong>.
+          Alertas actuales: <strong>{{ totalAlertas }}</strong>.
+          Ajustes y transferencias se hacen en <strong>Inventario</strong>.
         </p>
       </div>
       <div class="adm-ayuda">

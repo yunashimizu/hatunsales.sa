@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { EMPRESA_TIENDA } from '../config/empresa-tienda.config';
 import { ConfiguracionPasarela } from '../models/tienda.models';
 
 declare const window: any;
@@ -71,7 +72,7 @@ export class PasarelaService {
       }
 
       culqi.settings({
-        title: 'HatunSales',
+        title: EMPRESA_TIENDA.nombreCorto,
         currency: 'PEN',
         amount: Math.round(monto * 100),
         description: descripcion,

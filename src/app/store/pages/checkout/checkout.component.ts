@@ -20,6 +20,7 @@ import {
   MetodoPago,
   Pedido,
 } from '../../models/tienda.models';
+import { EMPRESA_TIENDA } from '../../config/empresa-tienda.config';
 
 interface Paso {
   numero: number;
@@ -56,6 +57,8 @@ const DIRECCION_VACIA: DireccionPayload = {
   styleUrl: './checkout.component.css',
 })
 export class CheckoutComponent implements OnInit, OnDestroy {
+
+  readonly empresa = EMPRESA_TIENDA;
 
   private readonly cart = inject(CartService);
   private readonly catalogo = inject(CatalogoService);

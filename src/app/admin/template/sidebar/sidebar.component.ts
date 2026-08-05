@@ -94,6 +94,12 @@ export class SidebarComponent implements OnInit {
           roles: ['admin', 'superadmin', 'vendedor', 'caja'],
         },
         {
+          etiqueta: 'Cotizaciones',
+          ruta: '/dashboard/mantenimiento/cotizaciones',
+          icono: 'bi-file-earmark-ruled',
+          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+        },
+        {
           etiqueta: 'Documentos',
           ruta: '/dashboard/mantenimiento/doc',
           icono: 'bi-file-earmark-text',

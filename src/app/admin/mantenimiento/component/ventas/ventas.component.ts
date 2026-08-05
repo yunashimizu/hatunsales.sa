@@ -1,7 +1,17 @@
-import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   Subject, debounceTime, distinctUntilChanged, of, switchMap, takeUntil,
   catchError, EMPTY, finalize, tap,
@@ -12,6 +22,8 @@ import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { ReceptorService } from '../../../service/receptor.service';
 import { AlmacenPos, ContextoPos, PuntoVentaService, SolicitudVenta } from '../../../service/punto-venta.service';
 import { CajaSesionService } from '../../../service/caja-sesion.service';
+import { CotizacionService } from '../../../service/cotizacion.service';
+import { ConfiguracionFiscalService } from '../../../service/configuracion-fiscal.service';
 import { mensajeDeError, errorOperativo, escapeHtmlAlerta } from '../../../service/api-base.service';
 import {
   LineaVenta, PreviewComprobante, ProductoVenta, Receptor, SugerenciaReceptor,
@@ -19,7 +31,6 @@ import {
 } from '../../../models/admin.models';
 
 const LS_ALMACEN = 'pos_id_almacen';
-const lsSerie = (idAlmacen: number, idTipo: number) => `pos_serie_${idAlmacen}_${idTipo}`;
 
 /**
  * Punto de venta de mostrador.
@@ -27,10 +38,14 @@ const lsSerie = (idAlmacen: number, idTipo: number) => `pos_serie_${idAlmacen}_$
  * La vista previa del comprobante la calcula el backend, no esta pantalla. Así
  * lo que ve el cajero es exactamente lo que se va a emitir, sin dos fórmulas de
  * IGV que puedan discrepar.
+ *
+ * OnPush + markForCheck: el shell admin es OnPush; sin refrescarVista() tras HTTP
+ * la UI no se pinta hasta el primer click.
  */
 @Component({
   selector: 'app-ventas',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './ventas.component.html',
   styleUrls: ['./ventas.component.css'],
@@ -39,6 +54,13 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   @ViewChild('inputProducto') private inputProducto?: ElementRef<HTMLInputElement>;
 
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  /** Fuerza repaint bajo shell OnPush (mismo patrón que Productos/Clientes). */
+  private refrescarVista(): void {
+    this.cdr.markForCheck();
+  }
+
   readonly TIPO_FACTURA = TIPO_FACTURA;
   readonly TIPO_BOLETA = TIPO_BOLETA;
 
@@ -46,7 +68,10 @@ export class VentasComponent implements OnInit, OnDestroy {
   private escaneandoCodigo = false;
 
   idTipo: number = TIPO_BOLETA;
+  /** Serie fiscal solo lectura: la asigna el sistema según boleta/factura. */
   serie = '';
+  private serieBoletaCfg = 'BBB1';
+  private serieFacturaCfg = 'FFF1';
   observaciones = '';
   enviarPorCorreo = false;
   emitirComprobante = true;
@@ -103,6 +128,10 @@ export class VentasComponent implements OnInit, OnDestroy {
   /** Chip informativo: turno de caja (modo blando no bloquea cobro). */
   cajaChip: { abierta: boolean; etiqueta: string; modo: string } | null = null;
 
+  /** Cotización cargada vía ?cotizacion=ID (no bloquea cobro normal). */
+  idCotizacionCargada: number | null = null;
+  codigoCotizacionCargada = '';
+
   private lineaPagoVacia() {
     return {
       id_metodo: null as number | null,
@@ -152,6 +181,10 @@ export class VentasComponent implements OnInit, OnDestroy {
     private readonly puntoVenta: PuntoVentaService,
     private readonly alerta: AlertService,
     private readonly cajaSesion: CajaSesionService,
+    private readonly cotizaciones: CotizacionService,
+    private readonly fiscalCfg: ConfiguracionFiscalService,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -161,8 +194,15 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.escucharRecalculo();
     this.escucharCambioAlmacen();
     this.cargarMetodosPago();
+    this.cargarSeriesFiscales();
     this.cargarContextoPos();
     this.cargarChipCaja();
+    this.route.queryParamMap.pipe(takeUntil(this.destruir$)).subscribe((params) => {
+      const id = Number(params.get('cotizacion') || 0);
+      if (id > 0 && id !== this.idCotizacionCargada) {
+        this.cargarCotizacionEnPos(id);
+      }
+    });
   }
 
   get nombreAlmacenActivo(): string {
@@ -172,10 +212,128 @@ export class VentasComponent implements OnInit, OnDestroy {
     return a.sucursal ? `${a.nombre} · ${a.sucursal}` : a.nombre;
   }
 
+  /** Hidrata carrito/cliente desde Cotizaciones sin tocar el cobro. */
+  private cargarCotizacionEnPos(id: number): void {
+    this.cotizaciones.porId(id).pipe(takeUntil(this.destruir$)).subscribe({
+      next: (cot) => {
+        if (cot.estado === 'convertida') {
+          this.alerta.toast({
+            type: 'warning',
+            title: 'Cotización ya convertida',
+            message: cot.id_venta ? `Venta #${cot.id_venta}` : undefined,
+          });
+          this.refrescarVista();
+          return;
+        }
+        if (cot.valida_hasta) {
+          const fin = new Date(cot.valida_hasta + 'T23:59:59');
+          if (fin.getTime() < Date.now()) {
+            this.alerta.toast({
+              type: 'warning',
+              title: 'Cotización vencida',
+              message: 'Se cargan precios de la cotización; revise stock actual.',
+              timer: 4500,
+            });
+          }
+        }
+
+        this.idCotizacionCargada = cot.id_proforma;
+        this.codigoCotizacionCargada = cot.codigo || `#${cot.id_proforma}`;
+        this.lineas = (cot.items || []).map((i) => ({
+          id_producto: i.id_producto,
+          descripcion: i.descripcion || 'Producto',
+          sku: i.sku || '',
+          unidad_medida: 'NIU',
+          cantidad: Number(i.cantidad),
+          precio_unitario: Number(i.precio_unitario),
+          descuento: 0,
+          stock_disponible: this.puntoVenta.productoPorId(i.id_producto)?.stock_disponible
+            ?? Number(i.cantidad),
+        }));
+        this.observaciones = cot.observaciones || '';
+
+        if (cot.id_cliente) {
+          this.receptorService.porCliente(cot.id_cliente).pipe(
+            takeUntil(this.destruir$),
+            catchError(() => of(null)),
+          ).subscribe((r) => {
+            if (r) this.aplicarReceptor(r);
+            else {
+              this.receptor = {
+                tipo_documento: 1,
+                numero_documento: '',
+                denominacion: cot.cliente_nombre || 'Cliente',
+                id_cliente: cot.id_cliente!,
+              } as Receptor;
+              this.cargarLineaCredito();
+            }
+            this.pedirRecalculo();
+            this.refrescarVista();
+          });
+        } else if (cot.id_empresa) {
+          this.receptorService.porEmpresa(cot.id_empresa).pipe(
+            takeUntil(this.destruir$),
+            catchError(() => of(null)),
+          ).subscribe((r) => {
+            if (r) this.aplicarReceptor(r);
+            this.pedirRecalculo();
+            this.refrescarVista();
+          });
+        } else if (cot.cliente_nombre) {
+          this.receptor = {
+            tipo_documento: 1,
+            numero_documento: '00000000',
+            denominacion: cot.cliente_nombre,
+            origen: 'generico',
+          } as Receptor;
+          this.pedirRecalculo();
+        } else {
+          this.pedirRecalculo();
+        }
+
+        this.sincronizarStockCarritoDesdeCatalogo(true);
+        this.alerta.toast({
+          type: 'info',
+          title: `Cotización ${this.codigoCotizacionCargada}`,
+          message: 'Revise stock y cobre cuando esté listo.',
+          timer: 3500,
+        });
+        this.refrescarVista();
+      },
+      error: (e) => {
+        this.alerta.error(errorOperativo(e, 'No se pudo cargar la cotización'));
+        this.refrescarVista();
+      },
+    });
+  }
+
+  /** Atajo: manda el carrito actual a Cotizaciones (sessionStorage). */
+  irACotizarCarrito(): void {
+    if (!this.lineas.length) {
+      this.alerta.toast({ type: 'warning', title: 'Agregue productos antes de cotizar' });
+      return;
+    }
+    try {
+      sessionStorage.setItem(
+        'pos_cotizacion_borrador',
+        JSON.stringify({
+          lineas: this.lineas,
+          receptor: this.receptor,
+          observaciones: this.observaciones,
+          id_almacen: this.idAlmacen,
+        }),
+      );
+    } catch { /* ignore */ }
+    void this.router.navigate(['/dashboard/mantenimiento/cotizaciones'], {
+      queryParams: { desdePos: 1 },
+    });
+  }
+
   private cargarChipCaja(): void {
     this.cajaSesion.sesion().pipe(takeUntil(this.destruir$), catchError(() => of(null))).subscribe((s) => {
       if (!s) {
         this.cajaChip = null;
+        this.refrescarVista();
         return;
       }
       this.cajaChip = {
@@ -185,6 +343,7 @@ export class VentasComponent implements OnInit, OnDestroy {
           ? `Caja: ${s.apertura?.caja_nombre || 'abierta'}`
           : 'Caja: sin apertura',
       };
+      this.refrescarVista();
     });
   }
 
@@ -207,15 +366,20 @@ export class VentasComponent implements OnInit, OnDestroy {
       )
       .subscribe((lista) => {
         if (lista) this.sincronizarStockCarritoDesdeCatalogo(false);
+        this.refrescarVista();
       });
   }
 
   private cargarContextoPos(): void {
     this.cargandoContextoPos = true;
+    this.refrescarVista();
     this.puntoVenta.contextoPos().pipe(
       takeUntil(this.destruir$),
       catchError(() => of({ almacenes: [] as AlmacenPos[], almacen_default: undefined } as ContextoPos)),
-      finalize(() => { this.cargandoContextoPos = false; }),
+      finalize(() => {
+        this.cargandoContextoPos = false;
+        this.refrescarVista();
+      }),
     ).subscribe((ctx) => {
       this.almacenes = ctx.almacenes ?? [];
 
@@ -234,6 +398,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       }
 
       this.restaurarSerie();
+      this.refrescarVista();
       if (!this.idAlmacen) return;
 
       this.puntoVenta
@@ -248,6 +413,7 @@ export class VentasComponent implements OnInit, OnDestroy {
             });
             return EMPTY;
           }),
+          finalize(() => this.refrescarVista()),
         )
         .subscribe();
     });
@@ -275,13 +441,13 @@ export class VentasComponent implements OnInit, OnDestroy {
 
           const gen = ++this.generacionAlmacen;
           this.cambiandoAlmacen = true;
-          this.guardarSerieActual();
           this.idAlmacen = nuevo;
           localStorage.setItem(LS_ALMACEN, String(nuevo));
           this.sugerenciasProducto = [];
           this.textoProducto = '';
           this.indiceProducto = -1;
-          this.restaurarSerie();
+          this.aplicarSeriePorTipo();
+          this.refrescarVista();
 
           const nombre =
             this.almacenes.find((a) => a.id_almacen === nuevo)?.nombre ?? `Almacén ${nuevo}`;
@@ -295,6 +461,7 @@ export class VentasComponent implements OnInit, OnDestroy {
                 title: `Stock de ${nombre}`,
                 timer: 2200,
               });
+              this.refrescarVista();
             }),
             catchError(() => {
               this.idAlmacen = anterior;
@@ -310,6 +477,7 @@ export class VentasComponent implements OnInit, OnDestroy {
                 message: 'Se mantiene el anterior. Reintente en un momento.',
                 timer: 4500,
               });
+              this.refrescarVista();
               // Rehidratar catálogo del almacén que quedó activo (sin romper el cobro).
               if (anterior) {
                 this.puntoVenta
@@ -318,6 +486,7 @@ export class VentasComponent implements OnInit, OnDestroy {
                     takeUntil(this.destruir$),
                     catchError(() => EMPTY),
                     tap(() => this.sincronizarStockCarritoDesdeCatalogo(false)),
+                    finalize(() => this.refrescarVista()),
                   )
                   .subscribe();
               }
@@ -327,6 +496,7 @@ export class VentasComponent implements OnInit, OnDestroy {
               if (this.generacionAlmacen === gen) {
                 this.cambiandoAlmacen = false;
               }
+              this.refrescarVista();
             }),
           );
         }),
@@ -377,21 +547,29 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.pedirRecalculo();
   }
 
-  private claveSerie(): string | null {
-    if (!this.idAlmacen) return null;
-    return lsSerie(this.idAlmacen, this.idTipo);
+  /** Carga series desde config (Nubefact). No editables en el POS. */
+  private cargarSeriesFiscales(): void {
+    this.fiscalCfg
+      .seriesPos()
+      .pipe(takeUntil(this.destruir$), catchError(() => of(null)))
+      .subscribe((s) => {
+        if (s) {
+          this.serieBoletaCfg = s.serie_boleta || 'BBB1';
+          this.serieFacturaCfg = s.serie_factura || 'FFF1';
+        }
+        this.aplicarSeriePorTipo();
+        this.refrescarVista();
+      });
   }
 
-  private guardarSerieActual(): void {
-    const clave = this.claveSerie();
-    if (!clave) return;
-    localStorage.setItem(clave, (this.serie || '').trim());
+  private aplicarSeriePorTipo(): void {
+    this.serie =
+      this.idTipo === TIPO_FACTURA ? this.serieFacturaCfg : this.serieBoletaCfg;
   }
 
+  /** @deprecated localStorage ya no define la serie; se mantiene nombre por llamadas existentes. */
   private restaurarSerie(): void {
-    const clave = this.claveSerie();
-    if (!clave) return;
-    this.serie = localStorage.getItem(clave) ?? '';
+    this.aplicarSeriePorTipo();
   }
 
   // ── Búsqueda del cliente ─────────────────────────────────────
@@ -415,6 +593,7 @@ export class VentasComponent implements OnInit, OnDestroy {
         this.sugerenciasReceptor = sugerencias;
         this.indiceReceptor = -1;
         this.intentarAutocompletarSugerencia(sugerencias);
+        this.refrescarVista();
       });
 
     this.documentoExacto$
@@ -424,10 +603,12 @@ export class VentasComponent implements OnInit, OnDestroy {
         switchMap((documento) => {
           this.buscandoReceptor = true;
           this.sugerenciasReceptor = [];
+          this.refrescarVista();
           return this.receptorService.buscar(documento).pipe(
             catchError((error) => {
               this.buscandoReceptor = false;
               this.ultimoDocumentoAuto = '';
+              this.refrescarVista();
               void this.alerta.error({
                 title: 'No se encontró el documento',
                 message: mensajeDeError(error, 'Verifique el número e intente de nuevo'),
@@ -441,6 +622,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       .subscribe((receptor) => {
         this.buscandoReceptor = false;
         this.aplicarReceptor(receptor);
+        this.refrescarVista();
       });
   }
 
@@ -519,9 +701,11 @@ export class VentasComponent implements OnInit, OnDestroy {
       next: (receptor) => {
         this.autoEligiendoReceptor = false;
         this.aplicarReceptor(receptor);
+        this.refrescarVista();
       },
       error: (error) => {
         this.autoEligiendoReceptor = false;
+        this.refrescarVista();
         this.alerta.error({ message: mensajeDeError(error) });
       },
     });
@@ -531,7 +715,10 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.receptorService
       .consumidorFinal()
       .pipe(takeUntil(this.destruir$))
-      .subscribe((receptor) => this.aplicarReceptor(receptor));
+      .subscribe((receptor) => {
+        this.aplicarReceptor(receptor);
+        this.refrescarVista();
+      });
   }
 
   private aplicarReceptor(receptor: Receptor): void {
@@ -541,13 +728,13 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.sugerenciasReceptor = [];
     this.ultimoDocumentoAuto = '';
     this.autoEligiendoReceptor = false;
+    this.refrescarVista();
 
     // Con RUC lo natural es factura; con DNI, boleta.
     const tipoNuevo = receptor.tipo_documento === 6 ? TIPO_FACTURA : TIPO_BOLETA;
     if (tipoNuevo !== this.idTipo) {
-      this.guardarSerieActual();
       this.idTipo = tipoNuevo;
-      this.restaurarSerie();
+      this.aplicarSeriePorTipo();
     }
 
     if (receptor.advertencia) {
@@ -579,6 +766,7 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.buscandoProducto = false;
           this.sugerenciasProducto = [];
           this.indiceProducto = -1;
+          this.refrescarVista();
           return;
         }
 
@@ -586,11 +774,13 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.buscandoProducto = false;
           this.sugerenciasProducto = this.puntoVenta.filtrarLocal(texto);
           this.indiceProducto = -1;
+          this.refrescarVista();
           return;
         }
 
         // Catálogo aún no listo: mismo API de siempre como respaldo.
         this.buscandoProducto = true;
+        this.refrescarVista();
         this.puntoVenta.buscarProductos(texto, 12, this.idAlmacen).pipe(
           catchError(() => of([] as ProductoVenta[])),
           takeUntil(this.destruir$),
@@ -598,6 +788,7 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.buscandoProducto = false;
           this.sugerenciasProducto = productos;
           this.indiceProducto = -1;
+          this.refrescarVista();
         });
       });
   }
@@ -666,16 +857,19 @@ export class VentasComponent implements OnInit, OnDestroy {
 
     this.escaneandoCodigo = true;
     this.buscandoProducto = true;
+    this.refrescarVista();
     this.puntoVenta.porCodigoBarras(codigo, this.idAlmacen).subscribe({
       next: (producto) => {
         this.escaneandoCodigo = false;
         this.buscandoProducto = false;
         this.agregarProducto(producto);
         this.alerta.toast({ type: 'success', title: producto.nombre, timer: 1200 });
+        this.refrescarVista();
       },
       error: () => {
         this.escaneandoCodigo = false;
         this.buscandoProducto = false;
+        this.refrescarVista();
         if (this.sugerenciasProducto.length === 1) {
           this.agregarProducto(this.sugerenciasProducto[0]);
           return;
@@ -715,11 +909,13 @@ export class VentasComponent implements OnInit, OnDestroy {
 
     // Sin cache aún: buscar en API (mismo comportamiento de respaldo).
     this.buscandoProducto = true;
+    this.refrescarVista();
     this.puntoVenta.buscarProductos(termino, 12, this.idAlmacen).pipe(catchError(() => of([] as ProductoVenta[]))).subscribe({
       next: (productos) => {
         this.buscandoProducto = false;
         this.sugerenciasProducto = productos;
         this.indiceProducto = -1;
+        this.refrescarVista();
         if (productos.length === 1) {
           this.agregarProducto(productos[0]);
           return;
@@ -828,6 +1024,7 @@ export class VentasComponent implements OnInit, OnDestroy {
         if (!resultado.isConfirmed) return;
         this.lineas = [];
         this.pedirRecalculo();
+        this.refrescarVista();
       });
   }
 
@@ -851,13 +1048,16 @@ export class VentasComponent implements OnInit, OnDestroy {
           if (!this.lineas.length) {
             this.preview = null;
             this.errorPreview = '';
+            this.refrescarVista();
             return of(null);
           }
 
           this.calculandoPreview = true;
+          this.refrescarVista();
           return this.puntoVenta.preview(this.armarSolicitud(false)).pipe(
             catchError((error) => {
               this.errorPreview = mensajeDeError(error, 'No se pudo calcular el comprobante');
+              this.refrescarVista();
               return of(null);
             }),
           );
@@ -870,11 +1070,13 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.preview = preview;
           this.errorPreview = '';
         }
+        this.refrescarVista();
       });
   }
 
   private pedirRecalculo(): void {
     this.recalcular$.next();
+    this.refrescarVista();
   }
 
   /** Expuesto al template para cuando se completa el nombre a mano. */
@@ -883,14 +1085,8 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
   cambiarTipo(idTipo: number): void {
-    this.guardarSerieActual();
     this.idTipo = Number(idTipo);
-    this.restaurarSerie();
-    this.pedirRecalculo();
-  }
-
-  alCambiarSerie(): void {
-    this.guardarSerieActual();
+    this.aplicarSeriePorTipo();
     this.pedirRecalculo();
   }
 
@@ -1082,6 +1278,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     }
     linea.monto = monto;
     this.yapeCargando = true;
+    this.refrescarVista();
     this.puntoVenta.iniciarYape({
       monto,
       email: this.receptor?.email || undefined,
@@ -1095,6 +1292,7 @@ export class VentasComponent implements OnInit, OnDestroy {
             timer: 4500,
           });
           linea.validacion = 'manual';
+          this.refrescarVista();
           return;
         }
         linea.yape_orden_id = resp.order_id;
@@ -1102,9 +1300,11 @@ export class VentasComponent implements OnInit, OnDestroy {
         linea.yape_estado = 'pendiente';
         linea.validacion = '';
         this.alerta.toast({ type: 'success', title: 'Orden Yape creada. Pide el pago y verifica.' });
+        this.refrescarVista();
       },
       error: (e) => {
         this.yapeCargando = false;
+        this.refrescarVista();
         this.alerta.toast({ type: 'error', title: mensajeDeError(e, 'No se pudo iniciar Yape') });
       },
     });
@@ -1114,6 +1314,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     const linea = this.lineasPago[indice];
     if (!linea.yape_orden_id) return;
     this.yapeCargando = true;
+    this.refrescarVista();
     this.puntoVenta.verificarYape(linea.yape_orden_id).pipe(takeUntil(this.destruir$)).subscribe({
       next: (resp) => {
         this.yapeCargando = false;
@@ -1127,9 +1328,11 @@ export class VentasComponent implements OnInit, OnDestroy {
           linea.yape_estado = 'pendiente';
           this.alerta.toast({ type: 'warning', title: resp?.mensaje || 'Aún pendiente' });
         }
+        this.refrescarVista();
       },
       error: (e) => {
         this.yapeCargando = false;
+        this.refrescarVista();
         this.alerta.toast({ type: 'error', title: mensajeDeError(e) });
       },
     });
@@ -1137,6 +1340,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   cargarLineaCredito(): void {
     this.lineaCredito = null;
+    this.refrescarVista();
     const idCliente = this.receptor?.id_cliente;
     const idEmpresa = this.receptor?.id_empresa;
     if (!idCliente && !idEmpresa) return;
@@ -1145,6 +1349,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destruir$), catchError(() => of(null)))
       .subscribe((linea) => {
         this.lineaCredito = linea;
+        this.refrescarVista();
       });
   }
 
@@ -1216,6 +1421,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   private registrar(): void {
     this.emitiendo = true;
+    this.refrescarVista();
 
     this.puntoVenta
       .registrar(this.armarSolicitud(true))
@@ -1243,14 +1449,27 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.puntoVenta.descontarStockLocal(
             this.lineas.map((l) => ({ id_producto: l.id_producto, cantidad: l.cantidad })),
           );
+          if (this.idCotizacionCargada) {
+            const idCot = this.idCotizacionCargada;
+            this.cotizaciones
+              .marcar(idCot, { estado: 'convertida', id_venta: venta.id_venta })
+              .pipe(takeUntil(this.destruir$), catchError(() => EMPTY))
+              .subscribe();
+          }
           this.puntoVenta
             .cargarCatalogo(true, this.idAlmacen)
-            .pipe(takeUntil(this.destruir$), catchError(() => EMPTY))
+            .pipe(
+              takeUntil(this.destruir$),
+              catchError(() => EMPTY),
+              finalize(() => this.refrescarVista()),
+            )
             .subscribe();
           this.limpiarParaSiguienteVenta();
+          this.refrescarVista();
         },
         error: (error) => {
           this.emitiendo = false;
+          this.refrescarVista();
           const op = errorOperativo(error, 'No se pudo registrar la venta');
           this.alerta.error({
             title: op.title,
@@ -1273,22 +1492,25 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.textoReceptor = '';
     this.textoProducto = '';
     this.observaciones = '';
+    this.idCotizacionCargada = null;
+    this.codigoCotizacionCargada = '';
     this.montoRecibido = null;
     this.lineasPago = [{
       ...this.lineaPagoVacia(),
       id_metodo: this.metodosPago[0]?.id_metodo ?? null,
     }];
     this.lineaCredito = null;
-    this.guardarSerieActual();
     this.idTipo = TIPO_BOLETA;
-    this.restaurarSerie();
+    this.aplicarSeriePorTipo();
     this.claveIdempotencia = this.puntoVenta.nuevaClaveIdempotencia();
 
+    this.refrescarVista();
     setTimeout(() => document.getElementById('adm-buscar-producto')?.focus(), 60);
   }
 
   cerrarUltimaVenta(): void {
     this.ultimaVenta = null;
+    this.refrescarVista();
   }
 
   abrirComprobante(): void {
@@ -1305,15 +1527,22 @@ export class VentasComponent implements OnInit, OnDestroy {
         if (metodos.length && !this.lineasPago[0]?.id_metodo) {
           this.lineasPago[0].id_metodo = metodos[0].id_metodo;
         }
+        this.refrescarVista();
       });
 
     this.puntoVenta.cuentasBancarias(false)
       .pipe(takeUntil(this.destruir$), catchError(() => of([])))
-      .subscribe((cuentas) => (this.cuentasBancarias = cuentas || []));
+      .subscribe((cuentas) => {
+        this.cuentasBancarias = cuentas || [];
+        this.refrescarVista();
+      });
 
     this.puntoVenta.pasarelaCaja()
       .pipe(takeUntil(this.destruir$), catchError(() => of(null)))
-      .subscribe((info) => (this.pasarelaInfo = info));
+      .subscribe((info) => {
+        this.pasarelaInfo = info;
+        this.refrescarVista();
+      });
   }
 
   identificarLinea(_indice: number, linea: LineaVenta): number {

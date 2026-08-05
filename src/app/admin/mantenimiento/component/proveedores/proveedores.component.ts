@@ -28,8 +28,28 @@ export class ProveedoresComponent implements OnInit {
   consultandoRuc = false;
   editandoId: number | null = null;
   idDestacado: number | null = null;
+  filtro = '';
+  recepcionesProv: any[] = [];
+  cargandoRecepciones = false;
+  proveedorHistorial: any | null = null;
 
   modelo = { nombre: '', ruc: '', telefono: '', email: '', direccion: '' };
+
+  get proveedoresFiltrados(): any[] {
+    const t = this.filtro.trim().toLowerCase();
+    if (!t) return this.proveedores;
+    return this.proveedores.filter((p) =>
+      `${p.nombre} ${p.ruc} ${p.telefono} ${p.email}`.toLowerCase().includes(t),
+    );
+  }
+
+  get conRuc(): number {
+    return this.proveedores.filter((p) => String(p.ruc || '').replace(/\D/g, '').length === 11).length;
+  }
+
+  get conTelefono(): number {
+    return this.proveedores.filter((p) => String(p.telefono || '').trim()).length;
+  }
 
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -156,6 +176,33 @@ export class ProveedoresComponent implements OnInit {
         this.alerta.error({ title: 'No se pudo guardar', message: mensajeDeError(e) });
       },
     });
+  }
+
+  verRecepciones(p: any): void {
+    this.proveedorHistorial = p;
+    this.cargandoRecepciones = true;
+    this.recepcionesProv = [];
+    this.cdr.markForCheck();
+    this.api.listarRecepciones(Number(p.id_proveedor)).subscribe({
+      next: (lista) => {
+        this.recepcionesProv = Array.isArray(lista) ? lista : [];
+        this.cargandoRecepciones = false;
+        this.cdr.markForCheck();
+      },
+      error: (e) => {
+        this.cargandoRecepciones = false;
+        this.cdr.markForCheck();
+        this.alerta.error({
+          title: 'No se pudieron cargar recepciones',
+          message: mensajeDeError(e),
+        });
+      },
+    });
+  }
+
+  cerrarRecepciones(): void {
+    this.proveedorHistorial = null;
+    this.recepcionesProv = [];
   }
 
   async eliminar(p: any): Promise<void> {

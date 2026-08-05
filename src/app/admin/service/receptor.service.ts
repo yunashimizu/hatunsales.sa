@@ -59,4 +59,8 @@ export class ReceptorService {
   actualizarEmpresa(id: number, datos: Record<string, any>): Observable<any> {
     return this.http.put(urlConstants.receptor.actualizarEmpresa(id), datos, opcionesHttp());
   }
+
+  eliminarEmpresa(id: number): Observable<any> {
+    return this.http.delete(urlConstants.receptor.eliminarEmpresa(id), opcionesHttp());
+  }
 }

@@ -9,6 +9,7 @@ import { CuentaTiendaService } from '../../service/cuenta.service';
 import { AlertService } from '../../../shared/services/alert.service';
 import { AuthService } from '../../../auth/service/auth.service';
 import { CategoriaTienda, ProductoTienda } from '../../models/tienda.models';
+import { EMPRESA_TIENDA } from '../../config/empresa-tienda.config';
 
 @Component({
   selector: 'app-header',
@@ -19,6 +20,9 @@ import { CategoriaTienda, ProductoTienda } from '../../models/tienda.models';
   styleUrl: './header.component.css',
 })
 export class HeaderComponent implements OnInit, OnDestroy {
+
+  /** Marca de la tienda (mismo origen que footer / contacto). */
+  readonly empresa = EMPRESA_TIENDA;
 
   private readonly cart = inject(CartService);
   private readonly catalogo = inject(CatalogoService);

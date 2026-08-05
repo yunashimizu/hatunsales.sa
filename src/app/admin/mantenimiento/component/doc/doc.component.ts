@@ -244,7 +244,17 @@ export class DocComponent implements OnInit, OnDestroy {
           fila.estado = 'anulado';
           fila.puede_anular = false;
           this.cdr.markForCheck();
-          this.alerta.toast({ type: 'success', title: `${fila.numero_formateado} anulado` });
+          if (nuncaSeEnvio) {
+            this.alerta.toast({ type: 'success', title: `${fila.numero_formateado} descartado` });
+          } else {
+            void this.alerta.info({
+              title: `${fila.numero_formateado} anulado`,
+              message:
+                'Si SUNAT ya había aceptado el comprobante y necesita corregir montos/cliente, ' +
+                'emita una Nota de Crédito (próximamente wizard). Por ahora use la baja enviada o contacte a su contador.',
+              confirmText: 'Entendido',
+            });
+          }
         },
         error: (error) => {
           this.idEnProceso = null;

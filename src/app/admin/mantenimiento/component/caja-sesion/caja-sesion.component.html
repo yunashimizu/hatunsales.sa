@@ -61,6 +61,22 @@
           <p class="adm-ayuda" style="margin-top:0">
             Turno abierto. Tus cobros preferirán esta caja.
           </p>
+          <div class="adm-fila" style="margin-top:0.75rem" *ngIf="sesion?.resumen as res">
+            <div class="adm-campo">
+              <span class="adm-etiqueta">Ventas del turno</span>
+              <div class="adm-tabla__principal">{{ res.ventas }}</div>
+            </div>
+            <div class="adm-campo">
+              <span class="adm-etiqueta">Total cobrado</span>
+              <div class="adm-tabla__principal">S/ {{ res.total | number:'1.2-2' }}</div>
+            </div>
+          </div>
+          <ul class="adm-leyenda" *ngIf="sesion?.resumen?.por_metodo?.length" style="margin:8px 0 0">
+            <li class="adm-leyenda__item" *ngFor="let m of sesion?.resumen?.por_metodo">
+              <span class="adm-leyenda__punto adm-leyenda__punto--info"></span>
+              {{ m.metodo }}: S/ {{ m.total | number:'1.2-2' }} ({{ m.cantidad }})
+            </li>
+          </ul>
           <div class="adm-fila" style="margin-top:0.75rem">
             <div class="adm-campo">
               <span class="adm-etiqueta">Caja</span>

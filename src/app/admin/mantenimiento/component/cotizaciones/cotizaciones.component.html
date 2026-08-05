@@ -1,0 +1,271 @@
+<div class="adm-pagina">
+
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Cotizaciones</h1>
+      <p class="adm-cabecera__sub">
+        Arme la cotización, envíela por WhatsApp o PDF/Excel y, si aceptan, pásela al punto de venta para emitir el comprobante.
+      </p>
+    </div>
+    <div class="adm-acciones">
+      <button type="button" class="adm-btn adm-btn--suave" *ngIf="modo === 'nueva'" (click)="volverLista()">
+        <i class="bi bi-arrow-left"></i> Lista
+      </button>
+      <button type="button" class="adm-btn adm-btn--primario" *ngIf="modo === 'lista'" (click)="nueva()">
+        <i class="bi bi-plus-lg"></i> Nueva cotización
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══ LISTA ═══ -->
+  <section class="adm-tarjeta" *ngIf="modo === 'lista'">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-file-earmark-ruled"></i> Recientes</h2>
+      <div class="adm-campo cot-buscar">
+        <input class="adm-input" type="search" placeholder="Buscar código, cliente…" [(ngModel)]="filtro">
+      </div>
+    </div>
+
+    <div class="adm-tarjeta__cuerpo" *ngIf="cargandoLista">
+      <div class="adm-esqueleto" *ngFor="let n of [1,2,3]"></div>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargandoLista && !listaFiltrada.length">
+      <div class="adm-vacio__icono"><i class="bi bi-file-earmark-plus"></i></div>
+      <div class="adm-vacio__titulo">Sin cotizaciones</div>
+      <p>Cree una nueva para enviarla al cliente por WhatsApp o PDF.</p>
+      <button type="button" class="adm-btn adm-btn--primario" (click)="nueva()">Nueva cotización</button>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="listaFiltrada.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Cliente</th>
+            <th>Total</th>
+            <th>Estado</th>
+            <th>Vigencia</th>
+            <th class="adm-centro">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of listaFiltrada; trackBy: identificar">
+            <td data-etiqueta="Código">
+              <div class="adm-tabla__principal">{{ c.codigo || ('#' + c.id_proforma) }}</div>
+            </td>
+            <td data-etiqueta="Cliente">{{ c.cliente_nombre || '—' }}</td>
+            <td data-etiqueta="Total">S/ {{ c.total | number:'1.2-2' }}</td>
+            <td data-etiqueta="Estado">
+              <span class="adm-insignia" [ngClass]="estadoClase(c.estado)">{{ c.estado }}</span>
+            </td>
+            <td data-etiqueta="Vigencia">{{ c.valida_hasta || '—' }}</td>
+            <td data-etiqueta="Acciones" class="adm-centro">
+              <button type="button" class="adm-btn-icono" title="Abrir" (click)="abrirCotizacion(c)">
+                <i class="bi bi-eye"></i>
+              </button>
+              <a class="adm-btn-icono" title="Pasar a venta"
+                 [routerLink]="['/dashboard/mantenimiento/ventas']"
+                 [queryParams]="{ cotizacion: c.id_proforma }"
+                 *ngIf="c.estado !== 'convertida' && c.estado !== 'anulada'">
+                <i class="bi bi-cart-check"></i>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══ NUEVA / DETALLE ═══ -->
+  <ng-container *ngIf="modo === 'nueva'">
+    <div class="adm-aviso adm-aviso--info" style="margin-bottom:12px">
+      <i class="bi bi-whatsapp"></i>
+      WhatsApp descarga la proforma y abre el chat con el detalle. Adjunte el archivo en el clip y envíe (no requiere Meta).
+    </div>
+
+    <div class="adm-grid adm-grid--pos">
+      <div class="cot-columna">
+        <!-- Cliente -->
+        <section class="adm-tarjeta adm-tarjeta--desbordable">
+          <div class="adm-tarjeta__cabecera">
+            <h2 class="adm-tarjeta__titulo"><i class="bi bi-person"></i> Cliente</h2>
+          </div>
+          <div class="adm-tarjeta__cuerpo">
+            <div class="pv-receptor" *ngIf="receptor; else buscarCli">
+              <div class="adm-tabla__principal">{{ receptor.denominacion }}</div>
+              <div class="adm-tabla__secundario">{{ receptor.numero_documento }}</div>
+              <button type="button" class="adm-btn-icono" (click)="quitarCliente()" aria-label="Quitar">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <ng-template #buscarCli>
+              <div class="pv-buscador">
+                <i class="bi bi-search pv-buscador__icono"></i>
+                <input class="adm-input pv-buscador__input" type="text" autocomplete="off"
+                       placeholder="DNI, RUC o nombre"
+                       [(ngModel)]="textoCliente" (ngModelChange)="alEscribirCliente()">
+              </div>
+              <ul class="adm-sugerencias" *ngIf="sugerenciasCli.length">
+                <li *ngFor="let s of sugerenciasCli" (click)="elegirCliente(s)">
+                  <strong>{{ s.denominacion }}</strong>
+                  <span class="adm-tabla__secundario">{{ s.numero_documento }}</span>
+                </li>
+              </ul>
+              <p class="adm-ayuda" style="margin-top:8px">O escriba un nombre libre si aún no está registrado.</p>
+            </ng-template>
+
+            <div class="adm-fila" style="margin-top:12px">
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="cot-tel">Celular WhatsApp</label>
+                <input id="cot-tel" class="adm-input" type="tel" maxlength="15"
+                       placeholder="999999999"
+                       [(ngModel)]="telefono">
+                <span class="adm-ayuda" [class.adm-ayuda--error]="telefono && !telefonoOk">
+                  {{ telefonoOk ? 'Listo para enviar' : '9 dígitos (Perú)' }}
+                </span>
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="cot-dias">Vigencia (días)</label>
+                <input id="cot-dias" class="adm-input" type="number" min="1" max="90" [(ngModel)]="diasVigencia">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Productos -->
+        <section class="adm-tarjeta adm-tarjeta--desbordable">
+          <div class="adm-tarjeta__cabecera">
+            <h2 class="adm-tarjeta__titulo"><i class="bi bi-box-seam"></i> Productos</h2>
+          </div>
+          <div class="adm-tarjeta__cuerpo">
+            <div class="pv-buscador">
+              <i class="bi bi-search pv-buscador__icono"></i>
+              <input class="adm-input pv-buscador__input" type="text" autocomplete="off"
+                     placeholder="Buscar producto…"
+                     [(ngModel)]="textoProducto" (ngModelChange)="alEscribirProducto()">
+              <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProd"></i>
+            </div>
+            <ul class="adm-sugerencias" *ngIf="sugerenciasProd.length">
+              <li *ngFor="let p of sugerenciasProd" (click)="agregarProducto(p)">
+                <strong>{{ p.nombre }}</strong>
+                <span class="adm-tabla__secundario">
+                  {{ p.sku }} · Stock {{ p.stock_disponible }} · S/ {{ p.precio_final | number:'1.2-2' }}
+                </span>
+              </li>
+            </ul>
+
+            <div class="adm-vacio" *ngIf="!lineas.length" style="padding:24px 0">
+              <p>Agregue productos para armar la cotización.</p>
+            </div>
+
+            <div class="adm-tabla-envoltorio" *ngIf="lineas.length">
+              <table class="adm-tabla">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Cant.</th>
+                    <th>P.Unit</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let l of lineas; trackBy: identificarLinea">
+                    <td>
+                      <div class="adm-tabla__principal">{{ l.descripcion }}</div>
+                      <div class="adm-tabla__secundario">{{ l.sku }}</div>
+                    </td>
+                    <td>
+                      <input class="adm-input pv-contador__input" type="number" min="1"
+                             [ngModel]="l.cantidad" (ngModelChange)="cambiarCantidad(l, $event)">
+                    </td>
+                    <td>S/ {{ l.precio_unitario | number:'1.2-2' }}</td>
+                    <td>
+                      <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="quitarLinea(l)">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="adm-campo" style="margin-top:12px">
+              <label class="adm-etiqueta" for="cot-obs">Observaciones</label>
+              <textarea id="cot-obs" class="adm-textarea" rows="2" [(ngModel)]="observaciones"></textarea>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Preview + acciones -->
+      <div class="cot-columna">
+        <section class="adm-tarjeta">
+          <div class="adm-tarjeta__cabecera">
+            <h2 class="adm-tarjeta__titulo"><i class="bi bi-receipt"></i> Vista previa</h2>
+            <span class="adm-insignia adm-insignia--neutra" *ngIf="cotizacionActual?.codigo">
+              {{ cotizacionActual?.codigo }}
+            </span>
+          </div>
+          <div class="adm-tarjeta__cuerpo">
+            <div class="adm-ticket">
+              <div class="adm-ticket__emisor">
+                <strong>HatunSales S.A.C</strong>
+                <small>COTIZACIÓN</small>
+                <div class="adm-ticket__numero">{{ cotizacionActual?.codigo || 'Sin guardar' }}</div>
+              </div>
+              <div class="adm-ticket__dato">
+                <span>Cliente</span>
+                <span>{{ receptor?.denominacion || clienteNombreManual || '—' }}</span>
+              </div>
+              <table class="adm-ticket__items" *ngIf="lineas.length">
+                <tr *ngFor="let l of lineas">
+                  <td>{{ l.descripcion }} × {{ l.cantidad }}</td>
+                  <td>S/ {{ (l.cantidad * l.precio_unitario) | number:'1.2-2' }}</td>
+                </tr>
+              </table>
+              <div class="adm-ticket__total-fila">
+                <span>Gravada</span><span>S/ {{ gravada | number:'1.2-2' }}</span>
+              </div>
+              <div class="adm-ticket__total-fila">
+                <span>IGV 18%</span><span>S/ {{ igv | number:'1.2-2' }}</span>
+              </div>
+              <div class="adm-ticket__total-fila adm-ticket__total-fila--final">
+                <span>Total</span><span>S/ {{ total | number:'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <div class="adm-acciones" style="margin-top:16px;flex-wrap:wrap">
+              <button type="button" class="adm-btn adm-btn--primario"
+                      [disabled]="guardando || !lineas.length" (click)="guardar()">
+                <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-save'"></i>
+                Guardar
+              </button>
+              <button type="button" class="adm-btn adm-btn--suave"
+                      [disabled]="!lineas.length" (click)="exportarPdf()">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+              </button>
+              <button type="button" class="adm-btn adm-btn--suave"
+                      [disabled]="!lineas.length" (click)="exportarExcel()">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+              </button>
+              <button type="button" class="adm-btn adm-btn--suave"
+                      [disabled]="enviandoWa || !lineas.length || !telefonoOk" (click)="enviarWhatsapp()">
+                <i class="bi bi-whatsapp"></i>
+                {{ enviandoWa ? 'Preparando…' : 'WhatsApp + proforma' }}
+              </button>
+              <button type="button" class="adm-btn adm-btn--primario"
+                      [disabled]="!cotizacionActual?.id_proforma" (click)="pasarAVenta()">
+                <i class="bi bi-cart-check"></i> Pasar a venta
+              </button>
+            </div>
+            <p class="adm-ayuda" style="margin-top:8px">
+              WhatsApp: se baja la proforma y se abre el chat. Adjunte el archivo y envíe.
+              “Pasar a venta” abre el POS listo para cobrar y emitir comprobante.
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </ng-container>
+</div>

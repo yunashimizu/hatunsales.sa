@@ -125,9 +125,19 @@ export class CajaSesionComponent implements OnInit, OnDestroy {
 
   async cerrar(): Promise<void> {
     if (!this.apertura) return;
+    const r = this.sesion?.resumen;
+    const detalleMetodos = (r?.por_metodo || [])
+      .map((m) => `${m.metodo}: S/ ${Number(m.total).toFixed(2)}`)
+      .join(' · ');
     const ok = await this.alerta.confirm({
       title: '¿Cerrar caja?',
-      message: `Se cerrará ${this.apertura.caja_nombre}. Las ventas nuevas usarán otra caja abierta o ninguna (modo blando).`,
+      allowHtml: true,
+      message:
+        `Se cerrará <strong>${this.apertura.caja_nombre}</strong>.<br>` +
+        `Turno: <strong>${r?.ventas ?? 0}</strong> ventas · ` +
+        `total <strong>S/ ${Number(r?.total ?? 0).toFixed(2)}</strong>` +
+        (detalleMetodos ? `<br>${detalleMetodos}` : '') +
+        `<br><span class="adm-ayuda">Modo blando: puede seguir vendiendo sin caja abierta.</span>`,
       confirmText: 'Sí, cerrar',
     });
     if (!ok.isConfirmed) return;
@@ -142,11 +152,19 @@ export class CajaSesionComponent implements OnInit, OnDestroy {
       })
       .pipe(takeUntil(this.destruir$))
       .subscribe({
-        next: () => {
+        next: (resp) => {
           this.cerrando = false;
           this.montoConteo = null;
           this.observacion = '';
-          this.alerta.toast({ type: 'success', title: 'Caja cerrada' });
+          const total = resp?.resumen?.total;
+          this.alerta.success({
+            title: 'Caja cerrada',
+            message:
+              total != null
+                ? `Resumen del turno: ${resp.resumen?.ventas ?? 0} ventas · S/ ${Number(total).toFixed(2)}`
+                : 'Turno cerrado correctamente.',
+            timer: 3500,
+          });
           this.cargarTodo();
         },
         error: (err) => {

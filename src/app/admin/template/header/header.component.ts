@@ -107,6 +107,7 @@ export class HeaderComponent implements OnInit {
     if (url.includes('/mantenimiento/productos')) return 'Productos';
     if (url.includes('/mantenimiento/inventario')) return 'Inventario';
     if (url.includes('/mantenimiento/clientes')) return 'Clientes';
+    if (url.includes('/mantenimiento/cotizaciones')) return 'Cotizaciones';
     if (url.includes('/mantenimiento/doc')) return 'Documentos';
     if (url.includes('/mantenimiento/usuarios')) return 'Usuarios';
     if (url.includes('/mantenimiento/roles')) return 'Roles';

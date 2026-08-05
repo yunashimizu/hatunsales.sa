@@ -8,15 +8,22 @@ import {
   inject,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
 import { esRolStaff, ROL_IDS } from '../../../auth/roles.constants';
+import {
+  ConfigFiscal,
+  ConfiguracionFiscalService,
+} from '../../service/configuracion-fiscal.service';
+import { AlertService } from '../../../shared/services/alert.service';
+import { mensajeDeError } from '../../service/api-base.service';
 
 @Component({
   selector: 'app-admin-configuracion',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './configuracion.component.html',
   styleUrl: './configuracion.component.css',
 })
@@ -31,14 +38,30 @@ export class AdminConfiguracionComponent implements OnInit {
     iniciales: '?',
   };
 
+  fiscal: ConfigFiscal | null = null;
+  cargandoFiscal = false;
+  guardandoFiscal = false;
+  formEmisor = {
+    ruc: '',
+    razon_social: '',
+    direccion: '',
+    ubicacion: '',
+  };
+  formSeries = { serie_boleta: 'BBB1', serie_factura: 'FFF1' };
+
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
 
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly fiscalApi: ConfiguracionFiscalService,
+    private readonly alerta: AlertService,
+  ) {}
 
   ngOnInit(): void {
     this.refrescar();
     this.auth.data$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.refrescar());
+    if (this.esAdminPuro) this.cargarFiscal();
   }
 
   get etiquetaRol(): string {
@@ -52,6 +75,67 @@ export class AdminConfiguracionComponent implements OnInit {
   get esAdminPuro(): boolean {
     const rol = this.sesion.rolNombre.toLowerCase();
     return this.sesion.rolId === ROL_IDS.ADMIN || rol === 'admin' || rol === 'superadmin';
+  }
+
+  cargarFiscal(): void {
+    this.cargandoFiscal = true;
+    this.cdr.markForCheck();
+    this.fiscalApi.fiscal().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (f) => {
+        this.fiscal = f;
+        this.formEmisor = {
+          ruc: f.emisor.ruc || '',
+          razon_social: f.emisor.razon_social || '',
+          direccion: f.emisor.direccion || '',
+          ubicacion: f.emisor.ubicacion || '',
+        };
+        this.formSeries = {
+          serie_boleta: f.series.serie_boleta || 'BBB1',
+          serie_factura: f.series.serie_factura || 'FFF1',
+        };
+        this.cargandoFiscal = false;
+        this.cdr.markForCheck();
+      },
+      error: (e) => {
+        this.cargandoFiscal = false;
+        this.cdr.markForCheck();
+        this.alerta.toast({
+          type: 'warning',
+          title: mensajeDeError(e, 'No se pudo cargar config fiscal'),
+        });
+      },
+    });
+  }
+
+  guardarFiscal(): void {
+    if (!this.esAdminPuro) return;
+    this.guardandoFiscal = true;
+    this.cdr.markForCheck();
+    this.fiscalApi
+      .guardarFiscal({
+        emisor: this.formEmisor,
+        series: this.formSeries,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (f) => {
+          this.fiscal = f;
+          this.guardandoFiscal = false;
+          this.cdr.markForCheck();
+          this.alerta.toast({
+            type: 'success',
+            title: 'Configuración guardada (series y emisor)',
+          });
+        },
+        error: (e) => {
+          this.guardandoFiscal = false;
+          this.cdr.markForCheck();
+          this.alerta.error({
+            title: 'No se pudo guardar',
+            message: mensajeDeError(e),
+          });
+        },
+      });
   }
 
   private refrescar(): void {

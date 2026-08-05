@@ -129,6 +129,18 @@ const routes: Routes = [
     loadComponent: () => import('./component/ventas/ventas.component').then((c) => c.VentasComponent),
   },
   {
+    path: 'cotizaciones',
+    canActivate: [roleGuard],
+    data: {
+      roles: ['admin', 'vendedor', 'caja'],
+      title: 'Cotizaciones',
+      subtitle: 'Cotice, envíe por WhatsApp y pase a venta.',
+      icon: 'fa-file-invoice',
+    },
+    loadComponent: () =>
+      import('./component/cotizaciones/cotizaciones.component').then((c) => c.CotizacionesComponent),
+  },
+  {
     path: 'caja-sesion',
     canActivate: [roleGuard],
     data: {

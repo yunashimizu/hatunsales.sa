@@ -1,9 +1,14 @@
 /**
  * Datos públicos de la empresa en la tienda.
- * Cambiar aquí (dirección, teléfono, mapa) sin tocar las pantallas.
+ * Cambiar aquí (marca, dirección, teléfono, mapa) sin tocar las pantallas.
+ *
+ * Marca:
+ * - nombreCorto → logo / header / pie corto
+ * - nombre → razón social (legal, contacto, ©)
  */
 export const EMPRESA_TIENDA = {
-  nombre: 'HatunSales S.A.C.',
+  nombreCorto: 'HatunSales',
+  nombre: 'HatunSales S.A.C',
   eslogan: 'Ferretería y construcción',
   /** Dirección visible al cliente */
   direccion: 'Av. Principal 123, Lima, Perú',

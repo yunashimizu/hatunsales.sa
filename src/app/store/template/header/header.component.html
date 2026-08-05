@@ -12,11 +12,11 @@
 <header class="cabecera" [class.compacta]="compacto">
   <div class="contenedor barra">
 
-    <a class="logo" routerLink="/store" (click)="cerrarTodo()">
+    <a class="logo" routerLink="/store" (click)="cerrarTodo()" [attr.title]="empresa.nombre">
       <span class="logo-marca"><i class="bi bi-tools"></i></span>
       <span class="logo-texto">
-        <strong>HatunSales</strong>
-        <small>Ferretería y construcción</small>
+        <strong>{{ empresa.nombreCorto }}</strong>
+        <small>{{ empresa.eslogan }}</small>
       </span>
     </a>
 

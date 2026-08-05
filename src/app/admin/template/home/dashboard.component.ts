@@ -9,7 +9,15 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterModule } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
+import { InventarioAdminService } from '../../service/inventario-admin.service';
+import { ComprobanteService } from '../../service/comprobante.service';
+import { CajaSesionService } from '../../service/caja-sesion.service';
+import { HttpClient } from '@angular/common/http';
+import { urlConstants } from '../../../constants/urlConstants';
+import { opcionesHttp } from '../../service/api-base.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -30,10 +38,26 @@ export class DashboardComponent implements OnInit {
     iniciales: '?',
   };
 
+  cargandoKpis = true;
+  ventasHoy: number | null = null;
+  sinStock: number | null = null;
+  bajoStock: number | null = null;
+  cpeAtencion: number | null = null;
+  cajaAbierta: boolean | null = null;
+  cajaNombre = '';
+  turnoTotal: number | null = null;
+  turnoVentas: number | null = null;
+
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly inventario: InventarioAdminService,
+    private readonly comprobantes: ComprobanteService,
+    private readonly caja: CajaSesionService,
+    private readonly http: HttpClient,
+  ) {}
 
   ngOnInit(): void {
     this.sesion = this.authService.getSesion();
@@ -41,6 +65,7 @@ export class DashboardComponent implements OnInit {
       this.sesion = this.authService.getSesion();
       this.cdr.markForCheck();
     });
+    this.cargarKpis();
   }
 
   get etiquetaRol(): string {
@@ -52,5 +77,33 @@ export class DashboardComponent implements OnInit {
     if (hora < 12) return 'Buenos días';
     if (hora < 19) return 'Buenas tardes';
     return 'Buenas noches';
+  }
+
+  private cargarKpis(): void {
+    this.cargandoKpis = true;
+    this.cdr.markForCheck();
+
+    forkJoin({
+      inv: this.inventario.resumen().pipe(catchError(() => of(null))),
+      cpe: this.comprobantes.monitorAtencion().pipe(catchError(() => of(null))),
+      caja: this.caja.sesion().pipe(catchError(() => of(null))),
+      ventas: this.http
+        .get<any>(`${urlConstants.reportes.ventas}?periodo=diario`, opcionesHttp())
+        .pipe(catchError(() => of(null))),
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ inv, cpe, caja, ventas }) => {
+        this.sinStock = inv?.sin_stock ?? null;
+        this.bajoStock = inv?.bajo_stock ?? null;
+        this.cpeAtencion = cpe?.total ?? null;
+        this.cajaAbierta = caja?.abierta ?? null;
+        this.cajaNombre = caja?.apertura?.caja_nombre || '';
+        const r = (caja as any)?.resumen;
+        this.turnoTotal = r?.total ?? null;
+        this.turnoVentas = r?.ventas ?? null;
+        this.ventasHoy = ventas?.total_vendido != null ? Number(ventas.total_vendido) : null;
+        this.cargandoKpis = false;
+        this.cdr.markForCheck();
+      });
   }
 }

@@ -29,7 +29,7 @@ export class ContactoComponent {
   readonly mapaAbrir = urlMapaAbrir();
   readonly telHref = urlTelefono();
   readonly mailHref = urlMailto();
-  readonly waHref = urlWhatsapp('Hola HatunSales, quisiera más información.');
+  readonly waHref = urlWhatsapp(`Hola ${EMPRESA_TIENDA.nombreCorto}, quisiera más información.`);
 
   async copiar(texto: string, etiqueta: string): Promise<void> {
     try {

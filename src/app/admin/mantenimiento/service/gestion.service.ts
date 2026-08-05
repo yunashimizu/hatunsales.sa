@@ -195,6 +195,13 @@ export class GestionService {
     return this.http.post<any>(urlConstants.cliente.base, payload, { headers: this.getHeaders(), withCredentials: true });
   }
 
+  eliminarCliente(id: number): Observable<any> {
+    return this.http.delete<any>(urlConstants.cliente.byId(id), {
+      headers: this.getHeaders(),
+      withCredentials: true,
+    });
+  }
+
   // --- Categorías CRUD ---
   getCategorias(): Observable<any[]> {
     return this.http.get<any>(urlConstants.categoria, { headers: this.getHeaders(), withCredentials: true }).pipe(

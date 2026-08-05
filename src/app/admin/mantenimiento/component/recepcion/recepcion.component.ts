@@ -28,6 +28,8 @@ interface LineaRecepcion {
   cantidad_ok: number;
   cantidad_observada: number;
   motivo_observacion: string;
+  /** Vacío = no tocar precio_compra del producto. */
+  precio_compra: number | null;
   foto?: File | null;
   fotoPreview?: string;
 }
@@ -63,6 +65,17 @@ export class RecepcionComponent implements OnInit {
 
   filtroObs: 'pendiente' | 'todas' = 'pendiente';
   vistaImagen: string | null = null;
+  detalleAbierto: any | null = null;
+  cargandoDetalle = false;
+  actualizarPrecios = false;
+
+  get totalOk(): number {
+    return this.lineas.reduce((s, l) => s + (Number(l.cantidad_ok) || 0), 0);
+  }
+
+  get totalObs(): number {
+    return this.lineas.reduce((s, l) => s + (Number(l.cantidad_observada) || 0), 0);
+  }
 
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -94,6 +107,30 @@ export class RecepcionComponent implements OnInit {
 
   identificarAdjunto(_i: number, a: any): string | number {
     return a?.url ?? a?.ruta ?? _i;
+  }
+
+  abrirDetalle(r: any): void {
+    const id = Number(r?.id_recepcion);
+    if (!id) return;
+    this.cargandoDetalle = true;
+    this.detalleAbierto = null;
+    this.cdr.markForCheck();
+    this.api.detalle(id).subscribe({
+      next: (det) => {
+        this.detalleAbierto = det;
+        this.cargandoDetalle = false;
+        this.cdr.markForCheck();
+      },
+      error: (e) => {
+        this.cargandoDetalle = false;
+        this.cdr.markForCheck();
+        this.alerta.error({ title: 'No se pudo abrir el detalle', message: mensajeDeError(e) });
+      },
+    });
+  }
+
+  cerrarDetalle(): void {
+    this.detalleAbierto = null;
   }
 
   urlDe(ruta?: string): string {
@@ -231,6 +268,7 @@ export class RecepcionComponent implements OnInit {
         cantidad_ok: 1,
         cantidad_observada: 0,
         motivo_observacion: '',
+        precio_compra: null,
         foto: null,
       },
       ...this.lineas,
@@ -281,7 +319,12 @@ export class RecepcionComponent implements OnInit {
     const ok = await this.alerta.confirm({
       title: '¿Confirmar recepción?',
       allowHtml: true,
-      message: 'Lo <strong>OK</strong> entra al inventario. Lo <strong>observado</strong> espera visto bueno.',
+      message:
+        `OK: <strong>${this.totalOk}</strong> · Observado: <strong>${this.totalObs}</strong>.<br>` +
+        'Lo OK entra al inventario. Lo observado espera visto bueno.' +
+        (this.actualizarPrecios
+          ? '<br>También se actualizarán los precios de compra indicados.'
+          : ''),
       confirmText: 'Confirmar',
       cancelText: 'Cancelar',
     });
@@ -299,6 +342,10 @@ export class RecepcionComponent implements OnInit {
         cantidad_observada: Number(l.cantidad_observada) || 0,
         motivo_observacion: l.motivo_observacion,
         nota: l.motivo_observacion,
+        precio_compra:
+          this.actualizarPrecios && l.precio_compra != null && l.precio_compra >= 0
+            ? Number(l.precio_compra)
+            : undefined,
       })),
     };
 
@@ -312,13 +359,14 @@ export class RecepcionComponent implements OnInit {
           (resp?.observaciones ?? []).map((o: any) => [Number(o.id_producto), Number(o.id_observacion)]),
         );
 
+        let fotosFallidas = 0;
         for (const linea of fotosPendientes) {
           const idObs = mapaObs.get(linea.id_producto);
           if (idObs && linea.foto) {
             try {
               await firstValueFrom(this.api.subirFoto(idObs, linea.foto));
             } catch {
-              /* se sigue; la obs queda sin foto */
+              fotosFallidas += 1;
             }
           }
         }
@@ -326,11 +374,29 @@ export class RecepcionComponent implements OnInit {
         this.alerta.close();
         this.confirmando = false;
         this.cdr.markForCheck();
-        this.alerta.success({
-          title: 'Recepción registrada',
-          message: resp?.mensaje || 'Listo',
-          timer: 2500,
-        });
+        const fallosStock = Array.isArray(resp?.stock_fallido) ? resp.stock_fallido.length : 0;
+        let mensaje = resp?.mensaje || 'Listo';
+        if (fotosFallidas) {
+          mensaje += ` ${fotosFallidas} foto(s) no se subieron; puede adjuntarlas luego en Observaciones.`;
+        }
+        if (fallosStock) {
+          void this.alerta.warning({
+            title: 'Recepción con alertas de stock',
+            message: mensaje,
+          });
+        } else {
+          this.alerta.success({
+            title: 'Recepción registrada',
+            message: mensaje,
+            timer: 2500,
+          });
+        }
+        if (fotosFallidas && !fallosStock) {
+          this.alerta.toast({
+            type: 'warning',
+            title: `${fotosFallidas} foto(s) no se subieron`,
+          });
+        }
         this.limpiarFormulario();
         this.cargarHistorial();
         this.cargarObservaciones();

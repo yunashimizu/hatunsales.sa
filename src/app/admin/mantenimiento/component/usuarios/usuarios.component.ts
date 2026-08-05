@@ -62,14 +62,14 @@ export class UsuariosComponent implements OnInit {
     this.cdr.markForCheck();
     this.gestionService.getUsuariosAdmin().subscribe({
       next: (data) => {
-        this.usuarios = Array.isArray(data) ? [...data] : [];
+        this.usuarios = this.soloStaff(Array.isArray(data) ? data : []);
         this.cargando = false;
         this.cdr.markForCheck();
       },
       error: () => {
         this.gestionService.getUsuariosAdminAlt().subscribe({
           next: (data) => {
-            this.usuarios = Array.isArray(data) ? [...data] : [];
+            this.usuarios = this.soloStaff(Array.isArray(data) ? data : []);
             this.cargando = false;
             this.cdr.markForCheck();
           },
@@ -301,9 +301,14 @@ export class UsuariosComponent implements OnInit {
   }
 
   private esRolCliente(rol: any): boolean {
-    const id = Number(rol?.id_rol);
-    const nombre = String(rol?.nombre || '').trim().toLowerCase();
+    const id = Number(rol?.id_rol ?? rol);
+    const nombre = String(rol?.nombre || rol?.rol || '').trim().toLowerCase();
     return id === 5 || nombre === 'cliente';
+  }
+
+  /** Refuerzo: el API ya filtra; evita mostrar clientes si llega un listado viejo. */
+  private soloStaff(lista: any[]): any[] {
+    return lista.filter((u) => !this.esRolCliente(u));
   }
 
   private asegurarRolPorDefecto(): void {
@@ -320,6 +325,7 @@ export class UsuariosComponent implements OnInit {
   }
 
   private reflejarEnLista(usuario: any): void {
+    if (this.esRolCliente(usuario)) return;
     const indice = this.usuarios.findIndex((u) => Number(u.id_usuario) === Number(usuario.id_usuario));
     if (indice >= 0) {
       this.usuarios[indice] = { ...this.usuarios[indice], ...usuario };

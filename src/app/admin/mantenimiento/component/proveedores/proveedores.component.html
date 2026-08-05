@@ -23,11 +23,64 @@
 
   <section class="adm-grid adm-grid--3">
     <div class="adm-metrica">
-      <div class="adm-metrica__icono"><i class="bi bi-truck"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-truck"></i></div>
       <div>
         <div class="adm-metrica__valor">{{ proveedores.length }}</div>
         <div class="adm-metrica__etiqueta">Proveedores</div>
       </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-postcard"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ conRuc }}</div>
+        <div class="adm-metrica__etiqueta">Con RUC</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-telephone"></i></div>
+      <div>
+        <div class="adm-metrica__valor">{{ conTelefono }}</div>
+        <div class="adm-metrica__etiqueta">Con teléfono</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="adm-tarjeta" *ngIf="proveedorHistorial">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo">
+        <i class="bi bi-box-seam"></i> Recepciones · {{ proveedorHistorial.nombre }}
+      </h2>
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cerrarRecepciones()">Cerrar</button>
+    </div>
+    <div class="adm-tarjeta__cuerpo" *ngIf="cargandoRecepciones">
+      <div class="adm-esqueleto"></div>
+    </div>
+    <div class="adm-vacio" *ngIf="!cargandoRecepciones && !recepcionesProv.length">
+      <div class="adm-vacio__titulo">Sin recepciones de este proveedor</div>
+    </div>
+    <div class="adm-tabla-envoltorio" *ngIf="recepcionesProv.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th>#</th><th>Guía</th><th>Almacén</th><th class="adm-num">OK</th><th class="adm-num">Obs.</th><th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of recepcionesProv">
+            <td data-etiqueta="#">{{ r.id_recepcion }}</td>
+            <td data-etiqueta="Guía">{{ r.nro_guia }}</td>
+            <td data-etiqueta="Almacén">{{ r.almacen }}</td>
+            <td data-etiqueta="OK" class="adm-num"><span class="adm-insignia adm-insignia--exito">{{ r.unidades_ok }}</span></td>
+            <td data-etiqueta="Obs." class="adm-num"><span class="adm-insignia adm-insignia--aviso">{{ r.unidades_obs }}</span></td>
+            <td data-etiqueta="Fecha">{{ r.creado_en | date:'short' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="adm-tarjeta__cuerpo">
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/recepcion">
+        <i class="bi bi-box-seam"></i> Ir a recepción
+      </a>
     </div>
   </section>
 
@@ -85,11 +138,19 @@
   <section class="adm-tarjeta">
     <div class="adm-tarjeta__cabecera">
       <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Lista</h2>
-      <span class="adm-insignia adm-insignia--neutra">{{ proveedores.length }}</span>
+      <span class="adm-insignia adm-insignia--neutra">{{ proveedoresFiltrados.length }}</span>
     </div>
 
     <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !proveedores.length">
       <div class="adm-esqueleto" *ngFor="let n of [1,2,3]"></div>
+    </div>
+
+    <div class="adm-tarjeta__cuerpo" style="padding-bottom:0">
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="prov-filtro">Buscar</label>
+        <input id="prov-filtro" class="adm-input" type="search" [(ngModel)]="filtro"
+               placeholder="Nombre, RUC, teléfono…">
+      </div>
     </div>
 
     <div class="adm-vacio" *ngIf="!cargando && !proveedores.length">
@@ -98,7 +159,11 @@
       <p>Crea el primero o búscalo por RUC.</p>
     </div>
 
-    <div class="adm-tabla-envoltorio" *ngIf="proveedores.length">
+    <div class="adm-vacio" *ngIf="!cargando && proveedores.length && !proveedoresFiltrados.length">
+      <div class="adm-vacio__titulo">Sin coincidencias</div>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="proveedoresFiltrados.length">
       <table class="adm-tabla adm-tabla--adaptable">
         <thead>
           <tr>
@@ -109,7 +174,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of proveedores; trackBy: identificarProveedor" [class.adm-recien-creado]="idDestacado === p.id_proveedor">
+          <tr *ngFor="let p of proveedoresFiltrados; trackBy: identificarProveedor" [class.adm-recien-creado]="idDestacado === p.id_proveedor">
             <td data-etiqueta="Proveedor">
               <div class="adm-tabla__principal">{{ p.nombre }}</div>
               <div class="adm-ayuda" *ngIf="p.direccion">{{ p.direccion }}</div>
@@ -121,6 +186,9 @@
             </td>
             <td data-etiqueta="Acciones">
               <div class="adm-acciones">
+                <button type="button" class="adm-btn-icono" title="Recepciones" (click)="verRecepciones(p)">
+                  <i class="bi bi-box-seam"></i>
+                </button>
                 <button type="button" class="adm-btn adm-btn--suave" (click)="editar(p)">
                   <i class="bi bi-pencil"></i> Editar
                 </button>

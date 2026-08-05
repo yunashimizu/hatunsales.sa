@@ -97,7 +97,11 @@
     <section class="adm-tarjeta">
       <div class="adm-tarjeta__cabecera">
         <h2 class="adm-tarjeta__titulo"><i class="bi bi-list-check"></i> Líneas</h2>
-        <span class="adm-insignia adm-insignia--neutra">{{ lineas.length }}</span>
+        <div class="adm-acciones" style="gap:8px">
+          <span class="adm-insignia adm-insignia--exito" title="Unidades OK">OK {{ totalOk }}</span>
+          <span class="adm-insignia adm-insignia--aviso" title="Observadas">Obs {{ totalObs }}</span>
+          <span class="adm-insignia adm-insignia--neutra">{{ lineas.length }} líneas</span>
+        </div>
       </div>
 
       <div class="adm-vacio" *ngIf="!lineas.length">
@@ -113,6 +117,7 @@
               <th>Producto</th>
               <th class="adm-num">OK</th>
               <th class="adm-num">Observado</th>
+              <th class="adm-num" *ngIf="actualizarPrecios">P. compra</th>
               <th>Cómo llegó / foto</th>
               <th></th>
             </tr>
@@ -130,6 +135,10 @@
               <td data-etiqueta="Observado" class="adm-num">
                 <input class="adm-input" type="number" min="0" step="1" style="max-width:5.5rem"
                        [(ngModel)]="l.cantidad_observada">
+              </td>
+              <td data-etiqueta="P. compra" class="adm-num" *ngIf="actualizarPrecios">
+                <input class="adm-input" type="number" min="0" step="0.01" style="max-width:6.5rem"
+                       [(ngModel)]="l.precio_compra" placeholder="S/">
               </td>
               <td data-etiqueta="Observación">
                 <ng-container *ngIf="l.cantidad_observada > 0">
@@ -168,6 +177,10 @@
       </div>
 
       <div class="adm-tarjeta__cuerpo" *ngIf="lineas.length">
+        <label class="adm-campo" style="margin-bottom:12px;display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" [(ngModel)]="actualizarPrecios">
+          <span>Actualizar precio de compra del producto (opcional por línea)</span>
+        </label>
         <button type="button" class="adm-btn adm-btn--primario" (click)="confirmar()" [disabled]="confirmando">
           <i class="bi bi-check2-circle"></i>
           {{ confirmando ? 'Confirmando…' : 'Confirmar recepción' }}
@@ -184,6 +197,10 @@
         Actualizar
       </button>
     </div>
+    <ul class="adm-leyenda" style="padding:0 16px">
+      <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--exito"></span> OK → ya en inventario</li>
+      <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--aviso"></span> Obs → espera visto bueno</li>
+    </ul>
     <div class="adm-vacio" *ngIf="!historial.length">
       <div class="adm-vacio__titulo">Sin recepciones aún</div>
     </div>
@@ -198,6 +215,7 @@
             <th class="adm-num">OK</th>
             <th class="adm-num">Obs.</th>
             <th>Fecha</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -206,13 +224,60 @@
             <td data-etiqueta="Proveedor">{{ r.proveedor }}</td>
             <td data-etiqueta="Guía">{{ r.nro_guia }}</td>
             <td data-etiqueta="Almacén">{{ r.almacen }}</td>
-            <td data-etiqueta="OK" class="adm-num">{{ r.unidades_ok }}</td>
-            <td data-etiqueta="Obs." class="adm-num">{{ r.unidades_obs }}</td>
+            <td data-etiqueta="OK" class="adm-num">
+              <span class="adm-insignia adm-insignia--exito">{{ r.unidades_ok }}</span>
+            </td>
+            <td data-etiqueta="Obs." class="adm-num">
+              <span class="adm-insignia" [class.adm-insignia--aviso]="r.unidades_obs > 0"
+                    [class.adm-insignia--neutra]="!(r.unidades_obs > 0)">{{ r.unidades_obs }}</span>
+            </td>
             <td data-etiqueta="Fecha">{{ r.creado_en | date:'short' }}</td>
+            <td>
+              <button type="button" class="adm-btn-icono" title="Ver detalle" (click)="abrirDetalle(r)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <aside class="adm-tarjeta" *ngIf="detalleAbierto || cargandoDetalle" style="margin:16px">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo">
+          <i class="bi bi-file-earmark-text"></i>
+          Detalle #{{ detalleAbierto?.id_recepcion || '…' }}
+        </h2>
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cerrarDetalle()">Cerrar</button>
+      </div>
+      <div class="adm-tarjeta__cuerpo" *ngIf="cargandoDetalle">
+        <div class="adm-esqueleto"></div>
+      </div>
+      <div class="adm-tarjeta__cuerpo" *ngIf="detalleAbierto && !cargandoDetalle">
+        <p class="adm-ayuda">
+          {{ detalleAbierto.proveedor }} · Guía {{ detalleAbierto.nro_guia }}
+          · {{ detalleAbierto.almacen }}
+          <span *ngIf="detalleAbierto.nro_documento"> · Doc. {{ detalleAbierto.nro_documento }}</span>
+        </p>
+        <div class="adm-tabla-envoltorio">
+          <table class="adm-tabla">
+            <thead>
+              <tr><th>Producto</th><th class="adm-num">OK</th><th class="adm-num">Obs.</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let it of detalleAbierto.items || []">
+                <td>
+                  <div class="adm-tabla__principal">{{ it.producto }}</div>
+                  <div class="adm-ayuda">{{ it.sku || it.codigo_barras || ('#' + it.id_producto) }}</div>
+                </td>
+                <td class="adm-num">{{ it.cantidad_ok }}</td>
+                <td class="adm-num">{{ it.cantidad_observada }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </aside>
   </section>
 
   <!-- ── Observaciones ─────────────────────────────────────── -->
