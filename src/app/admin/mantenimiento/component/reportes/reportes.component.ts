@@ -10,7 +10,7 @@ import {
 import { Subject, takeUntil } from 'rxjs';
 import { GestionService } from '../../service/gestion.service';
 import { AlertService } from '../../../../shared/services/alert.service';
-import { mensajeDeError } from '../../../service/api-base.service';
+import { errorOperativo, normalizarErrorBlob } from '../../../service/api-base.service';
 
 type PeriodoReporte = 'diario' | 'quincenal' | 'mensual' | 'anual';
 
@@ -136,10 +136,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
           this.cargando = false;
           this.limpiar();
           this.cdr.markForCheck();
-          this.alerta.error({
-            title: 'No se pudo cargar el reporte',
-            message: mensajeDeError(error),
-          });
+          this.alerta.error(errorOperativo(error, 'No se pudo cargar el reporte'));
         },
       });
   }
@@ -153,14 +150,23 @@ export class ReportesComponent implements OnInit, OnDestroy {
         next: (blob) => {
           this.exportando = null;
           this.cdr.markForCheck();
-          this.descargarBlob(blob, `ventas_${this.periodo}.xlsx`);
-          this.alerta.toast({ type: 'success', title: 'Excel descargado' });
+          if (!blob || blob.size === 0) {
+            this.alerta.error({
+              title: 'Excel vacío',
+              message: 'El servidor no devolvió el archivo. Reintente.',
+            });
+            return;
+          }
+          const stamp = this.stampArchivo();
+          this.descargarBlob(blob, `ventas_${this.periodo}_${stamp}.xlsx`);
+          this.alerta.toast({
+            type: 'success',
+            title: this.detalle.length
+              ? 'Excel descargado'
+              : 'Excel descargado (sin movimientos en el periodo)',
+          });
         },
-        error: (error) => {
-          this.exportando = null;
-          this.cdr.markForCheck();
-          this.alerta.error({ title: 'No se pudo exportar Excel', message: mensajeDeError(error) });
-        },
+        error: (error) => void this.manejarErrorExport(error, 'No se pudo exportar Excel'),
       });
   }
 
@@ -173,14 +179,23 @@ export class ReportesComponent implements OnInit, OnDestroy {
         next: (blob) => {
           this.exportando = null;
           this.cdr.markForCheck();
-          this.descargarBlob(blob, `ventas_${this.periodo}.pdf`);
-          this.alerta.toast({ type: 'success', title: 'PDF descargado' });
+          if (!blob || blob.size === 0) {
+            this.alerta.error({
+              title: 'PDF vacío',
+              message: 'El servidor no devolvió el archivo. Reintente.',
+            });
+            return;
+          }
+          const stamp = this.stampArchivo();
+          this.descargarBlob(blob, `ventas_${this.periodo}_${stamp}.pdf`);
+          this.alerta.toast({
+            type: 'success',
+            title: this.detalle.length
+              ? 'PDF descargado'
+              : 'PDF descargado (sin movimientos en el periodo)',
+          });
         },
-        error: (error) => {
-          this.exportando = null;
-          this.cdr.markForCheck();
-          this.alerta.error({ title: 'No se pudo exportar PDF', message: mensajeDeError(error) });
-        },
+        error: (error) => void this.manejarErrorExport(error, 'No se pudo exportar PDF'),
       });
   }
 
@@ -298,6 +313,21 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.conError = 0;
     this.diasConVenta = 0;
     this.planTexto = this.periodoActivo.plan;
+  }
+
+  private stampArchivo(): string {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}${m}${day}`;
+  }
+
+  private async manejarErrorExport(error: any, porDefecto: string): Promise<void> {
+    this.exportando = null;
+    this.cdr.markForCheck();
+    const normalizado = await normalizarErrorBlob(error);
+    this.alerta.error(errorOperativo(normalizado, porDefecto));
   }
 
   private descargarBlob(blob: Blob, nombre: string): void {

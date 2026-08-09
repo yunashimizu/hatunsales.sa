@@ -32,6 +32,28 @@ export function mensajeDeError(error: any, porDefecto = 'Ocurrió un error inesp
   return porDefecto;
 }
 
+/**
+ * Cuando el request usa `responseType: 'blob'`, Nest manda el JSON de error
+ * también como Blob. Hay que leerlo antes de mostrar Alert2.
+ */
+export async function normalizarErrorBlob(error: any): Promise<any> {
+  const cuerpo = error?.error;
+  if (!(typeof Blob !== 'undefined' && cuerpo instanceof Blob)) {
+    return error;
+  }
+  try {
+    const texto = await cuerpo.text();
+    if (!texto?.trim()) return error;
+    try {
+      return { ...error, error: JSON.parse(texto) };
+    } catch {
+      return { ...error, error: { message: texto } };
+    }
+  } catch {
+    return error;
+  }
+}
+
 /** Código estable enviado por el backend (`error.error.codigo`). */
 export function codigoDeError(error: any): string {
   const c = error?.error?.codigo;
@@ -68,6 +90,9 @@ const HINTS: Record<string, string> = {
   INVENTARIO_STOCK_NEGATIVO: 'No hay suficientes unidades en ese almacén.',
   RECEPCION_SIN_ITEMS: 'Agregue al menos un producto a la recepción.',
   COMPROBANTE_EMISION_FALLIDA: 'La venta pudo quedar registrada; reintente en Documentos.',
+  REPORTE_PERIODO_INVALIDO: 'Elija diario, quincenal, mensual o anual.',
+  REPORTE_FECHA_INVALIDA: 'Revise el rango de fechas del reporte.',
+  REPORTE_EXPORT_FALLIDA: 'Reintente la descarga; si persiste, avise a sistemas.',
 };
 
 const TITULOS: Record<string, string> = {
@@ -100,6 +125,9 @@ const TITULOS: Record<string, string> = {
   INVENTARIO_STOCK_NEGATIVO: 'Stock insuficiente',
   RECEPCION_SIN_ITEMS: 'Sin productos en recepción',
   COMPROBANTE_EMISION_FALLIDA: 'Error al emitir comprobante',
+  REPORTE_PERIODO_INVALIDO: 'Periodo inválido',
+  REPORTE_FECHA_INVALIDA: 'Fechas inválidas',
+  REPORTE_EXPORT_FALLIDA: 'No se pudo exportar',
 };
 
 /**
