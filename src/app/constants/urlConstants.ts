@@ -1,6 +1,8 @@
 // API en la nube por defecto
-export const dominio = 'https://hatunsales-production.up.railway.app/';
+export const dominio = 'https://hatunsales-production-c83e.up.railway.app/';
 
+
+//https://hatunsales-production-c83e.up.railway.app/api#/
 // Para probar localmente, descomenta la línea siguiente y comenta la de arriba:
 // export const dominio = 'http://localhost:3000/';
 
