@@ -1166,6 +1166,9 @@ export class VentasComponent implements OnInit, OnDestroy {
     };
 
     if (this.idAlmacen) solicitud.id_almacen = this.idAlmacen;
+    if (paraRegistrar && this.idCotizacionCargada) {
+      solicitud.id_proforma = this.idCotizacionCargada;
+    }
 
     if (this.receptor?.numero_documento && this.receptor.numero_documento !== '00000000') {
       solicitud.documento = this.receptor.numero_documento;
@@ -1449,13 +1452,6 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.puntoVenta.descontarStockLocal(
             this.lineas.map((l) => ({ id_producto: l.id_producto, cantidad: l.cantidad })),
           );
-          if (this.idCotizacionCargada) {
-            const idCot = this.idCotizacionCargada;
-            this.cotizaciones
-              .marcar(idCot, { estado: 'convertida', id_venta: venta.id_venta })
-              .pipe(takeUntil(this.destruir$), catchError(() => EMPTY))
-              .subscribe();
-          }
           this.puntoVenta
             .cargarCatalogo(true, this.idAlmacen)
             .pipe(

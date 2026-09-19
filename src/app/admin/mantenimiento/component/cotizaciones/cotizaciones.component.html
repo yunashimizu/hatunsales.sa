@@ -67,9 +67,15 @@
               <a class="adm-btn-icono" title="Pasar a venta"
                  [routerLink]="['/dashboard/mantenimiento/ventas']"
                  [queryParams]="{ cotizacion: c.id_proforma }"
-                 *ngIf="c.estado !== 'convertida' && c.estado !== 'anulada'">
+                  *ngIf="c.estado === 'aprobada'">
                 <i class="bi bi-cart-check"></i>
               </a>
+              <button type="button" class="adm-btn-icono adm-btn-icono--peligro"
+                      title="Anular" aria-label="Anular cotización"
+                      *ngIf="c.estado !== 'convertida' && c.estado !== 'anulada'"
+                      (click)="anular(c)">
+                <i class="bi bi-trash"></i>
+              </button>
             </td>
           </tr>
         </tbody>
@@ -105,6 +111,7 @@
                 <input class="adm-input pv-buscador__input" type="text" autocomplete="off"
                        placeholder="DNI, RUC o nombre"
                        [(ngModel)]="textoCliente" (ngModelChange)="alEscribirCliente()">
+                 <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoCliente"></i>
               </div>
               <ul class="adm-sugerencias" *ngIf="sugerenciasCli.length">
                 <li *ngFor="let s of sugerenciasCli" (click)="elegirCliente(s)">
@@ -141,9 +148,10 @@
           <div class="adm-tarjeta__cuerpo">
             <div class="pv-buscador">
               <i class="bi bi-search pv-buscador__icono"></i>
-              <input class="adm-input pv-buscador__input" type="text" autocomplete="off"
-                     placeholder="Buscar producto…"
-                     [(ngModel)]="textoProducto" (ngModelChange)="alEscribirProducto()">
+                <input class="adm-input pv-buscador__input" type="text" autocomplete="off"
+                       placeholder="Buscar producto…"
+                       [(ngModel)]="textoProducto" (ngModelChange)="alEscribirProducto()"
+                       (keydown)="alPresionarEnProducto($event)">
               <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProd"></i>
             </div>
             <ul class="adm-sugerencias" *ngIf="sugerenciasProd.length">
@@ -225,10 +233,10 @@
                 </tr>
               </table>
               <div class="adm-ticket__total-fila">
-                <span>Gravada</span><span>S/ {{ gravada | number:'1.2-2' }}</span>
+                <span>Subtotal sin IGV</span><span>S/ {{ gravada | number:'1.2-2' }}</span>
               </div>
               <div class="adm-ticket__total-fila">
-                <span>IGV 18%</span><span>S/ {{ igv | number:'1.2-2' }}</span>
+                <span>IGV {{ porcentajeIgv }}%</span><span>S/ {{ igv | number:'1.2-2' }}</span>
               </div>
               <div class="adm-ticket__total-fila adm-ticket__total-fila--final">
                 <span>Total</span><span>S/ {{ total | number:'1.2-2' }}</span>
@@ -237,9 +245,9 @@
 
             <div class="adm-acciones" style="margin-top:16px;flex-wrap:wrap">
               <button type="button" class="adm-btn adm-btn--primario"
-                      [disabled]="guardando || !lineas.length" (click)="guardar()">
+                      [disabled]="guardando || !lineas.length || !!cotizacionActual?.id_proforma" (click)="guardar()">
                 <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-save'"></i>
-                Guardar
+                {{ cotizacionActual?.id_proforma ? 'Guardada' : 'Guardar' }}
               </button>
               <button type="button" class="adm-btn adm-btn--suave"
                       [disabled]="!lineas.length" (click)="exportarPdf()">
@@ -254,14 +262,27 @@
                 <i class="bi bi-whatsapp"></i>
                 {{ enviandoWa ? 'Preparando…' : 'WhatsApp + proforma' }}
               </button>
+              <button type="button" class="adm-btn adm-btn--exito"
+                      *ngIf="cotizacionActual?.id_proforma && cotizacionActual?.estado !== 'aprobada'
+                             && cotizacionActual?.estado !== 'convertida' && cotizacionActual?.estado !== 'anulada'"
+                      (click)="aprobar()">
+                <i class="bi bi-check2-circle"></i> Aprobar
+              </button>
               <button type="button" class="adm-btn adm-btn--primario"
-                      [disabled]="!cotizacionActual?.id_proforma" (click)="pasarAVenta()">
+                      [disabled]="cotizacionActual?.estado !== 'aprobada'" (click)="pasarAVenta()">
                 <i class="bi bi-cart-check"></i> Pasar a venta
+              </button>
+              <button type="button" class="adm-btn-icono adm-btn-icono--peligro"
+                      title="Anular cotización"
+                      *ngIf="cotizacionActual?.id_proforma && cotizacionActual?.estado !== 'convertida'
+                             && cotizacionActual?.estado !== 'anulada'"
+                      (click)="anular()">
+                <i class="bi bi-trash"></i>
               </button>
             </div>
             <p class="adm-ayuda" style="margin-top:8px">
               WhatsApp: se baja la proforma y se abre el chat. Adjunte el archivo y envíe.
-              “Pasar a venta” abre el POS listo para cobrar y emitir comprobante.
+               Apruebe la cotización para habilitar “Pasar a venta”. El stock se descuenta únicamente al cobrar.
             </p>
           </div>
         </section>

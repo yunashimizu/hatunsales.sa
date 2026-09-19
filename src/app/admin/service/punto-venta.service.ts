@@ -21,6 +21,7 @@ export interface SolicitudVenta {
   enviar_cliente?: boolean;
   id_almacen?: number;
   descontar_stock?: boolean;
+  id_proforma?: number;
   observaciones?: string;
   clave_idempotencia?: string;
   items: { id_producto: number; cantidad: number; precio_unitario?: number; descuento?: number }[];

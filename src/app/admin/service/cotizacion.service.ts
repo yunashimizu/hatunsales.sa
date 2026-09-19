@@ -27,6 +27,7 @@ export interface Cotizacion {
   total_gravada: number;
   total_igv: number;
   total: number;
+  porcentaje_igv?: number;
   id_venta?: number | null;
   items: CotizacionItem[];
   creado_en?: string;

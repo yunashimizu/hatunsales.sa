@@ -41,6 +41,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
   private readonly destruir$ = new Subject<void>();
   private readonly buscarProd$ = new Subject<string>();
   private readonly buscarCli$ = new Subject<string>();
+  private readonly documentoExacto$ = new Subject<string>();
 
   lista: Cotizacion[] = [];
   cargandoLista = false;
@@ -57,14 +58,19 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
 
   textoCliente = '';
   sugerenciasCli: SugerenciaReceptor[] = [];
+  buscandoCliente = false;
   receptor: Receptor | null = null;
   clienteNombreManual = '';
   telefono = '';
   observaciones = '';
   diasVigencia = 7;
   idAlmacen: number | null = null;
+  porcentajeIgv = 18;
 
   cotizacionActual: Cotizacion | null = null;
+
+  private escaneandoCodigo = false;
+  private ultimoDocumentoAuto = '';
 
   constructor(
     private readonly api: CotizacionService,
@@ -124,7 +130,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
   }
 
   get gravada(): number {
-    return Math.round((this.total / 1.18 + Number.EPSILON) * 100) / 100;
+    return Math.round((this.total / (1 + this.porcentajeIgv / 100) + Number.EPSILON) * 100) / 100;
   }
 
   get igv(): number {
@@ -182,10 +188,12 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     this.clienteNombreManual = '';
     this.telefono = '';
     this.observaciones = '';
+    this.porcentajeIgv = 18;
     this.textoProducto = '';
     this.textoCliente = '';
     this.sugerenciasProd = [];
     this.sugerenciasCli = [];
+    this.ultimoDocumentoAuto = '';
     this.refrescar();
   }
 
@@ -231,12 +239,42 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
         distinctUntilChanged(),
         switchMap((termino) => {
           if (termino.trim().length < 2) return of([] as SugerenciaReceptor[]);
+          if (this.esDocumentoExacto(termino)) return of([] as SugerenciaReceptor[]);
           return this.receptorSvc.sugerencias(termino).pipe(catchError(() => of([])));
         }),
         takeUntil(this.destruir$),
       )
       .subscribe((lista) => {
         this.sugerenciasCli = lista;
+        this.refrescar();
+      });
+
+    this.documentoExacto$
+      .pipe(
+        debounceTime(280),
+        distinctUntilChanged(),
+        switchMap((documento) => {
+          this.buscandoCliente = true;
+          this.sugerenciasCli = [];
+          this.refrescar();
+          return this.receptorSvc.buscar(documento).pipe(
+            catchError((error) => {
+              this.buscandoCliente = false;
+              this.ultimoDocumentoAuto = '';
+              this.alerta.error({
+                title: 'No se encontró el documento',
+                message: mensajeDeError(error, 'Verifique el DNI o RUC e intente nuevamente'),
+              });
+              this.refrescar();
+              return of(null as Receptor | null);
+            }),
+          );
+        }),
+        takeUntil(this.destruir$),
+      )
+      .subscribe((receptor) => {
+        this.buscandoCliente = false;
+        if (receptor) this.aplicarCliente(receptor);
         this.refrescar();
       });
   }
@@ -247,7 +285,31 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
 
   alEscribirCliente(): void {
     this.clienteNombreManual = this.textoCliente;
+    if (this.esDocumentoExacto(this.textoCliente)) {
+      const documento = this.textoCliente.replace(/\D/g, '');
+      if (documento !== this.ultimoDocumentoAuto) {
+        this.ultimoDocumentoAuto = documento;
+        this.documentoExacto$.next(documento);
+      }
+      return;
+    }
+    this.ultimoDocumentoAuto = '';
     this.buscarCli$.next(this.textoCliente);
+  }
+
+  private esDocumentoExacto(texto: string): boolean {
+    const limpio = texto.trim();
+    return /^\d+$/.test(limpio) && (limpio.length === 8 || limpio.length === 11);
+  }
+
+  private aplicarCliente(receptor: Receptor): void {
+    this.receptor = receptor;
+    this.clienteNombreManual = receptor.denominacion || '';
+    this.textoCliente = '';
+    this.telefono = (receptor.telefono || this.telefono || '').trim();
+    this.sugerenciasCli = [];
+    this.ultimoDocumentoAuto = '';
+    this.refrescar();
   }
 
   agregarProducto(p: ProductoVenta): void {
@@ -272,6 +334,55 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     this.refrescar();
   }
 
+  /** Permite usar lectores HID en la cotización igual que en el POS. */
+  alPresionarEnProducto(evento: KeyboardEvent): void {
+    if (evento.key !== 'Enter') return;
+    evento.preventDefault();
+    if (this.escaneandoCodigo) return;
+
+    const codigo = this.textoProducto.trim();
+    if (!codigo) return;
+
+    const local = this.pv.porCodigoLocal(codigo);
+    if (local) {
+      this.agregarProducto(local);
+      this.alerta.toast({ type: 'success', title: local.nombre, timer: 1200 });
+      return;
+    }
+
+    if (!this.pareceCodigoExacto(codigo)) {
+      if (this.sugerenciasProd.length === 1) this.agregarProducto(this.sugerenciasProd[0]);
+      return;
+    }
+
+    this.escaneandoCodigo = true;
+    this.buscandoProd = true;
+    this.refrescar();
+    this.pv.porCodigoBarras(codigo, this.idAlmacen).pipe(
+      takeUntil(this.destruir$),
+      catchError(() => of(null as ProductoVenta | null)),
+    ).subscribe((producto) => {
+      this.escaneandoCodigo = false;
+      this.buscandoProd = false;
+      if (producto) {
+        this.agregarProducto(producto);
+        this.alerta.toast({ type: 'success', title: producto.nombre, timer: 1200 });
+      } else if (this.sugerenciasProd.length === 1) {
+        this.agregarProducto(this.sugerenciasProd[0]);
+      } else {
+        this.alerta.toast({ type: 'warning', title: `No hay producto con el código ${codigo}` });
+      }
+      this.refrescar();
+    });
+  }
+
+  private pareceCodigoExacto(texto: string): boolean {
+    const t = texto.trim();
+    if (!t || /\s/.test(t)) return false;
+    if (/^\d{4,}$/.test(t)) return true;
+    return /^[A-Za-z0-9][A-Za-z0-9\-_.]*$/.test(t) && /\d/.test(t);
+  }
+
   cambiarCantidad(linea: LineaCot, v: number | string): void {
     const n = Number(v);
     linea.cantidad = Number.isFinite(n) && n > 0 ? n : 1;
@@ -291,10 +402,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
 
     consulta$.pipe(takeUntil(this.destruir$)).subscribe({
       next: (r) => {
-        this.receptor = r;
-        this.clienteNombreManual = r.denominacion || '';
-        this.textoCliente = '';
-        this.telefono = (r as any).telefono || this.telefono;
+        this.aplicarCliente(r);
         this.refrescar();
       },
       error: (e) => this.alerta.error(errorOperativo(e)),
@@ -303,10 +411,17 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
 
   quitarCliente(): void {
     this.receptor = null;
+    this.textoCliente = '';
+    this.clienteNombreManual = '';
+    this.ultimoDocumentoAuto = '';
     this.refrescar();
   }
 
   guardar(): void {
+    if (this.cotizacionActual?.id_proforma) {
+      this.alerta.toast({ type: 'info', title: 'La cotización ya está guardada. Cree una nueva para duplicarla.' });
+      return;
+    }
     if (!this.lineas.length) {
       this.alerta.toast({ type: 'warning', title: 'Agregue al menos un producto' });
       return;
@@ -328,9 +443,6 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
       id_almacen: this.idAlmacen ?? undefined,
       observaciones: this.observaciones,
       dias_vigencia: this.diasVigencia,
-      total: this.total,
-      total_gravada: this.gravada,
-      total_igv: this.igv,
       items: this.lineas.map((l) => ({
         id_producto: l.id_producto,
         cantidad: l.cantidad,
@@ -342,6 +454,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
       next: (cot) => {
         this.guardando = false;
         this.cotizacionActual = cot;
+        this.porcentajeIgv = Number(cot.porcentaje_igv) || 18;
         this.alerta.toast({ type: 'success', title: `${cot.codigo || 'Cotización'} guardada` });
         this.refrescar();
       },
@@ -357,6 +470,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     this.api.porId(c.id_proforma).pipe(takeUntil(this.destruir$)).subscribe({
       next: (cot) => {
         this.cotizacionActual = cot;
+        this.porcentajeIgv = Number(cot.porcentaje_igv) || 18;
         this.modo = 'nueva';
         this.lineas = (cot.items || []).map((i) => ({
           id_producto: i.id_producto,
@@ -384,6 +498,51 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     });
   }
 
+  aprobar(): void {
+    const id = this.cotizacionActual?.id_proforma;
+    if (!id || this.cotizacionActual?.estado === 'convertida' || this.cotizacionActual?.estado === 'anulada') return;
+
+    this.alerta.confirm({
+      title: '¿Aprobar esta cotización?',
+      message: 'La aprobación no descuenta stock. El inventario se actualizará recién al registrar la venta.',
+      confirmText: 'Aprobar',
+    }).then((resultado) => {
+      if (!resultado.isConfirmed) return;
+      this.api.marcar(id, { estado: 'aprobada' }).pipe(takeUntil(this.destruir$)).subscribe({
+        next: (cot) => {
+          this.cotizacionActual = cot;
+          this.alerta.toast({ type: 'success', title: 'Cotización aprobada' });
+          this.cargarLista();
+          this.refrescar();
+        },
+        error: (e) => this.alerta.error(errorOperativo(e, 'No se pudo aprobar la cotización')),
+      });
+    });
+  }
+
+  anular(cotizacion = this.cotizacionActual): void {
+    const id = cotizacion?.id_proforma;
+    if (!id || cotizacion?.estado === 'convertida' || cotizacion?.estado === 'anulada') return;
+
+    this.alerta.confirm({
+      title: '¿Anular esta cotización?',
+      message: 'Se conservará en el historial como anulada y no afectará el stock.',
+      confirmText: 'Sí, anular',
+      cancelText: 'Cancelar',
+    }).then((resultado) => {
+      if (!resultado.isConfirmed) return;
+      this.api.marcar(id, { estado: 'anulada' }).pipe(takeUntil(this.destruir$)).subscribe({
+        next: (actualizada) => {
+          this.cotizacionActual = actualizada;
+          this.alerta.toast({ type: 'success', title: 'Cotización anulada' });
+          this.cargarLista();
+          this.refrescar();
+        },
+        error: (e) => this.alerta.error(errorOperativo(e, 'No se pudo anular la cotización')),
+      });
+    });
+  }
+
   exportarExcel(): void {
     if (!this.lineas.length) {
       this.alerta.toast({ type: 'warning', title: 'Sin ítems para exportar' });
@@ -405,8 +564,8 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
         (l.cantidad * l.precio_unitario).toFixed(2),
       ]),
       [],
-      ['Gravada', this.gravada.toFixed(2)],
-      ['IGV', this.igv.toFixed(2)],
+      ['Subtotal sin IGV', this.gravada.toFixed(2)],
+      [`IGV ${this.porcentajeIgv}%`, this.igv.toFixed(2)],
       ['Total', this.total.toFixed(2)],
     ];
     const csv = filas.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
@@ -477,8 +636,8 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
       <table><thead><tr><th>SKU</th><th>Descripción</th><th>Cant.</th><th>P.Unit</th><th>Subtotal</th></tr></thead>
       <tbody>${filas}</tbody></table>
       <div class="tot">
-        <div>Gravada: S/ ${this.gravada.toFixed(2)}</div>
-        <div>IGV (18%): S/ ${this.igv.toFixed(2)}</div>
+         <div>Subtotal sin IGV: S/ ${this.gravada.toFixed(2)}</div>
+         <div>IGV (${this.porcentajeIgv}%): S/ ${this.igv.toFixed(2)}</div>
         <div><strong>Total: S/ ${this.total.toFixed(2)}</strong></div>
       </div>
       ${this.observaciones ? `<p class="sub">Obs: ${escape(this.observaciones)}</p>` : ''}
@@ -516,9 +675,6 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
         id_almacen: this.idAlmacen ?? undefined,
         observaciones: this.observaciones,
         dias_vigencia: this.diasVigencia,
-        total: this.total,
-        total_gravada: this.gravada,
-        total_igv: this.igv,
         items: this.lineas.map((l) => ({
           id_producto: l.id_producto,
           cantidad: l.cantidad,
@@ -530,6 +686,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
         next: (cot) => {
           this.guardando = false;
           this.cotizacionActual = cot;
+          this.porcentajeIgv = Number(cot.porcentaje_igv) || 18;
           this.refrescar();
           this.dispararWa(cot.id_proforma);
         },
@@ -663,6 +820,10 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
       this.alerta.toast({ type: 'warning', title: 'Esta cotización ya fue convertida' });
       return;
     }
+    if (this.cotizacionActual?.estado !== 'aprobada') {
+      this.alerta.toast({ type: 'warning', title: 'Apruebe la cotización antes de pasarla a venta' });
+      return;
+    }
     void this.router.navigate(['/dashboard/mantenimiento/ventas'], {
       queryParams: { cotizacion: id },
     });
@@ -670,6 +831,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
 
   estadoClase(estado: string): string {
     if (estado === 'convertida') return 'adm-insignia--exito';
+    if (estado === 'aprobada') return 'adm-insignia--exito';
     if (estado === 'enviada') return 'adm-insignia--info';
     if (estado === 'anulada') return 'adm-insignia--peligro';
     return 'adm-insignia--neutra';
