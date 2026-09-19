@@ -38,6 +38,61 @@
 }
 .pv-receptor .adm-btn-icono { margin-left: auto; }
 
+.cot-cliente-resumen {
+  min-height: 42px;
+  align-items: center;
+  padding-bottom: 2px;
+}
+
+.cot-datos-cliente {
+  margin-top: 14px;
+  align-items: stretch;
+}
+
+.cot-contexto-stock {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) auto;
+  gap: 10px 14px;
+  align-items: end;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-sm);
+  background: var(--adm-superficie-2);
+}
+
+.cot-contexto-stock .adm-ayuda {
+  grid-column: 1 / -1;
+}
+
+.cot-check-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  font-size: 12px;
+  color: var(--adm-texto-suave);
+  white-space: nowrap;
+}
+
+.cot-check-stock input { accent-color: var(--adm-primario); }
+
+.cot-stock-error {
+  margin-bottom: 12px;
+}
+
+.cot-cargando-stock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.cot-sin-productos {
+  margin: 10px 0;
+  color: var(--adm-aviso);
+}
+
 .pv-contador__input {
   width: 62px;
   padding: 6px 4px;
@@ -62,3 +117,9 @@
   gap: 2px;
 }
 .adm-sugerencias li:hover { background: var(--adm-suave, #f3f4f6); }
+
+@media (max-width: 700px) {
+  .cot-contexto-stock { grid-template-columns: 1fr; }
+  .cot-contexto-stock .adm-ayuda { grid-column: auto; }
+  .cot-check-stock { white-space: normal; }
+}

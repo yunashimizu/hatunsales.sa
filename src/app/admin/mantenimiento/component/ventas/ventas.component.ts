@@ -131,6 +131,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   /** Cotización cargada vía ?cotizacion=ID (no bloquea cobro normal). */
   idCotizacionCargada: number | null = null;
   codigoCotizacionCargada = '';
+  private idAlmacenCotizacion: number | null = null;
 
   private lineaPagoVacia() {
     return {
@@ -239,6 +240,8 @@ export class VentasComponent implements OnInit, OnDestroy {
 
         this.idCotizacionCargada = cot.id_proforma;
         this.codigoCotizacionCargada = cot.codigo || `#${cot.id_proforma}`;
+        this.idAlmacenCotizacion = cot.id_almacen ? Number(cot.id_almacen) : null;
+        if (this.idAlmacenCotizacion) this.idAlmacen = this.idAlmacenCotizacion;
         this.lineas = (cot.items || []).map((i) => ({
           id_producto: i.id_producto,
           descripcion: i.descripcion || 'Producto',
@@ -247,8 +250,7 @@ export class VentasComponent implements OnInit, OnDestroy {
           cantidad: Number(i.cantidad),
           precio_unitario: Number(i.precio_unitario),
           descuento: 0,
-          stock_disponible: this.puntoVenta.productoPorId(i.id_producto)?.stock_disponible
-            ?? Number(i.cantidad),
+          stock_disponible: this.puntoVenta.productoPorId(i.id_producto)?.stock_disponible ?? 0,
         }));
         this.observaciones = cot.observaciones || '';
 
@@ -291,7 +293,7 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.pedirRecalculo();
         }
 
-        this.sincronizarStockCarritoDesdeCatalogo(true);
+        this.cargarCatalogoParaCotizacion();
         this.alerta.toast({
           type: 'info',
           title: `Cotización ${this.codigoCotizacionCargada}`,
@@ -304,6 +306,22 @@ export class VentasComponent implements OnInit, OnDestroy {
         this.alerta.error(errorOperativo(e, 'No se pudo cargar la cotización'));
         this.refrescarVista();
       },
+    });
+  }
+
+  /** Recarga el almacén de la cotización antes de validar stock en el POS. */
+  private cargarCatalogoParaCotizacion(): void {
+    if (!this.idAlmacen) {
+      this.sincronizarStockCarritoDesdeCatalogo(true);
+      return;
+    }
+    this.puntoVenta.cargarCatalogo(true, this.idAlmacen).pipe(
+      takeUntil(this.destruir$),
+      catchError(() => EMPTY),
+    ).subscribe(() => {
+      this.sincronizarStockCarritoDesdeCatalogo(true);
+      this.pedirRecalculo();
+      this.refrescarVista();
     });
   }
 
@@ -385,7 +403,11 @@ export class VentasComponent implements OnInit, OnDestroy {
 
       const guardado = Number(localStorage.getItem(LS_ALMACEN) || 0);
       const enLista = this.almacenes.some((a) => a.id_almacen === guardado);
-      if (enLista) {
+       const almacenCotizacionEnLista = this.idAlmacenCotizacion
+         && this.almacenes.some((a) => a.id_almacen === this.idAlmacenCotizacion);
+       if (almacenCotizacionEnLista) {
+         this.idAlmacen = this.idAlmacenCotizacion;
+       } else if (enLista) {
         this.idAlmacen = guardado;
       } else if (ctx.almacen_default && this.almacenes.some((a) => a.id_almacen === ctx.almacen_default)) {
         this.idAlmacen = ctx.almacen_default;
@@ -412,6 +434,10 @@ export class VentasComponent implements OnInit, OnDestroy {
               timer: 4000,
             });
             return EMPTY;
+          }),
+          tap(() => {
+            this.sincronizarStockCarritoDesdeCatalogo(true);
+            this.pedirRecalculo();
           }),
           finalize(() => this.refrescarVista()),
         )
@@ -1490,6 +1516,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.observaciones = '';
     this.idCotizacionCargada = null;
     this.codigoCotizacionCargada = '';
+    this.idAlmacenCotizacion = null;
     this.montoRecibido = null;
     this.lineasPago = [{
       ...this.lineaPagoVacia(),

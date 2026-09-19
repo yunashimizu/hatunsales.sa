@@ -98,9 +98,11 @@
             <h2 class="adm-tarjeta__titulo"><i class="bi bi-person"></i> Cliente</h2>
           </div>
           <div class="adm-tarjeta__cuerpo">
-            <div class="pv-receptor" *ngIf="receptor; else buscarCli">
-              <div class="adm-tabla__principal">{{ receptor.denominacion }}</div>
-              <div class="adm-tabla__secundario">{{ receptor.numero_documento }}</div>
+            <div class="pv-receptor cot-cliente-resumen" *ngIf="receptor; else buscarCli">
+              <div>
+                <div class="adm-tabla__principal">{{ receptor.denominacion }}</div>
+                <div class="adm-tabla__secundario">{{ receptor.numero_documento }}</div>
+              </div>
               <button type="button" class="adm-btn-icono" (click)="quitarCliente()" aria-label="Quitar">
                 <i class="bi bi-x-lg"></i>
               </button>
@@ -122,7 +124,7 @@
               <p class="adm-ayuda" style="margin-top:8px">O escriba un nombre libre si aún no está registrado.</p>
             </ng-template>
 
-            <div class="adm-fila" style="margin-top:12px">
+            <div class="adm-fila cot-datos-cliente">
               <div class="adm-campo">
                 <label class="adm-etiqueta" for="cot-tel">Celular WhatsApp</label>
                 <input id="cot-tel" class="adm-input" type="tel" maxlength="15"
@@ -146,22 +148,53 @@
             <h2 class="adm-tarjeta__titulo"><i class="bi bi-box-seam"></i> Productos</h2>
           </div>
           <div class="adm-tarjeta__cuerpo">
+            <div class="cot-contexto-stock">
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="cot-almacen">Almacén de despacho</label>
+                <select id="cot-almacen" class="adm-select"
+                        [ngModel]="idAlmacen" (ngModelChange)="cambiarAlmacen($event)">
+                  <option [ngValue]="null" disabled>Seleccione un almacén</option>
+                  <option *ngFor="let almacen of almacenes" [ngValue]="almacen.id_almacen">
+                    {{ almacen.nombre }}<ng-container *ngIf="almacen.sucursal"> · {{ almacen.sucursal }}</ng-container>
+                  </option>
+                </select>
+              </div>
+              <label class="cot-check-stock">
+                <input type="checkbox" [ngModel]="buscarTodasLasSedes"
+                       (ngModelChange)="cambiarAlcanceStock($event)">
+                <span>Buscar stock en todas las sedes</span>
+              </label>
+              <span class="adm-ayuda">Despacho: {{ nombreAlmacenDespacho }}</span>
+            </div>
+
+            <div class="adm-aviso adm-aviso--peligro cot-stock-error" *ngIf="errorProductos">
+              <i class="bi bi-exclamation-triangle"></i>
+              <span>{{ errorProductos }}</span>
+            </div>
+
             <div class="pv-buscador">
               <i class="bi bi-search pv-buscador__icono"></i>
                 <input class="adm-input pv-buscador__input" type="text" autocomplete="off"
                        placeholder="Buscar producto…"
                        [(ngModel)]="textoProducto" (ngModelChange)="alEscribirProducto()"
                        (keydown)="alPresionarEnProducto($event)">
-              <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProd"></i>
+               <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProd"></i>
             </div>
+            <p class="adm-ayuda cot-cargando-stock" *ngIf="cargandoProductos">
+              <i class="bi bi-arrow-repeat adm-girando"></i> Cargando productos y stock…
+            </p>
             <ul class="adm-sugerencias" *ngIf="sugerenciasProd.length">
               <li *ngFor="let p of sugerenciasProd" (click)="agregarProducto(p)">
                 <strong>{{ p.nombre }}</strong>
                 <span class="adm-tabla__secundario">
-                  {{ p.sku }} · Stock {{ p.stock_disponible }} · S/ {{ p.precio_final | number:'1.2-2' }}
+                   {{ p.sku }} · Stock {{ p.stock_disponible }}{{ buscarTodasLasSedes ? ' total' : '' }} · S/ {{ p.precio_final | number:'1.2-2' }}
                 </span>
               </li>
             </ul>
+            <p class="adm-ayuda cot-sin-productos"
+               *ngIf="textoProducto && !sugerenciasProd.length && !buscandoProd && !cargandoProductos && !errorProductos">
+              No hay productos con stock para esa búsqueda en el alcance seleccionado.
+            </p>
 
             <div class="adm-vacio" *ngIf="!lineas.length" style="padding:24px 0">
               <p>Agregue productos para armar la cotización.</p>
@@ -225,6 +258,14 @@
               <div class="adm-ticket__dato">
                 <span>Cliente</span>
                 <span>{{ receptor?.denominacion || clienteNombreManual || '—' }}</span>
+              </div>
+              <div class="adm-ticket__dato">
+                <span>Vigencia</span>
+                <span>{{ fechaVigenciaPreview }}</span>
+              </div>
+              <div class="adm-ticket__dato">
+                <span>Despacho</span>
+                <span>{{ nombreAlmacenDespacho }}</span>
               </div>
               <table class="adm-ticket__items" *ngIf="lineas.length">
                 <tr *ngFor="let l of lineas">

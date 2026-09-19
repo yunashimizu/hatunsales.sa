@@ -15,7 +15,7 @@ import { AlertService } from '../../../../shared/services/alert.service';
 import { telefonoValidoPe, urlWhatsappCliente } from '../../../../shared/utils/whatsapp.util';
 import { errorOperativo, mensajeDeError } from '../../../service/api-base.service';
 import { Cotizacion, CotizacionService } from '../../../service/cotizacion.service';
-import { PuntoVentaService } from '../../../service/punto-venta.service';
+import { AlmacenPos, PuntoVentaService } from '../../../service/punto-venta.service';
 import { ReceptorService } from '../../../service/receptor.service';
 import { ProductoVenta, Receptor, SugerenciaReceptor } from '../../../models/admin.models';
 
@@ -55,6 +55,10 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
   textoProducto = '';
   sugerenciasProd: ProductoVenta[] = [];
   buscandoProd = false;
+  cargandoProductos = false;
+  errorProductos = '';
+  almacenes: AlmacenPos[] = [];
+  buscarTodasLasSedes = true;
 
   textoCliente = '';
   sugerenciasCli: SugerenciaReceptor[] = [];
@@ -141,6 +145,26 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     return telefonoValidoPe(this.telefono);
   }
 
+  get fechaVigenciaPreview(): string {
+    if (this.cotizacionActual?.valida_hasta) return this.formatearFecha(this.cotizacionActual.valida_hasta);
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() + Math.max(1, Number(this.diasVigencia) || 7));
+    return this.formatearFecha(fecha.toISOString().slice(0, 10));
+  }
+
+  get cotizacionVencida(): boolean {
+    return !!this.cotizacionActual?.valida_hasta && this.fechaYaPaso(this.cotizacionActual.valida_hasta);
+  }
+
+  private fechaYaPaso(fecha: string): boolean {
+    return new Date(`${fecha}T23:59:59`).getTime() < Date.now();
+  }
+
+  private formatearFecha(fecha: string): string {
+    const partes = String(fecha).slice(0, 10).split('-');
+    return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : fecha;
+  }
+
   get listaFiltrada(): Cotizacion[] {
     const t = this.filtro.trim().toLowerCase();
     if (!t) return this.lista;
@@ -154,13 +178,63 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
   }
 
   private cargarContexto(): void {
-    this.pv.contextoPos().pipe(takeUntil(this.destruir$), catchError(() => of({ almacenes: [] }))).subscribe((ctx: any) => {
-      this.idAlmacen = ctx.almacen_default || ctx.almacenes?.[0]?.id_almacen || null;
-      if (this.idAlmacen) {
-        this.pv.cargarCatalogo(false, this.idAlmacen).pipe(catchError(() => of([]))).subscribe();
-      }
+    this.pv.contextoPos().pipe(
+      takeUntil(this.destruir$),
+      catchError(() => of({ almacenes: [] as AlmacenPos[], almacen_default: undefined })),
+    ).subscribe((ctx) => {
+      this.almacenes = Array.isArray(ctx.almacenes) ? ctx.almacenes : [];
+      const guardado = Number(localStorage.getItem('pos_id_almacen') || 0);
+      const existeGuardado = this.almacenes.some((a) => a.id_almacen === guardado);
+      this.idAlmacen = existeGuardado
+        ? guardado
+        : ctx.almacen_default || this.almacenes[0]?.id_almacen || null;
+      this.cargarCatalogoCotizacion();
       this.refrescar();
     });
+  }
+
+  private cargarCatalogoCotizacion(): void {
+    this.cargandoProductos = true;
+    this.errorProductos = '';
+    this.refrescar();
+    this.pv.cargarCatalogo(true, this.buscarTodasLasSedes ? null : this.idAlmacen).pipe(
+      takeUntil(this.destruir$),
+    ).subscribe({
+      next: () => {
+        this.cargandoProductos = false;
+        this.refrescar();
+      },
+      error: (error) => {
+        this.cargandoProductos = false;
+        this.errorProductos = mensajeDeError(error, 'No se pudo cargar el catálogo de productos');
+        this.refrescar();
+      },
+    });
+  }
+
+  cambiarAlmacen(valor: number | string): void {
+    const id = Number(valor);
+    if (!Number.isFinite(id) || id <= 0) return;
+    this.idAlmacen = id;
+    localStorage.setItem('pos_id_almacen', String(id));
+    this.buscarTodasLasSedes = false;
+    this.sugerenciasProd = [];
+    this.cargarCatalogoCotizacion();
+  }
+
+  cambiarAlcanceStock(valor: boolean): void {
+    this.buscarTodasLasSedes = !!valor;
+    this.sugerenciasProd = [];
+    this.cargarCatalogoCotizacion();
+  }
+
+  get nombreAlmacenDespacho(): string {
+    const almacen = this.almacenes.find((a) => a.id_almacen === this.idAlmacen);
+    return almacen ? `${almacen.nombre}${almacen.sucursal ? ` · ${almacen.sucursal}` : ''}` : 'Sin almacén';
+  }
+
+  private productosConStock(productos: ProductoVenta[]): ProductoVenta[] {
+    return productos.filter((producto) => Number(producto.stock_disponible ?? 0) > 0).slice(0, 12);
   }
 
   cargarLista(): void {
@@ -219,15 +293,20 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
           return;
         }
         if (this.pv.tieneCatalogo) {
-          this.sugerenciasProd = this.pv.filtrarLocal(t).slice(0, 12);
+          this.sugerenciasProd = this.productosConStock(this.pv.filtrarLocal(t));
           this.buscandoProd = false;
           this.refrescar();
           return;
         }
         this.buscandoProd = true;
         this.refrescar();
-        this.pv.buscarProductos(t, 12, this.idAlmacen).pipe(catchError(() => of([]))).subscribe((lista) => {
-          this.sugerenciasProd = lista;
+        this.pv.buscarProductos(t, 12, this.buscarTodasLasSedes ? null : this.idAlmacen).pipe(
+          catchError((error) => {
+            this.errorProductos = mensajeDeError(error, 'No se pudo buscar el producto');
+            return of([] as ProductoVenta[]);
+          }),
+        ).subscribe((lista) => {
+          this.sugerenciasProd = this.productosConStock(lista);
           this.buscandoProd = false;
           this.refrescar();
         });
@@ -358,7 +437,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     this.escaneandoCodigo = true;
     this.buscandoProd = true;
     this.refrescar();
-    this.pv.porCodigoBarras(codigo, this.idAlmacen).pipe(
+    this.pv.porCodigoBarras(codigo, this.buscarTodasLasSedes ? null : this.idAlmacen).pipe(
       takeUntil(this.destruir$),
       catchError(() => of(null as ProductoVenta | null)),
     ).subscribe((producto) => {
@@ -501,6 +580,14 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
   aprobar(): void {
     const id = this.cotizacionActual?.id_proforma;
     if (!id || this.cotizacionActual?.estado === 'convertida' || this.cotizacionActual?.estado === 'anulada') return;
+    if (!this.idAlmacen) {
+      this.alerta.toast({ type: 'warning', title: 'Seleccione el almacén de despacho' });
+      return;
+    }
+    if (this.cotizacionVencida) {
+      this.alerta.toast({ type: 'warning', title: 'La cotización está vencida. Cree una nueva con vigencia actual.' });
+      return;
+    }
 
     this.alerta.confirm({
       title: '¿Aprobar esta cotización?',
