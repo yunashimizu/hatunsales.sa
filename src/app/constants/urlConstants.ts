@@ -2,7 +2,7 @@
 export const dominio = 'https://hatunsales-production.up.railway.app/';
 
 
-// El backend expone sus rutas en la raíz; /api corresponde a Swagger.
+//https://hatunsales-production-c83e.up.railway.app/api#/
 // Para probar localmente, descomenta la línea siguiente y comenta la de arriba:
 // export const dominio = 'http://localhost:3000/';
 
