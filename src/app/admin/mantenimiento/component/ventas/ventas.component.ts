@@ -980,6 +980,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
   agregarProducto(producto: ProductoVenta): void {
+    if (this.emitiendo) return;
     this.textoProducto = '';
     this.sugerenciasProducto = [];
     this.indiceProducto = -1;
@@ -1014,6 +1015,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
   cambiarCantidad(linea: LineaVenta, valor: number | string): void {
+    if (this.emitiendo) return;
     const cantidad = Number(valor);
     linea.cantidad = Number.isFinite(cantidad) && cantidad > 0 ? cantidad : 1;
     this.avisarSiExcedeStock(linea);
@@ -1025,18 +1027,21 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
   cambiarPrecio(linea: LineaVenta, valor: number | string): void {
+    if (this.emitiendo) return;
     const precio = Number(valor);
     linea.precio_unitario = Number.isFinite(precio) && precio >= 0 ? precio : 0;
     this.pedirRecalculo();
   }
 
   cambiarDescuento(linea: LineaVenta, valor: number | string): void {
+    if (this.emitiendo) return;
     const descuento = Number(valor);
     linea.descuento = Number.isFinite(descuento) && descuento >= 0 ? descuento : 0;
     this.pedirRecalculo();
   }
 
   quitarLinea(linea: LineaVenta): void {
+    if (this.emitiendo) return;
     this.lineas = this.lineas.filter((l) => l !== linea);
     this.pedirRecalculo();
   }
@@ -1451,9 +1456,14 @@ export class VentasComponent implements OnInit, OnDestroy {
   private registrar(): void {
     this.emitiendo = true;
     this.refrescarVista();
+    const lineasRegistradas = this.lineas.map((linea) => ({
+      id_producto: linea.id_producto,
+      cantidad: linea.cantidad,
+    }));
+    const solicitud = this.armarSolicitud(true);
 
     this.puntoVenta
-      .registrar(this.armarSolicitud(true))
+      .registrar(solicitud)
       .pipe(takeUntil(this.destruir$))
       .subscribe({
         next: (venta) => {
@@ -1476,7 +1486,7 @@ export class VentasComponent implements OnInit, OnDestroy {
           }
 
           this.puntoVenta.descontarStockLocal(
-            this.lineas.map((l) => ({ id_producto: l.id_producto, cantidad: l.cantidad })),
+            lineasRegistradas,
           );
           this.puntoVenta
             .cargarCatalogo(true, this.idAlmacen)

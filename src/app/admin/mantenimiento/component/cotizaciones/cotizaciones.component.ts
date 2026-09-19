@@ -233,8 +233,10 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     return almacen ? `${almacen.nombre}${almacen.sucursal ? ` · ${almacen.sucursal}` : ''}` : 'Sin almacén';
   }
 
-  private productosConStock(productos: ProductoVenta[]): ProductoVenta[] {
-    return productos.filter((producto) => Number(producto.stock_disponible ?? 0) > 0).slice(0, 12);
+  private productosVisibles(productos: ProductoVenta[]): ProductoVenta[] {
+    return [...productos]
+      .sort((a, b) => Number(b.stock_disponible ?? 0) - Number(a.stock_disponible ?? 0))
+      .slice(0, 12);
   }
 
   cargarLista(): void {
@@ -293,7 +295,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
           return;
         }
         if (this.pv.tieneCatalogo) {
-          this.sugerenciasProd = this.productosConStock(this.pv.filtrarLocal(t));
+          this.sugerenciasProd = this.productosVisibles(this.pv.filtrarLocal(t));
           this.buscandoProd = false;
           this.refrescar();
           return;
@@ -306,7 +308,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
             return of([] as ProductoVenta[]);
           }),
         ).subscribe((lista) => {
-          this.sugerenciasProd = this.productosConStock(lista);
+          this.sugerenciasProd = this.productosVisibles(lista);
           this.buscandoProd = false;
           this.refrescar();
         });
