@@ -278,25 +278,36 @@
       </div>
     </div>
 
-    <div class="adm-fila prod-fila prod-espaciado" *ngIf="!editando">
+    <div class="adm-fila prod-fila prod-espaciado">
       <div class="adm-campo">
         <label class="adm-etiqueta" for="f-stock">Stock</label>
         <input id="f-stock" class="adm-input" type="number" min="0" step="1"
+               [disabled]="!!editando && (cargandoStock || !idAlmacenStock)"
                [(ngModel)]="formulario.stock">
       </div>
-      <div class="adm-campo" aria-hidden="true"></div>
-    </div>
-    <div class="adm-fila prod-fila prod-ayudas" *ngIf="!editando">
-      <p class="adm-ayuda">Cantidad inicial. Luego se ajusta en Inventario.</p>
-      <p class="adm-ayuda" aria-hidden="true">&nbsp;</p>
-    </div>
-
-    <div class="adm-campo prod-espaciado" *ngIf="editando">
-      <label class="adm-etiqueta">Stock actual</label>
-      <div>
-        <span class="adm-insignia adm-insignia--neutra">{{ editando.stock_total }}</span>
+      <div class="adm-campo" *ngIf="editando; else stockInicialVacio">
+        <label class="adm-etiqueta" for="f-stock-almacen">Almacén</label>
+        <select id="f-stock-almacen" class="adm-select"
+                [disabled]="cargandoStock || !almacenes.length"
+                [ngModel]="idAlmacenStock" (ngModelChange)="cambiarAlmacenStock($event)">
+          <option [ngValue]="null" disabled>Seleccione un almacén</option>
+          <option *ngFor="let almacen of almacenes" [ngValue]="almacen.id_almacen">
+            {{ almacen.nombre }}<ng-container *ngIf="almacen.sucursal"> · {{ almacen.sucursal }}</ng-container>
+          </option>
+        </select>
       </div>
-      <span class="adm-ayuda">Para cambiar la cantidad usa el módulo Inventario.</span>
+      <ng-template #stockInicialVacio><div class="adm-campo" aria-hidden="true"></div></ng-template>
+    </div>
+    <div class="adm-fila prod-fila prod-ayudas">
+      <p class="adm-ayuda" *ngIf="!editando">Cantidad inicial del producto.</p>
+      <p class="adm-ayuda" *ngIf="editando && cargandoStock">Cargando stock del almacén…</p>
+      <p class="adm-ayuda" *ngIf="editando && !cargandoStock && idAlmacenStock">
+        Cambiar la cantidad registra un ajuste por corrección en el kardex.
+      </p>
+      <p class="adm-ayuda adm-ayuda--error" *ngIf="editando && !cargandoStock && !idAlmacenStock">
+        No hay almacenes disponibles para editar el stock.
+      </p>
+      <p class="adm-ayuda" aria-hidden="true">&nbsp;</p>
     </div>
 
     <div class="adm-campo prod-espaciado">

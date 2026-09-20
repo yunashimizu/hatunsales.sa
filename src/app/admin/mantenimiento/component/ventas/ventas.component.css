@@ -102,6 +102,27 @@
   margin-left: auto;
 }
 
+.pv-descuento-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.pv-descuento-control__tipo {
+  width: 54px;
+  padding: 6px 4px;
+}
+
+.pv-descuento-global {
+  padding: 10px 12px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-sm);
+  background: var(--adm-superficie-2);
+}
+
+.pv-descuento-global .adm-ayuda { display: block; margin-top: 4px; }
+
 /* Oculta las flechas del input numérico, que en una caja solo estorban. */
 .pv-contador__input::-webkit-outer-spin-button,
 .pv-contador__input::-webkit-inner-spin-button,

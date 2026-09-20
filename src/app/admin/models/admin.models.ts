@@ -52,6 +52,9 @@ export interface LineaVenta {
   cantidad: number;
   precio_unitario: number;
   descuento: number;
+  /** Presentación del descuento en pantalla; `descuento` sigue siendo soles para la API. */
+  descuento_tipo?: 'soles' | 'porcentaje';
+  descuento_valor?: number;
   stock_disponible: number;
 }
 
