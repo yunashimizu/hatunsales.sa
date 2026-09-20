@@ -256,6 +256,31 @@
 
 .pv-resultado__texto { flex: 1; min-width: 200px; }
 
+/* ── Alta rápida de producto ─────────────────────────────────── */
+
+/* «Sin resultados» reusa .adm-sugerencias (dropdown absoluto) y solo ajusta el aire interior. */
+.pv-sinresultado__cuerpo { padding: 18px 16px; gap: 8px; }
+
+.pv-sinresultado__titulo {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.pv-sinresultado__atajo { font-size: 11px; }
+
+.pv-tecla {
+  padding: 1px 6px;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--adm-texto-suave);
+  background: var(--adm-superficie-3);
+  border: 1px solid var(--adm-borde-fuerte);
+  border-radius: 4px;
+}
+
+/* «+ Stock» de las sugerencias sin existencias. */
+.pv-sugerencia__stock { flex-shrink: 0; }
+
 @media (max-width: 1200px) {
   .pv-cobro { position: static; }
 }

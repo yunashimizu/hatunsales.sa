@@ -8,7 +8,8 @@
       </p>
     </div>
     <div class="adm-acciones">
-      <button type="button" class="adm-btn adm-btn--suave" *ngIf="modo === 'nueva'" (click)="volverLista()">
+      <button type="button" class="adm-btn adm-btn--suave" *ngIf="modo === 'nueva'"
+              [disabled]="ocupado" (click)="volverLista()">
         <i class="bi bi-arrow-left"></i> Lista
       </button>
       <button type="button" class="adm-btn adm-btn--primario" *ngIf="modo === 'lista'" (click)="nueva()">
@@ -53,16 +54,26 @@
           <tr *ngFor="let c of listaFiltrada; trackBy: identificar">
             <td data-etiqueta="Código">
               <div class="adm-tabla__principal">{{ c.codigo || ('#' + c.id_proforma) }}</div>
+              <div class="adm-tabla__secundario" *ngIf="fechaHora(c.creado_en) as creado">{{ creado }}</div>
             </td>
             <td data-etiqueta="Cliente">{{ c.cliente_nombre || '—' }}</td>
             <td data-etiqueta="Total">S/ {{ c.total | number:'1.2-2' }}</td>
             <td data-etiqueta="Estado">
               <span class="adm-insignia" [ngClass]="estadoClase(c.estado)">{{ c.estado }}</span>
             </td>
-            <td data-etiqueta="Vigencia">{{ c.valida_hasta || '—' }}</td>
-            <td data-etiqueta="Acciones" class="adm-centro">
-              <button type="button" class="adm-btn-icono" title="Abrir" (click)="abrirCotizacion(c)">
-                <i class="bi bi-eye"></i>
+            <td data-etiqueta="Vigencia">{{ fechaCorta(c.valida_hasta) }}</td>
+            <td data-etiqueta="Acciones" class="adm-centro cot-acciones-fila">
+              <button type="button" class="adm-btn-icono" title="Abrir" aria-label="Abrir cotización"
+                      [disabled]="abriendoId !== null" (click)="abrirCotizacion(c)">
+                <i class="bi" [ngClass]="abriendoId === c.id_proforma ? 'bi-arrow-repeat adm-girando' : 'bi-eye'"></i>
+              </button>
+              <button type="button" class="adm-btn-icono" title="Descargar PDF" aria-label="Descargar PDF de la proforma"
+                      [disabled]="descargandoFila(c, 'pdf')" (click)="descargarDesdeLista(c, 'pdf')">
+                <i class="bi" [ngClass]="descargandoFila(c, 'pdf') ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-pdf'"></i>
+              </button>
+              <button type="button" class="adm-btn-icono" title="Descargar Excel" aria-label="Descargar Excel de la proforma"
+                      [disabled]="descargandoFila(c, 'excel')" (click)="descargarDesdeLista(c, 'excel')">
+                <i class="bi" [ngClass]="descargandoFila(c, 'excel') ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-excel'"></i>
               </button>
               <a class="adm-btn-icono" title="Pasar a venta"
                  [routerLink]="['/dashboard/mantenimiento/ventas']"
@@ -87,7 +98,7 @@
   <ng-container *ngIf="modo === 'nueva'">
     <div class="adm-aviso adm-aviso--info" style="margin-bottom:12px">
       <i class="bi bi-whatsapp"></i>
-      WhatsApp descarga la proforma y abre el chat con el detalle. Adjunte el archivo en el clip y envíe (no requiere Meta).
+      WhatsApp guarda la cotización, descarga la proforma en PDF y abre el chat con el detalle. Adjunte el PDF con el clip y envíe (no requiere Meta).
     </div>
 
     <div class="adm-grid adm-grid--pos">
@@ -103,7 +114,8 @@
                 <div class="adm-tabla__principal">{{ receptor.denominacion }}</div>
                 <div class="adm-tabla__secundario">{{ receptor.numero_documento }}</div>
               </div>
-              <button type="button" class="adm-btn-icono" (click)="quitarCliente()" aria-label="Quitar">
+              <button type="button" class="adm-btn-icono" *ngIf="!soloLectura"
+                      (click)="quitarCliente()" aria-label="Quitar cliente">
                 <i class="bi bi-x-lg"></i>
               </button>
             </div>
@@ -136,7 +148,8 @@
               </div>
               <div class="adm-campo">
                 <label class="adm-etiqueta" for="cot-dias">Vigencia (días)</label>
-                <input id="cot-dias" class="adm-input" type="number" min="1" max="90" [(ngModel)]="diasVigencia">
+                <input id="cot-dias" class="adm-input" type="number" min="1" max="90" step="1"
+                       [disabled]="soloLectura" [(ngModel)]="diasVigencia">
               </div>
             </div>
           </div>
@@ -148,53 +161,96 @@
             <h2 class="adm-tarjeta__titulo"><i class="bi bi-box-seam"></i> Productos</h2>
           </div>
           <div class="adm-tarjeta__cuerpo">
-            <div class="cot-contexto-stock">
-              <div class="adm-campo">
-                <label class="adm-etiqueta" for="cot-almacen">Almacén de despacho</label>
-                <select id="cot-almacen" class="adm-select"
-                        [ngModel]="idAlmacen" (ngModelChange)="cambiarAlmacen($event)">
-                  <option [ngValue]="null" disabled>Seleccione un almacén</option>
-                  <option *ngFor="let almacen of almacenes" [ngValue]="almacen.id_almacen">
-                    {{ almacen.nombre }}<ng-container *ngIf="almacen.sucursal"> · {{ almacen.sucursal }}</ng-container>
-                  </option>
-                </select>
-              </div>
-              <label class="cot-check-stock">
-                <input type="checkbox" [ngModel]="buscarTodasLasSedes"
-                       (ngModelChange)="cambiarAlcanceStock($event)">
-                <span>Buscar stock en todas las sedes</span>
-              </label>
-              <span class="adm-ayuda">Despacho: {{ nombreAlmacenDespacho }}</span>
+            <div class="adm-aviso adm-aviso--info cot-aviso-guardada" *ngIf="soloLectura">
+              <i class="bi bi-lock"></i>
+              <span>
+                Cotización guardada: productos, cantidades y precios quedaron fijados, por eso
+                el buscador de productos no aparece. Para seguir agregando, cree una copia editable.
+              </span>
+              <button type="button" class="adm-btn adm-btn--suave cot-btn-duplicar"
+                      [disabled]="ocupado" (click)="duplicarEnNueva()">
+                <i class="bi bi-files"></i> Copiar en una nueva
+              </button>
             </div>
 
-            <div class="adm-aviso adm-aviso--peligro cot-stock-error" *ngIf="errorProductos">
-              <i class="bi bi-exclamation-triangle"></i>
-              <span>{{ errorProductos }}</span>
-            </div>
-
-            <div class="pv-buscador">
-              <i class="bi bi-search pv-buscador__icono"></i>
-                <input class="adm-input pv-buscador__input" type="text" autocomplete="off"
-                       placeholder="Buscar producto…"
-                       [(ngModel)]="textoProducto" (ngModelChange)="alEscribirProducto()"
-                       (keydown)="alPresionarEnProducto($event)">
-               <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProd"></i>
-            </div>
-            <p class="adm-ayuda cot-cargando-stock" *ngIf="cargandoProductos">
-              <i class="bi bi-arrow-repeat adm-girando"></i> Cargando productos y stock…
-            </p>
-            <ul class="adm-sugerencias" *ngIf="sugerenciasProd.length">
-              <li *ngFor="let p of sugerenciasProd" (click)="agregarProducto(p)">
-                <strong>{{ p.nombre }}</strong>
-                <span class="adm-tabla__secundario">
-                   {{ p.sku }} · Stock {{ p.stock_disponible }}{{ buscarTodasLasSedes ? ' total' : '' }} · S/ {{ p.precio_final | number:'1.2-2' }}
+            <ng-container *ngIf="!soloLectura">
+              <div class="cot-contexto-stock">
+                <div class="adm-campo">
+                  <label class="adm-etiqueta" for="cot-almacen">Almacén de despacho</label>
+                  <select id="cot-almacen" class="adm-select"
+                          [ngModel]="idAlmacen" (ngModelChange)="cambiarAlmacen($event)">
+                    <option [ngValue]="null" disabled>Seleccione un almacén</option>
+                    <option *ngFor="let almacen of almacenes" [ngValue]="almacen.id_almacen">
+                      {{ almacen.nombre }}<ng-container *ngIf="almacen.sucursal"> · {{ almacen.sucursal }}</ng-container>
+                    </option>
+                  </select>
+                </div>
+                <label class="cot-check-stock">
+                  <input type="checkbox" [ngModel]="buscarTodasLasSedes"
+                         (ngModelChange)="cambiarAlcanceStock($event)">
+                  <span>Ver stock de todas las sedes</span>
+                </label>
+                <span class="adm-ayuda">
+                  Despacho: {{ nombreAlmacenDespacho }}. El almacén solo cambia el stock que se
+                  muestra: en una proforma se pueden cotizar todos los productos activos, con o sin stock.
                 </span>
-              </li>
-            </ul>
-            <p class="adm-ayuda cot-sin-productos"
-               *ngIf="textoProducto && !sugerenciasProd.length && !buscandoProd && !cargandoProductos && !errorProductos">
-              No se encontraron productos para esa búsqueda en el alcance seleccionado.
-            </p>
+              </div>
+
+              <div class="adm-aviso adm-aviso--peligro cot-stock-error" *ngIf="errorProductos">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span>
+                  {{ errorProductos }}
+                  <br><small>Puede seguir cotizando: la búsqueda se hace contra el servidor, solo que el stock puede no verse.</small>
+                </span>
+                <button type="button" class="adm-btn adm-btn--suave cot-btn-reintentar"
+                        [disabled]="cargandoProductos" (click)="reintentarCatalogo()">
+                  <i class="bi bi-arrow-clockwise"></i> Reintentar
+                </button>
+              </div>
+
+              <div class="adm-aviso adm-aviso--aviso cot-stock-error"
+                   *ngIf="catalogoVacio && !errorProductos">
+                <i class="bi bi-info-circle"></i>
+                <span>
+                  El catálogo llegó sin productos. La búsqueda se hace directo en el servidor.
+                </span>
+                <button type="button" class="adm-btn adm-btn--suave cot-btn-reintentar"
+                        [disabled]="cargandoProductos" (click)="reintentarCatalogo()">
+                  <i class="bi bi-arrow-clockwise"></i> Reintentar
+                </button>
+              </div>
+
+              <div class="pv-buscador">
+                <i class="bi bi-search pv-buscador__icono"></i>
+                  <input class="adm-input pv-buscador__input" type="text" autocomplete="off"
+                         placeholder="Buscar producto por nombre, SKU o código…"
+                         [(ngModel)]="textoProducto" (ngModelChange)="alEscribirProducto()"
+                         (keydown)="alPresionarEnProducto($event)">
+                 <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProd"></i>
+              </div>
+              <p class="adm-ayuda cot-cargando-stock" *ngIf="cargandoProductos">
+                <i class="bi bi-arrow-repeat adm-girando"></i> Cargando el stock de los productos… (ya puede buscar)
+              </p>
+              <ul class="adm-sugerencias" *ngIf="sugerenciasProd.length">
+                <li *ngFor="let p of sugerenciasProd" (click)="agregarProducto(p)">
+                  <strong>{{ p.nombre }}</strong>
+                  <span class="adm-tabla__secundario">
+                    <ng-container *ngIf="p.sku">{{ p.sku }} · </ng-container>S/ {{ p.precio_final | number:'1.2-2' }} ·
+                    <span class="cot-stock" [class.cot-stock--cero]="sinStock(p.stock_disponible)">
+                      {{ textoStock(p.stock_disponible) }}
+                    </span>
+                  </span>
+                </li>
+              </ul>
+              <p class="adm-ayuda cot-sin-productos" *ngIf="busquedaSinResultados">
+                {{ mensajeSinResultados }}
+              </p>
+              <p class="adm-ayuda cot-nota-stock">
+                <i class="bi bi-shield-check"></i>
+                El stock es solo informativo: la proforma no reserva ni descuenta inventario.
+                Puede cotizar productos sin stock.
+              </p>
+            </ng-container>
 
             <div class="adm-vacio" *ngIf="!lineas.length" style="padding:24px 0">
               <p>Agregue productos para armar la cotización.</p>
@@ -207,22 +263,34 @@
                     <th>Producto</th>
                     <th>Cant.</th>
                     <th>P.Unit</th>
-                    <th></th>
+                    <th>Subtotal</th>
+                    <th *ngIf="!soloLectura"></th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr *ngFor="let l of lineas; trackBy: identificarLinea">
                     <td>
                       <div class="adm-tabla__principal">{{ l.descripcion }}</div>
-                      <div class="adm-tabla__secundario">{{ l.sku }}</div>
+                      <div class="adm-tabla__secundario">
+                        <ng-container *ngIf="l.sku">{{ l.sku }} · </ng-container>
+                        <span class="cot-stock" [class.cot-stock--cero]="sinStock(l.stock_disponible)"
+                              title="Informativo: la proforma no descuenta inventario">
+                          {{ textoStock(l.stock_disponible) }}
+                        </span>
+                      </div>
                     </td>
                     <td>
-                      <input class="adm-input pv-contador__input" type="number" min="1"
-                             [ngModel]="l.cantidad" (ngModelChange)="cambiarCantidad(l, $event)">
+                      <input #inpCant class="adm-input pv-contador__input" type="number" min="1" step="1"
+                             inputmode="numeric" [attr.aria-label]="'Cantidad de ' + l.descripcion"
+                             [disabled]="soloLectura"
+                             [ngModel]="l.cantidad" (ngModelChange)="cambiarCantidad(l, $event)"
+                             (blur)="sincronizarInputCantidad(inpCant, l)">
                     </td>
                     <td>S/ {{ l.precio_unitario | number:'1.2-2' }}</td>
-                    <td>
-                      <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="quitarLinea(l)">
+                    <td>S/ {{ subtotalLinea(l) | number:'1.2-2' }}</td>
+                    <td *ngIf="!soloLectura">
+                      <button type="button" class="adm-btn-icono adm-btn-icono--peligro"
+                              [attr.aria-label]="'Quitar ' + l.descripcion" (click)="quitarLinea(l)">
                         <i class="bi bi-trash"></i>
                       </button>
                     </td>
@@ -233,7 +301,8 @@
 
             <div class="adm-campo" style="margin-top:12px">
               <label class="adm-etiqueta" for="cot-obs">Observaciones</label>
-              <textarea id="cot-obs" class="adm-textarea" rows="2" [(ngModel)]="observaciones"></textarea>
+              <textarea id="cot-obs" class="adm-textarea" rows="2" [disabled]="soloLectura"
+                        [(ngModel)]="observaciones"></textarea>
             </div>
           </div>
         </section>
@@ -259,6 +328,10 @@
                 <span>Cliente</span>
                 <span>{{ receptor?.denominacion || clienteNombreManual || '—' }}</span>
               </div>
+              <div class="adm-ticket__dato" *ngIf="documentoCliente">
+                <span>DNI/RUC</span>
+                <span>{{ documentoCliente }}</span>
+              </div>
               <div class="adm-ticket__dato">
                 <span>Vigencia</span>
                 <span>{{ fechaVigenciaPreview }}</span>
@@ -270,7 +343,7 @@
               <table class="adm-ticket__items" *ngIf="lineas.length">
                 <tr *ngFor="let l of lineas">
                   <td>{{ l.descripcion }} × {{ l.cantidad }}</td>
-                  <td>S/ {{ (l.cantidad * l.precio_unitario) | number:'1.2-2' }}</td>
+                  <td>S/ {{ subtotalLinea(l) | number:'1.2-2' }}</td>
                 </tr>
               </table>
               <div class="adm-ticket__total-fila">
@@ -288,19 +361,26 @@
               <button type="button" class="adm-btn adm-btn--primario"
                       [disabled]="guardando || !lineas.length || !!cotizacionActual?.id_proforma" (click)="guardar()">
                 <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-save'"></i>
-                {{ cotizacionActual?.id_proforma ? 'Guardada' : 'Guardar' }}
+                {{ guardando ? 'Guardando…' : (cotizacionActual?.id_proforma ? 'Guardada' : 'Guardar') }}
               </button>
               <button type="button" class="adm-btn adm-btn--suave"
-                      [disabled]="!lineas.length" (click)="exportarPdf()">
-                <i class="bi bi-file-earmark-pdf"></i> PDF
+                      [disabled]="generandoPdf || guardando || enviandoWa || (!lineas.length && !cotizacionActual?.id_proforma)"
+                      (click)="exportarPdf()">
+                <i class="bi" [ngClass]="generandoPdf ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-pdf'"></i>
+                {{ generandoPdf ? 'Generando PDF…' : 'PDF' }}
               </button>
               <button type="button" class="adm-btn adm-btn--suave"
-                      [disabled]="!lineas.length" (click)="exportarExcel()">
-                <i class="bi bi-file-earmark-excel"></i> Excel
+                      [disabled]="generandoExcel || guardando || enviandoWa || (!lineas.length && !cotizacionActual?.id_proforma)"
+                      (click)="exportarExcel()">
+                <i class="bi" [ngClass]="generandoExcel ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-excel'"></i>
+                {{ generandoExcel ? 'Generando Excel…' : 'Excel' }}
               </button>
               <button type="button" class="adm-btn adm-btn--suave"
-                      [disabled]="enviandoWa || !lineas.length || !telefonoOk" (click)="enviarWhatsapp()">
-                <i class="bi bi-whatsapp"></i>
+                      [disabled]="enviandoWa || guardando || generandoPdf || !lineas.length || !telefonoOk
+                                  || cotizacionActual?.estado === 'anulada'"
+                      [title]="telefonoOk ? 'Descarga el PDF y abre el chat del cliente' : 'Ingrese un celular válido (9 dígitos)'"
+                      (click)="enviarWhatsapp()">
+                <i class="bi" [ngClass]="enviandoWa ? 'bi-arrow-repeat adm-girando' : 'bi-whatsapp'"></i>
                 {{ enviandoWa ? 'Preparando…' : 'WhatsApp + proforma' }}
               </button>
               <button type="button" class="adm-btn adm-btn--exito"
@@ -322,8 +402,9 @@
               </button>
             </div>
             <p class="adm-ayuda" style="margin-top:8px">
-              WhatsApp: se baja la proforma y se abre el chat. Adjunte el archivo y envíe.
-               Apruebe la cotización para habilitar “Pasar a venta”. El stock se descuenta únicamente al cobrar.
+              WhatsApp: se descarga la proforma en PDF y se abre el chat. Adjunte el PDF y envíe.
+               Apruebe la cotización para habilitar “Pasar a venta”. La proforma no reserva ni
+               descuenta inventario: el stock se mueve únicamente al cobrar la venta.
             </p>
           </div>
         </section>

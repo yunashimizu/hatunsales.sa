@@ -1,0 +1,87 @@
+/*
+ * El selector no debe generar caja: el componente se coloca junto al POS y solo
+ * aporta el velo y el panel (ambos position: fixed). Sin esto, el elemento
+ * host sería un item más del flex de .adm-pagina y metería un hueco de 20 px.
+ */
+:host { display: contents; }
+
+.pvr-obligatorio { color: var(--adm-peligro); }
+
+.pvr-espaciado { margin-top: 14px; }
+.pvr-espaciado-abajo { margin-bottom: 14px; }
+
+/* ── Parecidos del catálogo ──────────────────────────────────── */
+
+.pvr-parecidos {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pvr-parecido {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pvr-parecido__texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pvr-parecido__nombre {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pvr-parecido__detalle {
+  font-size: 12px;
+  color: var(--adm-texto-suave);
+}
+
+/* ── Precio y cantidades ─────────────────────────────────────── */
+
+.pvr-precio-vista {
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-texto);
+}
+
+.pvr-ayuda-cantidades {
+  margin: 6px 0 0;
+}
+
+.pvr-motivo {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+/* ── Producto existente (modo ingresar) ──────────────────────── */
+
+.pvr-fijo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--adm-superficie-2);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+}
+
+.pvr-fijo__nombre {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.pvr-fijo__detalle {
+  font-size: 12.5px;
+  color: var(--adm-texto-suave);
+}
+
+.pvr-fijo__volver { margin-top: 4px; padding-left: 0; }

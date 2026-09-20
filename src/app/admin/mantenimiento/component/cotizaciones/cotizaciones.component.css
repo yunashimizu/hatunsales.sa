@@ -93,6 +93,42 @@
   color: var(--adm-aviso);
 }
 
+/* Nota fija: la proforma no toca inventario. */
+.cot-nota-stock {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 2px;
+  color: var(--adm-texto-tenue);
+}
+
+/* Stock informativo (sugerencias y líneas). Nunca bloquea nada. */
+.cot-stock { white-space: nowrap; }
+.cot-stock--cero {
+  color: var(--adm-aviso);
+  font-weight: 600;
+}
+
+/* Botones dentro de los avisos de catálogo / cotización guardada. */
+.cot-stock-error,
+.cot-aviso-guardada {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.cot-stock-error span,
+.cot-aviso-guardada span {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.cot-btn-reintentar,
+.cot-btn-duplicar {
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .pv-contador__input {
   width: 62px;
   padding: 6px 4px;
@@ -118,8 +154,23 @@
 }
 .adm-sugerencias li:hover { background: var(--adm-suave, #f3f4f6); }
 
+/* Acciones por fila en la lista (abrir, PDF, Excel, venta, anular). */
+.cot-acciones-fila {
+  white-space: nowrap;
+}
+.cot-acciones-fila .adm-btn-icono + .adm-btn-icono,
+.cot-acciones-fila .adm-btn-icono + a.adm-btn-icono,
+.cot-acciones-fila a.adm-btn-icono + .adm-btn-icono {
+  margin-left: 2px;
+}
+
+.cot-aviso-guardada {
+  margin-bottom: 12px;
+}
+
 @media (max-width: 700px) {
   .cot-contexto-stock { grid-template-columns: 1fr; }
   .cot-contexto-stock .adm-ayuda { grid-column: auto; }
   .cot-check-stock { white-space: normal; }
+  .cot-acciones-fila { white-space: normal; }
 }

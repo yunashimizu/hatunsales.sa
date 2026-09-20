@@ -24,7 +24,13 @@ export function mensajeDeError(error: any, porDefecto = 'Ocurrió un error inesp
 
   if (typeof cuerpo === 'string' && cuerpo.trim()) return cuerpo;
   if (Array.isArray(cuerpo?.message)) return cuerpo.message.join('. ');
-  if (typeof cuerpo?.message === 'string') return cuerpo.message;
+  if (typeof cuerpo?.message === 'string') {
+    // Nest responde "Internal server error" (en inglés y sin detalle) ante errores no controlados.
+    if (/^internal server error$/i.test(cuerpo.message.trim())) {
+      return `${porDefecto} (error interno del servidor)`;
+    }
+    return cuerpo.message;
+  }
   if (typeof cuerpo?.error === 'string') return cuerpo.error;
   if (error?.status === 0) return 'No hay conexión con el servidor';
   if (typeof error?.message === 'string') return error.message;
@@ -85,6 +91,12 @@ const HINTS: Record<string, string> = {
   COTIZACION_NO_ENCONTRADA: 'Vuelva a la lista e intente de nuevo.',
   COTIZACION_VENCIDA: 'Puede continuar con precios actuales si confirma.',
   COTIZACION_YA_CONVERTIDA: 'Abra la venta asociada o cree una cotización nueva.',
+  COTIZACION_ESTADO_INVALIDO: 'Recargue la lista: el estado de la cotización cambió.',
+  COTIZACION_CANTIDAD_INVALIDA: 'Use cantidades enteras de 1 o más (sin decimales).',
+  COTIZACION_PRODUCTO_SIN_PRECIO: 'Asigne un precio de venta al producto en Productos o quítelo de la cotización.',
+  COTIZACION_PRODUCTO_NO_ENCONTRADO: 'Quite el producto de la cotización y vuelva a buscarlo en el catálogo.',
+  COTIZACION_DOCUMENTO_ERROR: 'La cotización sí quedó guardada. Reintente la descarga en unos segundos.',
+  COTIZACION_ERROR_INTERNO: 'Reintente en unos segundos; si persiste, avise a sistemas.',
   SERIE_INVALIDA: 'La serie debe tener 4 caracteres y empezar con B (boleta) o F (factura).',
   SERIE_NO_CONFIGURADA: 'Configure las series en Configuración (admin).',
   INVENTARIO_STOCK_NEGATIVO: 'No hay suficientes unidades en ese almacén.',
@@ -120,6 +132,12 @@ const TITULOS: Record<string, string> = {
   COTIZACION_NO_ENCONTRADA: 'Cotización no encontrada',
   COTIZACION_VENCIDA: 'Cotización vencida',
   COTIZACION_YA_CONVERTIDA: 'Ya convertida en venta',
+  COTIZACION_ESTADO_INVALIDO: 'Estado no permitido',
+  COTIZACION_CANTIDAD_INVALIDA: 'Cantidad inválida',
+  COTIZACION_PRODUCTO_SIN_PRECIO: 'Producto sin precio',
+  COTIZACION_PRODUCTO_NO_ENCONTRADO: 'Producto no encontrado',
+  COTIZACION_DOCUMENTO_ERROR: 'No se pudo generar el documento',
+  COTIZACION_ERROR_INTERNO: 'Error al procesar la cotización',
   SERIE_INVALIDA: 'Serie inválida',
   SERIE_NO_CONFIGURADA: 'Configure series en Configuración',
   INVENTARIO_STOCK_NEGATIVO: 'Stock insuficiente',

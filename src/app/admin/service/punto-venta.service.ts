@@ -61,14 +61,32 @@ export class PuntoVentaService {
   private catalogoEnCurso$: Observable<ProductoVenta[]> | null = null;
   /** Almacén con el que se cargó el catálogo en cache. */
   private idAlmacenCatalogo: number | null = null;
+  /** Almacén de la petición actualmente en curso, si existe. */
+  private idAlmacenEnCurso: number | null = null;
   private catalogoCargadoEn = 0;
   /** Descarta respuestas HTTP viejas si el cajero cambia de almacén rápido. */
   private catalogoReqId = 0;
+  /**
+   * Altas hechas en caja (producto nuevo o stock recién ingresado) que un GET al
+   * catálogo lanzado antes de la alta puede no traer todavía.
+   */
+  private altasLocales = new Map<number, { producto: ProductoVenta; idAlmacen: number | null; registradoEn: number }>();
 
   constructor(private http: HttpClient) {}
 
   get tieneCatalogo(): boolean {
     return this.catalogoListo && this.catalogo.length > 0;
+  }
+
+  /**
+   * El catálogo ya respondió, pero sin ningún producto.
+   *
+   * Permite distinguir "aún no cargó" de "cargó y vino vacío": `tieneCatalogo`
+   * devuelve false en ambos casos, y quien comparte esta cache (POS y Cotizaciones)
+   * necesita saber si vale la pena recargar en vez de quedarse sin productos.
+   */
+  get catalogoVacio(): boolean {
+    return this.catalogoListo && this.catalogo.length === 0;
   }
 
   get catalogoExpirado(): boolean {
@@ -80,6 +98,7 @@ export class PuntoVentaService {
   invalidarCatalogo(): void {
     this.catalogoListo = false;
     this.catalogoEnCurso$ = null;
+    this.idAlmacenEnCurso = null;
     this.catalogoCargadoEn = 0;
     this.catalogoReqId += 1;
   }
@@ -100,6 +119,9 @@ export class PuntoVentaService {
     const expirado = this.catalogoExpirado;
     const debeForzar = forzar || cambioAlmacen || expirado;
 
+    if (this.catalogoEnCurso$ && this.idAlmacenEnCurso === alm) {
+      return this.catalogoEnCurso$;
+    }
     if (this.catalogoListo && !debeForzar) {
       return of(this.catalogo);
     }
@@ -111,6 +133,9 @@ export class PuntoVentaService {
     if (alm != null) params = params.set('id_almacen', String(alm));
 
     const reqId = ++this.catalogoReqId;
+    /** Cuándo sale esta petición: sirve para saber si una alta local es más nueva que su respuesta. */
+    const iniciadoEn = Date.now();
+    this.idAlmacenEnCurso = alm;
 
     this.catalogoEnCurso$ = this.http
       .get<ProductoVenta[]>(urlConstants.puntoVenta.catalogoProductos, {
@@ -120,16 +145,18 @@ export class PuntoVentaService {
       .pipe(
         tap((lista) => {
           if (reqId !== this.catalogoReqId) return;
-          this.catalogo = Array.isArray(lista) ? lista : [];
+          this.catalogo = this.fusionarAltasLocales(Array.isArray(lista) ? lista : [], alm, iniciadoEn);
           // Vacío es válido para ese almacén.
           this.catalogoListo = true;
           this.idAlmacenCatalogo = alm;
+          this.idAlmacenEnCurso = null;
           this.catalogoCargadoEn = Date.now();
           this.catalogoEnCurso$ = null;
         }),
         catchError((err) => {
           if (reqId === this.catalogoReqId) {
             this.catalogoEnCurso$ = null;
+            this.idAlmacenEnCurso = null;
           }
           // No pisar idAlmacenCatalogo ni stock viejo con un almacén nuevo fallido.
           return throwError(() => err);
@@ -203,6 +230,60 @@ export class PuntoVentaService {
         stock_disponible: Math.max(0, Number(p.stock_disponible ?? 0) - qty),
       };
     });
+  }
+
+  /**
+   * Alta rápida en caja: deja visible de inmediato un producto recién creado (o con
+   * stock recién ingresado), sin esperar otro GET al catálogo, que además puede llegar
+   * sin él si salió antes de la alta. Inserta o reemplaza por id_producto.
+   *
+   * `idAlmacen` es el almacén al que pertenece el stock del producto; si no se indica
+   * se toma el de la caché actual.
+   */
+  agregarAlCatalogoLocal(producto: ProductoVenta, idAlmacen?: number | null): void {
+    const id = Number(producto?.id_producto);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    const alm = idAlmacen === undefined
+      ? this.idAlmacenCatalogo
+      : (idAlmacen != null && Number(idAlmacen) > 0 ? Number(idAlmacen) : null);
+
+    // Si la caché es de otro almacén su stock no aplica: solo se recuerda para la próxima carga.
+    if (!this.catalogoListo || alm === this.idAlmacenCatalogo) {
+      const indice = this.catalogo.findIndex((p) => Number(p.id_producto) === id);
+      this.catalogo = indice >= 0
+        ? this.catalogo.map((p, i) => (i === indice ? producto : p))
+        : [...this.catalogo, producto];
+    }
+    this.altasLocales.set(id, { producto, idAlmacen: alm, registradoEn: Date.now() });
+  }
+
+  /**
+   * Junta la respuesta del servidor con las altas locales que esa respuesta no pudo
+   * conocer, las hechas DESPUÉS de que salió la petición. Las anteriores ya las
+   * refleja el servidor: se depuran y manda su respuesta. Sin altas devuelve la
+   * misma lista, así que el resto del servicio se comporta exactamente igual.
+   */
+  private fusionarAltasLocales(
+    lista: ProductoVenta[],
+    idAlmacen: number | null,
+    iniciadoEn: number,
+  ): ProductoVenta[] {
+    if (!this.altasLocales.size) return lista;
+
+    let resultado = lista;
+    for (const [id, alta] of Array.from(this.altasLocales)) {
+      if (alta.idAlmacen !== idAlmacen) continue;
+      if (iniciadoEn >= alta.registradoEn) {
+        this.altasLocales.delete(id);
+        continue;
+      }
+      const enLista = resultado.some((p) => Number(p.id_producto) === id);
+      resultado = enLista
+        ? resultado.map((p) => (Number(p.id_producto) === id ? alta.producto : p))
+        : [...resultado, alta.producto];
+    }
+    return resultado;
   }
 
   buscarProductos(termino: string, limite = 12, idAlmacen?: number | null): Observable<ProductoVenta[]> {

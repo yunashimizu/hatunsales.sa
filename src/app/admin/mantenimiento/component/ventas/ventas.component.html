@@ -148,8 +148,41 @@
                       [ngClass]="producto.stock_disponible > 0 ? 'adm-insignia--exito' : 'adm-insignia--peligro'">
                   {{ producto.stock_disponible }}
                 </span>
+                <button type="button"
+                        class="adm-btn adm-btn--suave adm-btn--sm pv-sugerencia__stock"
+                        *ngIf="puedeCrearRapido && sinStock(producto)"
+                        tabindex="-1"
+                        title="Ingresar unidades a este almacén y seguir con la venta"
+                        (click)="abrirIngresoStock(producto, $event)">
+                  <i class="bi bi-plus-lg"></i> Stock
+                </button>
               </li>
             </ul>
+
+            <!-- Sin resultados tras un intento explícito: registrar el producto aquí mismo. -->
+            <div class="adm-sugerencias pv-sinresultado"
+                 *ngIf="mostrarTarjetaSinResultados && busquedaFallida as fallida"
+                 role="status">
+              <div class="adm-vacio pv-sinresultado__cuerpo">
+                <div class="adm-vacio__icono">
+                  <i class="bi" [ngClass]="fallida.esCodigo ? 'bi-upc-scan' : 'bi-slash-circle'"></i>
+                </div>
+                <div class="adm-vacio__titulo pv-sinresultado__titulo" *ngIf="!fallida.esCodigo">
+                  Sin resultados para «{{ fallida.texto }}»
+                </div>
+                <div class="adm-vacio__titulo pv-sinresultado__titulo" *ngIf="fallida.esCodigo">
+                  El código {{ fallida.texto }} no está registrado
+                </div>
+                <p class="adm-ayuda">
+                  {{ fallida.esCodigo ? 'Créelo ahora con ese código y siga cobrando.' : 'Regístrelo aquí mismo y siga cobrando.' }}
+                </p>
+                <button type="button" class="adm-btn adm-btn--primario adm-btn--sm" (click)="abrirAltaRapida()">
+                  <i class="bi bi-plus-lg"></i>
+                  {{ fallida.esCodigo ? 'Crear producto con este código' : 'Crear producto' }}
+                </button>
+                <span class="adm-ayuda pv-sinresultado__atajo">o pulse <kbd class="pv-tecla">F2</kbd></span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -186,7 +219,8 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let linea of lineas; trackBy: identificarLinea">
+              <tr *ngFor="let linea of lineas; trackBy: identificarLinea"
+                  [class.adm-recien-creado]="linea.id_producto === idLineaDestacada">
                 <td data-etiqueta="Producto">
                   <div class="adm-tabla__principal">{{ linea.descripcion }}</div>
                   <div class="adm-tabla__secundario">
@@ -673,3 +707,17 @@
     </aside>
   </div>
 </div>
+
+<!-- Alta rápida de producto. Fuera de .adm-pagina: su host no genera caja y el velo/panel son fixed. -->
+<app-producto-rapido
+  [abierto]="panelAltaRapida"
+  [modo]="modoAltaRapida"
+  [textoInicial]="textoInicialAlta"
+  [codigoInicial]="codigoInicialAlta"
+  [productoExistente]="productoIngresoAlta"
+  [idAlmacen]="idAlmacen"
+  [nombreAlmacen]="nombreAlmacenActivo"
+  [ocupado]="cambiandoAlmacen || emitiendo"
+  (agregado)="alAgregarDesdeAltaRapida($event)"
+  (cerrado)="alCerrarAltaRapida()">
+</app-producto-rapido>

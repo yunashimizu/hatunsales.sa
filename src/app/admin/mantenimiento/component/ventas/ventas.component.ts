@@ -14,9 +14,10 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   Subject, debounceTime, distinctUntilChanged, of, switchMap, takeUntil,
-  catchError, EMPTY, finalize, tap,
+  catchError, EMPTY, finalize, tap, timer,
 } from 'rxjs';
 
+import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { ReceptorService } from '../../../service/receptor.service';
@@ -29,6 +30,9 @@ import {
   LineaVenta, PreviewComprobante, ProductoVenta, Receptor, SugerenciaReceptor,
   VentaRegistrada, TIPO_BOLETA, TIPO_FACTURA,
 } from '../../../models/admin.models';
+import {
+  ModoAltaRapida, ProductoRapidoComponent, ResultadoAltaRapida,
+} from './producto-rapido/producto-rapido.component';
 
 const LS_ALMACEN = 'pos_id_almacen';
 
@@ -46,7 +50,7 @@ const LS_ALMACEN = 'pos_id_almacen';
   selector: 'app-ventas',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, ProductoRapidoComponent],
   templateUrl: './ventas.component.html',
   styleUrls: ['./ventas.component.css'],
 })
@@ -95,6 +99,19 @@ export class VentasComponent implements OnInit, OnDestroy {
   sugerenciasProducto: ProductoVenta[] = [];
   indiceProducto = -1;
   buscandoProducto = false;
+  /** Último intento explícito (Enter / lector) que no encontró nada; habilita la tarjeta «Sin resultados». */
+  busquedaFallida: { texto: string; esCodigo: boolean } | null = null;
+
+  // ── Alta rápida de producto ───────────────────────────────────
+  /** Admin/vendedor: los únicos roles que pueden crear productos e ingresar stock (se lee una vez). */
+  private editaCatalogo = false;
+  panelAltaRapida = false;
+  modoAltaRapida: ModoAltaRapida = 'crear';
+  textoInicialAlta = '';
+  codigoInicialAlta = '';
+  productoIngresoAlta: ProductoVenta | null = null;
+  /** Línea del carrito recién creada o con stock recién ingresado: se resalta unos segundos. */
+  idLineaDestacada: number | null = null;
 
   // ── Carrito ───────────────────────────────────────────────────
   lineas: LineaVenta[] = [];
@@ -186,9 +203,11 @@ export class VentasComponent implements OnInit, OnDestroy {
     private readonly fiscalCfg: ConfiguracionFiscalService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
+    private readonly auth: AuthService,
   ) {}
 
   ngOnInit(): void {
+    this.editaCatalogo = this.auth.puedeEditarCatalogo();
     this.claveIdempotencia = this.puntoVenta.nuevaClaveIdempotencia();
     this.escucharBusquedaReceptor();
     this.escucharBusquedaProducto();
@@ -820,6 +839,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
   alEscribirProducto(): void {
+    this.busquedaFallida = null;
     this.buscarProducto$.next(this.textoProducto);
   }
 
@@ -829,6 +849,14 @@ export class VentasComponent implements OnInit, OnDestroy {
    * No salta a emitir: solo agrega al carrito.
    */
   alPresionarEnProducto(evento: KeyboardEvent): void {
+    if (evento.key === 'F2') {
+      // Alta rápida: solo si el rol puede crear productos; para caja la tecla no hace nada.
+      if (this.puedeCrearRapido) {
+        evento.preventDefault();
+        this.abrirAltaRapida();
+      }
+      return;
+    }
     if (evento.key === 'ArrowDown') {
       evento.preventDefault();
       this.indiceProducto = Math.min(this.indiceProducto + 1, this.sugerenciasProducto.length - 1);
@@ -841,6 +869,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     }
     if (evento.key === 'Escape') {
       this.sugerenciasProducto = [];
+      this.busquedaFallida = null;
       return;
     }
     if (evento.key !== 'Enter') return;
@@ -892,7 +921,7 @@ export class VentasComponent implements OnInit, OnDestroy {
         this.alerta.toast({ type: 'success', title: producto.nombre, timer: 1200 });
         this.refrescarVista();
       },
-      error: () => {
+      error: (error) => {
         this.escaneandoCodigo = false;
         this.buscandoProducto = false;
         this.refrescarVista();
@@ -905,6 +934,8 @@ export class VentasComponent implements OnInit, OnDestroy {
           return;
         }
         this.alerta.toast({ type: 'warning', title: `No hay producto con el código ${codigo}` });
+        // Solo un 404 prueba que el código no existe; con un corte de red no se ofrece crearlo.
+        if (error?.status === 404) this.marcarBusquedaFallida(codigo);
         this.enfocarBuscadorProducto();
       },
     });
@@ -929,6 +960,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     if (this.puntoVenta.tieneCatalogo) {
       this.sugerenciasProducto = [];
       this.alerta.toast({ type: 'warning', title: `No se encontró "${termino}"` });
+      this.marcarBusquedaFallida(termino);
       this.enfocarBuscadorProducto();
       return;
     }
@@ -952,6 +984,7 @@ export class VentasComponent implements OnInit, OnDestroy {
           return;
         }
         this.alerta.toast({ type: 'warning', title: `No se encontró "${termino}"` });
+        this.marcarBusquedaFallida(termino);
         this.enfocarBuscadorProducto();
       },
     });
@@ -981,6 +1014,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   agregarProducto(producto: ProductoVenta): void {
     if (this.emitiendo) return;
+    this.busquedaFallida = null;
     this.textoProducto = '';
     this.sugerenciasProducto = [];
     this.indiceProducto = -1;
@@ -1574,6 +1608,144 @@ export class VentasComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destruir$), catchError(() => of(null)))
       .subscribe((info) => {
         this.pasarelaInfo = info;
+        this.refrescarVista();
+      });
+  }
+
+  // ── Alta rápida de producto ──────────────────────────────────
+
+  /** Admin/vendedor con un almacén activo. Para caja no existe ningún disparador ni botón. */
+  get puedeCrearRapido(): boolean {
+    return this.editaCatalogo && this.idAlmacen != null;
+  }
+
+  /**
+   * La tarjeta «Sin resultados» solo sale tras un intento fallido explícito (Enter o
+   * lector, los mismos puntos del toast «No se encontró…»). En vivo parpadearía en
+   * cada tecla mientras se escribe «perno 1/2».
+   */
+  get mostrarTarjetaSinResultados(): boolean {
+    const fallida = this.busquedaFallida;
+    return !!fallida
+      && this.puedeCrearRapido
+      && !this.panelAltaRapida
+      && !this.emitiendo
+      && !this.buscandoProducto
+      && !this.cambiandoAlmacen
+      && !this.cargandoContextoPos
+      && !this.sugerenciasProducto.length
+      && this.textoProducto.trim() === fallida.texto;
+  }
+
+  sinStock(producto: ProductoVenta): boolean {
+    return Number(producto.stock_disponible ?? 0) <= 0;
+  }
+
+  private marcarBusquedaFallida(texto: string): void {
+    this.busquedaFallida = { texto, esCodigo: this.pareceCodigoExacto(texto) };
+    this.refrescarVista();
+  }
+
+  /** Abre el alta rápida con lo que haya en el buscador (botón de la tarjeta o F2). */
+  abrirAltaRapida(): void {
+    if (!this.puedeCrearRapido || this.panelAltaRapida) return;
+    // Mientras hay una consulta en curso, su respuesta volvería a enfocar el buscador y le robaría el foco al panel.
+    if (this.emitiendo || this.cambiandoAlmacen || this.buscandoProducto || this.escaneandoCodigo) return;
+
+    // Se captura ANTES de nada: agregarProducto() limpia el texto del buscador.
+    const texto = this.textoProducto.trim();
+    const esCodigo = !!texto && this.pareceCodigoExacto(texto);
+    this.modoAltaRapida = 'crear';
+    this.productoIngresoAlta = null;
+    this.textoInicialAlta = esCodigo ? '' : texto;
+    this.codigoInicialAlta = esCodigo ? texto : '';
+    this.busquedaFallida = null;
+    this.panelAltaRapida = true;
+    this.refrescarVista();
+  }
+
+  /** «+ Stock» de una sugerencia sin existencias: ingresa unidades a un producto que ya existe. */
+  abrirIngresoStock(producto: ProductoVenta, evento: Event): void {
+    evento.stopPropagation(); // no debe agregar la fila al carrito
+    if (!this.puedeCrearRapido || this.panelAltaRapida) return;
+    if (this.emitiendo || this.cambiandoAlmacen) return;
+
+    this.modoAltaRapida = 'ingresar';
+    this.productoIngresoAlta = producto;
+    this.textoInicialAlta = '';
+    this.codigoInicialAlta = '';
+    this.busquedaFallida = null;
+    this.panelAltaRapida = true;
+    this.refrescarVista();
+  }
+
+  /** El panel se cerró sin agregar nada: el foco vuelve al buscador con el texto intacto. */
+  alCerrarAltaRapida(): void {
+    this.panelAltaRapida = false;
+    this.refrescarVista();
+    this.enfocarBuscadorProducto();
+  }
+
+  /** El producto ya tiene stock en el almacén: se pone en el carrito con lo que se lleva el cliente. */
+  alAgregarDesdeAltaRapida(resultado: ResultadoAltaRapida): void {
+    const { producto, cantidadCarrito, creado } = resultado;
+    this.panelAltaRapida = false;
+
+    // La caché local ya conoce el producto; esto solo la pone al día con el servidor (no es crítico).
+    this.puntoVenta
+      .cargarCatalogo(true, this.idAlmacen)
+      .pipe(
+        takeUntil(this.destruir$),
+        catchError(() => EMPTY),
+        finalize(() => this.refrescarVista()),
+      )
+      .subscribe();
+
+    // agregarProducto() sale si hay un cobro en curso: no se pierde lo hecho, solo se avisa.
+    if (this.emitiendo) {
+      const unidades = Number(producto.stock_disponible ?? 0);
+      this.alerta.toast({
+        type: 'info',
+        title: `«${escapeHtmlAlerta(producto.nombre)}» listo`,
+        message: `El producto quedó ${creado ? 'creado ' : ''}con ${unidades} ${unidades === 1 ? 'unidad' : 'unidades'}; `
+          + 'agréguelo cuando termine el cobro',
+        timer: 6000,
+      });
+      this.enfocarBuscadorProducto();
+      this.refrescarVista();
+      return;
+    }
+
+    const existente = this.lineas.find((l) => l.id_producto === producto.id_producto);
+    if (existente) {
+      // La línea ya estaba con el stock de antes: se pone al día antes de fijar la cantidad.
+      existente.stock_disponible = Number(producto.stock_disponible ?? 0);
+      this.textoProducto = '';
+      this.sugerenciasProducto = [];
+      this.indiceProducto = -1;
+      this.busquedaFallida = null;
+    } else {
+      this.agregarProducto(producto);
+    }
+
+    const linea = this.lineas.find((l) => l.id_producto === producto.id_producto);
+    if (linea) {
+      // Misma lógica de cantidad del carrito; la línea queda con lo que se lleva el cliente.
+      if (linea.cantidad !== cantidadCarrito) this.cambiarCantidad(linea, cantidadCarrito);
+      this.destacarLinea(linea.id_producto);
+    }
+    this.pedirRecalculo();
+    this.enfocarBuscadorProducto();
+    this.refrescarVista();
+  }
+
+  private destacarLinea(idProducto: number): void {
+    this.idLineaDestacada = idProducto;
+    this.refrescarVista();
+    timer(2600)
+      .pipe(takeUntil(this.destruir$))
+      .subscribe(() => {
+        if (this.idLineaDestacada === idProducto) this.idLineaDestacada = null;
         this.refrescarVista();
       });
   }

@@ -1,0 +1,192 @@
+<!-- Alta rápida de producto: velo + panel lateral, el mismo patrón de Productos e Inventario. -->
+<ng-container *ngIf="abierto">
+  <div class="adm-velo" (click)="cerrar()"></div>
+
+  <aside class="adm-panel" role="dialog" aria-modal="true" aria-labelledby="pvr-titulo">
+    <div class="adm-panel__cabecera">
+      <h2 class="adm-tarjeta__titulo" id="pvr-titulo">
+        <i class="bi" [ngClass]="iconoCabecera"></i> {{ tituloCabecera }}
+      </h2>
+      <button type="button" class="adm-btn-icono" (click)="cerrar()" [disabled]="guardando" aria-label="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="adm-panel__cuerpo" (keydown)="alPresionarTecla($event)">
+
+      <div class="adm-aviso adm-aviso--aviso pvr-espaciado-abajo" *ngIf="ocupado">
+        <i class="bi bi-hourglass-split"></i>
+        <span>Espere un momento: el punto de venta está actualizando el almacén o procesando un cobro.</span>
+      </div>
+
+      <!-- Producto nuevo: nombre, precios y parecidos -->
+      <ng-container *ngIf="fase === 'formulario' && modoActivo === 'crear'">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="pvr-nombre">Nombre <span class="pvr-obligatorio">*</span></label>
+          <input #campoNombre id="pvr-nombre" class="adm-input" type="text" autocomplete="off"
+                 placeholder="Cemento Sol tipo I 42.5 kg"
+                 [maxLength]="maxLargoNombre" [readOnly]="guardando"
+                 [(ngModel)]="formulario.nombre" (ngModelChange)="alEscribirNombre()">
+        </div>
+
+        <div class="adm-aviso adm-aviso--aviso pvr-espaciado" *ngIf="parecidos.length">
+          <i class="bi bi-exclamation-triangle"></i>
+          <div class="pvr-parecidos">
+            <strong>Parecidos en el catálogo:</strong>
+            <div class="pvr-parecido" *ngFor="let p of parecidos; trackBy: identificarParecido">
+              <div class="pvr-parecido__texto">
+                <span class="pvr-parecido__nombre">{{ p.nombre }}</span>
+                <span class="pvr-parecido__detalle">
+                  S/ {{ p.precio_final | number:'1.2-2' }} · stock {{ p.stock_disponible }}
+                </span>
+              </div>
+              <span class="adm-insignia adm-insignia--peligro" *ngIf="esMismoNombre(p)">Mismo nombre</span>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                      [disabled]="bloqueado" (click)="usarExistente(p)">
+                Usar
+              </button>
+            </div>
+            <span class="adm-ayuda">Si es el mismo artículo, use el que ya existe para no duplicarlo.</span>
+          </div>
+        </div>
+
+        <div class="adm-fila pvr-espaciado">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="pvr-venta">Precio de venta <span class="pvr-obligatorio">*</span></label>
+            <input #campoPrecio id="pvr-venta" class="adm-input" type="number" min="0.01" step="0.01"
+                   inputmode="decimal" autocomplete="off" placeholder="0.00"
+                   [readOnly]="guardando" [(ngModel)]="formulario.precio_venta">
+            <span class="adm-ayuda">
+              Incluye IGV.
+              <ng-container *ngIf="precioVista">
+                Se cobrará <strong class="pvr-precio-vista">{{ precioVista }}</strong>.
+              </ng-container>
+            </span>
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="pvr-compra">Precio de compra</label>
+            <input #campoCompra id="pvr-compra" class="adm-input" type="number" min="0" step="0.01"
+                   inputmode="decimal" autocomplete="off" placeholder="0.00"
+                   [readOnly]="guardando" [(ngModel)]="formulario.precio_compra">
+            <span class="adm-ayuda">Se usa para valorizar el kardex. Deje 0 si no lo sabe.</span>
+          </div>
+        </div>
+
+        <div class="adm-aviso adm-aviso--aviso pvr-espaciado" *ngIf="avisoPrecio">
+          <i class="bi bi-exclamation-triangle"></i>
+          <span>{{ avisoPrecio }}</span>
+        </div>
+      </ng-container>
+
+      <!-- Producto que ya existe: se le ingresa stock -->
+      <ng-container *ngIf="fase === 'formulario' && modoActivo === 'ingresar' && productoFijo as fijo">
+        <div class="pvr-fijo">
+          <div class="pvr-fijo__nombre">{{ fijo.nombre }}</div>
+          <div class="pvr-fijo__detalle">
+            <span *ngIf="fijo.sku">{{ fijo.sku }} · </span>
+            S/ {{ fijo.precio_final | number:'1.2-2' }} ·
+            Stock actual<span *ngIf="nombreAlmacen"> en {{ nombreAlmacen }}</span>:
+            <span class="adm-insignia" [ngClass]="fijo.stock_disponible > 0 ? 'adm-insignia--exito' : 'adm-insignia--peligro'">
+              {{ fijo.stock_disponible }}
+            </span>
+          </div>
+          <button type="button" class="adm-btn adm-btn--fantasma adm-btn--sm pvr-fijo__volver"
+                  *ngIf="modo === 'crear'" [disabled]="bloqueado" (click)="volverACrear()">
+            <i class="bi bi-arrow-left"></i> No es este: crear uno nuevo
+          </button>
+        </div>
+        <p class="adm-ayuda pvr-espaciado">
+          El ingreso queda en el kardex con el precio de compra que ya tiene el producto.
+          Si ese costo cambió, corríjalo después en Productos.
+        </p>
+      </ng-container>
+
+      <!-- El producto se creó pero no se pudo ingresar su stock -->
+      <ng-container *ngIf="fase === 'stock'">
+        <div class="adm-aviso adm-aviso--aviso">
+          <i class="bi bi-exclamation-triangle"></i>
+          <div class="pvr-parecidos">
+            <span>
+              El producto «{{ productoCreado?.nombre }}» ya quedó creado, pero no se pudo registrar su ingreso al almacén.
+            </span>
+            <span class="pvr-motivo">Motivo: {{ motivoFallo }}</span>
+            <strong>Sin stock no podrá cobrarlo. Reintente el ingreso.</strong>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Cantidades: dos números distintos -->
+      <div class="adm-fila pvr-espaciado">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="pvr-ingresa">Ingresa al almacén <span class="pvr-obligatorio">*</span></label>
+          <input #campoIngresa id="pvr-ingresa" class="adm-input" type="number" min="1" step="1"
+                 inputmode="numeric" autocomplete="off"
+                 [readOnly]="guardando"
+                 [(ngModel)]="formulario.ingresa" (ngModelChange)="alCambiarIngresa()">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="pvr-lleva">Se lleva el cliente <span class="pvr-obligatorio">*</span></label>
+          <input #campoSeLleva id="pvr-lleva" class="adm-input" type="number" min="1" step="1"
+                 inputmode="numeric" autocomplete="off"
+                 [readOnly]="guardando"
+                 [(ngModel)]="formulario.se_lleva" (ngModelChange)="alCambiarSeLleva()">
+        </div>
+      </div>
+      <p class="adm-ayuda pvr-ayuda-cantidades">
+        {{ textoAyudaCantidades }}
+        <span *ngIf="nombreAlmacen"><i class="bi bi-building"></i> {{ nombreAlmacen }}.</span>
+      </p>
+
+      <!-- Producto nuevo: datos opcionales -->
+      <ng-container *ngIf="fase === 'formulario' && modoActivo === 'crear'">
+        <div class="adm-fila pvr-espaciado">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="pvr-unidad">Unidad</label>
+            <select id="pvr-unidad" class="adm-select" [disabled]="guardando" [(ngModel)]="formulario.unidad_medida">
+              <option *ngFor="let u of unidades" [value]="u">{{ u }}</option>
+            </select>
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="pvr-codigo">Código de barras</label>
+            <input #campoCodigo id="pvr-codigo" class="adm-input" type="text" autocomplete="off"
+                   placeholder="Escanéelo aquí con el lector"
+                   [maxLength]="maxLargoCodigo" [readOnly]="guardando"
+                   [(ngModel)]="formulario.codigo_barras" (keydown)="alPresionarEnCodigo($event)">
+            <span class="adm-ayuda">Opcional. Escanéelo ahora si lo tiene a mano.</span>
+          </div>
+        </div>
+
+        <div class="adm-aviso adm-aviso--info pvr-espaciado">
+          <i class="bi bi-info-circle"></i>
+          <span>Complete la ficha (fotos, categoría, marca) después en Productos.</span>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="adm-panel__pie">
+      <ng-container *ngIf="fase === 'formulario'">
+        <button type="button" class="adm-btn adm-btn--suave" [disabled]="guardando" (click)="cerrar()">
+          Cancelar
+        </button>
+        <button type="button" class="adm-btn adm-btn--suave" *ngIf="puedeSoloAgregar"
+                [disabled]="bloqueado" (click)="soloAgregar()">
+          <i class="bi bi-cart-plus"></i> Solo agregar al carrito
+        </button>
+        <button type="button" class="adm-btn adm-btn--primario" [disabled]="bloqueado" (click)="guardar()">
+          <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
+          {{ guardando ? textoProgreso : (modoActivo === 'crear' ? 'Crear y agregar' : 'Ingresar y agregar') }}
+        </button>
+      </ng-container>
+
+      <ng-container *ngIf="fase === 'stock'">
+        <button type="button" class="adm-btn adm-btn--suave" [disabled]="guardando" (click)="loHareDespues()">
+          Lo haré después
+        </button>
+        <button type="button" class="adm-btn adm-btn--primario" [disabled]="bloqueado" (click)="reintentarIngreso()">
+          <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-repeat'"></i>
+          {{ guardando ? textoProgreso : 'Reintentar ingreso' }}
+        </button>
+      </ng-container>
+    </div>
+  </aside>
+</ng-container>

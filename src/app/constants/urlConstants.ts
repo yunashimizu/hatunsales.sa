@@ -122,6 +122,10 @@ export const urlConstants = {
   proforma: {
     base: `${dominio}proforma`,
     byId: (id: string | number) => `${dominio}proforma/${id}`,
+    /** PDF de la proforma generado por el backend (application/pdf). */
+    pdf: (id: string | number) => `${dominio}proforma/${id}/pdf`,
+    /** Excel (.xlsx) de la proforma generado por el backend. */
+    excel: (id: string | number) => `${dominio}proforma/${id}/excel`,
     whatsappEstado: `${dominio}proforma/whatsapp/estado`,
     whatsappEnviar: `${dominio}proforma/whatsapp/enviar`,
   },
