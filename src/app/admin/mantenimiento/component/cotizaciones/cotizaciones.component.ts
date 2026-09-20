@@ -599,7 +599,16 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
   }
 
   alEscribirProducto(): void {
+    this.errorProductos = '';
+    this.sugerenciasProd = [];
+    this.origenSugerencias = 'ninguno';
     this.buscarProd$.next(this.textoProducto);
+  }
+
+  alEnfocarProducto(): void {
+    if (this.textoProducto.trim() && !this.sugerenciasProd.length && !this.buscandoProd) {
+      this.buscarProd$.next(this.textoProducto);
+    }
   }
 
   /**

@@ -220,17 +220,14 @@
                 </button>
               </div>
 
-              <div class="pv-buscador">
+              <div class="pv-buscador cot-producto-buscador">
                 <i class="bi bi-search pv-buscador__icono"></i>
                   <input class="adm-input pv-buscador__input" type="text" autocomplete="off"
                          placeholder="Buscar producto por nombre, SKU o código…"
                          [(ngModel)]="textoProducto" (ngModelChange)="alEscribirProducto()"
+                         (focus)="alEnfocarProducto()"
                          (keydown)="alPresionarEnProducto($event)">
                  <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProd"></i>
-              </div>
-              <p class="adm-ayuda cot-cargando-stock" *ngIf="cargandoProductos">
-                <i class="bi bi-arrow-repeat adm-girando"></i> Cargando el stock de los productos… (ya puede buscar)
-              </p>
               <ul class="adm-sugerencias" *ngIf="sugerenciasProd.length">
                 <li *ngFor="let p of sugerenciasProd" (click)="agregarProducto(p)">
                   <strong>{{ p.nombre }}</strong>
@@ -242,6 +239,10 @@
                   </span>
                 </li>
               </ul>
+              </div>
+              <p class="adm-ayuda cot-cargando-stock" *ngIf="cargandoProductos">
+                <i class="bi bi-arrow-repeat adm-girando"></i> Cargando el stock de los productos… (ya puede buscar)
+              </p>
               <p class="adm-ayuda cot-sin-productos" *ngIf="busquedaSinResultados">
                 {{ mensajeSinResultados }}
               </p>
