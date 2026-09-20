@@ -52,6 +52,7 @@
   padding: 4px;
   color: var(--adm-texto);
   font-size: 14px;
+  font-weight: 600;
 }
 
 .adm-cabecera {
@@ -241,7 +242,7 @@
 .adm-input--error { border-color: var(--adm-peligro); }
 .adm-input--error:focus { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14); }
 
-.adm-ayuda { font-size: 12px; color: var(--adm-texto-tenue); }
+.adm-ayuda { font-size: 12px; font-weight: 600; color: var(--adm-texto-tenue); }
 .adm-ayuda--error { color: var(--adm-peligro); }
 
 .adm-fila {
@@ -397,7 +398,7 @@
 .adm-tabla .adm-centro { text-align: center; }
 
 .adm-tabla__principal { font-weight: 600; color: var(--adm-texto); }
-.adm-tabla__secundario { font-size: 12px; color: var(--adm-texto-tenue); }
+.adm-tabla__secundario { font-size: 12px; font-weight: 600; color: var(--adm-texto-tenue); }
 
 /* ── Insignias ───────────────────────────────────────────────── */
 
