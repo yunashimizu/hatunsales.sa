@@ -46,6 +46,7 @@ export class AdminConfiguracionComponent implements OnInit {
     razon_social: '',
     direccion: '',
     ubicacion: '',
+    logo_url: '',
   };
   formSeries = { serie_boleta: 'BBB1', serie_factura: 'FFF1' };
 
@@ -88,6 +89,7 @@ export class AdminConfiguracionComponent implements OnInit {
           razon_social: f.emisor.razon_social || '',
           direccion: f.emisor.direccion || '',
           ubicacion: f.emisor.ubicacion || '',
+          logo_url: f.emisor.logo_url || '',
         };
         this.formSeries = {
           serie_boleta: f.series.serie_boleta || 'BBB1',

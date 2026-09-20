@@ -93,6 +93,11 @@
           <input id="cfg-ubi" class="adm-input" type="text" [(ngModel)]="formEmisor.ubicacion">
         </div>
       </div>
+      <div class="adm-campo cfg-espaciado">
+        <label class="adm-etiqueta" for="cfg-logo">Logo para proformas</label>
+        <input id="cfg-logo" class="adm-input" type="text" [(ngModel)]="formEmisor.logo_url"
+               placeholder="/uploads/hatunsales-logo.png">
+      </div>
       <ul class="adm-leyenda" style="margin-top:12px" *ngIf="fiscal">
         <li class="adm-leyenda__item">
           <span class="adm-leyenda__punto"
