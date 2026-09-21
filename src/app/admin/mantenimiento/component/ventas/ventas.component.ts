@@ -130,8 +130,6 @@ export class VentasComponent implements OnInit, OnDestroy {
     yape_orden_id: string;
     yape_estado: string;
   }[] = [this.lineaPagoVacia()];
-  descuentoGlobalTipo: 'soles' | 'porcentaje' = 'soles';
-  descuentoGlobalValor = 0;
   lineaCredito: {
     credito_activo: boolean;
     disponible: number;
@@ -1037,10 +1035,7 @@ export class VentasComponent implements OnInit, OnDestroy {
           sku: producto.sku,
           unidad_medida: producto.unidad_medida,
           cantidad: 1,
-          precio_unitario: producto.precio_final,
-          descuento: 0,
-          descuento_tipo: 'soles',
-          descuento_valor: 0,
+          precio_unitario: producto.precio_venta,
           stock_disponible: producto.stock_disponible,
         },
       ];
@@ -1058,7 +1053,6 @@ export class VentasComponent implements OnInit, OnDestroy {
     if (this.emitiendo) return;
     const cantidad = Number(valor);
     linea.cantidad = Number.isFinite(cantidad) && cantidad > 0 ? cantidad : 1;
-    this.actualizarDescuentoDesdePresentacion(linea);
     this.avisarSiExcedeStock(linea);
     this.pedirRecalculo();
   }
@@ -1071,62 +1065,6 @@ export class VentasComponent implements OnInit, OnDestroy {
     if (this.emitiendo) return;
     const precio = Number(valor);
     linea.precio_unitario = Number.isFinite(precio) && precio >= 0 ? precio : 0;
-    this.actualizarDescuentoDesdePresentacion(linea);
-    this.pedirRecalculo();
-  }
-
-  cambiarDescuento(linea: LineaVenta, valor: number | string): void {
-    if (this.emitiendo) return;
-    const descuento = Number(valor);
-    const valorSeguro = Number.isFinite(descuento) && descuento >= 0 ? descuento : 0;
-    linea.descuento_tipo ??= 'soles';
-    linea.descuento_valor = valorSeguro;
-    linea.descuento = linea.descuento_tipo === 'porcentaje'
-      ? this.redondear(Math.min(100, valorSeguro) * this.brutoLinea(linea) / 100)
-      : valorSeguro;
-    this.pedirRecalculo();
-  }
-
-  private actualizarDescuentoDesdePresentacion(linea: LineaVenta): void {
-    if (linea.descuento_tipo !== 'porcentaje') return;
-    const porcentaje = Math.min(100, Math.max(0, Number(linea.descuento_valor) || 0));
-    linea.descuento = this.redondear(porcentaje * this.brutoLinea(linea) / 100);
-  }
-
-  cambiarTipoDescuento(linea: LineaVenta, tipo: 'soles' | 'porcentaje'): void {
-    if (this.emitiendo) return;
-    const actual = Number(linea.descuento || 0);
-    linea.descuento_tipo = tipo;
-    linea.descuento_valor = tipo === 'porcentaje'
-      ? this.porcentajeDe(actual, this.brutoLinea(linea))
-      : actual;
-    this.cambiarDescuento(linea, linea.descuento_valor);
-  }
-
-  valorDescuento(linea: LineaVenta): number {
-    linea.descuento_tipo ??= 'soles';
-    if (linea.descuento_valor === undefined) {
-      linea.descuento_valor = linea.descuento_tipo === 'porcentaje'
-        ? this.porcentajeDe(linea.descuento, this.brutoLinea(linea))
-        : Number(linea.descuento || 0);
-    }
-    return linea.descuento_valor;
-  }
-
-  cambiarTipoDescuentoGlobal(tipo: 'soles' | 'porcentaje'): void {
-    if (this.emitiendo) return;
-    const actual = this.descuentoGlobalSoles;
-    this.descuentoGlobalTipo = tipo;
-    this.descuentoGlobalValor = tipo === 'porcentaje'
-      ? this.porcentajeDe(actual, this.brutoCarrito())
-      : actual;
-    this.pedirRecalculo();
-  }
-
-  cambiarDescuentoGlobal(valor: number | string): void {
-    if (this.emitiendo) return;
-    const numero = Number(valor);
-    this.descuentoGlobalValor = Number.isFinite(numero) && numero >= 0 ? numero : 0;
     this.pedirRecalculo();
   }
 
@@ -1213,7 +1151,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   /** Total aproximado mientras llega la respuesta del servidor. */
   get totalLocal(): number {
-    return this.redondear(this.brutoCarrito() - this.descuentoLineasConGlobal());
+    return this.redondear(this.brutoCarrito());
   }
 
   private redondear(valor: number): number {
@@ -1228,39 +1166,6 @@ export class VentasComponent implements OnInit, OnDestroy {
     return this.lineas.reduce((suma, linea) => suma + this.brutoLinea(linea), 0);
   }
 
-  private porcentajeDe(valor: number, base: number): number {
-    return base > 0 ? this.redondear(Math.max(0, valor) * 100 / base) : 0;
-  }
-
-  get descuentoGlobalSoles(): number {
-    const bruto = this.brutoCarrito();
-    const solicitado = this.descuentoGlobalTipo === 'porcentaje'
-      ? bruto * Math.min(100, Math.max(0, Number(this.descuentoGlobalValor) || 0)) / 100
-      : Math.max(0, Number(this.descuentoGlobalValor) || 0);
-    return this.redondear(Math.min(bruto, solicitado));
-  }
-
-  private descuentosGlobalesPorLinea(): number[] {
-    const lineas = this.lineas;
-    const disponible = lineas.map((linea) => Math.max(0, this.brutoLinea(linea) - Number(linea.descuento || 0)));
-    const totalDisponible = disponible.reduce((suma, valor) => suma + valor, 0);
-    let restante = Math.min(this.descuentoGlobalSoles, totalDisponible);
-    return disponible.map((valor, indice) => {
-      if (indice === disponible.length - 1) {
-        return this.redondear(Math.min(valor, Math.max(0, restante)));
-      }
-      const parte = totalDisponible > 0 ? this.redondear(restante * valor / totalDisponible) : 0;
-      const aplicada = Math.min(valor, parte);
-      restante = this.redondear(restante - aplicada);
-      return aplicada;
-    });
-  }
-
-  private descuentoLineasConGlobal(): number {
-    return this.redondear(this.lineas.reduce((suma, linea, indice) => {
-      return suma + Number(linea.descuento || 0) + (this.descuentosGlobalesPorLinea()[indice] || 0);
-    }, 0));
-  }
 
   get total(): number {
     return this.preview?.totales.total ?? this.totalLocal;
@@ -1315,7 +1220,6 @@ export class VentasComponent implements OnInit, OnDestroy {
   // ── Emisión ──────────────────────────────────────────────────
 
   private armarSolicitud(paraRegistrar: boolean): SolicitudVenta {
-    const descuentosGlobales = this.descuentosGlobalesPorLinea();
     const solicitud: SolicitudVenta = {
       id_tipo: this.idTipo,
       serie: this.serie.trim() || undefined,
@@ -1325,8 +1229,6 @@ export class VentasComponent implements OnInit, OnDestroy {
       items: this.lineas.map((l, indice) => ({
         id_producto: l.id_producto,
         cantidad: l.cantidad,
-        precio_unitario: l.precio_unitario,
-        descuento: this.redondear((l.descuento || 0) + (descuentosGlobales[indice] || 0)) || undefined,
       })),
     };
 
@@ -1661,8 +1563,6 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.idCotizacionCargada = null;
     this.codigoCotizacionCargada = '';
     this.idAlmacenCotizacion = null;
-    this.descuentoGlobalTipo = 'soles';
-    this.descuentoGlobalValor = 0;
     this.montoRecibido = null;
     this.lineasPago = [{
       ...this.lineaPagoVacia(),

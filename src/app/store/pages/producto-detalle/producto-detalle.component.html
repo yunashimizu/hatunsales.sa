@@ -42,7 +42,7 @@
              (mouseleave)="zoom = false"
              title="Clic para ampliar">
           <img [src]="imagenPrincipal" [alt]="producto.nombre" (error)="imagenAlternativa($event)" />
-          <span class="insignia-oferta" *ngIf="producto.descuento > 0">-{{ producto.descuento }}%</span>
+          <span class="insignia-oferta" *ngIf="producto.descuento > 0">Oferta</span>
           <span class="visor-pista" *ngIf="producto.imagenes.length > 1">
             <i class="bi bi-images"></i> {{ producto.imagenes.length }} fotos
           </span>
@@ -81,7 +81,7 @@
           <div class="precios">
             <span class="precio">S/ {{ producto.precio_final | number: '1.2-2' }}</span>
             <span class="precio-antes" *ngIf="ahorro > 0">S/ {{ producto.precio | number: '1.2-2' }}</span>
-            <span class="pastilla-descuento" *ngIf="producto.descuento > 0">-{{ producto.descuento }}%</span>
+            <span class="pastilla-descuento" *ngIf="producto.descuento > 0">Oferta</span>
           </div>
           <span class="ahorro" *ngIf="ahorro > 0">Ahorras S/ {{ ahorro | number: '1.2-2' }}</span>
           <span class="incluye-igv">Precio incluye IGV</span>

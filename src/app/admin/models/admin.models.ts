@@ -39,6 +39,7 @@ export interface ProductoVenta {
   precio_venta: number;
   descuento: number;
   precio_final: number;
+  reglas_mayoristas?: { id_regla: number; cantidad_minima: number; descuento_unitario: number }[];
   stock_disponible: number;
   imagen_url: string;
 }
@@ -51,10 +52,6 @@ export interface LineaVenta {
   unidad_medida: string;
   cantidad: number;
   precio_unitario: number;
-  descuento: number;
-  /** Presentación del descuento en pantalla; `descuento` sigue siendo soles para la API. */
-  descuento_tipo?: 'soles' | 'porcentaje';
-  descuento_valor?: number;
   stock_disponible: number;
 }
 

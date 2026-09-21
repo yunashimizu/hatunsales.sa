@@ -4,7 +4,7 @@
     <img [src]="imagen" [alt]="producto.nombre" loading="lazy" (error)="imagenAlternativa($event)" />
 
     <div class="insignias">
-      <span class="insignia oferta" *ngIf="producto.descuento > 0">-{{ producto.descuento }}%</span>
+      <span class="insignia oferta" *ngIf="producto.descuento > 0">Oferta</span>
       <span class="insignia nuevo" *ngIf="producto.destacado && producto.descuento <= 0">Destacado</span>
     </div>
 

@@ -3,6 +3,8 @@
 .guia-contexto > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 12px; border: 1px solid var(--adm-borde); border-radius: var(--adm-r-md); background: var(--adm-superficie-2); }
 .guia-contexto strong, .guia-contexto span { overflow-wrap: anywhere; }
 .guia-contexto span { color: var(--adm-texto-suave); font-size: 13px; }
+.guia-items { max-width: 100%; overflow-x: auto; }
+.guia-items .adm-tabla { min-width: 620px; }
 .guia-formulario { margin-top: 12px; }
 .guia-items { margin-top: 18px; }
 .guia-acciones { align-items: center; flex-wrap: wrap; margin-top: 16px; }

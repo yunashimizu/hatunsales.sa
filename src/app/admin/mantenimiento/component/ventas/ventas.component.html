@@ -226,7 +226,6 @@
                 <th>Producto</th>
                 <th class="adm-centro">Cantidad</th>
                 <th class="adm-num">Precio</th>
-                <th class="adm-num">Dscto.</th>
                 <th class="adm-num">Importe</th>
                 <th></th>
               </tr>
@@ -261,27 +260,11 @@
                 </td>
 
                 <td data-etiqueta="Precio" class="adm-num">
-                  <input class="adm-input pv-monto" type="number" min="0" step="0.01"
-                         [ngModel]="linea.precio_unitario"
-                         (ngModelChange)="cambiarPrecio(linea, $event)">
-                </td>
-
-                <td data-etiqueta="Descuento" class="adm-num">
-                  <div class="pv-descuento-control">
-                    <select class="adm-select pv-descuento-control__tipo"
-                            [ngModel]="linea.descuento_tipo || 'soles'"
-                            (ngModelChange)="cambiarTipoDescuento(linea, $event)">
-                      <option value="soles">S/</option>
-                      <option value="porcentaje">%</option>
-                    </select>
-                    <input class="adm-input pv-monto" type="number" min="0" [max]="linea.descuento_tipo === 'porcentaje' ? 100 : null"
-                           step="0.01" [ngModel]="valorDescuento(linea)"
-                         (ngModelChange)="cambiarDescuento(linea, $event)">
-                  </div>
+                  S/ {{ linea.precio_unitario | number:'1.2-2' }}
                 </td>
 
                 <td data-etiqueta="Importe" class="adm-num adm-tabla__principal">
-                  S/ {{ (linea.cantidad * linea.precio_unitario - linea.descuento) | number:'1.2-2' }}
+                  S/ {{ (linea.cantidad * linea.precio_unitario) | number:'1.2-2' }}
                 </td>
 
                 <td>
@@ -557,27 +540,6 @@
           </div>
           <div class="pv-desglose" *ngIf="preview">
             Incluye IGV ({{ preview.porcentaje_igv }}%) de S/ {{ preview.totales.igv | number:'1.2-2' }}
-          </div>
-
-          <div class="pv-descuento-global pv-espaciado">
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="pv-descuento-global">Descuento total</label>
-              <div class="pv-descuento-control">
-                <select id="pv-descuento-global-tipo" class="adm-select pv-descuento-control__tipo"
-                        [ngModel]="descuentoGlobalTipo"
-                        (ngModelChange)="cambiarTipoDescuentoGlobal($event)">
-                  <option value="soles">S/</option>
-                  <option value="porcentaje">%</option>
-                </select>
-                <input id="pv-descuento-global" class="adm-input pv-monto" type="number" min="0"
-                       [max]="descuentoGlobalTipo === 'porcentaje' ? 100 : null" step="0.01"
-                       [(ngModel)]="descuentoGlobalValor"
-                       (ngModelChange)="cambiarDescuentoGlobal($event)">
-              </div>
-            </div>
-            <span class="adm-ayuda" *ngIf="descuentoGlobalSoles > 0">
-              Aplicado: − S/ {{ descuentoGlobalSoles | number:'1.2-2' }} repartido entre las líneas.
-            </span>
           </div>
 
           <div class="adm-aviso adm-aviso--peligro pv-espaciado" *ngIf="!metodosPago.length">
