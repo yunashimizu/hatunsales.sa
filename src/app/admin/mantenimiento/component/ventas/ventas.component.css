@@ -62,7 +62,7 @@
 
 .pv-buscador-fila {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 8px;
 }
 
@@ -74,6 +74,19 @@
 .pv-buscador__alta {
   flex: 0 0 auto;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 12px;
+  margin-left: 2px;
+}
+
+.pv-buscador__input {
+  min-height: 48px;
+  padding-left: 36px;
+  padding-right: 36px;
 }
 
 .pv-buscador__icono {
@@ -84,8 +97,6 @@
   color: var(--adm-texto-tenue);
   pointer-events: none;
 }
-
-.pv-buscador__input { padding-left: 36px; padding-right: 36px; }
 
 .pv-buscador__estado {
   position: absolute;

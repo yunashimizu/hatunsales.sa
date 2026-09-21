@@ -822,6 +822,7 @@ export class VentasComponent implements OnInit, OnDestroy {
             this.buscandoProducto = false;
             this.sugerenciasProducto = locales;
             this.indiceProducto = -1;
+            this.busquedaFallida = null;
             this.refrescarVista();
             return;
           }
@@ -831,6 +832,7 @@ export class VentasComponent implements OnInit, OnDestroy {
         // productos nuevos o catálogos en caché todavía desactualizados.
         const busquedaId = ++this.busquedaProductoId;
         this.buscandoProducto = true;
+        this.busquedaFallida = null;
         this.refrescarVista();
         this.puntoVenta.buscarProductos(texto, 12, this.idAlmacen).pipe(
           catchError(() => of([] as ProductoVenta[])),
@@ -840,12 +842,25 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.buscandoProducto = false;
           this.sugerenciasProducto = productos;
           this.indiceProducto = -1;
+          if (!productos.length && this.textoProducto.trim() === texto) {
+            this.marcarBusquedaFallida(texto);
+          } else if (this.textoProducto.trim() === texto) {
+            this.busquedaFallida = null;
+          }
           this.refrescarVista();
         });
       });
   }
 
   alEscribirProducto(): void {
+    const texto = this.textoProducto.trim();
+    if (!texto) {
+      this.busquedaFallida = null;
+      this.sugerenciasProducto = [];
+      this.indiceProducto = -1;
+      this.refrescarVista();
+      return;
+    }
     this.busquedaFallida = null;
     this.buscarProducto$.next(this.textoProducto);
   }
@@ -1637,8 +1652,22 @@ export class VentasComponent implements OnInit, OnDestroy {
    * lector, los mismos puntos del toast «No se encontró…»). En vivo parpadearía en
    * cada tecla mientras se escribe «perno 1/2».
    */
+  get mostrarBotonAltaProductoEnBusqueda(): boolean {
+    const texto = this.textoProducto.trim();
+    return !!texto
+      && this.puedeCrearRapido
+      && !this.panelAltaRapida
+      && !this.emitiendo
+      && !this.buscandoProducto
+      && !this.cambiandoAlmacen
+      && !this.cargandoContextoPos
+      && !this.sugerenciasProducto.length;
+  }
+
   get mostrarTarjetaSinResultados(): boolean {
+    const texto = this.textoProducto.trim();
     const fallida = this.busquedaFallida;
+    const tieneBusquedaActiva = !!texto && !this.sugerenciasProducto.length;
     return !!fallida
       && this.puedeCrearRapido
       && !this.panelAltaRapida
@@ -1646,8 +1675,8 @@ export class VentasComponent implements OnInit, OnDestroy {
       && !this.buscandoProducto
       && !this.cambiandoAlmacen
       && !this.cargandoContextoPos
-      && !this.sugerenciasProducto.length
-      && this.textoProducto.trim() === fallida.texto;
+      && tieneBusquedaActiva
+      && texto === fallida.texto;
   }
 
   sinStock(producto: ProductoVenta): boolean {

@@ -137,7 +137,7 @@
                 <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProducto"></i>
               </div>
               <button type="button" class="adm-btn adm-btn--primario pv-buscador__alta"
-                      *ngIf="mostrarTarjetaSinResultados"
+                      *ngIf="mostrarBotonAltaProductoEnBusqueda || mostrarTarjetaSinResultados"
                       (click)="abrirAltaRapida()"
                       title="Registrar este producto y continuar la venta">
                 <i class="bi bi-plus-lg"></i> Agregar producto
