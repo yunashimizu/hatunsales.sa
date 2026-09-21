@@ -107,6 +107,12 @@ export class SidebarComponent implements OnInit {
           badgeKey: 'cpe_atencion',
         },
         {
+          etiqueta: 'Guías de remisión',
+          ruta: '/dashboard/mantenimiento/guias-remision',
+          icono: 'bi-truck',
+          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+        },
+        {
           etiqueta: 'Clientes',
           ruta: '/dashboard/mantenimiento/clientes',
           icono: 'bi-people',
