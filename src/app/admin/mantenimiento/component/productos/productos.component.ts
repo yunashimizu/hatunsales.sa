@@ -70,6 +70,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
   formulario: ProductoFormulario = { ...FORMULARIO_VACIO };
   guardando = false;
   cargandoStock = false;
+  errorStock = '';
   almacenes: { id_almacen: number; nombre: string; sucursal: string }[] = [];
   idAlmacenStock: number | null = null;
   stockActualEdicion = 0;
@@ -218,6 +219,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     this.formulario = { ...FORMULARIO_VACIO };
     this.idAlmacenStock = this.almacenes[0]?.id_almacen ?? null;
     this.stockActualEdicion = 0;
+    this.errorStock = '';
     this.imagenes = [];
     this.panelAbierto = true;
     this.cargarMarcas();
@@ -243,27 +245,36 @@ export class ProductosComponent implements OnInit, OnDestroy {
     };
     this.idAlmacenStock = this.almacenes[0]?.id_almacen ?? null;
     this.stockActualEdicion = Number(producto.stock_total) || 0;
+    this.errorStock = '';
     this.panelAbierto = true;
     this.cargarMarcas({ id_marca: producto.id_marca, nombre: producto.marca });
     this.cargarImagenes(producto.id_producto);
-    this.cargarStockEdicion(producto);
+    this.cargarStockEdicion();
   }
 
-  private cargarStockEdicion(producto: ProductoAdmin): void {
-    this.cargandoStock = true;
-    this.inventario.listar({ texto: producto.nombre, por_pagina: 200 }).pipe(
-      catchError(() => of({ datos: [], total: 0, pagina: 1, por_pagina: 200 })),
-      takeUntil(this.destruir$),
-    ).subscribe((respuesta) => {
-      const filas = respuesta.datos.filter((fila) => fila.id_producto === producto.id_producto);
-      const fila = filas[0];
-      if (fila) {
-        this.idAlmacenStock = fila.id_almacen;
-        this.stockActualEdicion = Number(fila.stock) || 0;
-        this.formulario.stock = this.stockActualEdicion;
-      }
+  private cargarStockEdicion(): void {
+    if (!this.idAlmacenStock || !this.editando) {
       this.cargandoStock = false;
-      this.cdr.markForCheck();
+      this.errorStock = this.almacenes.length ? '' : 'No hay almacenes disponibles.';
+      return;
+    }
+    this.cargandoStock = true;
+    this.errorStock = '';
+    this.inventario.listar({ id_almacen: this.idAlmacenStock, por_pagina: 200 }).pipe(
+      takeUntil(this.destruir$),
+    ).subscribe({
+      next: (respuesta) => {
+        const fila = respuesta.datos.find((item) => item.id_producto === this.editando?.id_producto);
+        this.stockActualEdicion = Number(fila?.stock) || 0;
+        this.formulario.stock = this.stockActualEdicion;
+        this.cargandoStock = false;
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        this.cargandoStock = false;
+        this.errorStock = mensajeDeError(error, 'No se pudo consultar el stock del almacén');
+        this.cdr.markForCheck();
+      },
     });
   }
 
@@ -271,17 +282,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     const almacen = Number(id);
     if (!Number.isInteger(almacen) || almacen <= 0 || almacen === this.idAlmacenStock || !this.editando) return;
     this.idAlmacenStock = almacen;
-    this.cargandoStock = true;
-    this.inventario.listar({ texto: this.editando.nombre, id_almacen: almacen, por_pagina: 200 }).pipe(
-      catchError(() => of({ datos: [], total: 0, pagina: 1, por_pagina: 200 })),
-      takeUntil(this.destruir$),
-    ).subscribe((respuesta) => {
-      const fila = respuesta.datos.find((item) => item.id_producto === this.editando?.id_producto);
-      this.stockActualEdicion = Number(fila?.stock) || 0;
-      this.formulario.stock = this.stockActualEdicion;
-      this.cargandoStock = false;
-      this.cdr.markForCheck();
-    });
+    this.cargarStockEdicion();
   }
 
   cerrarPanel(): void {
@@ -319,6 +320,14 @@ export class ProductosComponent implements OnInit, OnDestroy {
     // El stock solo se fija al crear; al editar no se toca inventario desde aquí.
     if (this.editando) {
       delete datos.stock;
+      if (!this.idAlmacenStock || this.cargandoStock || this.errorStock) {
+        this.guardando = false;
+        this.alerta.toast({
+          type: 'warning',
+          title: this.errorStock || 'Espere a que cargue el stock del almacén',
+        });
+        return;
+      }
     } else {
       datos.stock = Math.max(0, Math.trunc(Number(this.formulario.stock) || 0));
     }

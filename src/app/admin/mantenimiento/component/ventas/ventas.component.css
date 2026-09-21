@@ -60,6 +60,22 @@
 
 .pv-buscador { position: relative; }
 
+.pv-buscador-fila {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.pv-buscador-fila .pv-buscador {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pv-buscador__alta {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .pv-buscador__icono {
   position: absolute;
   top: 50%;
@@ -122,6 +138,11 @@
 }
 
 .pv-descuento-global .adm-ayuda { display: block; margin-top: 4px; }
+
+@media (max-width: 640px) {
+  .pv-buscador-fila { flex-direction: column; }
+  .pv-buscador__alta { width: 100%; }
+}
 
 /* Oculta las flechas del input numérico, que en una caja solo estorban. */
 .pv-contador__input::-webkit-outer-spin-button,

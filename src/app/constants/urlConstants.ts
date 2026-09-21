@@ -115,10 +115,6 @@ export const urlConstants = {
     cerrar: `${dominio}caja/cerrar`,
   },
 
-  guiaRemision: {
-    base: `${dominio}guia-remision`,
-  },
-
   proforma: {
     base: `${dominio}proforma`,
     byId: (id: string | number) => `${dominio}proforma/${id}`,
@@ -128,6 +124,13 @@ export const urlConstants = {
     excel: (id: string | number) => `${dominio}proforma/${id}/excel`,
     whatsappEstado: `${dominio}proforma/whatsapp/estado`,
     whatsappEnviar: `${dominio}proforma/whatsapp/enviar`,
+  },
+
+  guiaRemision: {
+    base: `${dominio}guia-remision`,
+    pdf: (id: string | number) => `${dominio}guia-remision/${id}/pdf`,
+    byId: (id: string | number) => `${dominio}guia-remision/${id}`,
+    contextoVenta: (id: string | number) => `${dominio}guia-remision/ventas/${id}/contexto`,
   },
 
   comprobante: {

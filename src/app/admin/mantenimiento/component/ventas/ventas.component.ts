@@ -190,6 +190,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   private readonly recalcular$ = new Subject<void>();
   private readonly cambiarAlmacen$ = new Subject<number>();
   private readonly destruir$ = new Subject<void>();
+  private busquedaProductoId = 0;
   /** Evita re-disparar la misma búsqueda automática de DNI/RUC. */
   private ultimoDocumentoAuto = '';
   private autoEligiendoReceptor = false;
@@ -818,20 +819,26 @@ export class VentasComponent implements OnInit, OnDestroy {
         }
 
         if (this.puntoVenta.tieneCatalogo) {
-          this.buscandoProducto = false;
-          this.sugerenciasProducto = this.puntoVenta.filtrarLocal(texto);
-          this.indiceProducto = -1;
-          this.refrescarVista();
-          return;
+          const locales = this.puntoVenta.filtrarLocal(texto);
+          if (locales.length) {
+            this.buscandoProducto = false;
+            this.sugerenciasProducto = locales;
+            this.indiceProducto = -1;
+            this.refrescarVista();
+            return;
+          }
         }
 
-        // Catálogo aún no listo: mismo API de siempre como respaldo.
+        // Sin coincidencia local: se confirma contra la base de datos. Esto cubre
+        // productos nuevos o catálogos en caché todavía desactualizados.
+        const busquedaId = ++this.busquedaProductoId;
         this.buscandoProducto = true;
         this.refrescarVista();
         this.puntoVenta.buscarProductos(texto, 12, this.idAlmacen).pipe(
           catchError(() => of([] as ProductoVenta[])),
           takeUntil(this.destruir$),
         ).subscribe((productos) => {
+          if (busquedaId !== this.busquedaProductoId) return;
           this.buscandoProducto = false;
           this.sugerenciasProducto = productos;
           this.indiceProducto = -1;
@@ -959,19 +966,14 @@ export class VentasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.puntoVenta.tieneCatalogo) {
-      this.sugerenciasProducto = [];
-      this.alerta.toast({ type: 'warning', title: `No se encontró "${termino}"` });
-      this.marcarBusquedaFallida(termino);
-      this.enfocarBuscadorProducto();
-      return;
-    }
-
-    // Sin cache aún: buscar en API (mismo comportamiento de respaldo).
+    // Sin coincidencia local: confirmar siempre contra el servidor, incluso si
+    // la caché ya cargó, porque puede estar desactualizada.
+    const busquedaId = ++this.busquedaProductoId;
     this.buscandoProducto = true;
     this.refrescarVista();
     this.puntoVenta.buscarProductos(termino, 12, this.idAlmacen).pipe(catchError(() => of([] as ProductoVenta[]))).subscribe({
       next: (productos) => {
+        if (busquedaId !== this.busquedaProductoId) return;
         this.buscandoProducto = false;
         this.sugerenciasProducto = productos;
         this.indiceProducto = -1;

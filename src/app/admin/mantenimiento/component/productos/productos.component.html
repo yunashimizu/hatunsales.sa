@@ -304,6 +304,9 @@
       <p class="adm-ayuda" *ngIf="editando && !cargandoStock && idAlmacenStock">
         Cambiar la cantidad registra un ajuste por corrección en el kardex.
       </p>
+      <p class="adm-ayuda adm-ayuda--error" *ngIf="editando && !cargandoStock && errorStock">
+        {{ errorStock }}
+      </p>
       <p class="adm-ayuda adm-ayuda--error" *ngIf="editando && !cargandoStock && !idAlmacenStock">
         No hay almacenes disponibles para editar el stock.
       </p>

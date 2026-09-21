@@ -111,19 +111,27 @@
             <label class="adm-etiqueta" for="adm-buscar-producto">
               {{ nombreAlmacenActivo ? 'Código o nombre' : 'Agregar producto' }}
             </label>
-            <div class="pv-buscador">
-              <i class="bi bi-upc-scan pv-buscador__icono"></i>
-              <input #inputProducto
-                     id="adm-buscar-producto"
-                     class="adm-input pv-buscador__input"
-                     type="text"
-                     autocomplete="off"
-                     autofocus
-                     placeholder="Escanee el código o busque por nombre / SKU…"
-                     [(ngModel)]="textoProducto"
-                     (ngModelChange)="alEscribirProducto()"
-                     (keydown)="alPresionarEnProducto($event)">
-              <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProducto"></i>
+            <div class="pv-buscador-fila">
+              <div class="pv-buscador">
+                <i class="bi bi-upc-scan pv-buscador__icono"></i>
+                <input #inputProducto
+                       id="adm-buscar-producto"
+                       class="adm-input pv-buscador__input"
+                       type="text"
+                       autocomplete="off"
+                       autofocus
+                       placeholder="Escanee el código o busque por nombre / SKU…"
+                       [(ngModel)]="textoProducto"
+                       (ngModelChange)="alEscribirProducto()"
+                       (keydown)="alPresionarEnProducto($event)">
+                <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProducto"></i>
+              </div>
+              <button type="button" class="adm-btn adm-btn--primario pv-buscador__alta"
+                      *ngIf="mostrarTarjetaSinResultados"
+                      (click)="abrirAltaRapida()"
+                      title="Registrar este producto y continuar la venta">
+                <i class="bi bi-plus-lg"></i> Agregar producto
+              </button>
             </div>
             <span class="adm-ayuda">
               Con el lector USB: deje el cursor aquí, escanee y el producto entra al carrito (no emite aún).

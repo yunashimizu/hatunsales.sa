@@ -141,6 +141,18 @@ const routes: Routes = [
       import('./component/cotizaciones/cotizaciones.component').then((c) => c.CotizacionesComponent),
   },
   {
+    path: 'guias-remision',
+    canActivate: [roleGuard],
+    data: {
+      roles: ['admin', 'vendedor', 'caja'],
+      title: 'Guias de remision',
+      subtitle: 'Consulta y prepara guias remitente desde una venta.',
+      icon: 'fa-truck-loading',
+    },
+    loadComponent: () =>
+      import('./component/guias-remision/guias-remision.component').then((c) => c.GuiasRemisionComponent),
+  },
+  {
     path: 'caja-sesion',
     canActivate: [roleGuard],
     data: {

@@ -1,0 +1,101 @@
+<div class="adm-pagina">
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Guias de remision</h1>
+      <p class="adm-cabecera__sub">Prepara el traslado desde una venta sin modificar inventario ni comprobantes.</p>
+    </div>
+    <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
+      <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i> Actualizar
+    </button>
+  </header>
+
+  <div class="adm-aviso adm-aviso--peligro" *ngIf="error">
+    <i class="bi bi-exclamation-triangle"></i><span>{{ error }}</span>
+  </div>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo"><i class="bi bi-truck"></i> Preparar guia desde una venta</h2>
+    </div>
+    <div class="adm-tarjeta__cuerpo">
+      <p class="adm-ayuda" *ngIf="!contexto">Abra esta pantalla con una venta para precargar sus productos y origen.</p>
+      <ng-container *ngIf="contexto as ctx">
+        <div class="guia-contexto">
+          <div><strong>Venta #{{ ctx.venta.id_venta }}</strong><span>Total S/ {{ ctx.venta.total | number:'1.2-2' }}</span></div>
+          <div><strong>{{ ctx.destinatario.denominacion }}</strong><span>{{ ctx.destinatario.numero_documento || 'Sin documento' }}</span></div>
+          <div><strong>{{ ctx.origen.nombre || 'Origen' }}</strong><span>{{ ctx.items.length }} producto(s)</span></div>
+        </div>
+
+        <div class="adm-fila guia-formulario">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="gre-fecha">Inicio de traslado</label>
+            <input id="gre-fecha" class="adm-input" type="date" [(ngModel)]="formulario.fecha_inicio_traslado">
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="gre-peso">Peso bruto</label>
+            <input id="gre-peso" class="adm-input" type="number" min="0" step="0.001" [(ngModel)]="formulario.peso_bruto_total">
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="gre-bultos">Bultos</label>
+            <input id="gre-bultos" class="adm-input" type="number" min="0" step="1" [(ngModel)]="formulario.numero_bultos">
+          </div>
+        </div>
+
+        <div class="adm-fila guia-formulario">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="gre-origen">Dirección de origen</label>
+            <input id="gre-origen" class="adm-input" type="text" [(ngModel)]="formulario.direccion_origen">
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="gre-destino">Dirección de destino</label>
+            <input id="gre-destino" class="adm-input" type="text" [(ngModel)]="formulario.direccion_destino">
+          </div>
+        </div>
+
+        <div class="adm-fila guia-formulario">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="gre-placa">Placa</label>
+            <input id="gre-placa" class="adm-input" type="text" [(ngModel)]="formulario.placa_principal">
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="gre-conductor">Conductor</label>
+            <input id="gre-conductor" class="adm-input" type="text" [(ngModel)]="formulario.conductor_nombre">
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="gre-dni">Documento conductor</label>
+            <input id="gre-dni" class="adm-input" type="text" [(ngModel)]="formulario.conductor_numero_doc">
+          </div>
+        </div>
+
+        <div class="adm-campo guia-formulario">
+          <label class="adm-etiqueta" for="gre-obs">Observaciones</label>
+          <textarea id="gre-obs" class="adm-textarea" rows="2" [(ngModel)]="formulario.observaciones"></textarea>
+        </div>
+
+        <div class="adm-tabla-envoltorio guia-items">
+          <table class="adm-tabla">
+            <thead><tr><th>Código</th><th>Descripción</th><th class="adm-num">Cantidad</th><th>Unidad</th></tr></thead>
+            <tbody><tr *ngFor="let item of ctx.items"><td>{{ item.codigo }}</td><td>{{ item.descripcion }}</td><td class="adm-num">{{ item.cantidad }}</td><td>{{ item.unidad_medida }}</td></tr></tbody>
+          </table>
+        </div>
+        <div class="adm-acciones guia-acciones">
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardarBorrador()" [disabled]="guardando || cargando">
+            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-save'"></i>
+            {{ guardando ? 'Guardando…' : 'Guardar borrador' }}
+          </button>
+          <span class="adm-ayuda">La emisión SUNAT se habilitará cuando estén configurados certificado, serie y credenciales.</span>
+        </div>
+      </ng-container>
+    </div>
+  </section>
+
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cabecera"><h2 class="adm-tarjeta__titulo"><i class="bi bi-list-check"></i> Guias guardadas</h2></div>
+    <div class="adm-vacio" *ngIf="!cargando && !guias.length"><div class="adm-vacio__titulo">No hay guias guardadas</div></div>
+    <div class="adm-tabla-envoltorio" *ngIf="guias.length">
+      <table class="adm-tabla adm-tabla--adaptable"><thead><tr><th>Guía</th><th>Venta</th><th>Destino</th><th>Estado</th><th></th></tr></thead>
+        <tbody><tr *ngFor="let guia of guias; trackBy: identificar"><td>{{ guia.serie || 'Borrador' }}<ng-container *ngIf="guia.numero">-{{ guia.numero }}</ng-container></td><td>#{{ guia.id_venta || '—' }}</td><td>{{ guia.direccion_destino || '—' }}</td><td><span class="adm-insignia adm-insignia--neutra">{{ guia.estado }}</span></td><td><button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="abrirPdf(guia)" [disabled]="!guia.id_guia" title="Abrir PDF del borrador"><i class="bi bi-filetype-pdf"></i> PDF</button></td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</div>
