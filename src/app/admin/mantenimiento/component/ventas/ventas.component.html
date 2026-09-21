@@ -117,9 +117,19 @@
         </div>
         <div class="adm-tarjeta__cuerpo">
           <div class="adm-campo adm-autocompletar">
-            <label class="adm-etiqueta" for="adm-buscar-producto">
-              {{ nombreAlmacenActivo ? 'Código o nombre' : 'Agregar producto' }}
-            </label>
+            <div class="pv-buscador-header"
+                 *ngIf="mostrarBotonAltaProductoEnBusqueda || mostrarTarjetaSinResultados || nombreAlmacenActivo">
+              <label class="adm-etiqueta pv-buscador-header__label" for="adm-buscar-producto">
+                {{ nombreAlmacenActivo ? 'Código o nombre' : 'Agregar producto' }}
+              </label>
+              <span class="pv-buscador-header__separador" aria-hidden="true">|</span>
+              <button type="button" class="adm-btn adm-btn--primario pv-buscador__alta"
+                      *ngIf="mostrarBotonAltaProductoEnBusqueda || mostrarTarjetaSinResultados"
+                      (click)="abrirAltaRapida()"
+                      title="Registrar este producto y continuar la venta">
+                <i class="bi bi-plus-lg"></i> Agregar producto
+              </button>
+            </div>
             <div class="pv-buscador-fila">
               <div class="pv-buscador">
                 <i class="bi bi-upc-scan pv-buscador__icono"></i>
@@ -136,12 +146,6 @@
                        (keydown)="alPresionarEnProducto($event)">
                 <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProducto"></i>
               </div>
-              <button type="button" class="adm-btn adm-btn--primario pv-buscador__alta"
-                      *ngIf="mostrarBotonAltaProductoEnBusqueda || mostrarTarjetaSinResultados"
-                      (click)="abrirAltaRapida()"
-                      title="Registrar este producto y continuar la venta">
-                <i class="bi bi-plus-lg"></i> Agregar producto
-              </button>
             </div>
             <span class="adm-ayuda">
               Con el lector USB: deje el cursor aquí, escanee y el producto entra al carrito (no emite aún).

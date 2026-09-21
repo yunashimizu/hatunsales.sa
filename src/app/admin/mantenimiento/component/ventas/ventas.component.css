@@ -60,6 +60,25 @@
 
 .pv-buscador { position: relative; }
 
+.pv-buscador-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pv-buscador-header__label {
+  margin: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.pv-buscador-header__separador {
+  color: var(--adm-texto-tenue);
+  font-weight: 600;
+  opacity: 0.9;
+}
+
 .pv-buscador-fila {
   display: flex;
   align-items: center;
@@ -77,14 +96,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  padding: 0 18px;
-  border-radius: 12px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 10px;
   margin-left: 2px;
 }
 
 .pv-buscador__input {
-  min-height: 48px;
+  min-height: 46px;
   padding-left: 36px;
   padding-right: 36px;
 }
