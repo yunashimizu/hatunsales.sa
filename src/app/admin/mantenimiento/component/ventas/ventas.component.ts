@@ -851,6 +851,17 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Si el usuario enfoca el buscador con texto ya cargado, se activa la búsqueda
+   * de inmediato para que la sugerencia aparezca sin depender de Enter o click.
+   */
+  alEnfocarProducto(): void {
+    const texto = this.textoProducto.trim();
+    if (!texto) return;
+    this.busquedaFallida = null;
+    this.buscarProducto$.next(texto);
+  }
+
+  /**
    * Enter del lector USB (escribe código + Enter) o del teclado.
    * Prioridad: sugerencia resaltada → código/SKU exacto → 1 sugerencia por nombre.
    * No salta a emitir: solo agrega al carrito.

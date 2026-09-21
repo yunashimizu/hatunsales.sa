@@ -131,6 +131,7 @@
                        autofocus
                        placeholder="Escanee el código o busque por nombre / SKU…"
                        [(ngModel)]="textoProducto"
+                       (focus)="alEnfocarProducto()"
                        (ngModelChange)="alEscribirProducto()"
                        (keydown)="alPresionarEnProducto($event)">
                 <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProducto"></i>
