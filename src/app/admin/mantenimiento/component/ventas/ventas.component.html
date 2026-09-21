@@ -231,7 +231,8 @@
                 <th>Producto</th>
                 <th class="adm-centro">Cantidad</th>
                 <th class="adm-num">Precio</th>
-                <th class="adm-num">Importe</th>
+                <th class="adm-num">Desc.</th>
+                <th class="adm-num">Subtotal</th>
                 <th></th>
               </tr>
             </thead>
@@ -268,8 +269,18 @@
                   S/ {{ linea.precio_unitario | number:'1.2-2' }}
                 </td>
 
-                <td data-etiqueta="Importe" class="adm-num adm-tabla__principal">
-                  S/ {{ (linea.cantidad * linea.precio_unitario) | number:'1.2-2' }}
+                <td data-etiqueta="Descuento" class="adm-num">
+                  <input class="adm-input pv-descuento-input"
+                         type="number"
+                         min="0"
+                         step="0.01"
+                         [ngModel]="linea.descuento ?? 0"
+                         (ngModelChange)="cambiarDescuento(linea, $event)"
+                         [attr.aria-label]="'Descuento para ' + linea.descripcion">
+                </td>
+
+                <td data-etiqueta="Subtotal" class="adm-num adm-tabla__principal">
+                  S/ {{ subtotalLinea(linea) | number:'1.2-2' }}
                 </td>
 
                 <td>
@@ -361,6 +372,10 @@
               <div class="adm-ticket__total-fila" *ngIf="preview.totales.inafecta">
                 <span>Op. inafecta</span>
                 <span>{{ preview.moneda.simbolo }} {{ preview.totales.inafecta | number:'1.2-2' }}</span>
+              </div>
+              <div class="adm-ticket__total-fila">
+                <span>Subtotal</span>
+                <span>{{ preview.moneda.simbolo }} {{ subtotalPreview(preview) | number:'1.2-2' }}</span>
               </div>
               <div class="adm-ticket__total-fila" *ngIf="preview.totales.descuento">
                 <span>Descuentos</span>

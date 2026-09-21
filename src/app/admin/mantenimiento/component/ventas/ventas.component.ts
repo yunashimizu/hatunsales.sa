@@ -1062,6 +1062,7 @@ export class VentasComponent implements OnInit, OnDestroy {
           unidad_medida: producto.unidad_medida,
           cantidad: 1,
           precio_unitario: producto.precio_venta,
+          descuento: Number(producto.descuento) || 0,
           stock_disponible: producto.stock_disponible,
         },
       ];
@@ -1091,6 +1092,13 @@ export class VentasComponent implements OnInit, OnDestroy {
     if (this.emitiendo) return;
     const precio = Number(valor);
     linea.precio_unitario = Number.isFinite(precio) && precio >= 0 ? precio : 0;
+    this.pedirRecalculo();
+  }
+
+  cambiarDescuento(linea: LineaVenta, valor: number | string | null): void {
+    if (this.emitiendo) return;
+    const descuento = Number(valor ?? 0);
+    linea.descuento = Number.isFinite(descuento) && descuento >= 0 ? descuento : 0;
     this.pedirRecalculo();
   }
 
@@ -1177,7 +1185,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   /** Total aproximado mientras llega la respuesta del servidor. */
   get totalLocal(): number {
-    return this.redondear(this.brutoCarrito());
+    return this.redondear(this.lineas.reduce((suma, linea) => suma + this.subtotalLinea(linea), 0));
   }
 
   private redondear(valor: number): number {
@@ -1188,8 +1196,22 @@ export class VentasComponent implements OnInit, OnDestroy {
     return Math.max(0, Number(linea.cantidad || 0) * Number(linea.precio_unitario || 0));
   }
 
+  private descuentoLinea(linea: LineaVenta): number {
+    const unitario = Number(linea.descuento ?? 0) || 0;
+    return Math.max(0, Number(linea.cantidad || 0) * unitario);
+  }
+
+  subtotalLinea(linea: LineaVenta): number {
+    return this.redondear(this.brutoLinea(linea) - this.descuentoLinea(linea));
+  }
+
   private brutoCarrito(): number {
     return this.lineas.reduce((suma, linea) => suma + this.brutoLinea(linea), 0);
+  }
+
+  subtotalPreview(preview: PreviewComprobante | null): number {
+    if (!preview) return 0;
+    return (preview.items ?? []).reduce((suma, item) => suma + (Number(item.subtotal) || 0), 0);
   }
 
 
@@ -1252,9 +1274,11 @@ export class VentasComponent implements OnInit, OnDestroy {
       emitir_comprobante: this.emitirComprobante,
       enviar_cliente: this.enviarPorCorreo,
       observaciones: this.observaciones.trim() || undefined,
-      items: this.lineas.map((l, indice) => ({
+      items: this.lineas.map((l) => ({
         id_producto: l.id_producto,
         cantidad: l.cantidad,
+        precio_unitario: Number(l.precio_unitario) || 0,
+        descuento: Number(l.descuento ?? 0) || 0,
       })),
     };
 

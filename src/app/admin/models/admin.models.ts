@@ -52,6 +52,7 @@ export interface LineaVenta {
   unidad_medida: string;
   cantidad: number;
   precio_unitario: number;
+  descuento: number | null;
   stock_disponible: number;
 }
 

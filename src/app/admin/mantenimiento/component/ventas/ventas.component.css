@@ -140,6 +140,24 @@
   font-variant-numeric: tabular-nums;
 }
 
+.pv-descuento-input {
+  width: 78px;
+  min-width: 78px;
+  padding: 6px 8px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  border-radius: 8px;
+  border: 1px solid var(--adm-borde);
+  background: var(--adm-superficie);
+  color: var(--adm-texto);
+}
+
+.pv-descuento-input:focus {
+  outline: none;
+  border-color: var(--adm-primario);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
 .pv-monto {
   width: 96px;
   padding: 6px 8px;
@@ -178,13 +196,16 @@
 .pv-contador__input::-webkit-outer-spin-button,
 .pv-contador__input::-webkit-inner-spin-button,
 .pv-monto::-webkit-outer-spin-button,
-.pv-monto::-webkit-inner-spin-button {
+.pv-monto::-webkit-inner-spin-button,
+.pv-descuento-input::-webkit-outer-spin-button,
+.pv-descuento-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
 .pv-contador__input,
-.pv-monto { appearance: textfield; -moz-appearance: textfield; }
+.pv-monto,
+.pv-descuento-input { appearance: textfield; -moz-appearance: textfield; }
 
 /* ── Selector de tipo de comprobante ─────────────────────────── */
 
