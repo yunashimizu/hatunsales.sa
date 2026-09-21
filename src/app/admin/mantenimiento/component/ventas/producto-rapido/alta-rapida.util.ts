@@ -247,6 +247,13 @@ export function validarAltaRapida(datos: EntradaValidacion): ResultadoValidacion
     }
   }
 
+  if (datos.modo === 'crear') {
+    if (!esEnteroPositivo(datos.ingresa)) {
+      return { valido: false, campo: 'ingresa', mensaje: 'Indique cuántas unidades ingresan' };
+    }
+    return { valido: true };
+  }
+
   return validarCantidades(datos.ingresa, datos.seLleva);
 }
 

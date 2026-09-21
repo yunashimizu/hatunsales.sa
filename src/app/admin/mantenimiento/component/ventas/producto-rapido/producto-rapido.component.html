@@ -115,8 +115,8 @@
         </div>
       </ng-container>
 
-      <!-- Cantidades: dos números distintos -->
-      <div class="adm-fila pvr-espaciado">
+      <!-- En alta nueva solo se registra el ingreso. La cantidad de venta se ajusta en el carrito. -->
+      <div class="adm-fila pvr-espaciado pvr-cantidades-fila">
         <div class="adm-campo">
           <label class="adm-etiqueta" for="pvr-ingresa">Ingresa al almacén <span class="pvr-obligatorio">*</span></label>
           <input #campoIngresa id="pvr-ingresa" class="adm-input" type="number" min="1" step="1"
@@ -124,7 +124,7 @@
                  [readOnly]="guardando"
                  [(ngModel)]="formulario.ingresa" (ngModelChange)="alCambiarIngresa()">
         </div>
-        <div class="adm-campo">
+        <div class="adm-campo" *ngIf="modoActivo === 'ingresar'">
           <label class="adm-etiqueta" for="pvr-lleva">Se lleva el cliente <span class="pvr-obligatorio">*</span></label>
           <input #campoSeLleva id="pvr-lleva" class="adm-input" type="number" min="1" step="1"
                  inputmode="numeric" autocomplete="off"
@@ -133,7 +133,10 @@
         </div>
       </div>
       <p class="adm-ayuda pvr-ayuda-cantidades">
-        {{ textoAyudaCantidades }}
+        <ng-container *ngIf="modoActivo === 'crear'; else ayudaIngreso">
+          {{ formulario.ingresa === 1 ? 'Ingresa 1 unidad al almacén.' : 'Ingresa ' + formulario.ingresa + ' unidades al almacén.' }} La cantidad de venta se ajusta después en el carrito.
+        </ng-container>
+        <ng-template #ayudaIngreso>{{ textoAyudaCantidades }}</ng-template>
         <span *ngIf="nombreAlmacen"><i class="bi bi-building"></i> {{ nombreAlmacen }}.</span>
       </p>
 

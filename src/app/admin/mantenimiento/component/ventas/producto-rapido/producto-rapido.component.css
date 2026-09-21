@@ -56,6 +56,19 @@
   margin: 6px 0 0;
 }
 
+.pvr-cantidades-fila {
+  align-items: flex-start;
+}
+
+/* Las ayudas tienen alturas distintas; las etiquetas deben compartir la misma línea superior. */
+.pvr-espaciado.adm-fila {
+  align-items: flex-start;
+}
+
+.pvr-cantidades-fila .adm-campo {
+  min-width: 0;
+}
+
 .pvr-motivo {
   overflow-wrap: anywhere;
   font-weight: 600;

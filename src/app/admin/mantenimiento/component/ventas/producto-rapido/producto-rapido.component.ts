@@ -758,7 +758,8 @@ export class ProductoRapidoComponent implements OnInit, OnChanges, OnDestroy {
       message: `${textoUnidades(cantidadIngresada)} ${cantidadIngresada === 1 ? 'ingresada' : 'ingresadas'} en ${donde}`,
       timer: 2500,
     });
-    this.entregarAlCarrito(conStock, aNumero(this.formulario.se_lleva), esAlta);
+    const cantidadCarrito = this.modoActivo === 'crear' ? 1 : aNumero(this.formulario.se_lleva);
+    this.entregarAlCarrito(conStock, cantidadCarrito, esAlta);
   }
 
   private alFallarIngreso(error: any): void {
@@ -780,7 +781,13 @@ export class ProductoRapidoComponent implements OnInit, OnChanges, OnDestroy {
 
   reintentarIngreso(): void {
     if (this.bloqueado || !this.productoCreado) return;
-    const validacion = validarCantidades(this.formulario.ingresa, this.formulario.se_lleva);
+    const validacion = this.modoActivo === 'crear'
+      ? validarAltaRapida({
+          modo: 'crear', nombre: this.formulario.nombre, codigoBarras: this.formulario.codigo_barras,
+          precioVenta: this.formulario.precio_venta, precioCompra: this.formulario.precio_compra,
+          ingresa: this.formulario.ingresa, seLleva: 1,
+        })
+      : validarCantidades(this.formulario.ingresa, this.formulario.se_lleva);
     if (!validacion.valido) {
       this.avisarValidacion(validacion);
       return;

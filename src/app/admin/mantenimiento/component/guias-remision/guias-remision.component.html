@@ -83,6 +83,10 @@
             <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-save'"></i>
             {{ guardando ? 'Guardando…' : 'Guardar borrador' }}
           </button>
+          <button type="button" class="adm-btn adm-btn--suave" disabled
+                  title="Disponible cuando se configuren certificado, serie y credenciales SUNAT">
+            <i class="bi bi-send"></i> Emitir a SUNAT
+          </button>
           <span class="adm-ayuda">La emisión SUNAT se habilitará cuando estén configurados certificado, serie y credenciales.</span>
         </div>
       </ng-container>

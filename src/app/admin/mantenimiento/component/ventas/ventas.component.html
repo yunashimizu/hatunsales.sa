@@ -7,6 +7,9 @@
         Busque el producto, identifique al cliente y emita el comprobante. Los precios ya incluyen IGV.
       </p>
     </div>
+    <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/guias-remision">
+      <i class="bi bi-truck"></i> Guías de remisión
+    </a>
   </header>
 
   <!-- Contexto operativo: caja + almacén siempre visibles (estilo adm-*) -->
@@ -83,6 +86,12 @@
         </button>
         <a class="adm-btn adm-btn--suave adm-btn--sm" routerLink="/dashboard/mantenimiento/doc">
           <i class="bi bi-collection"></i> Ir a documentos
+        </a>
+        <a class="adm-btn adm-btn--primario adm-btn--sm"
+           *ngIf="ultimaVenta.id_venta"
+           [routerLink]="['/dashboard/mantenimiento/guias-remision']"
+           [queryParams]="{ venta: ultimaVenta.id_venta }">
+          <i class="bi bi-truck"></i> Preparar guía
         </a>
         <button type="button" class="adm-btn-icono" (click)="cerrarUltimaVenta()" aria-label="Cerrar aviso">
           <i class="bi bi-x-lg"></i>

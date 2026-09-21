@@ -7,5 +7,6 @@
 .guia-items { margin-top: 18px; }
 .guia-acciones { align-items: center; flex-wrap: wrap; margin-top: 16px; }
 .guia-acciones .adm-ayuda { flex: 1 1 280px; min-width: 0; }
+.guia-formulario .adm-campo { min-width: 0; }
 @media (max-width: 760px) { .guia-contexto { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .guia-acciones { align-items: stretch; flex-direction: column; } .guia-acciones .adm-btn { width: 100%; } }
