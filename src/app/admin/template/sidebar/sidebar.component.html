@@ -1,6 +1,7 @@
 <div class="sidebar" [class.collapsed]="collapsed">
 
   <div class="sb-brand">
+    <span class="sb-logo" aria-hidden="true"><i class="bi bi-tools"></i></span>
     <div class="brand-text">
       <span class="brand-name">HatunSales</span>
       <span class="brand-suffix">S.A.C</span>
@@ -62,10 +63,10 @@
 
   <div class="sb-footer">
     <div class="sb-footer-info">
-      <i class="bi bi-person-circle" aria-hidden="true"></i>
+      <span class="sb-avatar" aria-hidden="true">{{ sesion.iniciales }}</span>
       <div class="sb-footer-text">
-        <small>{{ etiquetaRol }}</small>
         <strong>{{ sesion.nombre || 'Usuario' }}</strong>
+        <small>{{ etiquetaRol }}</small>
       </div>
     </div>
   </div>

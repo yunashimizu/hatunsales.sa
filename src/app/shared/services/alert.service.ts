@@ -36,42 +36,58 @@ export class AlertService {
     this.configureTheme();
   }
 
+  /** Tema alineado con la paleta del panel (indigo, sin gradientes). Se inyecta una sola vez y solo en navegador. */
   private configureTheme() {
+    if (typeof document === 'undefined') return;
+    if (document.getElementById('hs-alert-theme')) return;
+
     const style = document.createElement('style');
-    style.innerHTML = `
+    style.id = 'hs-alert-theme';
+    style.textContent = `
       .swal2-popup {
-        border-radius: 16px !important;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
-        backdrop-filter: blur(10px);
+        border-radius: 14px !important;
+        padding: 1.5rem 1.5rem 1.35rem !important;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18) !important;
       }
       .swal2-title {
-        font-size: 1.5rem !important;
+        font-size: 1.15rem !important;
         font-weight: 600 !important;
-        color: #1a1a1a !important;
+        letter-spacing: -0.01em;
+        color: #0f172a !important;
       }
       .swal2-html-container {
-        font-size: 1rem !important;
-        color: #666 !important;
+        font-size: 0.93rem !important;
+        line-height: 1.55 !important;
+        color: #475569 !important;
       }
-      .swal2-confirm {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        border-radius: 10px !important;
-        font-weight: 600 !important;
-        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4) !important;
+      .swal2-html-container small {
+        display: block;
+        margin-top: 0.5rem;
+        color: #64748b;
       }
-      .swal2-confirm:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6) !important;
-      }
+      .swal2-actions { gap: 0.5rem; }
+      .swal2-confirm,
       .swal2-cancel {
-        background: #f0f0f0 !important;
-        color: #333 !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        padding: 0.6rem 1.2rem !important;
+        box-shadow: none !important;
       }
-      .swal2-cancel:hover {
-        background: #e0e0e0 !important;
+      .swal2-confirm { background: #4f46e5 !important; }
+      .swal2-confirm:hover { background: #4338ca !important; }
+      .swal2-confirm:focus-visible { box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25) !important; }
+      .swal2-cancel {
+        background: #ffffff !important;
+        color: #334155 !important;
+        border: 1px solid #cbd5e1 !important;
       }
+      .swal2-cancel:hover { background: #f1f5f9 !important; }
+      .swal2-toast {
+        border-radius: 10px !important;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14) !important;
+      }
+      .swal2-timer-progress-bar { background: rgba(79, 70, 229, 0.35) !important; }
     `;
     document.head.appendChild(style);
   }

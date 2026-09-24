@@ -3,6 +3,7 @@
   <button class="toggle-btn"
           type="button"
           aria-label="Abrir o cerrar menú"
+          [attr.aria-expanded]="sidebarAbierto"
           [class.open]="sidebarAbierto"
           (click)="onToggleSidebar.emit()">
     <span></span>
@@ -18,40 +19,41 @@
     <a class="tb-link-tienda"
        routerLink="/store"
        title="Ver la tienda online (sin cerrar sesión)">
-      <i class="fas fa-store"></i>
-      <span>Ir a la tienda</span>
+      <i class="bi bi-shop" aria-hidden="true"></i>
+      <span>Ver tienda</span>
     </a>
 
-    <div class="user-pill" (click)="toggleUser()">
-      <div class="user-avatar" aria-hidden="true">
-        <img class="user-avatar__img"
-             src="assets/img/avatar-default.svg"
-             alt=""
-             width="30"
-             height="30">
-      </div>
+    <div class="user-pill"
+         role="button"
+         tabindex="0"
+         [attr.aria-expanded]="showUser"
+         (click)="toggleUser()"
+         (keydown.enter)="alTeclaUsuario($event)"
+         (keydown.space)="alTeclaUsuario($event)">
+      <div class="user-avatar" aria-hidden="true">{{ sesion.iniciales }}</div>
       <div class="user-info">
         <span class="user-name">{{ sesion.nombre || 'Usuario' }}</span>
         <span class="user-role">{{ etiquetaRol }}</span>
       </div>
-      <i class="fas fa-chevron-down tb-chevron" [class.rotated]="showUser"></i>
+      <i class="bi bi-chevron-down tb-chevron" [class.rotated]="showUser" aria-hidden="true"></i>
 
       <div class="user-dropdown" [class.show]="showUser" (click)="$event.stopPropagation()">
-        <div class="ud-meta" *ngIf="sesion.email">
-          <small>{{ sesion.email }}</small>
+        <div class="ud-meta">
+          <strong>{{ sesion.nombre || 'Usuario' }}</strong>
+          <small *ngIf="sesion.email">{{ sesion.email }}</small>
         </div>
-        <a class="ud-item" routerLink="/store">
-          <i class="fas fa-store"></i> Ir a la tienda
-        </a>
         <a class="ud-item" routerLink="/dashboard/perfil">
-          <i class="fas fa-user"></i> Mi Perfil
+          <i class="bi bi-person" aria-hidden="true"></i> Mi perfil
         </a>
         <a class="ud-item" routerLink="/dashboard/configuracion">
-          <i class="fas fa-cog"></i> Configuración
+          <i class="bi bi-gear" aria-hidden="true"></i> Configuración
+        </a>
+        <a class="ud-item" routerLink="/store">
+          <i class="bi bi-shop" aria-hidden="true"></i> Ir a la tienda
         </a>
         <div class="ud-divider"></div>
         <a class="ud-item ud-logout" (click)="logout()">
-          <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+          <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar sesión
         </a>
       </div>
     </div>

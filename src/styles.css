@@ -30,6 +30,9 @@ body {
   background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
   min-height: 100vh;
   color: var(--text-strong);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -37,6 +40,25 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+/* Enlaces: Bootstrap 5 los subraya y pinta de azul; el tema anterior (SB Admin 2,
+   un Bootstrap 4 completo) los dejaba sin subrayar. Mantenemos ese comportamiento
+   con el indigo de la marca. Regla sin @layer para que gane a Tailwind y Bootstrap. */
+:root {
+  --hs-enlace: #4f46e5;
+  --hs-enlace-hover: #4338ca;
+}
+
+a {
+  color: var(--hs-enlace);
+  text-decoration: none;
+  background-color: transparent;
+}
+
+a:hover {
+  color: var(--hs-enlace-hover);
+  text-decoration: underline;
 }
 
 * {

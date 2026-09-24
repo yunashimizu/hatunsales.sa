@@ -22,6 +22,7 @@ export class PagePlaceholderComponent {
     const data = this.route.snapshot.data;
     this.title = data['title'] ?? 'Mantenimiento';
     this.subtitle = data['subtitle'] ?? 'Aún no hay contenido dinámico para esta sección. Pronto estará disponible.';
-    this.icon = data['icon'] ?? 'fa-cog';
+    // Bootstrap Icons: es el único set de iconos cargado en la app.
+    this.icon = data['icon'] ?? 'bi-gear';
   }
 }

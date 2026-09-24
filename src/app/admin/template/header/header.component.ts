@@ -83,6 +83,13 @@ export class HeaderComponent implements OnInit {
     this.showUser = !this.showUser;
   }
 
+  /** Enter/Espacio sobre la píldora (no sobre los enlaces del desplegable, que ya responden solos). */
+  alTeclaUsuario(event: Event): void {
+    if (event.target !== event.currentTarget) return;
+    event.preventDefault();
+    this.toggleUser();
+  }
+
   logout(): void {
     // En dashboard solo hay staff; van al login del personal.
     this.auth.logout();

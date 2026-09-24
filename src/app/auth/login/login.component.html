@@ -3,11 +3,20 @@
 
     <div class="mb-6">
       <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.7rem]">
-        Bienvenido nuevamente 👋
+        Bienvenido nuevamente
       </h1>
       <p class="mt-1.5 text-sm text-slate-500">
-        Inicia sesión para continuar comprando en Hatunsales S.A.C.
+        Inicia sesión con tu cuenta de Hatunsales S.A.C.
       </p>
+    </div>
+
+    <div
+      *ngIf="avisoMsg"
+      class="mb-4 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-800"
+      role="status"
+    >
+      <i class="bi bi-clock-history mt-0.5"></i>
+      <span>{{ avisoMsg }}</span>
     </div>
 
     <div
@@ -62,14 +71,7 @@
           <input type="checkbox" class="rounded border-slate-300 text-violet-600 focus:ring-violet-500" [(ngModel)]="recordarme" [ngModelOptions]="{standalone: true}" />
           Recordarme
         </label>
-        <button
-          type="button"
-          class="cursor-not-allowed text-slate-400 line-through decoration-slate-300"
-          disabled
-          title="Próximamente"
-        >
-          ¿Olvidaste tu contraseña?
-        </button>
+        <!-- "¿Olvidaste tu contraseña?" vuelve cuando exista el flujo de recuperación. -->
       </div>
 
       <button

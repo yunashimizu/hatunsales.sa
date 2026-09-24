@@ -1,1 +1,19 @@
-<p>not-found works!</p>
+<section class="nf">
+  <div class="nf__tarjeta">
+    <span class="nf__codigo">Error 404</span>
+    <h1 class="nf__titulo">Página no encontrada</h1>
+    <p class="nf__texto">
+      La dirección que ingresaste no existe o fue movida. Revisa el enlace o vuelve al inicio.
+    </p>
+    <div class="nf__acciones">
+      <a routerLink="/store" class="nf__btn nf__btn--primario">
+        <i class="bi bi-shop" aria-hidden="true"></i> Ir a la tienda
+      </a>
+      @if (esStaff) {
+        <a routerLink="/dashboard/home" class="nf__btn">
+          <i class="bi bi-speedometer2" aria-hidden="true"></i> Volver al panel
+        </a>
+      }
+    </div>
+  </div>
+</section>

@@ -67,6 +67,7 @@ export function codigoDeError(error: any): string {
 }
 
 const HINTS: Record<string, string> = {
+  SESION_EXPIRADA: 'Vuelve a iniciar sesión para continuar donde estabas.',
   CREDITO_INACTIVO: 'Ve a Cuentas por cobrar, busca el cliente/empresa y activa el crédito.',
   CREDITO_INSUFICIENTE: 'Baja el monto a crédito o aumenta el límite en CxC.',
   CREDITO_SIN_CLIENTE: 'Busca DNI/RUC en el POS antes de cobrar a crédito.',
@@ -108,6 +109,7 @@ const HINTS: Record<string, string> = {
 };
 
 const TITULOS: Record<string, string> = {
+  SESION_EXPIRADA: 'Sesión expirada',
   CREDITO_INACTIVO: 'Crédito inactivo',
   CREDITO_INSUFICIENTE: 'Cupo insuficiente',
   CREDITO_SIN_CLIENTE: 'Cliente requerido',

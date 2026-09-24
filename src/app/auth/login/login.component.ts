@@ -8,6 +8,8 @@ import { AuthService } from '../service/auth.service';
 import { loginRequest } from '../models/login-request';
 import { loginResponse } from '../models/login-response.model';
 import { mensajeDeError } from '../../admin/service/api-base.service';
+import { MENSAJE_SESION_EXPIRADA } from '../../interceptors/error.interceptor';
+import { StorageUtil } from '../../utils/storage.util';
 
 @Component({
   selector: 'app-login',
@@ -32,6 +34,8 @@ export class LoginComponent {
   mostrarPassword = false;
   recordarme = true;
   errorMsg = '';
+  /** Motivo por el que se llegó al login (p. ej. sesión expirada). */
+  avisoMsg = '';
 
   constructor(
     private readonly fb: FormBuilder,
@@ -42,10 +46,20 @@ export class LoginComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]],
     });
+    this.avisoMsg = this.leerAvisoPendiente();
+  }
+
+  /** Lo deja el interceptor de errores al expirar la sesión; se muestra una sola vez. */
+  private leerAvisoPendiente(): string {
+    const motivo = StorageUtil.get('avisoLogin');
+    if (!motivo) return '';
+    StorageUtil.remove('avisoLogin');
+    return motivo === 'sesion_expirada' ? MENSAJE_SESION_EXPIRADA : '';
   }
 
   login(): void {
     this.errorMsg = '';
+    this.avisoMsg = '';
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
       this.shake();
@@ -76,6 +90,7 @@ export class LoginComponent {
 
   onGoogle(credential: string): void {
     this.errorMsg = '';
+    this.avisoMsg = '';
     this.googleCargando = true;
     this.auth.loginConGoogle(credential).subscribe({
       next: (data) => {
