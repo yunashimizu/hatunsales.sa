@@ -98,6 +98,34 @@
         <input id="cfg-logo" class="adm-input" type="text" [(ngModel)]="formEmisor.logo_url"
            placeholder="/uploads/hatunsales.png">
       </div>
+      <p class="adm-ayuda" style="margin:16px 0 4px">
+        <strong>Contacto en la proforma.</strong> Se imprime en la cabecera y al pie del PDF y del Excel, y el
+        teléfono también en el mensaje de WhatsApp. Lo que deje vacío no aparece.
+      </p>
+      <div class="adm-fila cfg-espaciado">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cfg-tel">Teléfono / WhatsApp de ventas</label>
+          <input id="cfg-tel" class="adm-input" type="text" inputmode="tel" maxlength="30"
+                 [(ngModel)]="formEmisor.telefono" placeholder="987 654 321">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cfg-email">Correo</label>
+          <input id="cfg-email" class="adm-input" type="email" maxlength="80"
+                 [(ngModel)]="formEmisor.email" placeholder="ventas@su-empresa.pe">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cfg-web">Página web</label>
+          <input id="cfg-web" class="adm-input" type="text" maxlength="80"
+                 [(ngModel)]="formEmisor.web" placeholder="www.su-empresa.pe">
+        </div>
+      </div>
+      <div class="adm-campo cfg-espaciado">
+        <label class="adm-etiqueta" for="cfg-condiciones">Condiciones comerciales adicionales</label>
+        <textarea id="cfg-condiciones" class="adm-textarea" rows="4" maxlength="1500"
+                  [(ngModel)]="formProforma.condiciones"
+                  placeholder="Una condición por línea. Ej.: Entrega en 24 a 48 horas en Lima.&#10;Pago contra entrega o transferencia previa."></textarea>
+        <span class="adm-ayuda">Se añaden a las condiciones estándar de toda proforma (validez, IGV y stock).</span>
+      </div>
       <ul class="adm-leyenda" style="margin-top:12px" *ngIf="fiscal">
         <li class="adm-leyenda__item">
           <span class="adm-leyenda__punto"

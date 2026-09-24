@@ -19,7 +19,13 @@ export type ConfigFiscal = {
     direccion: string;
     ubicacion: string;
     logo_url: string;
+    /** Contacto que se imprime en la proforma (PDF/Excel) y en el mensaje de WhatsApp. */
+    telefono?: string;
+    email?: string;
+    web?: string;
   };
+  /** Condiciones comerciales propias que se añaden a la proforma (una por línea). */
+  proforma?: { condiciones: string };
   series: { serie_boleta: string; serie_factura: string };
   estados: {
     nubefact_configurado: boolean;
@@ -42,6 +48,7 @@ export class ConfiguracionFiscalService {
 
   guardarFiscal(body: {
     emisor?: Partial<ConfigFiscal['emisor']>;
+    proforma?: { condiciones: string };
     series?: Partial<ConfigFiscal['series']>;
   }): Observable<ConfigFiscal> {
     return this.http.put<ConfigFiscal>(urlConstants.configuracion.fiscal, body, opcionesHttp());

@@ -47,7 +47,11 @@ export class AdminConfiguracionComponent implements OnInit {
     direccion: '',
     ubicacion: '',
     logo_url: '',
+    telefono: '',
+    email: '',
+    web: '',
   };
+  formProforma = { condiciones: '' };
   formSeries = { serie_boleta: 'BBB1', serie_factura: 'FFF1' };
 
   private readonly cdr = inject(ChangeDetectorRef);
@@ -90,7 +94,11 @@ export class AdminConfiguracionComponent implements OnInit {
           direccion: f.emisor.direccion || '',
           ubicacion: f.emisor.ubicacion || '',
           logo_url: f.emisor.logo_url || '',
+          telefono: f.emisor.telefono || '',
+          email: f.emisor.email || '',
+          web: f.emisor.web || '',
         };
+        this.formProforma = { condiciones: f.proforma?.condiciones || '' };
         this.formSeries = {
           serie_boleta: f.series.serie_boleta || 'BBB1',
           serie_factura: f.series.serie_factura || 'FFF1',
@@ -116,6 +124,7 @@ export class AdminConfiguracionComponent implements OnInit {
     this.fiscalApi
       .guardarFiscal({
         emisor: this.formEmisor,
+        proforma: this.formProforma,
         series: this.formSeries,
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -126,7 +135,7 @@ export class AdminConfiguracionComponent implements OnInit {
           this.cdr.markForCheck();
           this.alerta.toast({
             type: 'success',
-            title: 'Configuración guardada (series y emisor)',
+            title: 'Configuración guardada (series, emisor y proforma)',
           });
         },
         error: (e) => {

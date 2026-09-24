@@ -69,6 +69,9 @@ const DOCUMENTOS: Record<TipoDocumento, { etiqueta: string; extension: string }>
 
 const DIAS_VIGENCIA_MAX = 90;
 
+/** Productos que se listan en el mensaje de WhatsApp antes de resumir (igual que el backend). */
+const MAX_ITEMS_TEXTO_WA = 8;
+
 /** Tiempo antes de liberar el object URL: Firefox cancela la descarga si se revoca al instante. */
 const REVOCAR_URL_MS = 30_000;
 
@@ -1487,33 +1490,55 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Texto de respaldo si el backend no pudo armar el mensaje. */
+  /**
+   * Texto de respaldo si el backend no pudo armar el mensaje. Mismo formato que el del
+   * servidor (S/ 1,234.50 y dd/mm/aaaa) para que el cliente lea lo mismo en el chat y en el PDF.
+   */
   private armarTextoLocal(cot: Cotizacion): string {
-    const codigo = cot.codigo || `#${cot.id_proforma}`;
-    const nombre = (cot.cliente_nombre || this.receptor?.denominacion || this.clienteNombreManual || '').trim();
+    const codigo = cot.codigo || `COT-${cot.id_proforma}`;
+    const nombre = (cot.cliente_nombre || this.receptor?.denominacion || this.clienteNombreManual || '')
+      .replace(/[*~]/g, '')
+      .trim();
+    const esEmpresa = !!cot.id_empresa || soloDigitos(cot.cliente_documento).length === 11;
+    const saludo = !nombre
+      ? 'Estimado cliente:'
+      : esEmpresa ? `Estimados señores de ${nombre}:` : `Estimado(a) ${nombre}:`;
     const items = Array.isArray(cot.items) && cot.items.length
       ? this.lineasDesdeItems(cot.items)
       : this.lineas;
     const detalle = items
-      .slice(0, 8)
-      .map((l) => `• ${l.descripcion} x${l.cantidad} — S/ ${this.subtotalLinea(l).toFixed(2)}`);
-    if (items.length > 8) detalle.push(`… y ${items.length - 8} ítem(s) más`);
+      .slice(0, MAX_ITEMS_TEXTO_WA)
+      .map((l) => `• ${this.recortarTexto(l.descripcion, 56)} × ${l.cantidad} — ${this.soles(this.subtotalLinea(l))}`);
+    if (items.length > MAX_ITEMS_TEXTO_WA) {
+      detalle.push(`… y ${items.length - MAX_ITEMS_TEXTO_WA} ítem(s) más (ver detalle en el PDF)`);
+    }
     const total = numeroOpcional(cot.total) ?? this.total;
 
     return [
-      `Hola${nombre ? ` ${nombre}` : ''},`,
-      `Cotización *${codigo}* — HatunSales S.A.C`,
-      cot.valida_hasta ? `Válida hasta: ${this.fechaCorta(cot.valida_hasta)}` : null,
+      saludo,
+      '',
+      `Le compartimos la proforma *${codigo}*:`,
       '',
       ...detalle,
       '',
-      `*Total: S/ ${total.toFixed(2)}* (inc. IGV)`,
+      `*TOTAL: ${this.soles(total)}* (IGV incluido)`,
+      cot.valida_hasta ? `Oferta válida hasta el ${this.fechaCorta(cot.valida_hasta)}.` : null,
       '',
-      'Le adjunto la proforma en PDF.',
-      '¿Desea proceder? Responda a este mensaje.',
+      'El detalle completo va en el PDF adjunto.',
+      'Para confirmar su pedido, responda a este mensaje.',
     ]
       .filter((x): x is string => x !== null)
       .join('\n');
+  }
+
+  /** "S/ 1,234.50" (misma forma que imprimen el PDF y el Excel). */
+  private soles(valor: number): string {
+    return `S/ ${redondear2(valor).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  private recortarTexto(texto: string, largo: number): string {
+    const limpio = String(texto ?? '').replace(/[*~]/g, '').replace(/\s+/g, ' ').trim() || 'Producto';
+    return limpio.length <= largo ? limpio : `${limpio.slice(0, largo - 1).trimEnd()}…`;
   }
 
   // ─── Otros ─────────────────────────────────────────────────────────
