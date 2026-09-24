@@ -5,7 +5,9 @@ import { urlConstants } from '../../constants/urlConstants';
 import {
   ComprobanteEmitido, ComprobanteFila, MotivoCatalogo, Paginado, PreviewComprobante,
 } from '../models/admin.models';
-import { cabecerasAutenticadas, opcionesHttp } from './api-base.service';
+import { cabecerasAutenticadas, cacheCorto, opcionesHttp } from './api-base.service';
+
+type MonitorAtencion = { pendientes: number; errores: number; total: number };
 
 export interface FiltroComprobantes {
   texto?: string;
@@ -19,6 +21,9 @@ export interface FiltroComprobantes {
 
 @Injectable({ providedIn: 'root' })
 export class ComprobanteService {
+
+  /** Sidebar, dashboard y Documentos lo piden a la vez al cargar: una sola petición. */
+  private readonly monitorCompartido = cacheCorto<MonitorAtencion>(5000);
 
   constructor(private http: HttpClient) {}
 
@@ -36,10 +41,9 @@ export class ComprobanteService {
   }
 
   /** Contador de CPE pendiente/error para el badge del menú Documentos. */
-  monitorAtencion(): Observable<{ pendientes: number; errores: number; total: number }> {
-    return this.http.get<{ pendientes: number; errores: number; total: number }>(
-      urlConstants.comprobante.monitorAtencion,
-      opcionesHttp(),
+  monitorAtencion(): Observable<MonitorAtencion> {
+    return this.monitorCompartido(() =>
+      this.http.get<MonitorAtencion>(urlConstants.comprobante.monitorAtencion, opcionesHttp()),
     );
   }
 

@@ -5,7 +5,7 @@ import { urlConstants } from '../../constants/urlConstants';
 import {
   Almacen, FilaInventario, MovimientoInventario, Paginado, ResumenInventario,
 } from '../models/admin.models';
-import { cabecerasAutenticadas, opcionesHttp } from './api-base.service';
+import { cabecerasAutenticadas, cacheCorto, opcionesHttp } from './api-base.service';
 
 export interface FiltroInventario {
   texto?: string;
@@ -27,6 +27,9 @@ export interface AjusteStock {
 @Injectable({ providedIn: 'root' })
 export class InventarioAdminService {
 
+  /** Sidebar, dashboard, Inventario y Stock lo piden a la vez al cargar: una sola petición. */
+  private readonly resumenCompartido = cacheCorto<ResumenInventario>(5000);
+
   constructor(private http: HttpClient) {}
 
   listar(filtro: FiltroInventario = {}): Observable<Paginado<FilaInventario>> {
@@ -45,7 +48,9 @@ export class InventarioAdminService {
   }
 
   resumen(): Observable<ResumenInventario> {
-    return this.http.get<ResumenInventario>(urlConstants.inventario.resumen, opcionesHttp());
+    return this.resumenCompartido(() =>
+      this.http.get<ResumenInventario>(urlConstants.inventario.resumen, opcionesHttp()),
+    );
   }
 
   almacenes(): Observable<Almacen[]> {

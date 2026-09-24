@@ -1,4 +1,31 @@
 import { HttpHeaders } from '@angular/common/http';
+import { Observable, catchError, shareReplay, throwError } from 'rxjs';
+
+/**
+ * Comparte una misma respuesta entre llamadas simultáneas o muy seguidas.
+ * El sidebar y varias pantallas piden los mismos contadores al cargar
+ * (monitor de CPE, resumen de inventario) y se duplicaban 2–3 veces por carga.
+ * Pasado `ttlMs` la siguiente llamada vuelve a consultar; un error no se cachea.
+ */
+export function cacheCorto<T>(ttlMs = 5000): (fuente: () => Observable<T>) => Observable<T> {
+  let compartido: Observable<T> | null = null;
+  let expira = 0;
+
+  return (fuente) => {
+    const ahora = Date.now();
+    if (!compartido || ahora >= expira) {
+      expira = ahora + ttlMs;
+      compartido = fuente().pipe(
+        catchError((error) => {
+          compartido = null;
+          return throwError(() => error);
+        }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    }
+    return compartido;
+  };
+}
 
 /**
  * Cabeceras con el token de sesión. Estaba repetido en cada servicio del panel.
