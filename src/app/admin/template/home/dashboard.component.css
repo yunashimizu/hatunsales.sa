@@ -1,5 +1,72 @@
-/* La vista usa el sistema compartido (admin-ui.css, clases adm-*). */
+/* La vista usa el sistema compartido (admin-ui.css, clases adm-*). Aquí solo
+   quedan detalles propios del inicio. */
 :host {
   display: block;
   width: 100%;
+}
+
+.ini-esqueleto {
+  display: inline-block;
+  width: 88px;
+  height: 22px;
+  vertical-align: middle;
+}
+
+.ini-turno {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ini-turno__total {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ini-turno__monto {
+  font-family: var(--adm-fuente-titulos);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--adm-exito);
+  font-variant-numeric: tabular-nums;
+}
+
+.ini-turno__datos {
+  padding: 12px 14px;
+  border-radius: var(--adm-r-md);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--adm-borde);
+}
+
+.ini-turno__datos dd { margin: 0; }
+
+.ini-turno__vacio { padding: 10px 4px 4px; }
+
+.ini-pendientes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ini-pendientes li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--adm-borde);
+  font-size: 14px;
+  color: var(--adm-texto-2);
+}
+
+.ini-pendientes li:last-child { border-bottom: none; }
+.ini-pendientes__texto { flex: 1; min-width: 0; }
+.ini-pendientes__texto strong { color: var(--adm-texto); }
+
+@media (max-width: 640px) {
+  .ini-pendientes li { flex-wrap: wrap; padding: 12px 14px; }
+  .ini-pendientes li .adm-btn { flex: 1 1 100%; }
+  .ini-turno__monto { font-size: 28px; }
 }

@@ -1,248 +1,400 @@
 <div class="adm-pagina">
 
+  <!-- Cabecera de página -->
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Configuración</h1>
-      <p class="adm-cabecera__sub">
-        Resumen de tu sesión, acceso y preferencias. Los datos de cuenta se editan en Mi perfil.
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-gear"></i></span>
+      <div>
+        <span class="adm-cabecera__eyebrow">Cuenta</span>
+        <h1 class="adm-cabecera__titulo">Configuración</h1>
+        <p class="adm-cabecera__sub">
+          Resumen de su sesión, acceso y ajustes del sistema. Nombre, correo y contraseña se editan en Mi perfil.
+        </p>
+      </div>
     </div>
     <div class="adm-acciones">
-      <a routerLink="/dashboard/perfil" class="adm-btn adm-btn--primario">
-        <i class="bi bi-person"></i> Editar perfil
+      <a routerLink="/dashboard/perfil" class="adm-btn adm-btn--suave">
+        <i class="bi bi-person-circle" aria-hidden="true"></i> Editar perfil
       </a>
     </div>
   </header>
 
-  <section class="adm-grid adm-grid--4">
+  <!-- Indicadores de la sesión -->
+  <section class="adm-grid adm-grid--4" aria-label="Resumen de la cuenta">
     <div class="adm-metrica">
-      <div class="adm-metrica__icono"><i class="bi bi-person-circle"></i></div>
-      <div>
+      <div class="adm-metrica__icono"><i class="bi bi-person-circle" aria-hidden="true"></i></div>
+      <div class="cfg-metrica__cuerpo">
         <div class="adm-metrica__valor">{{ sesion.iniciales || '—' }}</div>
         <div class="adm-metrica__etiqueta">Cuenta</div>
+        <div class="adm-metrica__delta cfg-metrica__detalle">{{ sesion.nombre || 'Sin nombre' }}</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-shield"></i></div>
-      <div>
-        <div class="adm-metrica__valor">{{ etiquetaRol }}</div>
+      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-shield-check" aria-hidden="true"></i></div>
+      <div class="cfg-metrica__cuerpo">
+        <div class="adm-metrica__valor cfg-metrica__texto">{{ etiquetaRol }}</div>
         <div class="adm-metrica__etiqueta">Rol</div>
+        <div class="adm-metrica__delta cfg-metrica__detalle">ID de rol #{{ sesion.rolId }}</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-shop-window"></i></div>
-      <div>
-        <div class="adm-metrica__valor">{{ destinoAcceso }}</div>
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-shop-window" aria-hidden="true"></i></div>
+      <div class="cfg-metrica__cuerpo">
+        <div class="adm-metrica__valor cfg-metrica__texto">{{ destinoAcceso }}</div>
         <div class="adm-metrica__etiqueta">Destino al entrar</div>
+        <div class="adm-metrica__delta cfg-metrica__detalle">Pantalla al iniciar sesión</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-key"></i></div>
-      <div>
+      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-key" aria-hidden="true"></i></div>
+      <div class="cfg-metrica__cuerpo">
         <div class="adm-metrica__valor">{{ sesion.permisos.length || 0 }}</div>
         <div class="adm-metrica__etiqueta">Permisos listados</div>
+        <div class="adm-metrica__delta cfg-metrica__detalle">
+          {{ sesion.permisos.length ? 'Cargados en la sesión' : 'Acceso según el rol' }}
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="adm-tarjeta" *ngIf="esAdminPuro">
+  <!-- Emisor, series y proforma (solo administrador) -->
+  <section class="adm-tarjeta adm-tarjeta--acento" *ngIf="esAdminPuro">
     <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-receipt"></i> Emisor y series (Nubefact)</h2>
-      <button type="button" class="adm-btn adm-btn--primario adm-btn--sm"
-              (click)="guardarFiscal()" [disabled]="guardandoFiscal || cargandoFiscal">
-        {{ guardandoFiscal ? 'Guardando…' : 'Guardar' }}
-      </button>
-    </div>
-    <div class="adm-tarjeta__cuerpo" *ngIf="cargandoFiscal">
-      <div class="adm-esqueleto"></div>
-    </div>
-    <div class="adm-tarjeta__cuerpo" *ngIf="!cargandoFiscal">
-      <p class="adm-ayuda" style="margin-top:0">
-        Las series del POS se eligen solas (boleta = B…, factura = F…) y <strong>no son editables</strong> en Ventas.
-        Deben coincidir con las de su cuenta Nubefact.
-      </p>
-      <div class="adm-fila">
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="cfg-serie-b">Serie boleta</label>
-          <input id="cfg-serie-b" class="adm-input" type="text" maxlength="4"
-                 [(ngModel)]="formSeries.serie_boleta" placeholder="BBB1">
-        </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="cfg-serie-f">Serie factura</label>
-          <input id="cfg-serie-f" class="adm-input" type="text" maxlength="4"
-                 [(ngModel)]="formSeries.serie_factura" placeholder="FFF1">
-        </div>
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-receipt"></i> Emisor y series (Nubefact)</h2>
+        <p class="adm-tarjeta__sub">Datos que salen en boletas, facturas y proformas.</p>
       </div>
-      <div class="adm-fila cfg-espaciado">
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="cfg-ruc-e">RUC emisor</label>
-          <input id="cfg-ruc-e" class="adm-input" type="text" [(ngModel)]="formEmisor.ruc">
-        </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="cfg-razon">Razón social</label>
-          <input id="cfg-razon" class="adm-input" type="text" [(ngModel)]="formEmisor.razon_social">
-        </div>
-      </div>
-      <div class="adm-fila cfg-espaciado">
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="cfg-dir">Dirección</label>
-          <input id="cfg-dir" class="adm-input" type="text" [(ngModel)]="formEmisor.direccion">
-        </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="cfg-ubi">Ubicación</label>
-          <input id="cfg-ubi" class="adm-input" type="text" [(ngModel)]="formEmisor.ubicacion">
-        </div>
-      </div>
-      <div class="adm-campo cfg-espaciado">
-        <label class="adm-etiqueta" for="cfg-logo">Logo para proformas</label>
-        <input id="cfg-logo" class="adm-input" type="text" [(ngModel)]="formEmisor.logo_url"
-           placeholder="/uploads/hatunsales.png">
-      </div>
-      <p class="adm-ayuda" style="margin:16px 0 4px">
-        <strong>Contacto en la proforma.</strong> Se imprime en la cabecera y al pie del PDF y del Excel, y el
-        teléfono también en el mensaje de WhatsApp. Lo que deje vacío no aparece.
-      </p>
-      <div class="adm-fila cfg-espaciado">
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="cfg-tel">Teléfono / WhatsApp de ventas</label>
-          <input id="cfg-tel" class="adm-input" type="text" inputmode="tel" maxlength="30"
-                 [(ngModel)]="formEmisor.telefono" placeholder="987 654 321">
-        </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="cfg-email">Correo</label>
-          <input id="cfg-email" class="adm-input" type="email" maxlength="80"
-                 [(ngModel)]="formEmisor.email" placeholder="ventas@su-empresa.pe">
-        </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="cfg-web">Página web</label>
-          <input id="cfg-web" class="adm-input" type="text" maxlength="80"
-                 [(ngModel)]="formEmisor.web" placeholder="www.su-empresa.pe">
-        </div>
-      </div>
-      <div class="adm-campo cfg-espaciado">
-        <label class="adm-etiqueta" for="cfg-condiciones">Condiciones comerciales adicionales</label>
-        <textarea id="cfg-condiciones" class="adm-textarea" rows="4" maxlength="1500"
-                  [(ngModel)]="formProforma.condiciones"
-                  placeholder="Una condición por línea. Ej.: Entrega en 24 a 48 horas en Lima.&#10;Pago contra entrega o transferencia previa."></textarea>
-        <span class="adm-ayuda">Se añaden a las condiciones estándar de toda proforma (validez, IGV y stock).</span>
-      </div>
-      <ul class="adm-leyenda" style="margin-top:12px" *ngIf="fiscal">
-        <li class="adm-leyenda__item">
+      <ul class="adm-tarjeta__extra cfg-estados" *ngIf="fiscal" aria-label="Estado de la integración">
+        <li class="adm-insignia"
+            [class.adm-insignia--exito]="fiscal.estados.nubefact_configurado"
+            [class.adm-insignia--aviso]="!fiscal.estados.nubefact_configurado">
           <span class="adm-leyenda__punto"
                 [class.adm-leyenda__punto--exito]="fiscal.estados.nubefact_configurado"
-                [class.adm-leyenda__punto--aviso]="!fiscal.estados.nubefact_configurado"></span>
+                [class.adm-leyenda__punto--aviso]="!fiscal.estados.nubefact_configurado"
+                aria-hidden="true"></span>
           Nubefact {{ fiscal.estados.nubefact_configurado ? 'configurado' : 'revisar variables' }}
         </li>
-        <li class="adm-leyenda__item">
-          <span class="adm-leyenda__punto adm-leyenda__punto--info"></span>
+        <li class="adm-insignia adm-insignia--info">
+          <i class="bi bi-cash-stack" aria-hidden="true"></i>
           Caja: {{ fiscal.estados.caja_modo }}
         </li>
       </ul>
+    </div>
+
+    <!-- Cargando -->
+    <div class="adm-tarjeta__cuerpo" *ngIf="cargandoFiscal" aria-busy="true">
+      <span class="visually-hidden">Cargando la configuración fiscal…</span>
+      <div class="cfg-form" aria-hidden="true">
+        <div class="adm-bloque cfg-carga">
+          <div class="adm-esqueleto adm-esqueleto--titulo"></div>
+          <div class="cfg-carga__fila">
+            <div class="adm-esqueleto adm-esqueleto--fila"></div>
+            <div class="adm-esqueleto adm-esqueleto--fila"></div>
+          </div>
+        </div>
+        <div class="adm-bloque cfg-carga">
+          <div class="adm-esqueleto adm-esqueleto--titulo"></div>
+          <div class="cfg-carga__fila">
+            <div class="adm-esqueleto adm-esqueleto--fila"></div>
+            <div class="adm-esqueleto adm-esqueleto--fila"></div>
+          </div>
+          <div class="adm-esqueleto adm-esqueleto--fila"></div>
+        </div>
+        <div class="adm-bloque cfg-carga">
+          <div class="adm-esqueleto adm-esqueleto--titulo"></div>
+          <div class="cfg-carga__fila">
+            <div class="adm-esqueleto adm-esqueleto--fila"></div>
+            <div class="adm-esqueleto adm-esqueleto--fila"></div>
+            <div class="adm-esqueleto adm-esqueleto--fila"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="adm-tarjeta__cuerpo" *ngIf="!cargandoFiscal">
+      <div class="cfg-form">
+
+        <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto" *ngIf="!fiscal" role="status">
+          <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+          <span>
+            <strong class="adm-aviso__titulo">No se pudo leer la configuración guardada</strong>
+            Los campos muestran valores por defecto. Recargue la página antes de guardar para no sobrescribir sus datos.
+          </span>
+        </div>
+
+        <!-- Series -->
+        <div class="adm-bloque cfg-bloque">
+          <div class="cfg-bloque__intro">
+            <h3 class="adm-bloque__titulo"><i class="bi bi-123" aria-hidden="true"></i> Series de comprobantes</h3>
+            <p class="adm-ayuda">
+              El punto de venta elige la serie solo (boleta = B…, factura = F…) y <strong>no se puede cambiar</strong>
+              en Ventas. Deben coincidir con las de su cuenta Nubefact.
+            </p>
+          </div>
+          <div class="cfg-bloque__campos">
+            <div class="adm-fila cfg-fila">
+              <div class="adm-campo adm-campo--chico cfg-campo-serie">
+                <label class="adm-etiqueta" for="cfg-serie-b">Serie boleta</label>
+                <input id="cfg-serie-b" class="adm-input cfg-codigo" type="text" maxlength="4"
+                       autocomplete="off" spellcheck="false"
+                       [(ngModel)]="formSeries.serie_boleta" placeholder="BBB1">
+              </div>
+              <div class="adm-campo adm-campo--chico cfg-campo-serie">
+                <label class="adm-etiqueta" for="cfg-serie-f">Serie factura</label>
+                <input id="cfg-serie-f" class="adm-input cfg-codigo" type="text" maxlength="4"
+                       autocomplete="off" spellcheck="false"
+                       [(ngModel)]="formSeries.serie_factura" placeholder="FFF1">
+              </div>
+            </div>
+            <p class="adm-ayuda cfg-sin-margen">4 caracteres cada una, tal como figuran en Nubefact.</p>
+          </div>
+        </div>
+
+        <!-- Emisor -->
+        <div class="adm-bloque cfg-bloque">
+          <div class="cfg-bloque__intro">
+            <h3 class="adm-bloque__titulo"><i class="bi bi-building" aria-hidden="true"></i> Datos del emisor</h3>
+            <p class="adm-ayuda">Identifican a la empresa en los comprobantes electrónicos y en las proformas.</p>
+          </div>
+          <div class="cfg-bloque__campos">
+            <div class="adm-fila cfg-fila">
+              <div class="adm-campo adm-campo--medio">
+                <label class="adm-etiqueta" for="cfg-ruc-e">RUC emisor</label>
+                <input id="cfg-ruc-e" class="adm-input cfg-codigo" type="text" inputmode="numeric"
+                       autocomplete="off" placeholder="11 dígitos" [(ngModel)]="formEmisor.ruc">
+              </div>
+              <div class="adm-campo adm-campo--grande">
+                <label class="adm-etiqueta" for="cfg-razon">Razón social</label>
+                <input id="cfg-razon" class="adm-input" type="text" autocomplete="off"
+                       placeholder="Como figura en SUNAT" [(ngModel)]="formEmisor.razon_social">
+              </div>
+            </div>
+            <div class="adm-fila cfg-fila">
+              <div class="adm-campo adm-campo--grande">
+                <label class="adm-etiqueta" for="cfg-dir">Dirección</label>
+                <input id="cfg-dir" class="adm-input" type="text" autocomplete="off"
+                       placeholder="Av. / Jr. / Calle y número" [(ngModel)]="formEmisor.direccion">
+              </div>
+              <div class="adm-campo adm-campo--medio">
+                <label class="adm-etiqueta" for="cfg-ubi">Ubicación</label>
+                <input id="cfg-ubi" class="adm-input" type="text" autocomplete="off"
+                       placeholder="Distrito - Provincia - Departamento" [(ngModel)]="formEmisor.ubicacion">
+              </div>
+            </div>
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="cfg-logo">Logo para proformas</label>
+              <div class="adm-input-icono">
+                <i class="bi bi-image" aria-hidden="true"></i>
+                <input id="cfg-logo" class="adm-input" type="text" autocomplete="off"
+                       [(ngModel)]="formEmisor.logo_url" placeholder="/uploads/hatunsales.png">
+              </div>
+              <span class="adm-ayuda">Ruta o dirección web de la imagen que se imprime en la cabecera de la proforma.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contacto en la proforma -->
+        <div class="adm-bloque cfg-bloque">
+          <div class="cfg-bloque__intro">
+            <h3 class="adm-bloque__titulo"><i class="bi bi-telephone" aria-hidden="true"></i> Contacto en la proforma</h3>
+            <p class="adm-ayuda">
+              Se imprime en la cabecera y al pie del PDF y del Excel; el teléfono también va en el mensaje de
+              WhatsApp. Lo que deje vacío no aparece.
+            </p>
+          </div>
+          <div class="cfg-bloque__campos">
+            <div class="adm-fila cfg-fila">
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="cfg-tel">Teléfono / WhatsApp de ventas</label>
+                <div class="adm-input-icono">
+                  <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                  <input id="cfg-tel" class="adm-input" type="text" inputmode="tel" maxlength="30"
+                         [(ngModel)]="formEmisor.telefono" placeholder="987 654 321">
+                </div>
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="cfg-email">Correo</label>
+                <div class="adm-input-icono">
+                  <i class="bi bi-envelope" aria-hidden="true"></i>
+                  <input id="cfg-email" class="adm-input" type="email" maxlength="80"
+                         [(ngModel)]="formEmisor.email" placeholder="ventas@su-empresa.pe">
+                </div>
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="cfg-web">Página web</label>
+                <div class="adm-input-icono">
+                  <i class="bi bi-globe2" aria-hidden="true"></i>
+                  <input id="cfg-web" class="adm-input" type="text" maxlength="80"
+                         [(ngModel)]="formEmisor.web" placeholder="www.su-empresa.pe">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Condiciones comerciales -->
+        <div class="adm-bloque cfg-bloque">
+          <div class="cfg-bloque__intro">
+            <h3 class="adm-bloque__titulo"><i class="bi bi-card-checklist" aria-hidden="true"></i> Condiciones comerciales</h3>
+            <p class="adm-ayuda">Se añaden a las condiciones estándar de toda proforma (validez, IGV y stock).</p>
+          </div>
+          <div class="cfg-bloque__campos">
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="cfg-condiciones">
+                Condiciones adicionales <span class="adm-etiqueta__opcional">opcional</span>
+              </label>
+              <textarea id="cfg-condiciones" class="adm-textarea" rows="4" maxlength="1500"
+                        [(ngModel)]="formProforma.condiciones"
+                        placeholder="Una condición por línea. Ej.: Entrega en 24 a 48 horas en Lima.&#10;Pago contra entrega o transferencia previa."></textarea>
+              <div class="cfg-ayuda-fila">
+                <span class="adm-ayuda">Escriba una condición por línea.</span>
+                <span class="adm-ayuda cfg-contador">{{ (formProforma.condiciones || '').length }} / 1500</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="adm-tarjeta__pie cfg-pie">
+      <p class="adm-ayuda cfg-pie__nota">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        Se guardan juntos las series, el emisor, el contacto y las condiciones.
+      </p>
+      <button type="button" class="adm-btn adm-btn--primario"
+              (click)="guardarFiscal()" [disabled]="guardandoFiscal || cargandoFiscal">
+        <i class="bi" [ngClass]="guardandoFiscal ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
+        {{ guardandoFiscal ? 'Guardando…' : 'Guardar configuración' }}
+      </button>
     </div>
   </section>
 
   <div class="adm-grid adm-grid--2">
 
+    <!-- Sesión actual -->
     <section class="adm-tarjeta">
       <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-info-circle"></i> Sesión actual</h2>
+        <div class="adm-tarjeta__encabezado">
+          <h2 class="adm-tarjeta__titulo"><i class="bi bi-person-vcard"></i> Sesión actual</h2>
+          <p class="adm-tarjeta__sub">Cuenta con la que ingresó al panel.</p>
+        </div>
       </div>
       <div class="adm-tarjeta__cuerpo">
-        <div class="adm-fila">
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="cfg-nombre">Nombre</label>
-            <input id="cfg-nombre" class="adm-input" type="text" [value]="sesion.nombre" disabled>
+        <dl class="adm-datos cfg-datos">
+          <div class="adm-dato">
+            <dt class="adm-dato__etiqueta">Nombre</dt>
+            <dd class="adm-dato__valor"><data [value]="sesion.nombre">{{ sesion.nombre || '—' }}</data></dd>
           </div>
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="cfg-email">Correo</label>
-            <input id="cfg-email" class="adm-input" type="text" [value]="sesion.email" disabled>
+          <div class="adm-dato">
+            <dt class="adm-dato__etiqueta">Correo</dt>
+            <dd class="adm-dato__valor"><data [value]="sesion.email">{{ sesion.email || '—' }}</data></dd>
           </div>
+          <div class="adm-dato">
+            <dt class="adm-dato__etiqueta">ID de usuario</dt>
+            <dd class="adm-dato__valor adm-tabular"><data [value]="sesion.idUsuario">#{{ sesion.idUsuario }}</data></dd>
+          </div>
+          <div class="adm-dato">
+            <dt class="adm-dato__etiqueta">Rol</dt>
+            <dd class="adm-dato__valor">
+              <data class="cfg-rol" [value]="etiquetaRol + ' · #' + sesion.rolId">
+                {{ etiquetaRol }}
+                <span class="adm-insignia adm-insignia--neutra adm-insignia--sm">ID {{ sesion.rolId }}</span>
+              </data>
+            </dd>
+          </div>
+        </dl>
+        <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto adm-mt-4">
+          <i class="bi bi-lock" aria-hidden="true"></i>
+          <span>Datos de solo lectura. Para cambiar nombre, correo o contraseña use <strong>Mi perfil</strong>.</span>
         </div>
-        <div class="adm-fila cfg-espaciado">
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="cfg-id">ID usuario</label>
-            <input id="cfg-id" class="adm-input" type="text" [value]="sesion.idUsuario" disabled>
-          </div>
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="cfg-rol">Rol (ID)</label>
-            <input id="cfg-rol" class="adm-input" type="text"
-                   [value]="etiquetaRol + ' · #' + sesion.rolId" disabled>
-          </div>
-        </div>
-        <p class="adm-ayuda cfg-espaciado">
-          Estos campos son de solo lectura. Para cambiar nombre, correo o contraseña usa Mi perfil.
-        </p>
       </div>
     </section>
 
+    <!-- Atajos -->
     <section class="adm-tarjeta">
       <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-lightning"></i> Atajos</h2>
+        <div class="adm-tarjeta__encabezado">
+          <h2 class="adm-tarjeta__titulo"><i class="bi bi-lightning-charge"></i> Atajos</h2>
+          <p class="adm-tarjeta__sub">Accesos directos a su cuenta y al panel.</p>
+        </div>
       </div>
       <div class="adm-tarjeta__cuerpo">
-        <div class="cfg-atajos">
-          <a routerLink="/dashboard/perfil" class="cfg-atajo">
-            <i class="bi bi-person"></i>
-            <span>
-              <strong>Mi perfil</strong>
-              <small>Nombre, correo y contraseña</small>
+        <nav class="adm-atajos cfg-atajos" aria-label="Atajos de configuración">
+          <a routerLink="/dashboard/perfil" class="adm-atajo">
+            <span class="adm-atajo__icono"><i class="bi bi-person-circle" aria-hidden="true"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Mi perfil</span>
+              <span class="adm-atajo__desc">Nombre, correo y contraseña</span>
             </span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a routerLink="/dashboard/mantenimiento/roles" class="cfg-atajo" *ngIf="esAdminPuro">
-            <i class="bi bi-people"></i>
-            <span>
-              <strong>Roles</strong>
-              <small>IDs de acceso del sistema</small>
+          <a routerLink="/dashboard/mantenimiento/roles" class="adm-atajo adm-atajo--info" *ngIf="esAdminPuro">
+            <span class="adm-atajo__icono"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Roles</span>
+              <span class="adm-atajo__desc">IDs de acceso del sistema</span>
             </span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a routerLink="/dashboard/mantenimiento/usuarios" class="cfg-atajo" *ngIf="esAdminPuro">
-            <i class="bi bi-person-gear"></i>
-            <span>
-              <strong>Usuarios</strong>
-              <small>Altas y cambio de rol</small>
+          <a routerLink="/dashboard/mantenimiento/usuarios" class="adm-atajo adm-atajo--exito" *ngIf="esAdminPuro">
+            <span class="adm-atajo__icono"><i class="bi bi-person-badge" aria-hidden="true"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Usuarios</span>
+              <span class="adm-atajo__desc">Altas y cambio de rol</span>
             </span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a routerLink="/dashboard/home" class="cfg-atajo">
-            <i class="bi bi-house"></i>
-            <span>
-              <strong>Dashboard</strong>
-              <small>Volver al panel principal</small>
+          <a routerLink="/dashboard/home" class="adm-atajo">
+            <span class="adm-atajo__icono"><i class="bi bi-house-door" aria-hidden="true"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Inicio</span>
+              <span class="adm-atajo__desc">Volver al panel principal</span>
             </span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-        </div>
+        </nav>
       </div>
     </section>
 
   </div>
 
+  <!-- Permisos -->
   <section class="adm-tarjeta">
     <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-list-check"></i> Permisos de la sesión</h2>
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--exito">
+          <i class="bi bi-list-check"></i> Permisos de la sesión
+          <span class="adm-insignia adm-insignia--neutra">{{ sesion.permisos.length }}</span>
+        </h2>
+        <p class="adm-tarjeta__sub">Permisos que el sistema cargó para su usuario.</p>
+      </div>
     </div>
 
     <div class="adm-vacio" *ngIf="!sesion.permisos.length">
-      <div class="adm-vacio__icono"><i class="bi bi-shield"></i></div>
+      <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-shield-lock" aria-hidden="true"></i></div>
       <div class="adm-vacio__titulo">Sin permisos individuales</div>
-      <p>Tu acceso se controla por el rol <strong>{{ etiquetaRol }}</strong> (ID {{ sesion.rolId }}).</p>
+      <p>Su acceso se controla por el rol <strong>{{ etiquetaRol }}</strong> (ID {{ sesion.rolId }}).</p>
     </div>
 
     <div class="adm-tabla-envoltorio" *ngIf="sesion.permisos.length">
-      <table class="adm-tabla adm-tabla--adaptable">
+      <table class="adm-tabla adm-tabla--adaptable adm-tabla--compacta">
         <thead>
           <tr>
-            <th>#</th>
+            <th class="cfg-col-num">#</th>
             <th>Permiso</th>
             <th>Estado</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let p of sesion.permisos; let i = index">
-            <td data-etiqueta="#">{{ i + 1 }}</td>
+            <td data-etiqueta="#" class="adm-texto-suave adm-tabular">{{ i + 1 }}</td>
             <td data-etiqueta="Permiso">
-              <div class="adm-tabla__principal">{{ p }}</div>
+              <div class="adm-tabla__principal cfg-permiso">{{ p }}</div>
             </td>
             <td data-etiqueta="Estado">
-              <span class="adm-insignia adm-insignia--exito">Activo</span>
+              <span class="adm-insignia adm-insignia--exito adm-insignia--punto">Activo</span>
             </td>
           </tr>
         </tbody>

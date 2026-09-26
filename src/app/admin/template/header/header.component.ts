@@ -32,6 +32,12 @@ export class HeaderComponent implements OnInit {
 
   showUser = false;
   paginaActual = 'Dashboard';
+  /** Icono (Bootstrap Icons) y módulo de la página actual, para la cabecera. */
+  iconoActual = 'bi-house-door';
+  grupoActual = '';
+  /** Fecha de hoy en español, sin depender del locale global de Angular. */
+  readonly fechaCorta = formatearFecha(new Date(), { weekday: 'short', day: 'numeric', month: 'short' });
+  readonly fechaLarga = formatearFecha(new Date(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   sesion: SesionUsuario = {
     idUsuario: 0,
     nombre: '',
@@ -55,16 +61,14 @@ export class HeaderComponent implements OnInit {
       this.cdr.markForCheck();
     });
 
-    this.paginaActual = this.tituloDe(this.router.url);
-    this.aplicarTituloPestana(this.paginaActual);
+    this.aplicarPagina(this.router.url);
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((e) => {
-        this.paginaActual = this.tituloDe(e.urlAfterRedirects);
-        this.aplicarTituloPestana(this.paginaActual);
+        this.aplicarPagina(e.urlAfterRedirects);
         this.showUser = false;
         this.cdr.markForCheck();
       });
@@ -109,27 +113,57 @@ export class HeaderComponent implements OnInit {
     this.sesion = this.auth.getSesion();
   }
 
-  private tituloDe(url: string): string {
-    if (url.includes('/mantenimiento/ventas')) return 'Ventas';
-    if (url.includes('/mantenimiento/productos')) return 'Productos';
-    if (url.includes('/mantenimiento/inventario')) return 'Inventario';
-    if (url.includes('/mantenimiento/clientes')) return 'Clientes';
-    if (url.includes('/mantenimiento/cotizaciones')) return 'Cotizaciones';
-    if (url.includes('/mantenimiento/guias-remision')) return 'Guías de remisión';
-    if (url.includes('/mantenimiento/doc')) return 'Documentos';
-    if (url.includes('/mantenimiento/usuarios')) return 'Usuarios';
-    if (url.includes('/mantenimiento/roles')) return 'Roles';
-    if (url.includes('/mantenimiento/reportes')) return 'Reportes';
-    if (url.includes('/mantenimiento/stock')) return 'Stock';
-    if (url.includes('/mantenimiento/almacen')) return 'Almacén';
-    if (url.includes('/mantenimiento/proveedores')) return 'Proveedores';
-    if (url.includes('/mantenimiento/recepcion')) return 'Recepción';
-    if (url.includes('/mantenimiento/marcas')) return 'Marcas';
-    if (url.includes('/mantenimiento/cuentas-por-cobrar')) return 'Cuentas por cobrar';
-    if (url.includes('/mantenimiento/categorias')) return 'Categorías';
-    if (url.includes('/perfil')) return 'Mi perfil';
-    if (url.includes('/configuracion')) return 'Configuración';
-    if (url.includes('/dashboard/home') || url.endsWith('/dashboard')) return 'Inicio';
-    return 'Dashboard';
+  private aplicarPagina(url: string): void {
+    const pagina = paginaDe(url);
+    this.paginaActual = pagina.titulo;
+    this.iconoActual = pagina.icono;
+    this.grupoActual = pagina.grupo;
+    this.aplicarTituloPestana(pagina.titulo);
+  }
+}
+
+interface PaginaPanel {
+  titulo: string;
+  icono: string;
+  grupo: string;
+}
+
+/** Mismas rutas e iconos que el menú lateral. El orden importa: la más específica primero. */
+const PAGINAS: Array<{ fragmento: string; pagina: PaginaPanel }> = [
+  { fragmento: '/mantenimiento/ventas', pagina: { titulo: 'Ventas', icono: 'bi-receipt', grupo: 'Ventas' } },
+  { fragmento: '/mantenimiento/caja-sesion', pagina: { titulo: 'Caja', icono: 'bi-cash-stack', grupo: 'Ventas' } },
+  { fragmento: '/mantenimiento/cotizaciones', pagina: { titulo: 'Cotizaciones', icono: 'bi-file-earmark-ruled', grupo: 'Ventas' } },
+  { fragmento: '/mantenimiento/doc', pagina: { titulo: 'Documentos', icono: 'bi-file-earmark-text', grupo: 'Ventas' } },
+  { fragmento: '/mantenimiento/guias-remision', pagina: { titulo: 'Guías de remisión', icono: 'bi-truck', grupo: 'Ventas' } },
+  { fragmento: '/mantenimiento/clientes', pagina: { titulo: 'Clientes', icono: 'bi-people', grupo: 'Ventas' } },
+  { fragmento: '/mantenimiento/cuentas-por-cobrar', pagina: { titulo: 'Cuentas por cobrar', icono: 'bi-wallet2', grupo: 'Ventas' } },
+  { fragmento: '/mantenimiento/productos', pagina: { titulo: 'Productos', icono: 'bi-box-seam', grupo: 'Catálogo' } },
+  { fragmento: '/mantenimiento/categorias', pagina: { titulo: 'Categorías', icono: 'bi-tags', grupo: 'Catálogo' } },
+  { fragmento: '/mantenimiento/marcas', pagina: { titulo: 'Marcas', icono: 'bi-award', grupo: 'Catálogo' } },
+  { fragmento: '/mantenimiento/inventario', pagina: { titulo: 'Inventario', icono: 'bi-boxes', grupo: 'Almacén' } },
+  { fragmento: '/mantenimiento/stock', pagina: { titulo: 'Stock', icono: 'bi-clipboard-data', grupo: 'Almacén' } },
+  { fragmento: '/mantenimiento/almacen', pagina: { titulo: 'Almacén', icono: 'bi-building', grupo: 'Almacén' } },
+  { fragmento: '/mantenimiento/proveedores', pagina: { titulo: 'Proveedores', icono: 'bi-truck-front', grupo: 'Almacén' } },
+  { fragmento: '/mantenimiento/recepcion', pagina: { titulo: 'Recepción', icono: 'bi-box-arrow-in-down', grupo: 'Almacén' } },
+  { fragmento: '/mantenimiento/reportes', pagina: { titulo: 'Reportes', icono: 'bi-bar-chart-line', grupo: 'Reportes' } },
+  { fragmento: '/mantenimiento/usuarios', pagina: { titulo: 'Usuarios', icono: 'bi-person-badge', grupo: 'Administración' } },
+  { fragmento: '/mantenimiento/roles', pagina: { titulo: 'Roles', icono: 'bi-shield-check', grupo: 'Administración' } },
+  { fragmento: '/perfil', pagina: { titulo: 'Mi perfil', icono: 'bi-person-circle', grupo: 'Cuenta' } },
+  { fragmento: '/configuracion', pagina: { titulo: 'Configuración', icono: 'bi-gear', grupo: 'Cuenta' } },
+  { fragmento: '/dashboard/home', pagina: { titulo: 'Inicio', icono: 'bi-house-door', grupo: 'Panel' } },
+];
+
+function paginaDe(url: string): PaginaPanel {
+  const encontrada = PAGINAS.find((p) => url.includes(p.fragmento));
+  if (encontrada) return encontrada.pagina;
+  if (url.endsWith('/dashboard')) return { titulo: 'Inicio', icono: 'bi-house-door', grupo: 'Panel' };
+  return { titulo: 'Dashboard', icono: 'bi-grid-1x2', grupo: 'Panel' };
+}
+
+function formatearFecha(fecha: Date, opciones: Intl.DateTimeFormatOptions): string {
+  try {
+    return fecha.toLocaleDateString('es-PE', opciones).replace(/\./g, '');
+  } catch {
+    return fecha.toLocaleDateString();
   }
 }

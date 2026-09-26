@@ -12,10 +12,19 @@
   </button>
 
   <div class="tb-title" *ngIf="paginaActual">
-    <span class="tb-title__text">{{ paginaActual }}</span>
+    <span class="tb-title__icon" aria-hidden="true"><i class="bi" [ngClass]="iconoActual"></i></span>
+    <div class="tb-title__textos">
+      <span class="tb-title__group" *ngIf="grupoActual">{{ grupoActual }}</span>
+      <span class="tb-title__text">{{ paginaActual }}</span>
+    </div>
   </div>
 
   <div class="tb-actions">
+    <span class="tb-fecha" [attr.title]="fechaLarga">
+      <i class="bi bi-calendar3" aria-hidden="true"></i>
+      <span>{{ fechaCorta }}</span>
+    </span>
+
     <a class="tb-link-tienda"
        routerLink="/store"
        title="Ver la tienda online (sin cerrar sesión)">
@@ -27,6 +36,7 @@
          role="button"
          tabindex="0"
          [attr.aria-expanded]="showUser"
+         [class.open]="showUser"
          (click)="toggleUser()"
          (keydown.enter)="alTeclaUsuario($event)"
          (keydown.space)="alTeclaUsuario($event)">
@@ -39,8 +49,12 @@
 
       <div class="user-dropdown" [class.show]="showUser" (click)="$event.stopPropagation()">
         <div class="ud-meta">
-          <strong>{{ sesion.nombre || 'Usuario' }}</strong>
-          <small *ngIf="sesion.email">{{ sesion.email }}</small>
+          <div class="ud-avatar" aria-hidden="true">{{ sesion.iniciales }}</div>
+          <div class="ud-meta__textos">
+            <strong>{{ sesion.nombre || 'Usuario' }}</strong>
+            <small *ngIf="sesion.email">{{ sesion.email }}</small>
+            <span class="ud-rol">{{ etiquetaRol }}</span>
+          </div>
         </div>
         <a class="ud-item" routerLink="/dashboard/perfil">
           <i class="bi bi-person" aria-hidden="true"></i> Mi perfil

@@ -571,6 +571,18 @@ input:focus-visible {
   .oculta-movil { display: none; }
   .franja-acceso { margin-left: 0; flex-shrink: 0; }
 
+  /* Franja de una sola línea: el aviso se recorta con puntos suspensivos y el
+     enlace de acceso conserva su espacio, sin ensanchar la página. */
+  .franja-contenido > span:not(.oculta-movil) {
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .franja-contenido > span:not(.oculta-movil) i { margin-right: 7px; }
+
   .barra {
     flex-wrap: wrap;
     height: auto;

@@ -72,6 +72,23 @@ export class DashboardComponent implements OnInit {
     return this.authService.etiquetaRol(this.sesion.rolNombre);
   }
 
+  /** Primer nombre para el saludo; el nombre completo va en el pie del menú. */
+  get nombreCorto(): string {
+    const nombre = (this.sesion.nombre || '').trim();
+    return nombre ? nombre.split(/\s+/)[0] : 'Usuario';
+  }
+
+  /** Fecha en español sin depender del locale global de Angular. */
+  get fechaHoy(): string {
+    try {
+      return new Date()
+        .toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })
+        .replace(/\./g, '');
+    } catch {
+      return new Date().toLocaleDateString();
+    }
+  }
+
   get saludo(): string {
     const hora = new Date().getHours();
     if (hora < 12) return 'Buenos días';

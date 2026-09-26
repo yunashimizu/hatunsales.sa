@@ -1,118 +1,256 @@
-<div class="adm-pagina">
+<div class="adm-pagina ini">
 
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">{{ saludo }}, {{ sesion.nombre || 'Usuario' }}</h1>
-      <p class="adm-cabecera__sub">
-        Panel HatunSales · {{ etiquetaRol }}
-        <span *ngIf="sesion.email"> · {{ sesion.email }}</span>
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-house-door"></i></span>
+      <div>
+        <span class="adm-cabecera__eyebrow">{{ fechaHoy }}</span>
+        <h1 class="adm-cabecera__titulo">{{ saludo }}, {{ nombreCorto }}</h1>
+        <p class="adm-cabecera__sub">
+          Resumen del día en HatunSales · <strong>{{ etiquetaRol }}</strong>
+          <span *ngIf="sesion.email" class="adm-texto-tenue"> · {{ sesion.email }}</span>
+        </p>
+      </div>
     </div>
     <div class="adm-acciones">
-      <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/ventas">
-        <i class="bi bi-cart"></i> Ir a ventas
-      </a>
       <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/caja-sesion">
-        <i class="bi bi-cash-drawer"></i> Caja
+        <i class="bi bi-cash-stack"></i> Caja
+      </a>
+      <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/ventas">
+        <i class="bi bi-cart-plus"></i> Nueva venta
       </a>
     </div>
   </header>
 
-  <section class="adm-grid adm-grid--4">
+  <!-- Indicadores -->
+  <section class="adm-grid adm-grid--4" aria-label="Indicadores del día">
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-graph-up"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-graph-up-arrow"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargandoKpis && ventasHoy != null; else guion">S/ {{ ventasHoy | number:'1.2-2' }}</ng-container>
+          <ng-container *ngIf="!cargandoKpis; else esqueleto">
+            <ng-container *ngIf="ventasHoy != null; else guion">S/ {{ ventasHoy | number:'1.2-2' }}</ng-container>
+          </ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Ventas hoy</div>
       </div>
     </div>
+
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--peligro"><i class="bi bi-x-circle"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--peligro"><i class="bi bi-x-octagon"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargandoKpis && sinStock != null; else guion">{{ sinStock }}</ng-container>
+          <ng-container *ngIf="!cargandoKpis; else esqueleto">
+            <ng-container *ngIf="sinStock != null; else guion">{{ sinStock }}</ng-container>
+          </ng-container>
         </div>
-        <div class="adm-metrica__etiqueta">Sin stock</div>
+        <div class="adm-metrica__etiqueta">Productos sin stock</div>
       </div>
     </div>
+
     <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-exclamation-triangle"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargandoKpis && (bajoStock != null || cpeAtencion != null); else guion">
-            {{ (bajoStock || 0) + (cpeAtencion || 0) }}
+          <ng-container *ngIf="!cargandoKpis; else esqueleto">
+            <ng-container *ngIf="bajoStock != null || cpeAtencion != null; else guion">
+              {{ (bajoStock || 0) + (cpeAtencion || 0) }}
+            </ng-container>
           </ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Alertas (stock + CPE)</div>
       </div>
     </div>
-    <div class="adm-metrica">
-      <div class="adm-metrica__icono" [class.adm-metrica__icono--exito]="cajaAbierta"
-           [class.adm-metrica__icono--aviso]="cajaAbierta === false">
-        <i class="bi bi-cash-coin"></i>
-      </div>
+
+    <div class="adm-metrica"
+         [class.adm-metrica--exito]="cajaAbierta"
+         [class.adm-metrica--aviso]="cajaAbierta === false"
+         [class.adm-metrica--neutro]="cajaAbierta == null">
+      <div class="adm-metrica__icono"><i class="bi" [ngClass]="cajaAbierta ? 'bi-unlock' : 'bi-lock'"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargandoKpis && cajaAbierta != null; else guion">
-            {{ cajaAbierta ? 'Abierta' : 'Cerrada' }}
+          <ng-container *ngIf="!cargandoKpis; else esqueleto">
+            <ng-container *ngIf="cajaAbierta != null; else guion">{{ cajaAbierta ? 'Abierta' : 'Cerrada' }}</ng-container>
           </ng-container>
         </div>
         <div class="adm-metrica__etiqueta">
-          Caja <span *ngIf="cajaNombre">· {{ cajaNombre }}</span>
-          <span *ngIf="cajaAbierta && turnoTotal != null"> · S/ {{ turnoTotal | number:'1.2-2' }}</span>
+          Caja<span *ngIf="cajaNombre"> · {{ cajaNombre }}</span>
         </div>
       </div>
     </div>
   </section>
   <ng-template #guion>—</ng-template>
+  <ng-template #esqueleto><span class="adm-esqueleto ini-esqueleto"></span></ng-template>
 
-  <ul class="adm-leyenda" style="margin-bottom:12px">
-    <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--exito"></span> Operación OK</li>
-    <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--aviso"></span> Bajo stock / revisión</li>
-    <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--peligro"></span> Sin stock / CPE pendiente</li>
-  </ul>
+  <div class="adm-grid adm-grid--lateral">
 
-  <div class="adm-grid adm-grid--2">
+    <!-- Accesos rápidos -->
     <section class="adm-tarjeta">
       <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-lightning"></i> Atajos del día</h2>
+        <div class="adm-tarjeta__encabezado">
+          <h2 class="adm-tarjeta__titulo"><i class="bi bi-lightning-charge"></i> Accesos rápidos</h2>
+          <p class="adm-tarjeta__sub">Lo que más se usa durante el día.</p>
+        </div>
+        <span class="adm-insignia adm-insignia--aviso adm-insignia--punto" *ngIf="cpeAtencion">
+          {{ cpeAtencion }} CPE por revisar
+        </span>
       </div>
       <div class="adm-tarjeta__cuerpo">
-        <div class="adm-acciones" style="flex-wrap:wrap;gap:8px">
-          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/ventas"><i class="bi bi-cart"></i> Ventas</a>
-          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/cotizaciones"><i class="bi bi-file-earmark-ruled"></i> Cotizaciones</a>
-          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/recepcion"><i class="bi bi-box-seam"></i> Recepción</a>
-          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/inventario"><i class="bi bi-boxes"></i> Inventario</a>
-          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/doc"><i class="bi bi-file-earmark-text"></i> Documentos
-            <span class="adm-insignia adm-insignia--aviso" *ngIf="cpeAtencion">{{ cpeAtencion }}</span>
+        <nav class="adm-atajos" aria-label="Accesos rápidos">
+          <a class="adm-atajo" routerLink="/dashboard/mantenimiento/ventas">
+            <span class="adm-atajo__icono"><i class="bi bi-receipt"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Ventas</span>
+              <span class="adm-atajo__desc">Punto de venta y comprobantes</span>
+            </span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/stock"><i class="bi bi-clipboard-data"></i> Stock</a>
-        </div>
+          <a class="adm-atajo adm-atajo--info" routerLink="/dashboard/mantenimiento/cotizaciones">
+            <span class="adm-atajo__icono"><i class="bi bi-file-earmark-ruled"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Cotizaciones</span>
+              <span class="adm-atajo__desc">Proformas para clientes</span>
+            </span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
+          </a>
+          <a class="adm-atajo adm-atajo--aviso" routerLink="/dashboard/mantenimiento/doc">
+            <span class="adm-atajo__icono"><i class="bi bi-file-earmark-text"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Documentos</span>
+              <span class="adm-atajo__desc">Boletas, facturas y SUNAT</span>
+            </span>
+            <span class="adm-insignia adm-insignia--aviso" *ngIf="cpeAtencion">{{ cpeAtencion }}</span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true" *ngIf="!cpeAtencion"></i>
+          </a>
+          <a class="adm-atajo" routerLink="/dashboard/mantenimiento/clientes">
+            <span class="adm-atajo__icono"><i class="bi bi-people"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Clientes</span>
+              <span class="adm-atajo__desc">Personas y empresas</span>
+            </span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
+          </a>
+          <a class="adm-atajo adm-atajo--exito" routerLink="/dashboard/mantenimiento/recepcion">
+            <span class="adm-atajo__icono"><i class="bi bi-box-arrow-in-down"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Recepción</span>
+              <span class="adm-atajo__desc">Ingreso de mercadería</span>
+            </span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
+          </a>
+          <a class="adm-atajo adm-atajo--exito" routerLink="/dashboard/mantenimiento/inventario">
+            <span class="adm-atajo__icono"><i class="bi bi-boxes"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Inventario</span>
+              <span class="adm-atajo__desc">Stock por almacén y kardex</span>
+            </span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
+          </a>
+          <a class="adm-atajo adm-atajo--peligro" routerLink="/dashboard/mantenimiento/stock">
+            <span class="adm-atajo__icono"><i class="bi bi-clipboard-data"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Stock</span>
+              <span class="adm-atajo__desc">Ajustes y alertas de mínimo</span>
+            </span>
+            <span class="adm-insignia adm-insignia--peligro" *ngIf="sinStock">{{ sinStock }}</span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true" *ngIf="!sinStock"></i>
+          </a>
+          <a class="adm-atajo adm-atajo--info" routerLink="/dashboard/mantenimiento/reportes">
+            <span class="adm-atajo__icono"><i class="bi bi-bar-chart-line"></i></span>
+            <span class="adm-atajo__texto">
+              <span class="adm-atajo__titulo">Reportes</span>
+              <span class="adm-atajo__desc">Ventas por periodo, Excel y PDF</span>
+            </span>
+            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
+          </a>
+        </nav>
       </div>
     </section>
 
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-info-circle"></i> Turno</h2>
+    <!-- Turno de caja -->
+    <aside class="adm-tarjeta" [class.adm-tarjeta--exito-suave]="cajaAbierta" [class.adm-tarjeta--destacada]="!cajaAbierta">
+      <div class="adm-tarjeta__cabecera adm-tarjeta__cabecera--limpia">
+        <h2 class="adm-tarjeta__titulo" [class.adm-tarjeta__titulo--exito]="cajaAbierta">
+          <i class="bi bi-cash-coin"></i> Turno de caja
+        </h2>
+        <span class="adm-insignia adm-insignia--punto"
+              [ngClass]="cajaAbierta ? 'adm-insignia--exito' : (cajaAbierta === false ? 'adm-insignia--aviso' : 'adm-insignia--neutra')">
+          {{ cajaAbierta ? 'Abierta' : (cajaAbierta === false ? 'Cerrada' : 'Sin datos') }}
+        </span>
       </div>
-      <div class="adm-tarjeta__cuerpo">
-        <p class="adm-ayuda" *ngIf="cajaAbierta">
-          Caja abierta: <strong>{{ turnoVentas ?? 0 }}</strong> ventas ·
-          total <strong>S/ {{ (turnoTotal ?? 0) | number:'1.2-2' }}</strong>
-        </p>
-        <p class="adm-ayuda" *ngIf="cajaAbierta === false">
-          No hay caja abierta. En modo blando igual puede vender; abra turno en Caja para llevar control.
-        </p>
-        <p class="adm-ayuda" *ngIf="cajaAbierta == null && !cargandoKpis">
-          No se pudo leer el estado de caja.
-        </p>
-        <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/caja-sesion" style="margin-top:8px">
-          Gestionar caja
+      <div class="adm-tarjeta__cuerpo ini-turno">
+
+        <ng-container *ngIf="cargandoKpis">
+          <span class="adm-esqueleto adm-esqueleto--titulo"></span>
+          <span class="adm-esqueleto adm-esqueleto--linea"></span>
+          <span class="adm-esqueleto adm-esqueleto--linea"></span>
+        </ng-container>
+
+        <ng-container *ngIf="!cargandoKpis && cajaAbierta">
+          <div class="ini-turno__total">
+            <span class="adm-dato__etiqueta">Cobrado en el turno</span>
+            <span class="ini-turno__monto">S/ {{ (turnoTotal ?? 0) | number:'1.2-2' }}</span>
+          </div>
+          <dl class="adm-datos adm-datos--columna ini-turno__datos">
+            <div class="adm-dato">
+              <dt class="adm-dato__etiqueta">Ventas registradas</dt>
+              <dd class="adm-dato__valor">{{ turnoVentas ?? 0 }}</dd>
+            </div>
+            <div class="adm-dato" *ngIf="cajaNombre">
+              <dt class="adm-dato__etiqueta">Caja</dt>
+              <dd class="adm-dato__valor">{{ cajaNombre }}</dd>
+            </div>
+          </dl>
+        </ng-container>
+
+        <div class="adm-vacio adm-vacio--compacto ini-turno__vacio" *ngIf="!cargandoKpis && cajaAbierta === false">
+          <div class="adm-vacio__icono adm-vacio__icono--aviso"><i class="bi bi-lock"></i></div>
+          <div class="adm-vacio__titulo">No hay caja abierta</div>
+          <p>En modo blando igual puede vender; abra un turno para llevar el control del efectivo.</p>
+        </div>
+
+        <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto" *ngIf="!cargandoKpis && cajaAbierta == null">
+          <i class="bi bi-wifi-off"></i>
+          <span>No se pudo leer el estado de la caja. Revise la conexión e intente de nuevo.</span>
+        </div>
+
+        <a class="adm-btn adm-btn--bloque"
+           [ngClass]="cajaAbierta ? 'adm-btn--suave' : 'adm-btn--primario'"
+           routerLink="/dashboard/mantenimiento/caja-sesion">
+          <i class="bi" [ngClass]="cajaAbierta ? 'bi-arrow-right-circle' : 'bi-unlock'"></i>
+          {{ cajaAbierta ? 'Ver el turno' : 'Abrir caja' }}
         </a>
       </div>
-    </section>
+    </aside>
   </div>
+
+  <!-- Estado del negocio -->
+  <section class="adm-tarjeta" *ngIf="!cargandoKpis && (sinStock || bajoStock || cpeAtencion)">
+    <div class="adm-tarjeta__cabecera">
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--aviso"><i class="bi bi-bell"></i> Pendientes de atención</h2>
+        <p class="adm-tarjeta__sub">Cosas que conviene resolver hoy.</p>
+      </div>
+    </div>
+    <div class="adm-tarjeta__cuerpo adm-tarjeta__cuerpo--sin-relleno">
+      <ul class="ini-pendientes">
+        <li *ngIf="sinStock">
+          <span class="adm-punto adm-punto--peligro" aria-hidden="true"></span>
+          <span class="ini-pendientes__texto"><strong>{{ sinStock }}</strong> producto(s) sin stock en el catálogo</span>
+          <a class="adm-btn adm-btn--sm adm-btn--suave" routerLink="/dashboard/mantenimiento/inventario">Ver inventario</a>
+        </li>
+        <li *ngIf="bajoStock">
+          <span class="adm-punto adm-punto--aviso" aria-hidden="true"></span>
+          <span class="ini-pendientes__texto"><strong>{{ bajoStock }}</strong> producto(s) por debajo del mínimo</span>
+          <a class="adm-btn adm-btn--sm adm-btn--suave" routerLink="/dashboard/mantenimiento/stock">Ver stock</a>
+        </li>
+        <li *ngIf="cpeAtencion">
+          <span class="adm-punto adm-punto--aviso" aria-hidden="true"></span>
+          <span class="ini-pendientes__texto"><strong>{{ cpeAtencion }}</strong> comprobante(s) electrónico(s) requieren revisión</span>
+          <a class="adm-btn adm-btn--sm adm-btn--suave" routerLink="/dashboard/mantenimiento/doc">Ver documentos</a>
+        </li>
+      </ul>
+    </div>
+  </section>
 
 </div>

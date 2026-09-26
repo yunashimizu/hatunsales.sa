@@ -1,11 +1,16 @@
 <div class="adm-pagina">
 
+  <!-- Cabecera de página -->
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Documentos</h1>
-      <p class="adm-cabecera__sub">
-        Comprobantes electrónicos emitidos. Un documento enviado a SUNAT solo puede anularse, nunca editarse.
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-file-earmark-text"></i></span>
+      <div class="doc-cabecera__texto">
+        <span class="adm-cabecera__eyebrow">Ventas</span>
+        <h1 class="adm-cabecera__titulo">Documentos electrónicos</h1>
+        <p class="adm-cabecera__sub">
+          Boletas, facturas y notas emitidas, con su estado ante SUNAT. Un comprobante enviado no se edita: solo puede anularse.
+        </p>
+      </div>
     </div>
     <div class="adm-acciones">
       <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
@@ -15,87 +20,165 @@
     </div>
   </header>
 
-  <div class="adm-aviso adm-aviso--peligro doc-monitor" *ngIf="atencion.total > 0" role="status">
-    <div>
-      <strong>{{ atencion.total }} comprobante(s) requieren atención</strong>
+  <!-- Monitor de atención: comprobantes rechazados o sin respuesta de SUNAT -->
+  <div class="adm-aviso doc-monitor" *ngIf="atencion.total > 0" role="status"
+       [class.adm-aviso--peligro]="atencion.errores > 0"
+       [class.adm-aviso--aviso]="!atencion.errores">
+    <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+    <div class="doc-monitor__texto">
+      <strong class="adm-aviso__titulo">{{ atencion.total }} comprobante(s) requieren atención</strong>
       <span>
-        {{ atencion.errores }} con error · {{ atencion.pendientes }} pendiente(s). Revisa o reintenta el envío a SUNAT.
+        {{ atencion.errores }} rechazado(s) · {{ atencion.pendientes }} pendiente(s) de envío. Revíselos o reintente el envío a SUNAT.
       </span>
     </div>
-    <button type="button" class="adm-btn adm-btn--suave" (click)="verSoloAtencion()">Ver ahora</button>
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="verSoloAtencion()">
+      Ver ahora <i class="bi bi-arrow-right" aria-hidden="true"></i>
+    </button>
   </div>
 
-  <!-- Filtros -->
-  <section class="adm-tarjeta">
-    <div class="adm-tarjeta__cuerpo">
-      <div class="adm-fila">
-        <div class="adm-campo doc-campo--ancho">
-          <label class="adm-etiqueta" for="doc-texto">Buscar</label>
-          <input id="doc-texto" class="adm-input" type="text" autocomplete="off"
-                 placeholder="Serie, número, cliente o documento…"
-                 [(ngModel)]="filtro.texto" (ngModelChange)="alFiltrar()">
+  <!-- Indicadores -->
+  <section class="adm-grid adm-grid--3 doc-metricas" aria-label="Resumen de documentos">
+    <div class="adm-metrica doc-metrica--total">
+      <div class="adm-metrica__icono"><i class="bi bi-files"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !comprobantes.length); else docEsqueletoValor">{{ total }}</ng-container>
         </div>
-
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="doc-tipo">Tipo</label>
-          <select id="doc-tipo" class="adm-select" [(ngModel)]="filtro.id_tipo" (ngModelChange)="cargar(1)">
-            <option value="">Todos</option>
-            <option [ngValue]="1">Facturas</option>
-            <option [ngValue]="2">Boletas</option>
-            <option [ngValue]="7">Notas de crédito</option>
-            <option [ngValue]="8">Notas de débito</option>
-          </select>
-        </div>
-
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="doc-estado">Estado</label>
-          <select id="doc-estado" class="adm-select" [(ngModel)]="filtro.estado" (ngModelChange)="cargar(1)">
-            <option value="">Todos</option>
-            <option value="emitido">Emitidos</option>
-            <option value="pendiente">Pendientes</option>
-            <option value="error">Rechazados</option>
-            <option value="anulado">Anulados</option>
-          </select>
-        </div>
-
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="doc-desde">Desde</label>
-          <input id="doc-desde" class="adm-input" type="date"
-                 [(ngModel)]="filtro.desde" (ngModelChange)="cargar(1)">
-        </div>
-
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="doc-hasta">Hasta</label>
-          <input id="doc-hasta" class="adm-input" type="date"
-                 [(ngModel)]="filtro.hasta" (ngModelChange)="cargar(1)">
-        </div>
-
-        <button type="button" class="adm-btn adm-btn--fantasma" (click)="limpiarFiltros()">
-          <i class="bi bi-eraser"></i> Limpiar
-        </button>
+        <div class="adm-metrica__etiqueta">Documentos</div>
+        <div class="adm-metrica__delta">Según los filtros aplicados</div>
       </div>
+    </div>
+
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"
+           [ngClass]="atencion.errores ? 'adm-metrica__icono--peligro' : 'adm-metrica__icono--exito'">
+        <i class="bi" [ngClass]="atencion.errores ? 'bi-x-octagon' : 'bi-check2-circle'"></i>
+      </div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !comprobantes.length); else docEsqueletoValor">{{ atencion.errores }}</ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Rechazados</div>
+        <div class="adm-metrica__delta">{{ atencion.errores ? 'Reintente o descarte' : 'Ninguno por revisar' }}</div>
+      </div>
+    </div>
+
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"
+           [ngClass]="atencion.pendientes ? 'adm-metrica__icono--aviso' : 'adm-metrica__icono--exito'">
+        <i class="bi" [ngClass]="atencion.pendientes ? 'bi-hourglass-split' : 'bi-check2-circle'"></i>
+      </div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !comprobantes.length); else docEsqueletoValor">{{ atencion.pendientes }}</ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Pendientes</div>
+        <div class="adm-metrica__delta">{{ atencion.pendientes ? 'Sin respuesta de SUNAT' : 'Todo enviado' }}</div>
+      </div>
+    </div>
+  </section>
+  <ng-template #docEsqueletoValor><span class="adm-esqueleto doc-esqueleto-valor"></span></ng-template>
+
+  <!-- Filtros -->
+  <section class="adm-filtros doc-filtros" aria-label="Filtros de documentos">
+    <div class="adm-campo adm-campo--grande">
+      <label class="adm-etiqueta" for="doc-texto">Buscar</label>
+      <div class="adm-input-icono">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input id="doc-texto" class="adm-input" type="text" autocomplete="off"
+               placeholder="Serie, número, cliente o DNI/RUC"
+               [(ngModel)]="filtro.texto" (ngModelChange)="alFiltrar()">
+      </div>
+    </div>
+
+    <div class="adm-campo doc-campo--select">
+      <label class="adm-etiqueta" for="doc-tipo">Tipo</label>
+      <select id="doc-tipo" class="adm-select" [(ngModel)]="filtro.id_tipo" (ngModelChange)="cargar(1)">
+        <option value="">Todos</option>
+        <option [ngValue]="1">Facturas</option>
+        <option [ngValue]="2">Boletas</option>
+        <option [ngValue]="7">Notas de crédito</option>
+        <option [ngValue]="8">Notas de débito</option>
+      </select>
+    </div>
+
+    <div class="adm-campo doc-campo--select">
+      <label class="adm-etiqueta" for="doc-estado">Estado</label>
+      <select id="doc-estado" class="adm-select" [(ngModel)]="filtro.estado" (ngModelChange)="cargar(1)">
+        <option value="">Todos</option>
+        <option value="emitido">Emitidos</option>
+        <option value="pendiente">Pendientes</option>
+        <option value="error">Rechazados</option>
+        <option value="anulado">Anulados</option>
+      </select>
+    </div>
+
+    <div class="adm-campo doc-campo--fecha">
+      <label class="adm-etiqueta" for="doc-desde">Desde</label>
+      <input id="doc-desde" class="adm-input" type="date"
+             [(ngModel)]="filtro.desde" (ngModelChange)="cargar(1)">
+    </div>
+
+    <div class="adm-campo doc-campo--fecha">
+      <label class="adm-etiqueta" for="doc-hasta">Hasta</label>
+      <input id="doc-hasta" class="adm-input" type="date"
+             [(ngModel)]="filtro.hasta" (ngModelChange)="cargar(1)">
+    </div>
+
+    <div class="adm-campo adm-campo--accion doc-filtros__limpiar">
+      <span class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</span>
+      <button type="button" class="adm-btn adm-btn--fantasma" (click)="limpiarFiltros()">
+        <i class="bi bi-eraser" aria-hidden="true"></i> Limpiar
+      </button>
     </div>
   </section>
 
   <!-- Listado -->
-  <section class="adm-tarjeta">
-    <div class="adm-tarjeta__cuerpo doc-cargando" *ngIf="cargando && !comprobantes.length">
-      <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4,5,6]"></div>
+  <section class="adm-tarjeta adm-tarjeta--acento">
+    <div class="adm-tarjeta__cabecera">
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo">
+          <i class="bi bi-list-ul"></i> Comprobantes
+          <span class="adm-insignia adm-insignia--neutra" *ngIf="!(cargando && !comprobantes.length)">{{ total }}</span>
+        </h2>
+        <p class="adm-tarjeta__sub">
+          Abra el detalle para ver el comprobante; los rechazados o pendientes pueden reconsultarse en SUNAT o descartarse.
+        </p>
+      </div>
+      <div class="adm-tarjeta__extra" *ngIf="cargando && comprobantes.length">
+        <span class="adm-insignia adm-insignia--primaria">
+          <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Actualizando…
+        </span>
+      </div>
+    </div>
+
+    <div class="adm-esqueletos" *ngIf="cargando && !comprobantes.length" aria-busy="true" aria-label="Cargando documentos">
+      <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1,2,3,4,5,6]"></div>
     </div>
 
     <div class="adm-vacio" *ngIf="!cargando && !comprobantes.length">
-      <div class="adm-vacio__icono"><i class="bi bi-file-earmark-x"></i></div>
-      <div class="adm-vacio__titulo">No hay documentos que coincidan</div>
-      <p>Pruebe con otros filtros o emita una venta desde el punto de venta.</p>
+      <ng-container *ngIf="filtro.texto || filtro.id_tipo || filtro.estado || filtro.desde || filtro.hasta; else docVacioInicial">
+        <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-search"></i></div>
+        <div class="adm-vacio__titulo">Ningún documento coincide con los filtros</div>
+        <p>Pruebe con otro término, cambie el tipo o el estado, o amplíe el rango de fechas.</p>
+        <button type="button" class="adm-btn adm-btn--suave" (click)="limpiarFiltros()">
+          <i class="bi bi-eraser" aria-hidden="true"></i> Limpiar filtros
+        </button>
+      </ng-container>
+      <ng-template #docVacioInicial>
+        <div class="adm-vacio__icono"><i class="bi bi-file-earmark-x"></i></div>
+        <div class="adm-vacio__titulo">Todavía no hay documentos emitidos</div>
+        <p>Las boletas y facturas aparecerán aquí en cuanto emita una venta desde el punto de venta.</p>
+      </ng-template>
     </div>
 
     <div class="adm-tabla-envoltorio" *ngIf="comprobantes.length">
-      <table class="adm-tabla adm-tabla--adaptable">
+      <table class="adm-tabla adm-tabla--adaptable doc-tabla">
         <thead>
           <tr>
             <th>Documento</th>
             <th>Cliente</th>
-            <th>Emisión</th>
+            <th class="doc-col-fecha">Emisión</th>
             <th class="adm-num">Total</th>
             <th>Estado</th>
             <th class="adm-centro">Acciones</th>
@@ -103,55 +186,73 @@
         </thead>
         <tbody>
           <tr *ngFor="let fila of comprobantes; trackBy: identificarFila"
-              [class.doc-fila--anulada]="fila.anulado">
-            <td data-etiqueta="Documento">
-              <div class="adm-tabla__principal">{{ fila.numero_formateado }}</div>
-              <div class="adm-tabla__secundario">{{ fila.tipo_nombre }}</div>
+              [class.doc-fila--anulada]="fila.anulado"
+              [class.doc-fila--procesando]="idEnProceso === fila.id_comprobante">
+            <td data-etiqueta="Documento" class="doc-td-documento">
+              <div class="doc-documento">
+                <span class="doc-documento__icono" aria-hidden="true"><i class="bi bi-file-earmark-text"></i></span>
+                <div class="doc-celda">
+                  <div class="adm-tabla__principal adm-tabular doc-numero">{{ fila.numero_formateado }}</div>
+                  <div class="adm-tabla__secundario doc-tipo-nombre">{{ fila.tipo_nombre }}</div>
+                  <div class="adm-tabla__secundario adm-tabular doc-fecha-compacta">
+                    <i class="bi bi-calendar3" aria-hidden="true"></i> {{ fila.fecha_de_emision }}
+                  </div>
+                </div>
+              </div>
             </td>
 
-            <td data-etiqueta="Cliente">
-              <div class="adm-tabla__principal">{{ fila.cliente_denominacion }}</div>
-              <div class="adm-tabla__secundario">{{ fila.cliente_numero_doc }}</div>
+            <td data-etiqueta="Cliente" class="doc-td-cliente">
+              <div class="doc-celda">
+                <div class="adm-tabla__principal">{{ fila.cliente_denominacion }}</div>
+                <div class="adm-tabla__secundario adm-tabular">{{ fila.cliente_numero_doc }}</div>
+              </div>
             </td>
 
-            <td data-etiqueta="Emisión">{{ fila.fecha_de_emision }}</td>
+            <td data-etiqueta="Emisión" class="adm-tabular doc-td-fecha doc-col-fecha">{{ fila.fecha_de_emision }}</td>
 
             <td data-etiqueta="Total" class="adm-num adm-tabla__principal">
               {{ fila.moneda_simbolo }} {{ fila.total | number:'1.2-2' }}
             </td>
 
             <td data-etiqueta="Estado">
-              <span class="adm-insignia" [ngClass]="claseEstado(fila.estado)">
-                {{ textoEstado(fila.estado) }}
-              </span>
-              <div class="adm-tabla__secundario doc-error" *ngIf="fila.error_mensaje && fila.estado === 'error'">
-                {{ fila.error_mensaje }}
+              <div class="doc-estado">
+                <span class="adm-insignia adm-insignia--punto" [ngClass]="claseEstado(fila.estado)">
+                  {{ textoEstado(fila.estado) }}
+                </span>
+                <div class="adm-tabla__secundario doc-error" *ngIf="fila.error_mensaje && fila.estado === 'error'"
+                     [title]="fila.error_mensaje">
+                  {{ fila.error_mensaje }}
+                </div>
               </div>
             </td>
 
-            <td data-etiqueta="Acciones" class="adm-centro">
-              <div class="doc-acciones">
-                <button type="button" class="adm-btn-icono" (click)="verDetalle(fila)" title="Ver detalle">
+            <td data-etiqueta="Acciones" class="adm-centro doc-td-acciones">
+              <div class="adm-tabla__acciones">
+                <button type="button" class="adm-btn-icono adm-btn-icono--primario" (click)="verDetalle(fila)"
+                        title="Ver detalle" [attr.aria-label]="'Ver detalle de ' + fila.numero_formateado">
                   <i class="bi bi-eye"></i>
                 </button>
 
-                <button type="button" class="adm-btn-icono"
+                <button type="button" class="adm-btn-icono adm-btn-icono--primario"
                         *ngIf="fila.estado !== 'anulado'"
                         [disabled]="idEnProceso === fila.id_comprobante || !fila.enlace_pdf"
                         (click)="descargarPdf(fila)"
-                        [title]="fila.enlace_pdf ? 'Descargar PDF' : 'PDF aún no disponible (espera respuesta de SUNAT/NUBEFACT)'">
+                        [title]="fila.enlace_pdf ? 'Descargar PDF' : 'PDF aún no disponible (espera respuesta de SUNAT/NUBEFACT)'"
+                        [attr.aria-label]="'Descargar PDF de ' + fila.numero_formateado">
                   <i class="bi bi-file-earmark-pdf"></i>
                 </button>
 
                 <button type="button" class="adm-btn-icono" *ngIf="fila.estado === 'error' || fila.estado === 'pendiente'"
                         [disabled]="idEnProceso === fila.id_comprobante"
-                        (click)="reintentar(fila)" title="Reconsultar en SUNAT">
+                        (click)="reintentar(fila)" title="Reconsultar en SUNAT"
+                        [attr.aria-label]="'Reconsultar ' + fila.numero_formateado + ' en SUNAT'">
                   <i class="bi bi-arrow-repeat"></i>
                 </button>
 
                 <button type="button" class="adm-btn-icono adm-btn-icono--peligro" *ngIf="fila.puede_anular"
                         [disabled]="idEnProceso === fila.id_comprobante"
-                        (click)="anular(fila)" title="Anular">
+                        (click)="anular(fila)" title="Anular"
+                        [attr.aria-label]="'Anular ' + fila.numero_formateado">
                   <i class="bi bi-x-octagon"></i>
                 </button>
               </div>
@@ -161,42 +262,86 @@
       </table>
     </div>
 
-    <div class="adm-paginacion" *ngIf="total > porPagina">
-      <span>{{ total }} documentos · página {{ pagina }} de {{ totalPaginas }}</span>
-      <div class="adm-acciones">
+    <nav class="adm-paginacion" *ngIf="total > porPagina" aria-label="Paginación de documentos">
+      <span>
+        <strong class="adm-tabular doc-paginacion__total">{{ total }}</strong> documentos · página {{ pagina }} de {{ totalPaginas }}
+      </span>
+      <div class="adm-paginacion__botones">
         <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
                 [disabled]="pagina === 1" (click)="irA(pagina - 1)">
-          <i class="bi bi-chevron-left"></i> Anterior
+          <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
         </button>
         <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
                 [disabled]="pagina === totalPaginas" (click)="irA(pagina + 1)">
-          Siguiente <i class="bi bi-chevron-right"></i>
+          Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i>
         </button>
       </div>
-    </div>
+    </nav>
   </section>
 </div>
 
 <!-- Panel de detalle -->
-<div class="adm-velo" *ngIf="detalle || cargandoDetalle" (click)="cerrarDetalle()"></div>
+<div class="adm-velo" *ngIf="detalle || cargandoDetalle" (click)="cerrarDetalle()" aria-hidden="true"></div>
 
-<aside class="adm-panel" *ngIf="detalle || cargandoDetalle">
+<aside class="adm-panel" *ngIf="detalle || cargandoDetalle"
+       role="dialog" aria-modal="true" aria-labelledby="doc-panel-titulo">
   <div class="adm-panel__cabecera">
-    <h2 class="adm-tarjeta__titulo">
-      <i class="bi bi-receipt"></i>
-      {{ detalle?.numero_formateado || 'Cargando…' }}
-    </h2>
-    <button type="button" class="adm-btn-icono" (click)="cerrarDetalle()" aria-label="Cerrar">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="doc-panel-titulo">
+        <i class="bi bi-receipt"></i>
+        {{ detalle?.numero_formateado || 'Cargando…' }}
+      </h2>
+      <p class="adm-panel__sub doc-panel__sub" *ngIf="detalle">
+        <span class="doc-tipo-nombre">{{ detalle.tipo_nombre }}</span>
+        <span class="adm-insignia adm-insignia--punto adm-insignia--sm" [ngClass]="claseEstado(detalle.estado)">
+          {{ textoEstado(detalle.estado) }}
+        </span>
+      </p>
+      <p class="adm-panel__sub" *ngIf="!detalle">Consultando el comprobante…</p>
+    </div>
+    <button type="button" class="adm-btn-icono" (click)="cerrarDetalle()" aria-label="Cerrar" title="Cerrar">
       <i class="bi bi-x-lg"></i>
     </button>
   </div>
 
   <div class="adm-panel__cuerpo">
-    <div class="doc-cargando" *ngIf="cargandoDetalle">
-      <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4,5]"></div>
+    <div class="doc-ticket-esqueleto" *ngIf="cargandoDetalle" aria-busy="true" aria-label="Cargando el comprobante">
+      <div class="doc-ticket-esqueleto__cabecera">
+        <div class="doc-ticket-esqueleto__emisor">
+          <div class="adm-esqueleto adm-esqueleto--titulo doc-ticket-esqueleto__nombre"></div>
+          <div class="adm-esqueleto adm-esqueleto--linea"></div>
+          <div class="adm-esqueleto adm-esqueleto--linea doc-ticket-esqueleto__corta"></div>
+        </div>
+        <div class="adm-esqueleto doc-ticket-esqueleto__recuadro"></div>
+      </div>
+      <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1,2,3,4,5]"></div>
     </div>
 
-    <div class="adm-ticket" *ngIf="detalle">
+    <div class="adm-aviso adm-aviso--peligro" *ngIf="detalle?.anulado">
+      <i class="bi bi-x-octagon" aria-hidden="true"></i>
+      <div>
+        <strong class="adm-aviso__titulo">Documento anulado</strong>
+        Motivo: {{ detalle.motivo_anulacion || 'sin especificar' }}
+      </div>
+    </div>
+
+    <div class="adm-aviso adm-aviso--peligro" *ngIf="detalle?.error_mensaje">
+      <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+      <div>
+        <strong class="adm-aviso__titulo">Respuesta con error</strong>
+        <span class="doc-aviso__texto">{{ detalle.error_mensaje }}</span>
+      </div>
+    </div>
+
+    <div class="adm-aviso adm-aviso--exito" *ngIf="detalle?.sunat_description">
+      <i class="bi bi-patch-check" aria-hidden="true"></i>
+      <div>
+        <strong class="adm-aviso__titulo">Respuesta de SUNAT</strong>
+        <span class="doc-aviso__texto">{{ detalle.sunat_description }}</span>
+      </div>
+    </div>
+
+    <div class="adm-ticket doc-ticket" *ngIf="detalle">
       <div class="adm-ticket__cabecera">
         <div class="adm-ticket__emisor">
           <strong>{{ detalle.emisor.razon_social }}</strong>
@@ -238,7 +383,7 @@
           </thead>
           <tbody>
             <tr *ngFor="let item of detalle.items; trackBy: identificarItemDetalle">
-              <td>{{ item.descripcion }}</td>
+              <td class="doc-ticket__descripcion">{{ item.descripcion }}</td>
               <td class="adm-num">{{ item.cantidad }}</td>
               <td class="adm-num">{{ item.precio_unitario | number:'1.2-2' }}</td>
               <td class="adm-num">{{ item.total | number:'1.2-2' }}</td>
@@ -268,39 +413,28 @@
 
       <div class="adm-ticket__letras">Son: {{ detalle.importe_en_letras }}</div>
     </div>
-
-    <div class="adm-aviso adm-aviso--peligro doc-espaciado" *ngIf="detalle?.anulado">
-      <i class="bi bi-x-octagon"></i>
-      <span>Documento anulado. Motivo: {{ detalle.motivo_anulacion || 'sin especificar' }}</span>
-    </div>
-
-    <div class="adm-aviso adm-aviso--peligro doc-espaciado" *ngIf="detalle?.error_mensaje">
-      <i class="bi bi-exclamation-octagon"></i>
-      <span>{{ detalle.error_mensaje }}</span>
-    </div>
-
-    <div class="adm-aviso adm-aviso--exito doc-espaciado" *ngIf="detalle?.sunat_description">
-      <i class="bi bi-patch-check"></i><span>{{ detalle.sunat_description }}</span>
-    </div>
   </div>
 
   <div class="adm-panel__pie" *ngIf="detalle">
+    <span class="adm-ayuda doc-pie__ayuda" *ngIf="!detalle.enlace_pdf && detalle.estado !== 'anulado'">
+      <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+      PDF aún no disponible para este comprobante.
+    </span>
     <button type="button" class="adm-btn adm-btn--suave" *ngIf="detalle.enlace"
             (click)="abrirEnlace(detalle.enlace)">
-      <i class="bi bi-box-arrow-up-right"></i> Ver en NUBEFACT
+      <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Ver en NUBEFACT
     </button>
     <button type="button" class="adm-btn adm-btn--suave" *ngIf="detalle.enlace_pdf"
             (click)="abrirEnlace(detalle.enlace_pdf)">
-      <i class="bi bi-box-arrow-up-right"></i> Abrir PDF
+      <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Abrir PDF
     </button>
     <button type="button" class="adm-btn adm-btn--primario"
             *ngIf="detalle.enlace_pdf"
             [disabled]="idEnProceso === detalle.id_comprobante"
             (click)="descargarPdf(detalle)">
-      <i class="bi bi-download"></i> Descargar PDF
+      <i class="bi" [ngClass]="idEnProceso === detalle.id_comprobante ? 'bi-arrow-repeat adm-girando' : 'bi-download'"
+         aria-hidden="true"></i>
+      Descargar PDF
     </button>
-    <span class="adm-ayuda" *ngIf="!detalle.enlace_pdf && detalle.estado !== 'anulado'">
-      PDF aún no disponible para este comprobante.
-    </span>
   </div>
 </aside>

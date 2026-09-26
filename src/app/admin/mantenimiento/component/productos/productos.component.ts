@@ -407,6 +407,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
       title: `¿Eliminar ${producto.nombre}?`,
       message: 'Se quitará del catálogo. Si ya tiene ventas registradas, conviene desactivarlo en lugar de borrarlo.',
       confirmText: 'Sí, eliminar',
+      danger: true,
     });
 
     if (!respuesta.isConfirmed) return;
@@ -544,6 +545,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
       title: '¿Eliminar la imagen?',
       message: 'Se borra también del almacenamiento.',
       confirmText: 'Sí, eliminar',
+      danger: true,
     });
     if (!respuesta.isConfirmed) return;
 

@@ -1,12 +1,12 @@
-<div class="sidebar" [class.collapsed]="collapsed">
+<nav class="sidebar" [class.collapsed]="collapsed" aria-label="Menú principal">
 
-  <div class="sb-brand">
+  <a class="sb-brand" routerLink="/dashboard/home" title="Ir al inicio del panel">
     <span class="sb-logo" aria-hidden="true"><i class="bi bi-tools"></i></span>
-    <div class="brand-text">
+    <span class="brand-text">
       <span class="brand-name">HatunSales</span>
-      <span class="brand-suffix">S.A.C</span>
-    </div>
-  </div>
+      <span class="brand-suffix">S.A.C · Panel</span>
+    </span>
+  </a>
 
   <div class="sb-menu-wrap">
 
@@ -26,9 +26,9 @@
         <div class="sb-section-inner">
           <ul class="sb-menu">
             <li *ngFor="let item of seccion.items" routerLinkActive="active" [hidden]="!visible(item)">
-              <a [routerLink]="item.ruta">
+              <a [routerLink]="item.ruta" [attr.title]="collapsed ? item.etiqueta : null">
                 <i class="bi sb-nav-icon" [ngClass]="item.icono" aria-hidden="true"></i>
-                <span>{{ item.etiqueta }}</span>
+                <span class="sb-nav-text">{{ item.etiqueta }}</span>
                 <span class="sb-badge"
                       *ngIf="badgeDe(item) > 0"
                       [class.sb-badge--peligro]="tonoBadge(item) === 'peligro'"
@@ -43,32 +43,35 @@
       </div>
     </div>
 
-    <div class="sb-section-label" *ngIf="cuenta.some(i => visible(i))">Cuenta</div>
-    <ul class="sb-menu">
-      <li *ngFor="let item of cuenta" routerLinkActive="active" [hidden]="!visible(item)">
-        <a [routerLink]="item.ruta">
-          <i class="bi sb-nav-icon" [ngClass]="item.icono" aria-hidden="true"></i>
-          <span>{{ item.etiqueta }}</span>
-        </a>
-      </li>
-      <li>
-        <a routerLink="/store" title="Ver la tienda online sin cerrar sesión">
-          <i class="bi sb-nav-icon bi-shop" aria-hidden="true"></i>
-          <span>Ir a la tienda</span>
-        </a>
-      </li>
-    </ul>
+    <div class="sb-section sb-section--cuenta">
+      <div class="sb-section-label" *ngIf="cuenta.some(i => visible(i))">Cuenta</div>
+      <ul class="sb-menu">
+        <li *ngFor="let item of cuenta" routerLinkActive="active" [hidden]="!visible(item)">
+          <a [routerLink]="item.ruta" [attr.title]="collapsed ? item.etiqueta : null">
+            <i class="bi sb-nav-icon" [ngClass]="item.icono" aria-hidden="true"></i>
+            <span class="sb-nav-text">{{ item.etiqueta }}</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/store" title="Ver la tienda online sin cerrar sesión">
+            <i class="bi sb-nav-icon bi-shop" aria-hidden="true"></i>
+            <span class="sb-nav-text">Ir a la tienda</span>
+            <i class="bi bi-box-arrow-up-right sb-nav-ext" aria-hidden="true"></i>
+          </a>
+        </li>
+      </ul>
+    </div>
 
   </div>
 
   <div class="sb-footer">
-    <div class="sb-footer-info">
+    <div class="sb-footer-info" [attr.title]="(sesion.nombre || 'Usuario') + ' · ' + etiquetaRol">
       <span class="sb-avatar" aria-hidden="true">{{ sesion.iniciales }}</span>
       <div class="sb-footer-text">
         <strong>{{ sesion.nombre || 'Usuario' }}</strong>
-        <small>{{ etiquetaRol }}</small>
+        <small><span class="sb-footer-punto" aria-hidden="true"></span>{{ etiquetaRol }}</small>
       </div>
     </div>
   </div>
 
-</div>
+</nav>

@@ -1,6 +1,72 @@
 :host { display: block; }
 
-/* fieldset sin borde: solo para deshabilitar el formulario en modo consulta */
+/* ── Cabecera ────────────────────────────────────────────────── */
+
+.prod-cabecera__texto { min-width: 0; }
+
+.prod-solo-lectura {
+  margin-top: 10px;
+  max-width: 560px;
+}
+
+/* ── Filtros ─────────────────────────────────────────────────── */
+
+.prod-filtros__resumen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 9px auto;
+  padding: 0 12px;
+  min-height: 40px;
+  white-space: nowrap;
+  border-left: 1px solid var(--adm-borde);
+}
+
+.prod-filtros__resumen > i { color: var(--adm-primario); font-size: 13px; }
+.prod-filtros__resumen > strong { color: var(--adm-texto); font-weight: 700; }
+
+/* ── Tabla ───────────────────────────────────────────────────── */
+
+.prod-td-producto { min-width: 260px; }
+
+.prod-producto__texto { min-width: 0; }
+
+/* Marcador cuando el producto aún no tiene foto (mismo tamaño que la miniatura) */
+.prod-miniatura--vacia {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 1px dashed var(--adm-borde-fuerte);
+  border-radius: var(--adm-r-sm);
+  background: var(--adm-superficie-3);
+  color: var(--adm-texto-tenue);
+  font-size: 16px;
+}
+
+.adm-tabla__miniatura.adm-img-clic {
+  transition: transform var(--adm-transicion), box-shadow var(--adm-transicion), border-color var(--adm-transicion);
+}
+
+.adm-tabla__miniatura.adm-img-clic:hover {
+  transform: scale(1.06);
+  border-color: var(--adm-primario-borde);
+  box-shadow: var(--adm-sombra-md);
+}
+
+.prod-precio-antes { text-decoration: line-through; }
+
+.prod-estado {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Panel: formulario ───────────────────────────────────────── */
+
+/* fieldset sin borde: solo sirve para deshabilitar el formulario en modo consulta */
 .prod-fieldset {
   border: 0;
   margin: 0;
@@ -8,100 +74,114 @@
   min-width: 0;
 }
 
-.prod-campo--ancho { flex: 2 1 280px; }
-
-.prod-cargando {
+.prod-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
-.prod-espaciado { margin-top: 14px; }
-
-/* Filas del formulario: etiquetas e inputs al mismo nivel (sin “escalera”). */
-.prod-fila {
-  align-items: flex-start;
-}
-
-/* Ayudas bajo la fila, en las mismas columnas que los campos. */
-.prod-ayudas {
-  margin-top: 4px;
-  gap: 12px;
-}
-
-.prod-ayudas > .adm-ayuda {
-  flex: 1 1 180px;
-  margin: 0;
-  min-width: 0;
-}
-
-.prod-obligatorio { color: var(--adm-peligro); }
-
-.prod-col-img { width: 60px; }
-
-.prod-miniatura {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  overflow: hidden;
-  border: 1px solid var(--adm-borde);
-  border-radius: var(--adm-r-sm);
-  background: var(--adm-superficie-3);
-  color: var(--adm-texto-tenue);
-}
-
-.prod-miniatura img { width: 100%; height: 100%; object-fit: cover; }
-
-.prod-aviso { margin-left: 6px; }
-
-.prod-acciones {
-  display: inline-flex;
-  gap: 2px;
-  justify-content: center;
-}
-
-.prod-opciones {
+.prod-bloque__cuerpo {
   display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.prod-casilla {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 13.5px;
-  color: var(--adm-texto-suave);
-  cursor: pointer;
-}
+/* Etiquetas e inputs alineados arriba: las ayudas de distinto alto no desnivelan los campos. */
+.prod-fila { align-items: flex-start; }
 
-.prod-casilla input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--adm-primario);
-  cursor: pointer;
+.prod-spinner-inline {
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 4px;
 }
-
-.prod-galeria-bloque {
-  margin-top: 22px;
-  padding-top: 18px;
-  border-top: 1px solid var(--adm-borde);
-}
-
-.prod-subtitulo { margin-bottom: 12px; }
 
 .prod-enlace-marca {
-  color: var(--adm-primario, #2563eb);
+  color: var(--adm-primario);
+  font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-.prod-enlace-marca:hover {
-  color: var(--adm-texto, inherit);
+.prod-enlace-marca:hover { color: var(--adm-primario-osc); }
+
+/* Interruptores con título y descripción */
+.prod-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
 }
 
+.prod-opciones .adm-switch {
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  transition: border-color var(--adm-transicion), box-shadow var(--adm-transicion);
+}
+
+.prod-opciones .adm-switch:hover { border-color: var(--adm-borde-fuerte); }
+.prod-opciones .adm-switch:has(input:checked) { border-color: var(--adm-primario-borde); background: var(--adm-primario-claro); }
+.prod-opciones .adm-switch:has(input:focus-visible) { box-shadow: var(--adm-anillo); }
+.prod-opciones .adm-switch input { margin-top: 1px; }
+
+.prod-opcion__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.prod-opcion__titulo { font-size: 13.5px; font-weight: 600; color: var(--adm-texto); }
+.prod-opcion__desc { font-size: 12.5px; color: var(--adm-texto-suave); }
+
+/* ── Panel: galería ──────────────────────────────────────────── */
+
+.prod-soltar__texto { font-weight: 600; color: inherit; }
+
+.prod-galeria-esqueleto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 12px;
+}
+
+.prod-galeria-esqueleto__pieza {
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--adm-r-md);
+}
+
+/* ── Móvil ───────────────────────────────────────────────────── */
+
 @media (max-width: 640px) {
-  .prod-col-img { display: none; }
-  .prod-acciones { justify-content: flex-end; }
+  .prod-filtros__resumen {
+    margin: 0;
+    padding: 0;
+    min-height: 0;
+    border-left: 0;
+    flex: 1 1 100%;
+  }
+
+  .prod-td-producto { min-width: 0; }
+
+  /* La celda del producto encabeza la ficha: foto y nombre a la izquierda, sin etiqueta */
+  .adm-tabla--adaptable tbody td.prod-td-producto {
+    display: block;
+    padding: 10px 12px 9px;
+    margin-bottom: 4px;
+    text-align: left;
+    border-bottom: 1px dashed var(--adm-borde);
+  }
+
+  .adm-tabla--adaptable tbody td.prod-td-producto::before { content: none; }
+  .prod-td-producto .adm-tabla__con-miniatura { justify-content: flex-start; }
+  .prod-td-producto .adm-tabla__principal { text-align: left; }
+
+  .prod-estado { justify-content: flex-end; }
+  .prod-opciones { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-tabla__miniatura.adm-img-clic { transition: none; }
+  .adm-tabla__miniatura.adm-img-clic:hover { transform: none; }
 }

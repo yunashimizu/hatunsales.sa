@@ -1,40 +1,155 @@
-.cfg-espaciado {
-  margin-top: 1rem;
-}
-
-.cfg-atajos {
-  display: grid;
-  gap: .65rem;
-}
-
-.cfg-atajo {
-  display: flex;
-  align-items: center;
-  gap: .85rem;
-  padding: .85rem 1rem;
-  border: 1px solid var(--adm-borde, #e5e9f2);
-  border-radius: var(--adm-r-md, 12px);
-  background: var(--adm-superficie-2, #f8fafc);
-  text-decoration: none;
-  color: inherit;
-  transition: background .15s ease, border-color .15s ease;
-}
-
-.cfg-atajo:hover {
-  background: var(--adm-primario-claro, #eef2ff);
-  border-color: #c7d2fe;
-}
-
-.cfg-atajo i {
-  font-size: 1.15rem;
-  color: var(--adm-primario, #4f46e5);
-}
-
-.cfg-atajo strong {
+/* Configuración · la vista usa el sistema compartido (admin-ui.css, clases adm-*).
+   Aquí solo queda lo propio de la página, con prefijo cfg-. */
+:host {
   display: block;
-  font-size: .95rem;
+  width: 100%;
 }
 
-.cfg-atajo small {
-  color: var(--adm-texto-suave, #64748b);
+/* ── Métricas: detalle de una línea bajo la etiqueta ─────────── */
+.cfg-metrica__detalle {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Estado de la integración en la cabecera de la tarjeta ───── */
+.cfg-estados {
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── Formulario fiscal agrupado en bloques ───────────────────── */
+.cfg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.cfg-bloque {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+}
+
+.cfg-bloque .adm-bloque__titulo { margin-bottom: 6px; }
+
+.cfg-bloque__intro { min-width: 0; }
+.cfg-bloque__intro .adm-ayuda { margin: 0; max-width: 60ch; }
+.cfg-bloque__intro .adm-ayuda strong { color: var(--adm-texto-2); font-weight: 600; }
+
+.cfg-bloque__campos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Etiquetas e inputs alineados arriba aunque las ayudas tengan distinto alto */
+.cfg-fila { align-items: flex-start; }
+
+.cfg-sin-margen { margin: 0; }
+
+/* Series y RUC: códigos cortos, más legibles en monoespaciada */
+.cfg-codigo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.06em;
+}
+
+.cfg-ayuda-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.cfg-contador {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* En tarjetas anchas: descripción a la izquierda, campos a la derecha */
+@container (min-width: 760px) {
+  .cfg-bloque {
+    grid-template-columns: minmax(200px, 250px) minmax(0, 1fr);
+    column-gap: 28px;
+  }
+
+  .cfg-bloque__intro { padding-top: 2px; }
+}
+
+/* ── Esqueleto de carga ──────────────────────────────────────── */
+.cfg-carga {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cfg-carga__fila {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+/* ── Pie de la tarjeta fiscal ────────────────────────────────── */
+.cfg-pie { justify-content: space-between; }
+
+.cfg-pie__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  flex: 1 1 260px;
+  min-width: 0;
+  margin: 0;
+}
+
+.cfg-pie__nota > i {
+  margin-top: 1px;
+  color: var(--adm-primario);
+}
+
+/* ── Sesión actual ───────────────────────────────────────────── */
+.cfg-datos dd { margin: 0; }
+
+.cfg-rol {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Permisos ────────────────────────────────────────────────── */
+.cfg-col-num { width: 64px; }
+
+.cfg-permiso { overflow-wrap: anywhere; }
+
+@media (max-width: 640px) {
+  /* En columna, el texto ocupa todo el ancho para que el "…" funcione */
+  .cfg-metrica__cuerpo { align-self: stretch; }
+
+  /* Rol y destino son palabras: mejor partir línea que cortarlas con "…" */
+  .cfg-metrica__texto {
+    font-size: 17px;
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+
+  .cfg-estados { margin-left: 0; }
+
+  /* Las dos series caben lado a lado y ocupan el ancho */
+  .cfg-campo-serie {
+    flex: 1 1 100px !important;
+    max-width: none;
+  }
+
+  .cfg-atajos { grid-template-columns: minmax(0, 1fr); }
+
+  .cfg-pie__nota { flex-basis: 100%; }
 }

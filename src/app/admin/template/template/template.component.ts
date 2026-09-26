@@ -16,6 +16,8 @@ import { FooterComponent } from '../footer/footer.component';
 
 /** Mismo punto de corte que el CSS del sidebar (cajón sobre el contenido). */
 const MEDIA_MOVIL = '(max-width: 900px)';
+/** En escritorio se recuerda si el menú quedó compacto (solo iconos). */
+const CLAVE_MENU = 'hs.panel.menu';
 
 @Component({
   selector: 'app-template',
@@ -35,7 +37,7 @@ export class TemplateComponent implements OnInit {
   ngOnInit(): void {
     // En móvil el menú es un cajón: arranca cerrado y se cierra al navegar,
     // para que no tape la página. En escritorio se mantiene abierto.
-    this.sidebarCollapsed = this.esMovil();
+    this.sidebarCollapsed = this.esMovil() || this.menuGuardadoCompacto();
     this.router.events
       .pipe(
         filter((e) => e instanceof NavigationEnd),
@@ -51,6 +53,25 @@ export class TemplateComponent implements OnInit {
 
   toggleSidebar(): void {
     this.sidebarCollapsed = !this.sidebarCollapsed;
+    if (!this.esMovil()) this.guardarMenu(this.sidebarCollapsed);
+  }
+
+  private menuGuardadoCompacto(): boolean {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem(CLAVE_MENU) === 'compacto';
+    } catch {
+      return false;
+    }
+  }
+
+  private guardarMenu(compacto: boolean): void {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      if (compacto) localStorage.setItem(CLAVE_MENU, 'compacto');
+      else localStorage.removeItem(CLAVE_MENU);
+    } catch {
+      /* almacenamiento bloqueado: se ignora, no afecta a la navegación */
+    }
   }
 
   private esMovil(): boolean {

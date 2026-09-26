@@ -1,5 +1,41 @@
 :host { display: block; }
 
+.cot-cabecera__texto { min-width: 0; }
+
+/* ── Lista ───────────────────────────────────────────────────── */
+
+.cot-filtros__resumen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 9px auto;
+  padding: 0 12px;
+  min-height: 40px;
+  white-space: nowrap;
+  border-left: 1px solid var(--adm-borde);
+}
+
+.cot-filtros__resumen > i { color: var(--adm-primario); font-size: 13px; }
+.cot-filtros__resumen > strong { color: var(--adm-texto); font-weight: 700; }
+
+.cot-td-cliente { min-width: 160px; }
+
+.cot-texto-largo { overflow-wrap: anywhere; }
+
+/* Estado de la cotización: insignia con punto + vigencia debajo. */
+.cot-estado { text-transform: capitalize; }
+
+.cot-estado-celda {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.cot-estado-celda .adm-tabla__secundario { margin-top: 0; white-space: nowrap; }
+
+/* ── Editor: columnas y pilas ────────────────────────────────── */
+
 .cot-columna {
   display: flex;
   flex-direction: column;
@@ -7,177 +43,266 @@
   min-width: 0;
 }
 
-.cot-buscar {
-  min-width: 200px;
-  margin: 0;
+.cot-pila {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.pv-buscador { position: relative; }
-.cot-producto-buscador { z-index: 4; }
-.pv-buscador__icono {
-  position: absolute;
-  top: 50%;
-  left: 12px;
-  transform: translateY(-50%);
-  color: var(--adm-texto-tenue);
-  pointer-events: none;
+/* Cliente elegido */
+.cot-cliente {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-primario-borde);
+  border-radius: var(--adm-r-md);
+  background: var(--adm-primario-claro);
 }
-.pv-buscador__input { padding-left: 36px; padding-right: 36px; }
-.pv-buscador__estado {
-  position: absolute;
-  top: 50%;
+
+.cot-cliente__avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 17px;
+  background: var(--adm-superficie);
+  box-shadow: inset 0 0 0 1px var(--adm-primario-borde);
+}
+
+.cot-cliente__texto { flex: 1; min-width: 0; }
+.cot-cliente__texto .adm-tabla__principal { overflow-wrap: anywhere; }
+
+.cot-campo-tel { max-width: 340px; }
+
+/* Buscadores de cliente y producto: icono a la izquierda, giro de carga a la derecha. */
+.cot-buscador > .adm-input { padding-right: 38px; }
+
+.cot-buscador__estado {
+  left: auto;
   right: 12px;
-  transform: translateY(-50%);
   color: var(--adm-primario);
 }
 
-.pv-receptor {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.pv-receptor .adm-btn-icono { margin-left: auto; }
-
-.cot-cliente-resumen {
-  min-height: 42px;
-  align-items: center;
-  padding-bottom: 2px;
-}
-
-.cot-datos-cliente {
-  margin-top: 14px;
-  align-items: stretch;
-}
-
-.cot-contexto-stock {
-  display: grid;
-  grid-template-columns: minmax(190px, 1fr) auto;
-  gap: 10px 14px;
-  align-items: end;
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border: 1px solid var(--adm-borde);
-  border-radius: var(--adm-r-sm);
-  background: var(--adm-superficie-2);
-}
-
-.cot-contexto-stock .adm-ayuda {
-  grid-column: 1 / -1;
-}
-
-.cot-check-stock {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 36px;
-  font-size: 12px;
-  color: var(--adm-texto-suave);
-  white-space: nowrap;
-}
-
-.cot-check-stock input { accent-color: var(--adm-primario); }
-
-.cot-stock-error {
-  margin-bottom: 12px;
-}
-
-.cot-cargando-stock {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 8px 0;
-}
-
-.cot-sin-productos {
-  margin: 10px 0;
-  color: var(--adm-aviso);
-}
-
-/* Nota fija: la proforma no toca inventario. */
-.cot-nota-stock {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 8px 0 2px;
-  color: var(--adm-texto-tenue);
+/* Nombres largos de ferretería: dos líneas antes de cortar. */
+.cot-sugerencias .adm-sugerencia__titulo {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
 }
 
 /* Stock informativo (sugerencias y líneas). Nunca bloquea nada. */
 .cot-stock { white-space: nowrap; }
+
 .cot-stock--cero {
   color: var(--adm-aviso);
+  color: color-mix(in srgb, var(--adm-aviso) 72%, var(--adm-texto));
   font-weight: 600;
 }
 
-/* Botones dentro de los avisos de catálogo / cotización guardada. */
-.cot-stock-error,
-.cot-aviso-guardada {
+/* Contexto de stock (almacén y alcance) */
+.cot-stock-ctx .adm-fila > .adm-campo { flex: 1 1 220px; }
+
+.cot-check-sedes {
+  min-height: 40px;
+  font-size: 13.5px;
+}
+
+.cot-stock-ctx__ayuda { margin: 10px 0 0; }
+.cot-stock-ctx__ayuda strong { color: var(--adm-texto-2); font-weight: 600; }
+
+/* Avisos con botón (catálogo, cotización guardada) */
+.cot-aviso-accion {
   flex-wrap: wrap;
   align-items: center;
 }
 
-.cot-stock-error span,
-.cot-aviso-guardada span {
-  flex: 1 1 220px;
-  min-width: 0;
+.cot-aviso-accion > span { flex: 1 1 220px; }
+
+.cot-cargando {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
 }
 
-.cot-btn-reintentar,
-.cot-btn-duplicar {
-  margin-left: auto;
-  flex-shrink: 0;
-  white-space: nowrap;
+.cot-vacio-lineas {
+  border: 1px dashed var(--adm-borde-fuerte);
+  border-radius: var(--adm-r-md);
+  background: var(--adm-superficie-2);
 }
 
-.pv-contador__input {
-  width: 62px;
-  padding: 6px 4px;
+/* ── Líneas de la cotización ─────────────────────────────────── */
+
+.cot-lineas {
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  background: var(--adm-superficie);
+}
+
+.cot-linea__producto { min-width: 200px; }
+.cot-linea__producto .adm-tabla__principal { overflow-wrap: anywhere; }
+
+.cot-cantidad {
+  width: 76px;
+  padding-left: 6px;
+  padding-right: 6px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
-.adm-sugerencias {
-  list-style: none;
-  margin: 6px 0 0;
-  padding: 0;
-  border: 1px solid var(--adm-borde, #e5e7eb);
-  border-radius: 8px;
-  max-height: 220px;
-  overflow-y: auto;
-  background: var(--adm-fondo, #fff);
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  z-index: 90;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.16);
+/* ── Condiciones ─────────────────────────────────────────────── */
+
+.cot-fila-arriba { align-items: flex-start; }
+
+.adm-fila > .cot-campo-vigencia { flex: 0 1 200px; }
+
+/* ── Vista previa (proforma) ─────────────────────────────────── */
+
+.cot-ticket {
+  overflow: hidden;
+  box-shadow: var(--adm-sombra-md);
 }
-.adm-sugerencias li {
-  padding: 10px 12px;
-  cursor: pointer;
+
+.cot-ticket__lema {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--adm-texto-suave);
+}
+
+.cot-ticket__datos {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
 }
-.adm-sugerencias li:hover { background: var(--adm-suave, #f3f4f6); }
 
-/* Acciones por fila en la lista (abrir, PDF, Excel, venta, anular). */
-.cot-acciones-fila {
+.cot-ticket .adm-ticket__dato > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--adm-texto);
+  font-weight: 500;
+}
+
+.cot-ticket__tabla th:last-child,
+.cot-ticket__tabla td:last-child {
+  text-align: right;
   white-space: nowrap;
-}
-.cot-acciones-fila .adm-btn-icono + .adm-btn-icono,
-.cot-acciones-fila .adm-btn-icono + a.adm-btn-icono,
-.cot-acciones-fila a.adm-btn-icono + .adm-btn-icono {
-  margin-left: 2px;
+  font-variant-numeric: tabular-nums;
 }
 
-.cot-aviso-guardada {
-  margin-bottom: 12px;
+.cot-ticket__tabla td:first-child { overflow-wrap: anywhere; }
+
+.cot-ticket__cantidad { color: var(--adm-texto-suave); white-space: nowrap; }
+
+.cot-ticket__vacio {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--adm-texto-suave);
+  border-bottom: 1px dashed var(--adm-borde-fuerte);
 }
 
-@media (max-width: 700px) {
-  .cot-contexto-stock { grid-template-columns: 1fr; }
-  .cot-contexto-stock .adm-ayuda { grid-column: auto; }
-  .cot-check-stock { white-space: normal; }
-  .cot-acciones-fila { white-space: normal; }
+.cot-ticket__totales { padding: 8px 16px 14px; }
+
+/* ── Acciones de la cotización ───────────────────────────────── */
+
+.cot-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.cot-acciones__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--adm-primario-borde);
+}
+
+.cot-acciones__titulo {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--adm-texto-suave);
+}
+
+.cot-acciones__fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cot-acciones__fila > .adm-btn { flex: 1 1 130px; }
+.cot-acciones__fila > .cot-btn-anular { flex: 0 0 auto; margin-left: auto; }
+
+.cot-btn-wa > i { color: var(--adm-exito); }
+
+.cot-notas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--adm-texto-suave);
+}
+
+.cot-notas li { display: flex; align-items: flex-start; gap: 8px; }
+.cot-notas i { margin-top: 1px; color: var(--adm-primario); }
+
+/* ── Móvil ───────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .cot-filtros__resumen { margin-bottom: 0; }
+  .cot-td-cliente { min-width: 0; }
+  .cot-estado-celda { align-items: flex-end; }
+
+  /* Acciones de fila: si no caben, bajan a otra línea sin desbordar la ficha. */
+  .cot-acciones-fila {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    white-space: normal;
+  }
+
+  .cot-campo-tel { max-width: none; }
+  .cot-check-sedes { min-height: 44px; }
+  .adm-fila > .cot-campo-vigencia { flex: 1 1 100%; }
+
+  /* Líneas: cada producto es una ficha con el botón de quitar arriba a la derecha. */
+  .cot-lineas { border: 0; background: transparent; }
+  .cot-lineas .adm-tabla--adaptable tbody tr { position: relative; margin: 10px 0; }
+  .cot-lineas .adm-tabla--adaptable tbody tr:first-child { margin-top: 0; }
+
+  .cot-lineas .adm-tabla--adaptable tbody td.cot-linea__producto {
+    display: block;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .cot-lineas .adm-tabla--adaptable tbody tr:has(> td.cot-linea__quitar) td.cot-linea__producto { padding-right: 56px; }
+
+  .cot-lineas .adm-tabla--adaptable tbody td.cot-linea__producto::before { content: none; }
+  .cot-lineas .adm-tabla--adaptable tbody td.cot-linea__producto .adm-tabla__principal { text-align: left; }
+
+  .cot-lineas .adm-tabla--adaptable tbody td.cot-linea__quitar {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 0;
+  }
+
+  .cot-lineas .adm-tabla--adaptable tbody td.cot-linea__quitar::before { content: none; }
+
+  .cot-acciones__fila > .adm-btn { flex: 1 1 140px; }
+  .cot-acciones__fila > .cot-btn-anular { flex: 1 1 100%; margin-left: 0; }
 }

@@ -1,1 +1,396 @@
 :host { display: block; }
+
+/* ── Utilidades locales ──────────────────────────────────────── */
+
+.rec-cabecera__texto { min-width: 0; }
+
+/* Oculto a la vista pero accesible (texto para lectores, input de archivo enfocable) */
+.rec-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Pestañas ────────────────────────────────────────────────── */
+
+.rec-pestanias {
+  align-self: flex-start;
+  max-width: 100%;
+  border: 1px solid var(--adm-borde);
+}
+
+/* Las pestañas conservan los enlaces de estado previos (adm-btn--primario / --suave):
+   aquí se anulan para que mande el estilo de adm-pestania. */
+.rec-pestanias > .adm-pestania.adm-btn--primario,
+.rec-pestanias > .adm-pestania.adm-btn--suave {
+  background: transparent;
+  color: var(--adm-texto-suave);
+  border-color: transparent;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.rec-pestanias > .adm-pestania.adm-pestania--activa {
+  color: var(--adm-primario);
+  background: var(--adm-superficie);
+  border-color: var(--adm-borde);
+  box-shadow: var(--adm-sombra-sm);
+}
+
+.rec-pestanias > .adm-pestania:hover:not(.adm-pestania--activa) {
+  color: var(--adm-texto);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* ── Nueva recepción ─────────────────────────────────────────── */
+
+.rec-nueva__principal {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.rec-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Etiquetas alineadas arriba aunque un campo lleve texto de ayuda */
+.rec-fila { align-items: flex-start; }
+
+.rec-escaner { border-bottom: 1px solid var(--adm-borde); }
+.rec-escaner__campo > .adm-input { padding-right: 76px; }
+
+.rec-escaner__tecla {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+}
+
+/* Tabla de líneas */
+.rec-td-producto { min-width: 120px; }
+.rec-td-producto .adm-tabla__principal { overflow-wrap: break-word; }
+
+.rec-cantidad { width: 72px; max-width: 100%; }
+
+.rec-precio {
+  width: 108px;
+  max-width: 100%;
+  margin-left: auto;
+}
+
+.rec-td-obs { min-width: 170px; }
+
+.rec-obs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rec-evidencia { margin-top: 0; }
+
+/* Miniaturas algo más chicas dentro de las tablas */
+.rec-evidencia .adm-evidencia__thumb { width: 38px; height: 38px; }
+
+/* Botón de foto, miniatura y quitar en una sola línea */
+.rec-obs > .rec-evidencia { flex-wrap: nowrap; }
+
+.rec-foto { position: relative; }
+
+.rec-foto:focus-within {
+  outline: 2px solid var(--adm-primario);
+  outline-offset: 2px;
+}
+
+/* Miniatura como botón: se abre también con teclado */
+.rec-miniatura {
+  display: inline-grid;
+  padding: 0;
+  border: 0;
+  border-radius: var(--adm-r-xs);
+  background: none;
+  line-height: 0;
+  cursor: zoom-in;
+}
+
+.rec-miniatura:focus-visible {
+  outline: 2px solid var(--adm-primario);
+  outline-offset: 2px;
+}
+
+.rec-conforme {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.rec-conforme > i { color: var(--adm-exito); }
+
+/* Línea con unidades observadas: tinte ámbar y filete a la izquierda */
+.rec-fila--observada > td { background: var(--adm-aviso-claro); }
+.rec-fila--observada > td:first-child { box-shadow: inset 3px 0 0 var(--adm-aviso); }
+
+/* ── Resumen ─────────────────────────────────────────────────── */
+
+.rec-resumen .adm-tarjeta__cabecera { background: transparent; }
+
+.rec-resumen__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rec-resumen__concepto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rec-opcion {
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  transition: border-color var(--adm-transicion), background var(--adm-transicion);
+}
+
+.rec-opcion:hover { border-color: var(--adm-borde-fuerte); }
+.rec-opcion:has(input:checked) { border-color: var(--adm-primario-borde); background: var(--adm-primario-claro); }
+.rec-opcion input { margin-top: 1px; }
+
+.rec-opcion__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-opcion__titulo { font-size: 13.5px; font-weight: 600; color: var(--adm-texto); }
+.rec-opcion__desc { font-size: 12.5px; color: var(--adm-texto-suave); }
+
+.rec-resumen__pie {
+  background: transparent;
+  border-top-color: var(--adm-primario-borde);
+}
+
+.rec-resumen__ayuda {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+}
+
+.rec-resumen__ayuda > i { color: var(--adm-primario); }
+
+/* El resumen va al costado solo cuando la tabla de líneas conserva su ancho útil */
+@media (max-width: 1479px) {
+  .rec-nueva { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (min-width: 1480px) {
+  .rec-nueva { grid-template-columns: minmax(0, 1fr) minmax(280px, 320px); }
+  .rec-resumen { position: sticky; top: 16px; }
+}
+
+/* A todo el ancho (tablet y laptop): totales a la izquierda, opciones a la derecha */
+@media (min-width: 641px) and (max-width: 1479px) {
+  .rec-resumen__cuerpo {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 14px 28px;
+  }
+
+  .rec-resumen__cuerpo > .adm-resumen { grid-row: span 2; }
+  .rec-resumen__pie .adm-btn--bloque { width: auto; min-width: 260px; }
+}
+
+/* ── Historial y observaciones ───────────────────────────────── */
+
+.rec-leyenda {
+  margin: 0;
+  padding: 10px 20px;
+  background: var(--adm-superficie-2);
+  border-bottom: 1px solid var(--adm-borde);
+}
+
+.rec-celda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-celda .adm-mono,
+.rec-celda > .adm-tabular { white-space: nowrap; }
+
+.rec-celda > .adm-tabla__secundario { margin-top: 0; }
+
+.rec-motivo {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  overflow-wrap: break-word;
+}
+
+.rec-motivo > i { margin-top: 2px; font-size: 11.5px; color: var(--adm-texto-tenue); }
+
+.rec-estado { text-transform: capitalize; }
+
+.rec-acciones {
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.rec-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rec-filtro__etiqueta {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--adm-texto-suave);
+  white-space: nowrap;
+}
+
+.rec-filtro > .adm-select { width: auto; min-width: 150px; }
+
+/* ── Panel de detalle ────────────────────────────────────────── */
+
+.rec-esqueletos { padding: 0; }
+
+.rec-datos {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  padding: 14px 16px;
+  background: var(--adm-superficie-2);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+}
+
+.rec-datos .adm-dato__valor { margin: 0; }
+
+.rec-detalle {
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+}
+
+/* ── Móvil ───────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Tres pestañas iguales: icono arriba y texto debajo */
+  .rec-pestanias {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .rec-pestanias > .adm-pestania {
+    position: relative;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 8px 4px;
+    font-size: 12.5px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .rec-pestanias > .adm-pestania > i { font-size: 17px; }
+
+  .rec-pestania__contador {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+  }
+
+  .rec-escaner__campo > .adm-input { padding-right: 14px; }
+  .rec-escaner__tecla { display: none; }
+
+  /* La primera celda encabeza la ficha: texto a la izquierda, sin etiqueta */
+  .adm-tabla--adaptable tbody td.rec-td-titular {
+    display: block;
+    min-width: 0;
+    padding: 10px 12px 9px;
+    margin-bottom: 4px;
+    text-align: left;
+    border-bottom: 1px dashed var(--adm-borde);
+  }
+
+  .adm-tabla--adaptable tbody td.rec-td-titular::before { content: none; }
+  .adm-tabla--adaptable tbody td.rec-td-titular .adm-tabla__principal { text-align: left; }
+
+  /* Acción única de la ficha (quitar / ver detalle) en la esquina superior */
+  .adm-tabla--adaptable tbody tr:has(> td.rec-td-esquina) { position: relative; }
+  .adm-tabla--adaptable tbody tr:has(> td.rec-td-esquina) > td.rec-td-titular { padding-right: 56px; }
+
+  .adm-tabla--adaptable tbody td.rec-td-esquina {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 0;
+    background: transparent;
+  }
+
+  .adm-tabla--adaptable tbody td.rec-td-esquina::before { content: none; }
+
+  .rec-cantidad { width: 112px; }
+  .rec-precio { width: 140px; }
+  .rec-td-obs { min-width: 0; }
+  .rec-celda { overflow-wrap: anywhere; }
+  .rec-acciones { flex-wrap: nowrap; }
+
+  /* Con observación, el motivo y la foto ocupan el ancho de la ficha */
+  .adm-tabla--adaptable tbody tr.rec-fila--observada td.rec-td-obs {
+    display: block;
+    text-align: left;
+  }
+
+  .adm-tabla--adaptable tbody tr.rec-fila--observada td.rec-td-obs::before {
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .adm-tabla--adaptable tbody tr.rec-fila--observada {
+    border-color: var(--adm-aviso-borde);
+    background: var(--adm-aviso-claro);
+  }
+
+  .rec-fila--observada > td,
+  .rec-fila--observada > td:first-child { background: transparent; box-shadow: none; }
+
+  .adm-tabla--adaptable tbody td .rec-evidencia { justify-content: flex-end; }
+  .adm-tabla--adaptable tbody tr.rec-fila--observada td .rec-evidencia { justify-content: flex-start; }
+
+  .rec-celda { align-items: flex-end; }
+
+  /* Acciones de la observación a todo el ancho; sin acciones, la fila se oculta */
+  .adm-tabla--adaptable tbody td.rec-td-acciones { display: block; padding-top: 10px; }
+  .adm-tabla--adaptable tbody td.rec-td-acciones::before { content: none; }
+  .adm-tabla--adaptable tbody td.rec-td-acciones:not(:has(.rec-acciones)) { display: none; }
+  .rec-acciones > .adm-btn { flex: 1 1 0; }
+
+  .rec-extra { width: 100%; margin-left: 0; }
+  .rec-filtro { flex: 1 1 auto; min-width: 0; }
+  .rec-filtro > .adm-select { flex: 1 1 auto; min-width: 0; }
+
+  .rec-leyenda { padding: 10px 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-opcion { transition: none; }
+}

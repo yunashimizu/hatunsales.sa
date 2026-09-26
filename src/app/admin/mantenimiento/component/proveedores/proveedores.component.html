@@ -1,205 +1,340 @@
 <div class="adm-pagina">
 
+  <!-- Cabecera de página -->
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Proveedores</h1>
-      <p class="adm-cabecera__sub">
-        Catálogo de proveedores para recepciones de mercadería. Puedes cargar datos por RUC (SUNAT).
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-truck-front"></i></span>
+      <div class="prov-cabecera__texto">
+        <span class="adm-cabecera__eyebrow">Almacén</span>
+        <h1 class="adm-cabecera__titulo">Proveedores</h1>
+        <p class="adm-cabecera__sub">
+          Catálogo de proveedores para las recepciones de mercadería. Registre por RUC y complete los datos desde SUNAT.
+        </p>
+      </div>
     </div>
-    <div class="adm-acciones">
+    <div class="adm-acciones prov-cabecera__acciones">
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/recepcion">
+        <i class="bi bi-box-arrow-in-down" aria-hidden="true"></i> Ir a recepción
+      </a>
       <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
         Actualizar
       </button>
       <button type="button" class="adm-btn adm-btn--primario" (click)="nuevo()">
-        <i class="bi bi-plus-lg"></i> Nuevo
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo proveedor
       </button>
-      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/recepcion">
-        <i class="bi bi-box-seam"></i> Ir a recepción
-      </a>
     </div>
   </header>
 
-  <section class="adm-grid adm-grid--3">
+  <!-- Indicadores -->
+  <section class="adm-grid adm-grid--3" aria-label="Resumen de proveedores">
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-truck"></i></div>
+      <div class="adm-metrica__icono"><i class="bi bi-truck-front"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ proveedores.length }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!cargando || proveedores.length; else provEsqueletoValor">{{ proveedores.length }}</ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">Proveedores</div>
+        <div class="adm-metrica__delta">Registrados en el catálogo</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-postcard"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-person-vcard"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ conRuc }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!cargando || proveedores.length; else provEsqueletoValor">{{ conRuc }}</ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">Con RUC</div>
+        <div class="adm-metrica__delta">{{ proveedores.length - conRuc }} sin RUC válido</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-telephone"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-telephone"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ conTelefono }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!cargando || proveedores.length; else provEsqueletoValor">{{ conTelefono }}</ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">Con teléfono</div>
+        <div class="adm-metrica__delta">{{ proveedores.length - conTelefono }} sin teléfono</div>
       </div>
     </div>
   </section>
+  <ng-template #provEsqueletoValor><span class="adm-esqueleto prov-esqueleto-valor" aria-hidden="true"></span></ng-template>
 
-  <section class="adm-tarjeta" *ngIf="proveedorHistorial">
-    <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo">
-        <i class="bi bi-box-seam"></i> Recepciones · {{ proveedorHistorial.nombre }}
+  <!-- Formulario + listado (lado a lado cuando hay espacio) -->
+  <div class="prov-area">
+    <div class="prov-disposicion">
+
+      <!-- Alta y edición -->
+      <section class="adm-tarjeta prov-form" [class.prov-form--editando]="editandoId" aria-labelledby="prov-form-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="prov-form-titulo">
+              <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+              {{ editandoId ? 'Editar proveedor' : 'Nuevo proveedor' }}
+            </h2>
+            <p class="adm-tarjeta__sub">
+              {{ editandoId ? 'Modifique los datos y guarde los cambios.' : 'Consulte el RUC en SUNAT o complete los datos a mano.' }}
+            </p>
+          </div>
+          <span class="adm-insignia adm-insignia--primaria adm-insignia--punto" *ngIf="editandoId">Editando</span>
+        </div>
+
+        <div class="adm-tarjeta__cuerpo prov-form__cuerpo">
+          <h3 class="adm-bloque__titulo prov-form__grupo"><i class="bi bi-building"></i> Identificación</h3>
+          <div class="adm-fila prov-fila">
+            <div class="adm-campo prov-campo--ruc">
+              <label class="adm-etiqueta" for="prov-ruc">
+                RUC <span class="adm-etiqueta__opcional">opcional</span>
+              </label>
+              <div class="adm-input-grupo prov-ruc">
+                <input id="prov-ruc" #provRuc class="adm-input adm-tabular" type="text" maxlength="11"
+                       inputmode="numeric" autocomplete="off"
+                       [(ngModel)]="modelo.ruc" placeholder="20123456789">
+                <button type="button" class="adm-btn adm-btn--suave prov-ruc__boton" (click)="buscarRuc()"
+                        [disabled]="consultandoRuc"
+                        title="Consultar el RUC en SUNAT" aria-label="Consultar el RUC en SUNAT">
+                  <i class="bi" [ngClass]="consultandoRuc ? 'bi-arrow-repeat adm-girando' : 'bi-search'" aria-hidden="true"></i>
+                  SUNAT
+                </button>
+              </div>
+              <p class="adm-ayuda">Con los 11 dígitos, SUNAT completa la razón social y la dirección.</p>
+            </div>
+            <div class="adm-campo prov-campo--nombre">
+              <label class="adm-etiqueta adm-etiqueta--requerida" for="prov-nombre">Nombre o razón social</label>
+              <input id="prov-nombre" class="adm-input" type="text" autocomplete="off"
+                     [(ngModel)]="modelo.nombre"
+                     placeholder="Ej.: Distribuidora Ferretera del Sur S.A.C.">
+            </div>
+          </div>
+
+          <h3 class="adm-bloque__titulo prov-form__grupo"><i class="bi bi-person-lines-fill"></i> Contacto</h3>
+          <div class="adm-fila prov-fila">
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="prov-tel">
+                Teléfono <span class="adm-etiqueta__opcional">opcional</span>
+              </label>
+              <div class="adm-input-icono">
+                <i class="bi bi-telephone" aria-hidden="true"></i>
+                <input id="prov-tel" class="adm-input" type="text" inputmode="tel" autocomplete="off"
+                       [(ngModel)]="modelo.telefono" placeholder="Ej.: 987 654 321">
+              </div>
+            </div>
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="prov-email">
+                Correo <span class="adm-etiqueta__opcional">opcional</span>
+              </label>
+              <div class="adm-input-icono">
+                <i class="bi bi-envelope" aria-hidden="true"></i>
+                <input id="prov-email" class="adm-input" type="email" autocomplete="off"
+                       [(ngModel)]="modelo.email" placeholder="ventas@proveedor.com">
+              </div>
+            </div>
+            <div class="adm-campo prov-campo--direccion">
+              <label class="adm-etiqueta" for="prov-dir">
+                Dirección <span class="adm-etiqueta__opcional">opcional</span>
+              </label>
+              <div class="adm-input-icono">
+                <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                <input id="prov-dir" class="adm-input" type="text" autocomplete="off"
+                       [(ngModel)]="modelo.direccion" placeholder="Av., jirón o calle, distrito">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="adm-tarjeta__pie">
+          <button type="button" class="adm-btn adm-btn--suave" *ngIf="editandoId" (click)="cancelar()">
+            Cancelar
+          </button>
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
+            {{ guardando ? 'Guardando…' : (editandoId ? 'Guardar cambios' : 'Crear proveedor') }}
+          </button>
+        </div>
+      </section>
+
+      <!-- Listado -->
+      <section class="adm-tarjeta adm-tarjeta--acento" aria-labelledby="prov-lista-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="prov-lista-titulo">
+              <i class="bi bi-list-ul"></i> Proveedores registrados
+              <span class="adm-insignia adm-insignia--neutra">{{ proveedoresFiltrados.length }}</span>
+            </h2>
+            <p class="adm-tarjeta__sub">Use las acciones de la fila para ver sus recepciones, editar o eliminar.</p>
+          </div>
+        </div>
+
+        <div class="prov-buscador">
+          <div class="adm-campo prov-buscador__campo">
+            <label class="adm-etiqueta" for="prov-filtro">Buscar proveedor</label>
+            <div class="adm-input-icono">
+              <i class="bi bi-search" aria-hidden="true"></i>
+              <input id="prov-filtro" class="adm-input" type="search" autocomplete="off" [(ngModel)]="filtro"
+                     placeholder="Nombre, RUC, teléfono o correo">
+            </div>
+          </div>
+          <p class="prov-buscador__resumen">
+            <i class="bi bi-funnel" aria-hidden="true"></i>
+            <strong class="adm-tabular">{{ proveedoresFiltrados.length }}</strong> de {{ proveedores.length }}
+          </p>
+        </div>
+
+        <div class="adm-esqueletos" *ngIf="cargando && !proveedores.length" aria-busy="true" aria-label="Cargando proveedores">
+          <div class="prov-esqueleto" *ngFor="let n of [1,2,3]">
+            <span class="adm-esqueleto adm-esqueleto--circulo"></span>
+            <span class="prov-esqueleto__texto">
+              <span class="adm-esqueleto adm-esqueleto--titulo"></span>
+              <span class="adm-esqueleto adm-esqueleto--linea"></span>
+            </span>
+            <span class="adm-esqueleto prov-esqueleto__cifra"></span>
+          </div>
+        </div>
+
+        <div class="adm-vacio" *ngIf="!cargando && !proveedores.length">
+          <div class="adm-vacio__icono"><i class="bi bi-truck-front"></i></div>
+          <div class="adm-vacio__titulo">Todavía no hay proveedores</div>
+          <p>Registre el primero con el formulario o consulte su RUC en SUNAT para traer sus datos.</p>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="provRuc.focus()">
+            <i class="bi bi-search" aria-hidden="true"></i> Empezar por el RUC
+          </button>
+        </div>
+
+        <div class="adm-vacio adm-vacio--compacto" *ngIf="!cargando && proveedores.length && !proveedoresFiltrados.length">
+          <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-search"></i></div>
+          <div class="adm-vacio__titulo">Ningún proveedor coincide con la búsqueda</div>
+          <p>Pruebe con otro nombre, el RUC, el teléfono o el correo.</p>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="filtro = ''">
+            <i class="bi bi-x-lg" aria-hidden="true"></i> Limpiar búsqueda
+          </button>
+        </div>
+
+        <div class="adm-tabla-envoltorio" *ngIf="proveedoresFiltrados.length">
+          <table class="adm-tabla adm-tabla--adaptable">
+            <thead>
+              <tr>
+                <th>Proveedor</th>
+                <th>RUC</th>
+                <th>Contacto</th>
+                <th class="adm-centro">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of proveedoresFiltrados; trackBy: identificarProveedor" [class.adm-recien-creado]="idDestacado === p.id_proveedor"
+                  [class.adm-fila--seleccionada]="editandoId === p.id_proveedor">
+                <td data-etiqueta="Proveedor" class="prov-td-proveedor">
+                  <div class="prov-proveedor">
+                    <span class="adm-avatar" aria-hidden="true">{{ p.nombre?.[0] || '?' }}</span>
+                    <div class="prov-proveedor__texto">
+                      <div class="adm-tabla__principal">{{ p.nombre }}</div>
+                      <div class="adm-tabla__secundario" *ngIf="p.direccion">
+                        <i class="bi bi-geo-alt" aria-hidden="true"></i> {{ p.direccion }}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td data-etiqueta="RUC">
+                  <span class="adm-tabla__mono prov-ruc-celda">{{ p.ruc || '—' }}</span>
+                </td>
+                <td data-etiqueta="Contacto">
+                  <div class="prov-contacto">
+                    <span class="prov-contacto__dato" *ngIf="p.telefono">
+                      <i class="bi bi-telephone" aria-hidden="true"></i> {{ p.telefono }}
+                    </span>
+                    <span class="prov-contacto__dato prov-contacto__dato--suave" *ngIf="p.email">
+                      <i class="bi bi-envelope" aria-hidden="true"></i> {{ p.email }}
+                    </span>
+                    <span class="prov-sin-dato" *ngIf="!p.telefono && !p.email">Sin datos de contacto</span>
+                  </div>
+                </td>
+                <td data-etiqueta="Acciones" class="adm-centro">
+                  <div class="adm-tabla__acciones">
+                    <button type="button" class="adm-btn-icono" (click)="verRecepciones(p)"
+                            title="Ver recepciones" [attr.aria-label]="'Ver recepciones de ' + p.nombre">
+                      <i class="bi bi-box-arrow-in-down"></i>
+                    </button>
+                    <button type="button" class="adm-btn-icono adm-btn-icono--primario" (click)="editar(p)"
+                            title="Editar" [attr.aria-label]="'Editar ' + p.nombre">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="eliminar(p)"
+                            title="Eliminar" [attr.aria-label]="'Eliminar ' + p.nombre">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- Historial de recepciones del proveedor -->
+<div class="adm-velo" *ngIf="proveedorHistorial" (click)="cerrarRecepciones()"></div>
+
+<aside class="adm-panel adm-panel--ancho" *ngIf="proveedorHistorial" role="dialog" aria-modal="true"
+       aria-labelledby="prov-historial-titulo">
+  <div class="adm-panel__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="prov-historial-titulo">
+        <i class="bi bi-box-arrow-in-down"></i> Recepciones
+        <span class="adm-insignia adm-insignia--neutra" *ngIf="!cargandoRecepciones">{{ recepcionesProv.length }}</span>
       </h2>
-      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cerrarRecepciones()">Cerrar</button>
+      <p class="adm-panel__sub">{{ proveedorHistorial.nombre }}</p>
     </div>
-    <div class="adm-tarjeta__cuerpo" *ngIf="cargandoRecepciones">
-      <div class="adm-esqueleto"></div>
+    <button type="button" class="adm-btn-icono" (click)="cerrarRecepciones()" title="Cerrar" aria-label="Cerrar historial">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="adm-panel__cuerpo">
+    <div class="prov-historial__esqueletos" *ngIf="cargandoRecepciones" aria-busy="true" aria-label="Cargando recepciones">
+      <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1,2,3,4]"></div>
     </div>
-    <div class="adm-vacio" *ngIf="!cargandoRecepciones && !recepcionesProv.length">
+
+    <div class="adm-vacio adm-vacio--compacto" *ngIf="!cargandoRecepciones && !recepcionesProv.length">
+      <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-inbox"></i></div>
       <div class="adm-vacio__titulo">Sin recepciones de este proveedor</div>
+      <p>Cuando registre un ingreso de mercadería suyo, aparecerá aquí.</p>
     </div>
-    <div class="adm-tabla-envoltorio" *ngIf="recepcionesProv.length">
-      <table class="adm-tabla adm-tabla--adaptable">
+
+    <div class="adm-tabla-envoltorio prov-historial__tabla" *ngIf="recepcionesProv.length">
+      <table class="adm-tabla adm-tabla--adaptable adm-tabla--compacta">
         <thead>
           <tr>
-            <th>#</th><th>Guía</th><th>Almacén</th><th class="adm-num">OK</th><th class="adm-num">Obs.</th><th>Fecha</th>
+            <th>#</th>
+            <th>Guía</th>
+            <th>Almacén</th>
+            <th class="adm-num">Conformes</th>
+            <th class="adm-num">Observadas</th>
+            <th>Fecha</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let r of recepcionesProv">
-            <td data-etiqueta="#">{{ r.id_recepcion }}</td>
-            <td data-etiqueta="Guía">{{ r.nro_guia }}</td>
+            <td data-etiqueta="#"><span class="adm-tabla__mono">{{ r.id_recepcion }}</span></td>
+            <td data-etiqueta="Guía"><span class="adm-tabla__principal">{{ r.nro_guia }}</span></td>
             <td data-etiqueta="Almacén">{{ r.almacen }}</td>
-            <td data-etiqueta="OK" class="adm-num"><span class="adm-insignia adm-insignia--exito">{{ r.unidades_ok }}</span></td>
-            <td data-etiqueta="Obs." class="adm-num"><span class="adm-insignia adm-insignia--aviso">{{ r.unidades_obs }}</span></td>
-            <td data-etiqueta="Fecha">{{ r.creado_en | date:'short' }}</td>
+            <td data-etiqueta="Conformes" class="adm-num"><span class="adm-insignia adm-insignia--exito">{{ r.unidades_ok }}</span></td>
+            <td data-etiqueta="Observadas" class="adm-num">
+              <span class="adm-insignia" [ngClass]="r.unidades_obs > 0 ? 'adm-insignia--aviso' : 'adm-insignia--neutra'">{{ r.unidades_obs }}</span>
+            </td>
+            <td data-etiqueta="Fecha" class="prov-historial__fecha">{{ r.creado_en | date:'dd/MM/yyyy HH:mm' }}</td>
           </tr>
         </tbody>
       </table>
     </div>
-    <div class="adm-tarjeta__cuerpo">
-      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/recepcion">
-        <i class="bi bi-box-seam"></i> Ir a recepción
-      </a>
-    </div>
-  </section>
+  </div>
 
-  <section class="adm-tarjeta">
-    <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo">
-        <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
-        {{ editandoId ? 'Editar proveedor' : 'Crear proveedor' }}
-      </h2>
-    </div>
-    <div class="adm-tarjeta__cuerpo">
-      <div class="adm-fila">
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="prov-ruc">RUC</label>
-          <div class="adm-acciones" style="gap:.5rem;align-items:stretch">
-            <input id="prov-ruc" class="adm-input" type="text" maxlength="11"
-                   [(ngModel)]="modelo.ruc" placeholder="20123456789" style="flex:1">
-            <button type="button" class="adm-btn adm-btn--suave" (click)="buscarRuc()"
-                    [disabled]="consultandoRuc">
-              {{ consultandoRuc ? '…' : 'SUNAT' }}
-            </button>
-          </div>
-        </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="prov-nombre">Nombre / razón social</label>
-          <input id="prov-nombre" class="adm-input" type="text" [(ngModel)]="modelo.nombre"
-                 placeholder="Distribuidora …">
-        </div>
-      </div>
-      <div class="adm-fila">
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="prov-tel">Teléfono</label>
-          <input id="prov-tel" class="adm-input" type="text" [(ngModel)]="modelo.telefono">
-        </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="prov-email">Email</label>
-          <input id="prov-email" class="adm-input" type="email" [(ngModel)]="modelo.email">
-        </div>
-      </div>
-      <div class="adm-campo">
-        <label class="adm-etiqueta" for="prov-dir">Dirección</label>
-        <input id="prov-dir" class="adm-input" type="text" [(ngModel)]="modelo.direccion">
-      </div>
-      <div class="adm-acciones" style="margin-top:1rem">
-        <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
-          {{ guardando ? 'Guardando…' : (editandoId ? 'Actualizar' : 'Crear') }}
-        </button>
-        <button type="button" class="adm-btn adm-btn--suave" *ngIf="editandoId" (click)="cancelar()">
-          Cancelar
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <section class="adm-tarjeta">
-    <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Lista</h2>
-      <span class="adm-insignia adm-insignia--neutra">{{ proveedoresFiltrados.length }}</span>
-    </div>
-
-    <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !proveedores.length">
-      <div class="adm-esqueleto" *ngFor="let n of [1,2,3]"></div>
-    </div>
-
-    <div class="adm-tarjeta__cuerpo" style="padding-bottom:0">
-      <div class="adm-campo">
-        <label class="adm-etiqueta" for="prov-filtro">Buscar</label>
-        <input id="prov-filtro" class="adm-input" type="search" [(ngModel)]="filtro"
-               placeholder="Nombre, RUC, teléfono…">
-      </div>
-    </div>
-
-    <div class="adm-vacio" *ngIf="!cargando && !proveedores.length">
-      <div class="adm-vacio__icono"><i class="bi bi-truck"></i></div>
-      <div class="adm-vacio__titulo">No hay proveedores</div>
-      <p>Crea el primero o búscalo por RUC.</p>
-    </div>
-
-    <div class="adm-vacio" *ngIf="!cargando && proveedores.length && !proveedoresFiltrados.length">
-      <div class="adm-vacio__titulo">Sin coincidencias</div>
-    </div>
-
-    <div class="adm-tabla-envoltorio" *ngIf="proveedoresFiltrados.length">
-      <table class="adm-tabla adm-tabla--adaptable">
-        <thead>
-          <tr>
-            <th>Proveedor</th>
-            <th>RUC</th>
-            <th>Contacto</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let p of proveedoresFiltrados; trackBy: identificarProveedor" [class.adm-recien-creado]="idDestacado === p.id_proveedor">
-            <td data-etiqueta="Proveedor">
-              <div class="adm-tabla__principal">{{ p.nombre }}</div>
-              <div class="adm-ayuda" *ngIf="p.direccion">{{ p.direccion }}</div>
-            </td>
-            <td data-etiqueta="RUC">{{ p.ruc || '—' }}</td>
-            <td data-etiqueta="Contacto">
-              <div>{{ p.telefono || '—' }}</div>
-              <div class="adm-ayuda">{{ p.email }}</div>
-            </td>
-            <td data-etiqueta="Acciones">
-              <div class="adm-acciones">
-                <button type="button" class="adm-btn-icono" title="Recepciones" (click)="verRecepciones(p)">
-                  <i class="bi bi-box-seam"></i>
-                </button>
-                <button type="button" class="adm-btn adm-btn--suave" (click)="editar(p)">
-                  <i class="bi bi-pencil"></i> Editar
-                </button>
-                <button type="button" class="adm-btn adm-btn--suave" (click)="eliminar(p)">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-</div>
+  <div class="adm-panel__pie">
+    <button type="button" class="adm-btn adm-btn--suave" (click)="cerrarRecepciones()">Cerrar</button>
+    <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/recepcion">
+      <i class="bi bi-box-arrow-in-down" aria-hidden="true"></i> Ir a recepción
+    </a>
+  </div>
+</aside>

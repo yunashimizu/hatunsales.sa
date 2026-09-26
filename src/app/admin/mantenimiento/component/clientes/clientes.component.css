@@ -1,45 +1,276 @@
 :host { display: block; }
 
-.cli-campo--doc { flex: 2 1 320px !important; min-width: 240px; max-width: none; }
-.cli-campo--buscar { flex: 1 1 260px; max-width: 340px; }
+/* ── Cabecera e indicadores ──────────────────────────────────── */
 
-.cli-cargando {
+.cli-cabecera__texto { min-width: 0; }
+
+.cli-metrica-esqueleto {
+  display: inline-block;
+  width: 56px;
+  height: 24px;
+  vertical-align: middle;
+}
+
+/* ── Alta por documento ──────────────────────────────────────── */
+
+.cli-alta {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 18px 36px;
+}
+
+.cli-alta__intro {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
 }
 
-.cli-espaciado { margin-top: 14px; }
+.cli-alta__texto {
+  margin: 0;
+  max-width: 54ch;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--adm-texto-suave);
+}
 
-.cli-pestanias {
+.cli-alta__tipos {
   display: flex;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.cli-pestania {
+.cli-alta__tipo {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--adm-texto-suave);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--adm-r-sm);
-  cursor: pointer;
-  transition: all var(--adm-transicion);
-}
-
-.cli-pestania:hover { background: var(--adm-superficie-3); }
-
-.cli-pestania--activa {
-  color: var(--adm-primario);
+  padding: 4px 12px 4px 4px;
+  font-size: 12.5px;
+  color: var(--adm-texto-2);
   background: var(--adm-superficie);
-  border-color: var(--adm-borde);
+  border: 1px solid var(--adm-borde);
+  border-radius: 999px;
   box-shadow: var(--adm-sombra-sm);
 }
 
+.cli-alta__tipo strong { font-weight: 700; color: var(--adm-texto); }
+
+.cli-alta__tipo-icono {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--adm-primario-claro);
+  color: var(--adm-primario);
+  font-size: 12px;
+}
+
+.cli-alta__tipo-icono--empresa { background: var(--adm-info-claro); color: var(--adm-info); }
+
+/* El formulario va en un recuadro blanco sobre el tinte de la tarjeta destacada */
+.cli-alta__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-primario-borde);
+  border-radius: var(--adm-r-md);
+  box-shadow: var(--adm-sombra-sm);
+}
+
+.cli-alta__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+}
+
+.cli-alta__fila > .cli-campo--doc { flex: 1 1 220px; }
+
+.cli-alta__input {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.cli-alta__boton {
+  flex: 0 0 auto;
+  min-height: 48px;
+}
+
+.cli-alta__ayuda {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+/* ── Listado: buscador y pestañas ────────────────────────────── */
+
+.cli-buscar { flex: 1 1 260px; max-width: 360px; }
+.cli-buscar > .adm-input-icono { flex: 1 1 auto; }
+
+.cli-pestanias {
+  padding: 0 8px;
+  background: var(--adm-superficie);
+}
+
+/* El contador de la pestaña activa toma el color de marca */
+.cli-pestania--activa .adm-insignia {
+  background: var(--adm-primario-claro);
+  color: var(--adm-primario);
+}
+
+/* Esqueleto de fila: avatar + dos líneas + dato */
+.cli-esqueleto {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cli-esqueleto .adm-esqueleto { display: block; }
+.cli-esqueleto .adm-esqueleto--circulo { flex-shrink: 0; }
+
+.cli-esqueleto__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cli-esqueleto__corta { width: 34%; }
+.cli-esqueleto__dato { width: 96px; height: 12px; flex-shrink: 0; }
+
+/* ── Tabla ───────────────────────────────────────────────────── */
+
+.cli-td-principal { min-width: 220px; }
+
+.cli-identidad {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cli-identidad__texto { min-width: 0; }
+.cli-identidad__texto .adm-tabla__principal { overflow-wrap: anywhere; }
+
+.cli-avatar--empresa {
+  border-radius: var(--adm-r-sm);
+  background: var(--adm-info-claro);
+  color: var(--adm-info);
+  font-size: 15px;
+}
+
+.cli-cuenta { margin-top: 4px; }
+
+.cli-documento {
+  color: var(--adm-texto-2);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.cli-apilado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cli-contacto {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.cli-contacto > i {
+  margin-right: 4px;
+  font-size: 12.5px;
+  color: var(--adm-texto-suave);
+}
+
+.cli-contacto--correo { font-size: 12.5px; color: var(--adm-texto-suave); }
+
+.cli-sin-dato { color: var(--adm-texto-suave); }
+
+/* Dirección: dos líneas como máximo en escritorio; el texto completo queda en el title */
+.cli-direccion {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  max-width: 36ch;
+  overflow-wrap: anywhere;
+}
+
+/* ── Panel de edición ────────────────────────────────────────── */
+
+.cli-panel__sub { overflow-wrap: anywhere; }
+
+.cli-bloque__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Campos alineados arriba: una ayuda debajo de un campo no desnivela al vecino */
+.cli-fila { align-items: flex-start; }
+.cli-fila--tres > .adm-campo { flex: 1 1 130px; }
+
+/* ── Adaptación ──────────────────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .cli-alta { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 900px) {
+  /* Los tres indicadores siguen en una fila (evita el 2 + 1 de la rejilla compartida) */
+  .adm-grid.cli-metricas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 @media (max-width: 640px) {
-  .cli-campo--buscar { max-width: none; }
+  .adm-grid.cli-metricas { gap: 10px; }
+  .cli-metricas .adm-metrica__delta { display: none; }
+
+  .cli-alta__form { padding: 12px; }
+  .cli-alta__boton { flex: 1 1 100%; }
+
+  .cli-buscar { flex-basis: 100%; max-width: none; }
+
+  .cli-pestanias { padding: 0; }
+
+  .cli-td-principal { min-width: 0; }
+
+  /* La celda del cliente encabeza la ficha: avatar y nombre a la izquierda, sin etiqueta */
+  .adm-tabla--adaptable tbody td.cli-td-principal {
+    display: block;
+    padding: 10px 12px 9px;
+    margin-bottom: 4px;
+    text-align: left;
+    border-bottom: 1px dashed var(--adm-borde);
+  }
+
+  .adm-tabla--adaptable tbody td.cli-td-principal::before { content: none; }
+  .cli-td-principal .adm-tabla__principal { text-align: left; }
+
+  .cli-apilado { align-items: flex-end; text-align: right; }
+
+  .cli-direccion {
+    display: block;
+    max-width: none;
+    -webkit-line-clamp: unset;
+  }
+}
+
+@media (max-width: 360px) {
+  .adm-grid.cli-metricas { grid-template-columns: minmax(0, 1fr); }
 }

@@ -1,167 +1,228 @@
 <div class="adm-pagina">
 
+  <!-- Cabecera de página -->
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Reportes de ventas</h1>
-      <p class="adm-cabecera__sub">
-        Estadísticas por periodo con plan claro, tendencias y descarga Excel/PDF.
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-bar-chart-line"></i></span>
+      <div class="reporte-cabecera__texto">
+        <span class="adm-cabecera__eyebrow">Reportes</span>
+        <h1 class="adm-cabecera__titulo">Reportes de ventas</h1>
+        <p class="adm-cabecera__sub">
+          Indicadores, tendencia y ranking de clientes por periodo. Descargue el mismo reporte en Excel o PDF.
+        </p>
+      </div>
     </div>
     <div class="adm-acciones">
-      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
-        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando"
+              title="Volver a consultar el periodo seleccionado">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
         Actualizar
       </button>
-      <button type="button" class="adm-btn adm-btn--suave"
+      <button type="button" class="adm-btn adm-btn--suave reporte-btn-excel"
               (click)="exportarExcel()"
-              [disabled]="!!exportando || cargando">
-        <i class="bi" [ngClass]="exportando === 'excel' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-excel'"></i>
+              [disabled]="!!exportando || cargando"
+              title="Descargar el reporte del periodo en Excel">
+        <i class="bi" [ngClass]="exportando === 'excel' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-excel'" aria-hidden="true"></i>
         Excel
       </button>
       <button type="button" class="adm-btn adm-btn--primario"
               (click)="exportarPdf()"
-              [disabled]="!!exportando || cargando">
-        <i class="bi" [ngClass]="exportando === 'pdf' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-pdf'"></i>
+              [disabled]="!!exportando || cargando"
+              title="Descargar el reporte del periodo en PDF">
+        <i class="bi" [ngClass]="exportando === 'pdf' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-pdf'" aria-hidden="true"></i>
         PDF
       </button>
     </div>
   </header>
 
-  <!-- Planes / periodos -->
-  <section class="adm-grid adm-grid--4">
+  <!-- Periodo -->
+  <div class="adm-seccion">
+    <span class="adm-seccion__icono" aria-hidden="true"><i class="bi bi-calendar3"></i></span>
+    <h2 class="adm-seccion__titulo" id="reporte-periodo-titulo">Periodo del reporte</h2>
+    <span class="adm-seccion__linea"></span>
+  </div>
+
+  <div class="adm-grid adm-grid--4 reporte-periodos" role="group" aria-labelledby="reporte-periodo-titulo">
     <button type="button"
-            class="reporte-plan"
+            class="adm-metrica adm-metrica--boton reporte-plan"
             *ngFor="let p of periodos"
             [class.reporte-plan--activo]="periodo === p.id"
+            [class.adm-metrica--activa]="periodo === p.id"
+            [attr.aria-pressed]="periodo === p.id"
             (click)="elegirPeriodo(p.id)"
             [disabled]="cargando">
-      <div class="reporte-plan__icono"><i class="bi" [ngClass]="p.icono"></i></div>
-      <div class="reporte-plan__titulo">{{ p.etiqueta }}</div>
-      <div class="reporte-plan__texto">{{ p.plan }}</div>
+      <span class="adm-metrica__icono reporte-plan__icono" aria-hidden="true"><i class="bi" [ngClass]="p.icono"></i></span>
+      <span class="reporte-plan__titulo">{{ p.etiqueta }}</span>
+      <span class="reporte-plan__texto">{{ p.plan }}</span>
+      <i class="bi bi-check-circle-fill reporte-plan__marca" aria-hidden="true"></i>
+      <span class="adm-spinner adm-spinner--sm reporte-plan__cargando" aria-hidden="true"></span>
     </button>
-  </section>
+  </div>
 
-  <section class="adm-tarjeta" *ngIf="planTexto">
+  <!-- Plan del periodo -->
+  <section class="adm-tarjeta adm-tarjeta--destacada" *ngIf="planTexto" aria-label="Plan del periodo">
     <div class="adm-tarjeta__cuerpo reporte-plan-activo">
-      <div>
-        <div class="adm-etiqueta">Plan del periodo</div>
-        <strong>{{ periodoActivo.etiqueta }}</strong>
-        <p class="adm-ayuda" style="margin:.35rem 0 0">{{ planTexto }}</p>
+      <span class="reporte-plan-activo__icono" aria-hidden="true"><i class="bi" [ngClass]="periodoActivo.icono"></i></span>
+      <div class="reporte-plan-activo__texto">
+        <span class="reporte-plan-activo__etiqueta">Plan del periodo</span>
+        <strong class="reporte-plan-activo__nombre">{{ periodoActivo.etiqueta }}</strong>
+        <p class="reporte-plan-activo__descripcion">{{ planTexto }}</p>
       </div>
-      <div class="adm-ayuda" *ngIf="fechaInicio && fechaFin">
-        {{ fechaCorta(fechaInicio) }} — {{ fechaCorta(fechaFin) }}
+      <div class="reporte-plan-activo__rango" *ngIf="fechaInicio && fechaFin">
+        <span class="reporte-rango">
+          <i class="bi bi-calendar-range" aria-hidden="true"></i>
+          <span>{{ fechaCorta(fechaInicio) }} — {{ fechaCorta(fechaFin) }}</span>
+        </span>
       </div>
     </div>
   </section>
 
+  <!-- Indicadores -->
+  <div class="adm-seccion">
+    <span class="adm-seccion__icono" aria-hidden="true"><i class="bi bi-speedometer2"></i></span>
+    <h2 class="adm-seccion__titulo">Indicadores del periodo</h2>
+    <span class="adm-seccion__linea"></span>
+  </div>
+
   <!-- KPIs principales -->
-  <section class="adm-grid adm-grid--4">
+  <section class="adm-grid adm-grid--4 reporte-kpis" aria-label="Indicadores principales"
+           [class.reporte-kpis--cargando]="cargando" [attr.aria-busy]="cargando">
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-cash-coin"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-cash-coin" aria-hidden="true"></i></div>
       <div>
         <div class="adm-metrica__valor">{{ moneda(totalVendido) }}</div>
         <div class="adm-metrica__etiqueta">Total vendido</div>
+        <div class="adm-metrica__delta">Importe del periodo</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono"><i class="bi bi-receipt"></i></div>
+      <div class="adm-metrica__icono"><i class="bi bi-receipt" aria-hidden="true"></i></div>
       <div>
         <div class="adm-metrica__valor">{{ cantidadComprobantes }}</div>
         <div class="adm-metrica__etiqueta">Comprobantes</div>
+        <div class="adm-metrica__delta">Documentos de venta</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-graph-up"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-graph-up" aria-hidden="true"></i></div>
       <div>
         <div class="adm-metrica__valor">{{ moneda(ticketPromedio) }}</div>
         <div class="adm-metrica__etiqueta">Ticket promedio</div>
+        <div class="adm-metrica__delta">Por comprobante</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-calendar-check"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-calendar-check" aria-hidden="true"></i></div>
       <div>
         <div class="adm-metrica__valor">{{ diasConVenta }}</div>
         <div class="adm-metrica__etiqueta">Días con venta</div>
+        <div class="adm-metrica__delta">Con al menos un comprobante</div>
       </div>
     </div>
   </section>
 
   <!-- KPIs secundarios -->
-  <section class="adm-grid adm-grid--4">
+  <section class="adm-grid adm-grid--4 reporte-kpis" aria-label="Indicadores complementarios"
+           [class.reporte-kpis--cargando]="cargando" [attr.aria-busy]="cargando">
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-arrow-up-right"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></div>
       <div>
         <div class="adm-metrica__valor">{{ moneda(ventaMaxima) }}</div>
         <div class="adm-metrica__etiqueta">Venta máxima</div>
+        <div class="adm-metrica__delta">Comprobante más alto</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono"><i class="bi bi-arrow-down-right"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--neutro"><i class="bi bi-arrow-down-right" aria-hidden="true"></i></div>
       <div>
         <div class="adm-metrica__valor">{{ moneda(ventaMinima) }}</div>
         <div class="adm-metrica__etiqueta">Venta mínima</div>
+        <div class="adm-metrica__delta">Comprobante más bajo</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-check2-circle"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-check2-circle" aria-hidden="true"></i></div>
       <div>
         <div class="adm-metrica__valor">{{ emitidos }}</div>
         <div class="adm-metrica__etiqueta">Emitidos</div>
+        <div class="adm-metrica__delta">Vigentes y sin error</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--peligro"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--peligro"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></div>
       <div>
         <div class="adm-metrica__valor">{{ anulados + conError }}</div>
         <div class="adm-metrica__etiqueta">Anulados / error</div>
+        <div class="adm-metrica__delta">{{ anulados }} anulados · {{ conError }} con error</div>
       </div>
     </div>
   </section>
 
-  <div class="adm-grid adm-grid--2">
+  <div class="adm-grid adm-grid--2 reporte-analisis">
+
     <!-- Tendencia -->
-    <section class="adm-tarjeta">
+    <section class="adm-tarjeta reporte-tendencia">
       <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-bar-chart-line"></i> Tendencia</h2>
-        <span class="adm-insignia adm-insignia--neutra">{{ serie.length }}</span>
+        <div class="adm-tarjeta__encabezado">
+          <h2 class="adm-tarjeta__titulo">
+            <i class="bi bi-bar-chart-steps"></i> Tendencia
+            <span class="adm-insignia adm-insignia--neutra">{{ serie.length }}</span>
+          </h2>
+          <p class="adm-tarjeta__sub">Importe vendido en cada tramo del periodo; el color intenso marca el pico.</p>
+        </div>
       </div>
 
-      <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !serie.length">
-        <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4]"></div>
+      <div class="adm-esqueletos" *ngIf="cargando && !serie.length" aria-busy="true" aria-label="Cargando tendencia">
+        <div class="reporte-esqueleto-barra" *ngFor="let n of [1,2,3,4]">
+          <span class="adm-esqueleto adm-esqueleto--linea"></span>
+          <span class="adm-esqueleto reporte-esqueleto-barra__pista"></span>
+        </div>
       </div>
 
-      <div class="adm-vacio" *ngIf="!cargando && !serie.length">
-        <div class="adm-vacio__icono"><i class="bi bi-bar-chart"></i></div>
+      <div class="adm-vacio adm-vacio--compacto" *ngIf="!cargando && !serie.length">
+        <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-bar-chart" aria-hidden="true"></i></div>
         <div class="adm-vacio__titulo">Sin datos para graficar</div>
+        <p>No hay ventas registradas en este periodo.</p>
       </div>
 
-      <div class="reporte-barras" *ngIf="serie.length">
-        <div class="reporte-barra" *ngFor="let p of serie; trackBy: identificarSerie">
+      <ul class="reporte-barras" *ngIf="serie.length">
+        <li class="reporte-barra" *ngFor="let p of serie; trackBy: identificarSerie"
+            [class.reporte-barra--pico]="p.porcentaje === 100">
           <div class="reporte-barra__meta">
-            <span>{{ p.etiqueta }}</span>
-            <strong>{{ moneda(p.total) }}</strong>
+            <span class="reporte-barra__etiqueta">{{ p.etiqueta }}</span>
+            <span class="reporte-barra__cantidad">{{ p.cantidad }} comprobante{{ p.cantidad === 1 ? '' : 's' }}</span>
+            <strong class="reporte-barra__total">{{ moneda(p.total) }}</strong>
           </div>
-          <div class="reporte-barra__pista">
+          <div class="reporte-barra__pista" aria-hidden="true">
             <div class="reporte-barra__lleno" [style.width.%]="p.porcentaje"></div>
           </div>
-          <div class="adm-ayuda">{{ p.cantidad }} comprobante{{ p.cantidad === 1 ? '' : 's' }}</div>
-        </div>
+        </li>
+      </ul>
+
+      <div class="adm-tarjeta__carga" *ngIf="cargando && serie.length" aria-hidden="true">
+        <span class="adm-spinner"></span>
       </div>
     </section>
 
     <!-- Top clientes -->
-    <section class="adm-tarjeta">
+    <section class="adm-tarjeta reporte-top">
       <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-people"></i> Top clientes</h2>
+        <div class="adm-tarjeta__encabezado">
+          <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--aviso">
+            <i class="bi bi-trophy"></i> Top clientes
+          </h2>
+          <p class="adm-tarjeta__sub">Clientes con mayor importe comprado en el periodo.</p>
+        </div>
       </div>
 
-      <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !topClientes.length">
-        <div class="adm-esqueleto" *ngFor="let n of [1,2,3]"></div>
+      <div class="adm-esqueletos" *ngIf="cargando && !topClientes.length" aria-busy="true" aria-label="Cargando clientes">
+        <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1,2,3]"></div>
       </div>
 
-      <div class="adm-vacio" *ngIf="!cargando && !topClientes.length">
-        <div class="adm-vacio__icono"><i class="bi bi-person"></i></div>
+      <div class="adm-vacio adm-vacio--compacto" *ngIf="!cargando && !topClientes.length">
+        <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-person" aria-hidden="true"></i></div>
         <div class="adm-vacio__titulo">Sin clientes en el periodo</div>
+        <p>El ranking aparecerá en cuanto haya ventas en el periodo.</p>
       </div>
 
       <div class="adm-tabla-envoltorio" *ngIf="topClientes.length">
@@ -169,40 +230,54 @@
           <thead>
             <tr>
               <th>Cliente</th>
-              <th class="adm-num">Docs</th>
+              <th class="adm-num">Compras</th>
               <th class="adm-num">Total</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let c of topClientes; trackBy: identificarCliente">
               <td data-etiqueta="Cliente">
-                <div class="adm-tabla__principal">{{ c.cliente }}</div>
-                <div class="adm-ayuda" *ngIf="c.documento">{{ c.documento }}</div>
+                <div class="reporte-cliente">
+                  <span class="reporte-cliente__puesto" aria-hidden="true"></span>
+                  <div class="reporte-cliente__texto">
+                    <div class="adm-tabla__principal">{{ c.cliente }}</div>
+                    <div class="adm-tabla__secundario adm-tabular" *ngIf="c.documento">{{ c.documento }}</div>
+                  </div>
+                </div>
               </td>
-              <td data-etiqueta="Docs" class="adm-num">{{ c.cantidad }}</td>
-              <td data-etiqueta="Total" class="adm-num"><strong>{{ moneda(c.total) }}</strong></td>
+              <td data-etiqueta="Compras" class="adm-num">{{ c.cantidad }}</td>
+              <td data-etiqueta="Total" class="adm-num"><strong class="reporte-monto">{{ moneda(c.total) }}</strong></td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="adm-tarjeta__carga" *ngIf="cargando && topClientes.length" aria-hidden="true">
+        <span class="adm-spinner"></span>
       </div>
     </section>
   </div>
 
   <!-- Detalle -->
-  <section class="adm-tarjeta">
+  <section class="adm-tarjeta adm-tarjeta--acento reporte-detalle">
     <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Detalle del periodo</h2>
-      <span class="adm-insignia adm-insignia--neutra">{{ detalle.length }}</span>
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo">
+          <i class="bi bi-table"></i> Detalle del periodo
+          <span class="adm-insignia adm-insignia--neutra">{{ detalle.length }}</span>
+        </h2>
+        <p class="adm-tarjeta__sub">Cada comprobante del periodo con su cliente, estado y total.</p>
+      </div>
     </div>
 
-    <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !detalle.length">
-      <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4,5]"></div>
+    <div class="adm-esqueletos" *ngIf="cargando && !detalle.length" aria-busy="true" aria-label="Cargando comprobantes">
+      <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1,2,3,4,5]"></div>
     </div>
 
     <div class="adm-vacio" *ngIf="!cargando && !detalle.length">
-      <div class="adm-vacio__icono"><i class="bi bi-bar-chart"></i></div>
+      <div class="adm-vacio__icono"><i class="bi bi-receipt-cutoff" aria-hidden="true"></i></div>
       <div class="adm-vacio__titulo">Sin ventas en este periodo</div>
-      <p>Prueba otro periodo o genera comprobantes desde el POS / documentos.</p>
+      <p>Pruebe con otro periodo o emita comprobantes desde el punto de venta o Documentos.</p>
     </div>
 
     <div class="adm-tabla-envoltorio" *ngIf="detalle.length">
@@ -219,25 +294,31 @@
         <tbody>
           <tr *ngFor="let fila of detalle; trackBy: identificarDetalle">
             <td data-etiqueta="Comprobante">
-              <div class="adm-tabla__principal">{{ fila.numero_formateado || (fila.serie + '-' + fila.numero) || '—' }}</div>
+              <div class="adm-tabla__principal adm-mono">{{ fila.numero_formateado || (fila.serie + '-' + fila.numero) || '—' }}</div>
             </td>
-            <td data-etiqueta="Fecha">{{ fechaCorta(fila.fecha) }}</td>
+            <td data-etiqueta="Fecha" class="reporte-fecha">{{ fechaCorta(fila.fecha) }}</td>
             <td data-etiqueta="Cliente">
-              <div class="adm-tabla__principal">{{ fila.cliente || '—' }}</div>
-              <div class="adm-ayuda" *ngIf="fila.documento_cliente">{{ fila.documento_cliente }}</div>
+              <div class="reporte-cliente__texto">
+                <div class="adm-tabla__principal">{{ fila.cliente || '—' }}</div>
+                <div class="adm-tabla__secundario adm-tabular" *ngIf="fila.documento_cliente">{{ fila.documento_cliente }}</div>
+              </div>
             </td>
             <td data-etiqueta="Estado">
-              <span class="adm-insignia"
+              <span class="adm-insignia adm-insignia--punto reporte-estado"
                     [ngClass]="fila.anulado || fila.estado === 'anulado'
                       ? 'adm-insignia--peligro'
                       : (fila.estado === 'error' ? 'adm-insignia--aviso' : 'adm-insignia--exito')">
                 {{ fila.estado || 'emitido' }}
               </span>
             </td>
-            <td data-etiqueta="Total" class="adm-num"><strong>{{ moneda(fila.total_vendido) }}</strong></td>
+            <td data-etiqueta="Total" class="adm-num"><strong class="reporte-monto">{{ moneda(fila.total_vendido) }}</strong></td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="adm-tarjeta__carga reporte-detalle__carga" *ngIf="cargando && detalle.length" aria-hidden="true">
+      <span class="adm-spinner"></span>
     </div>
   </section>
 

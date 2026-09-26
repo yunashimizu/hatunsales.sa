@@ -1,46 +1,275 @@
 :host { display: block; }
 
-.doc-campo--ancho { flex: 2 1 280px; }
+/* ── Cabecera ────────────────────────────────────────────────── */
 
-.doc-cargando {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 18px;
-}
+.doc-cabecera__texto { min-width: 0; }
 
-.doc-acciones {
-  display: inline-flex;
-  gap: 2px;
-  justify-content: center;
-}
-
-.doc-error {
-  max-width: 260px;
-  margin-top: 4px;
-  color: var(--adm-peligro);
-  white-space: normal;
-}
-
-.doc-espaciado { margin-top: 14px; }
+/* ── Monitor de atención ─────────────────────────────────────── */
 
 .doc-monitor {
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  gap: 12px 14px;
+  padding: 12px 14px;
+  box-shadow: var(--adm-sombra-sm);
 }
 
-.doc-monitor > div {
+/* El icono del aviso se pinta como chip, igual que los títulos de sección */
+.doc-monitor > i {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-top: 0;
+  border-radius: 11px;
+  background: var(--adm-superficie);
+  font-size: 17px;
+}
+
+.adm-aviso--peligro.doc-monitor > i {
+  color: var(--adm-peligro);
+  box-shadow: inset 0 0 0 1px var(--adm-peligro-borde);
+}
+
+.adm-aviso--aviso.doc-monitor > i {
+  color: var(--adm-aviso);
+  box-shadow: inset 0 0 0 1px var(--adm-aviso-borde);
+}
+
+.doc-monitor__texto {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
+  font-size: 13px;
 }
 
-/* Un documento anulado sigue visible, pero se nota que ya no vale. */
-.doc-fila--anulada { opacity: 0.62; }
+.doc-monitor__texto .adm-aviso__titulo { font-size: 14px; }
+
+/* ── Indicadores ─────────────────────────────────────────────── */
+
+.doc-esqueleto-valor {
+  display: inline-block;
+  width: 56px;
+  height: 22px;
+  vertical-align: middle;
+}
+
+/* ── Filtros ─────────────────────────────────────────────────── */
+
+/* Bases ajustadas para que los seis controles quepan en una línea a 1440 px
+   y se repartan en dos filas limpias en tableta. */
+.doc-filtros > .doc-campo--select { flex: 1 1 140px; }
+.doc-filtros > .doc-campo--fecha { flex: 1 1 140px; }
+
+/* Mismo alto que los inputs para que el borde inferior quede alineado */
+.doc-filtros__limpiar .adm-btn { min-height: 40px; }
+
+/* ── Tabla ───────────────────────────────────────────────────── */
+
+.doc-td-documento { min-width: 180px; }
+.doc-td-cliente { min-width: 200px; max-width: 340px; }
+.doc-td-fecha { white-space: nowrap; }
+
+.doc-documento {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.doc-documento__icono {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--adm-r-sm);
+  background: var(--adm-primario-claro);
+  color: var(--adm-primario);
+  font-size: 16px;
+  box-shadow: inset 0 0 0 1px var(--adm-primario-suave);
+}
+
+.doc-celda { min-width: 0; }
+.doc-celda .adm-tabla__principal { overflow-wrap: anywhere; }
+.doc-celda .doc-numero { white-space: nowrap; overflow-wrap: normal; }
+
+/* SUNAT devuelve el tipo en mayúsculas ("BOLETA DE VENTA ELECTRONICA"): se muestra en tipo oración */
+.doc-tipo-nombre { text-transform: lowercase; }
+.doc-tipo-nombre::first-letter { text-transform: uppercase; }
+
+/* Fecha dentro de la celda del documento: solo en el modo de columnas prioritarias */
+.doc-fecha-compacta { display: none; }
+
+.doc-estado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* Mensaje de rechazo: hasta tres líneas; el texto completo está en el title y en el detalle */
+.doc-error {
+  display: -webkit-box;
+  max-width: 260px;
+  margin-top: 0;
+  overflow: hidden;
+  color: var(--adm-peligro);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* Un documento anulado sigue visible, pero se nota que ya no vale.
+   Las acciones quedan nítidas: el detalle se sigue pudiendo abrir. */
+.doc-fila--anulada > td:not(.doc-td-acciones) { opacity: 0.62; }
 .doc-fila--anulada .adm-tabla__principal { text-decoration: line-through; }
 
+.doc-fila--anulada .doc-documento__icono {
+  background: var(--adm-superficie-3);
+  color: var(--adm-texto-tenue);
+  box-shadow: inset 0 0 0 1px var(--adm-borde);
+}
+
+/* Fila con una operación en curso (PDF, reconsulta o anulación) */
+.doc-fila--procesando { cursor: progress; }
+.doc-fila--procesando > td:first-child { box-shadow: inset 3px 0 0 var(--adm-primario); }
+
+.doc-paginacion__total { color: var(--adm-texto); font-weight: 700; }
+
+/* ── Panel de detalle ────────────────────────────────────────── */
+
+.doc-panel__sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.doc-aviso__texto { display: block; overflow-wrap: anywhere; }
+
+.doc-ticket .adm-ticket__emisor,
+.doc-ticket .adm-ticket__dato span:last-child,
+.doc-ticket__descripcion { min-width: 0; overflow-wrap: anywhere; }
+
+.doc-ticket-esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+}
+
+.doc-ticket-esqueleto__cabecera {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--adm-borde-fuerte);
+}
+
+.doc-ticket-esqueleto__emisor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.doc-ticket-esqueleto__nombre { width: 70%; }
+.doc-ticket-esqueleto__corta { width: 40%; }
+
+.doc-ticket-esqueleto__recuadro {
+  width: 136px;
+  height: 66px;
+  flex-shrink: 0;
+  border-radius: var(--adm-r-sm);
+}
+
+.doc-pie__ayuda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+}
+
+/* ── Tableta y portátil chico: columnas prioritarias ─────────── */
+
+/* Con el menú lateral abierto el área útil ronda 700-950 px: la fecha pasa
+   bajo el número, se retira el icono decorativo y se compactan los rellenos
+   para que la tabla entre sin desplazamiento lateral. */
+@media (min-width: 641px) and (max-width: 1320px) {
+  .doc-tabla thead th,
+  .doc-tabla tbody td { padding-left: 10px; padding-right: 10px; }
+  .doc-tabla thead th:first-child,
+  .doc-tabla tbody td:first-child { padding-left: 16px; }
+  .doc-tabla thead th:last-child,
+  .doc-tabla tbody td:last-child { padding-right: 16px; }
+
+  .doc-col-fecha { display: none; }
+  .doc-fecha-compacta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .doc-documento__icono { display: none; }
+  .doc-td-documento { min-width: 150px; }
+  .doc-td-cliente { min-width: 110px; }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .doc-metricas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ── Móvil ───────────────────────────────────────────────────── */
+
 @media (max-width: 640px) {
-  .doc-acciones { justify-content: flex-end; }
+  .doc-monitor { flex-wrap: wrap; }
+  .doc-monitor > .adm-aviso__accion { flex: 1 1 100%; margin-left: 0; }
+
+  /* El total ocupa todo el ancho y los dos estados quedan lado a lado */
+  .doc-metricas > .doc-metrica--total {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .doc-filtros > .doc-filtros__limpiar { flex: 1 1 100% !important; }
+  .doc-filtros__limpiar .adm-etiqueta--fantasma { display: none; }
+  .doc-filtros__limpiar .adm-btn { width: 100%; min-height: 44px; }
+
+  .doc-td-documento,
+  .doc-td-cliente { min-width: 0; max-width: none; }
+
+  /* La celda del documento encabeza la ficha, sin etiqueta y alineada a la izquierda */
+  .adm-tabla--adaptable tbody td.doc-td-documento {
+    display: block;
+    padding: 10px 12px 9px;
+    margin-bottom: 4px;
+    text-align: left;
+    border-bottom: 1px dashed var(--adm-borde);
+  }
+
+  .adm-tabla--adaptable tbody td.doc-td-documento::before { content: none; }
+  .doc-td-documento .adm-tabla__principal { text-align: left; }
+
+  .doc-celda { text-align: right; }
+  .doc-td-documento .doc-celda { text-align: left; }
+
+  .doc-estado { align-items: flex-end; }
   .doc-error { max-width: none; text-align: right; }
+
+  /* Las acciones cierran la ficha */
+  .adm-tabla--adaptable tbody td.doc-td-acciones {
+    margin-top: 4px;
+    padding-top: 9px;
+    border-top: 1px dashed var(--adm-borde);
+  }
+
+  .doc-pie__ayuda { flex: 1 1 100%; }
+  .doc-ticket-esqueleto__recuadro { width: 96px; }
 }

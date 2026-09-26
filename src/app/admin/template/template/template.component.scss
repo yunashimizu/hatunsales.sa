@@ -1,8 +1,9 @@
 #wrapper {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
-  background: var(--adm-fondo, #f5f7fb);
+  background: var(--adm-fondo, #f3f5fa);
   position: relative;
 }
 
@@ -12,11 +13,18 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  /* Fondo con un leve resplandor de marca en la esquina superior: separa el
+     contenido del gris plano sin restar contraste a las tarjetas. */
+  background:
+    radial-gradient(900px 320px at 12% -8%, rgba(99, 102, 241, 0.09), transparent 62%),
+    radial-gradient(700px 300px at 100% 0%, rgba(14, 165, 233, 0.05), transparent 60%),
+    var(--adm-fondo, #f3f5fa);
 
   .main-content {
     flex: 1;
     overflow-y: auto;
-    padding: 24px 28px;
+    overflow-x: hidden;
+    padding: 26px 30px 34px;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
 
@@ -32,7 +40,7 @@
 
 @media (max-width: 1200px) {
   #main-wrapper .main-content {
-    padding: 20px;
+    padding: 22px;
   }
 }
 
@@ -45,23 +53,28 @@
     padding: 0;
     margin: 0;
     background: rgba(2, 6, 23, 0.55);
+    backdrop-filter: blur(2px);
     z-index: 90;
     cursor: pointer;
     animation: sb-fade 0.25s ease;
   }
 
   #main-wrapper .main-content {
-    padding: 16px;
+    padding: 18px 16px 28px;
   }
 }
 
 @media (max-width: 640px) {
   #main-wrapper .main-content {
-    padding: 14px 12px 24px;
+    padding: 14px 12px calc(28px + env(safe-area-inset-bottom, 0px));
   }
 }
 
 @keyframes sb-fade {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-backdrop { animation: none; }
 }

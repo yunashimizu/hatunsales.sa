@@ -1,138 +1,206 @@
 <div class="adm-pagina">
 
+  <!-- Cabecera de página -->
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Almacenes</h1>
-      <p class="adm-cabecera__sub">
-        Crea y administra tus ubicaciones de stock. El inventario y el POS usan estos almacenes.
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-building"></i></span>
+      <div class="alm-cabecera__texto">
+        <span class="adm-cabecera__eyebrow">Almacén</span>
+        <h1 class="adm-cabecera__titulo">Almacenes</h1>
+        <p class="adm-cabecera__sub">
+          Cree y administre las ubicaciones donde guarda la mercadería. El inventario y el punto de venta trabajan con estos almacenes.
+        </p>
+      </div>
     </div>
-    <div class="adm-acciones">
+    <div class="adm-acciones alm-cabecera__acciones">
       <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/inventario">
-        <i class="bi bi-box-seam"></i> Inventario
+        <i class="bi bi-boxes" aria-hidden="true"></i> Inventario
       </a>
       <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
         Actualizar
       </button>
       <button type="button" class="adm-btn adm-btn--primario" (click)="nuevo()">
-        <i class="bi bi-plus-lg"></i> Nuevo
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo almacén
       </button>
     </div>
   </header>
 
-  <section class="adm-grid adm-grid--3">
+  <!-- Indicadores -->
+  <section class="adm-grid adm-grid--3" aria-label="Resumen de almacenes">
     <div class="adm-metrica">
       <div class="adm-metrica__icono"><i class="bi bi-building"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ almacenes.length }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!cargando || almacenes.length; else almEsqueletoValor">{{ almacenes.length }}</ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">Almacenes</div>
+        <div class="adm-metrica__delta">Ubicaciones de stock registradas</div>
       </div>
     </div>
     <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-boxes"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ totalProductos }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!cargando || almacenes.length; else almEsqueletoValor">{{ totalProductos }}</ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">SKUs en inventario</div>
+        <div class="adm-metrica__delta">Suma de productos por almacén</div>
       </div>
     </div>
     <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-stack"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ totalUnidades }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!cargando || almacenes.length; else almEsqueletoValor">{{ totalUnidades }}</ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">Unidades totales</div>
+        <div class="adm-metrica__delta">Existencias en todos los almacenes</div>
       </div>
     </div>
   </section>
+  <ng-template #almEsqueletoValor><span class="adm-esqueleto alm-esqueleto-valor" aria-hidden="true"></span></ng-template>
 
-  <section class="adm-tarjeta">
-    <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo">
-        <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
-        {{ editandoId ? 'Editar almacén' : 'Crear almacén' }}
-      </h2>
-    </div>
-    <div class="adm-tarjeta__cuerpo">
-      <div class="adm-fila">
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="alm-nombre">Nombre</label>
-          <input id="alm-nombre" class="adm-input" type="text" [(ngModel)]="modelo.nombre"
-                 placeholder="ej. Almacén principal">
+  <!-- Formulario + listado (lado a lado cuando hay espacio) -->
+  <div class="alm-area">
+    <div class="alm-disposicion">
+
+      <!-- Alta y edición -->
+      <section class="adm-tarjeta alm-form" [class.alm-form--editando]="editandoId" aria-labelledby="alm-form-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="alm-form-titulo">
+              <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+              {{ editandoId ? 'Editar almacén' : 'Nuevo almacén' }}
+            </h2>
+            <p class="adm-tarjeta__sub">
+              {{ editandoId ? 'Modifique los datos y guarde los cambios.' : 'Registre una nueva ubicación de stock.' }}
+            </p>
+          </div>
+          <span class="adm-insignia adm-insignia--primaria adm-insignia--punto" *ngIf="editandoId">Editando</span>
         </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="alm-desc">Descripción</label>
-          <input id="alm-desc" class="adm-input" type="text" [(ngModel)]="modelo.descripcion"
-                 placeholder="Opcional">
+
+        <div class="adm-tarjeta__cuerpo">
+          <div class="adm-fila alm-form__campos">
+            <div class="adm-campo">
+              <label class="adm-etiqueta adm-etiqueta--requerida" for="alm-nombre">Nombre</label>
+              <input id="alm-nombre" #almNombre class="adm-input" type="text" autocomplete="off"
+                     [(ngModel)]="modelo.nombre"
+                     placeholder="Ej.: Almacén principal">
+              <p class="adm-ayuda">Así aparecerá en inventario y en el punto de venta.</p>
+            </div>
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="alm-desc">
+                Descripción <span class="adm-etiqueta__opcional">opcional</span>
+              </label>
+              <input id="alm-desc" class="adm-input" type="text" autocomplete="off"
+                     [(ngModel)]="modelo.descripcion"
+                     placeholder="Ej.: Trastienda, segundo piso">
+            </div>
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="alm-suc">Sucursal</label>
+              <select id="alm-suc" class="adm-select" [(ngModel)]="modelo.id_sucursal">
+                <option [ngValue]="null">Sin sucursal</option>
+                <option *ngFor="let s of sucursales" [ngValue]="s.id_sucursal">{{ s.nombre }}</option>
+              </select>
+              <p class="adm-ayuda">Tienda donde se encuentra físicamente.</p>
+            </div>
+          </div>
         </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="alm-suc">Sucursal</label>
-          <select id="alm-suc" class="adm-select" [(ngModel)]="modelo.id_sucursal">
-            <option [ngValue]="null">Sin sucursal</option>
-            <option *ngFor="let s of sucursales" [ngValue]="s.id_sucursal">{{ s.nombre }}</option>
-          </select>
-        </div>
-        <div class="adm-acciones" style="align-self:end">
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
-            {{ guardando ? 'Guardando…' : (editandoId ? 'Actualizar' : 'Crear') }}
-          </button>
+
+        <div class="adm-tarjeta__pie">
           <button type="button" class="adm-btn adm-btn--suave" *ngIf="editandoId" (click)="cancelar()">
             Cancelar
           </button>
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
+            {{ guardando ? 'Guardando…' : (editandoId ? 'Guardar cambios' : 'Crear almacén') }}
+          </button>
         </div>
-      </div>
-    </div>
-  </section>
+      </section>
 
-  <section class="adm-tarjeta">
-    <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Lista</h2>
-      <span class="adm-insignia adm-insignia--neutra">{{ almacenes.length }}</span>
-    </div>
+      <!-- Listado -->
+      <section class="adm-tarjeta adm-tarjeta--acento" aria-labelledby="alm-lista-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="alm-lista-titulo">
+              <i class="bi bi-list-ul"></i> Almacenes registrados
+              <span class="adm-insignia adm-insignia--neutra">{{ almacenes.length }}</span>
+            </h2>
+            <p class="adm-tarjeta__sub">Solo se puede eliminar un almacén que no tenga productos con stock.</p>
+          </div>
+        </div>
 
-    <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !almacenes.length">
-      <div class="adm-esqueleto" *ngFor="let n of [1,2,3]"></div>
-    </div>
+        <div class="adm-esqueletos" *ngIf="cargando && !almacenes.length" aria-busy="true" aria-label="Cargando almacenes">
+          <div class="alm-esqueleto" *ngFor="let n of [1,2,3]">
+            <span class="adm-esqueleto alm-esqueleto__icono"></span>
+            <span class="alm-esqueleto__texto">
+              <span class="adm-esqueleto adm-esqueleto--titulo"></span>
+              <span class="adm-esqueleto adm-esqueleto--linea"></span>
+            </span>
+            <span class="adm-esqueleto alm-esqueleto__cifra"></span>
+          </div>
+        </div>
 
-    <div class="adm-vacio" *ngIf="!cargando && !almacenes.length">
-      <div class="adm-vacio__icono"><i class="bi bi-building"></i></div>
-      <div class="adm-vacio__titulo">No hay almacenes</div>
-      <p>Crea el primero para ubicar el stock de tus productos.</p>
-    </div>
+        <div class="adm-vacio" *ngIf="!cargando && !almacenes.length">
+          <div class="adm-vacio__icono"><i class="bi bi-building-add"></i></div>
+          <div class="adm-vacio__titulo">Todavía no hay almacenes</div>
+          <p>Registre el primero para ubicar el stock de sus productos y empezar a recibir mercadería.</p>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="almNombre.focus()">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Registrar el primero
+          </button>
+        </div>
 
-    <div class="adm-tabla-envoltorio" *ngIf="almacenes.length">
-      <table class="adm-tabla adm-tabla--adaptable">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Sucursal</th>
-            <th class="adm-num">Productos</th>
-            <th class="adm-num">Unidades</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let a of almacenes; trackBy: identificarAlmacen" [class.adm-recien-creado]="idDestacado === a.id_almacen">
-            <td data-etiqueta="Nombre">
-              <div class="adm-tabla__principal">{{ a.nombre }}</div>
-              <div class="adm-ayuda" *ngIf="a.descripcion">{{ a.descripcion }}</div>
-            </td>
-            <td data-etiqueta="Sucursal">{{ a.sucursal || '—' }}</td>
-            <td data-etiqueta="Productos" class="adm-num">{{ a.productos ?? 0 }}</td>
-            <td data-etiqueta="Unidades" class="adm-num">{{ a.unidades ?? 0 }}</td>
-            <td data-etiqueta="Acciones">
-              <div class="adm-acciones">
-                <button type="button" class="adm-btn adm-btn--suave" (click)="editar(a)">
-                  <i class="bi bi-pencil"></i> Editar
-                </button>
-                <button type="button" class="adm-btn adm-btn--suave" (click)="eliminar(a)">
-                  <i class="bi bi-trash"></i> Eliminar
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+        <div class="adm-tabla-envoltorio" *ngIf="almacenes.length">
+          <table class="adm-tabla adm-tabla--adaptable">
+            <thead>
+              <tr>
+                <th>Almacén</th>
+                <th>Sucursal</th>
+                <th class="adm-num">Productos</th>
+                <th class="adm-num">Unidades</th>
+                <th class="adm-centro">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let a of almacenes; trackBy: identificarAlmacen" [class.adm-recien-creado]="idDestacado === a.id_almacen"
+                  [class.adm-fila--seleccionada]="editandoId === a.id_almacen">
+                <td data-etiqueta="Almacén" class="alm-td-nombre">
+                  <div class="alm-nombre">
+                    <span class="alm-nombre__icono" aria-hidden="true"><i class="bi bi-building"></i></span>
+                    <div class="alm-nombre__texto">
+                      <div class="adm-tabla__principal">{{ a.nombre }}</div>
+                      <div class="adm-tabla__secundario" *ngIf="a.descripcion">{{ a.descripcion }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td data-etiqueta="Sucursal">
+                  <span class="adm-insignia adm-insignia--info alm-sucursal" *ngIf="a.sucursal; else almSinSucursal">
+                    <i class="bi bi-shop" aria-hidden="true"></i> {{ a.sucursal }}
+                  </span>
+                </td>
+                <td data-etiqueta="Productos" class="adm-num alm-cifra">{{ a.productos ?? 0 }}</td>
+                <td data-etiqueta="Unidades" class="adm-num alm-cifra">{{ a.unidades ?? 0 }}</td>
+                <td data-etiqueta="Acciones" class="adm-centro">
+                  <div class="adm-tabla__acciones">
+                    <button type="button" class="adm-btn-icono adm-btn-icono--primario" (click)="editar(a)"
+                            title="Editar" [attr.aria-label]="'Editar ' + a.nombre">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="eliminar(a)"
+                            title="Eliminar" [attr.aria-label]="'Eliminar ' + a.nombre">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #almSinSucursal><span class="alm-sin-dato">Sin sucursal</span></ng-template>
+      </section>
+
     </div>
-  </section>
+  </div>
 
 </div>
