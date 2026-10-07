@@ -1,17 +1,23 @@
 /* ---------------------------------------------------------------------------
-   Sistema de diseño del panel administrativo · v2
+   Sistema de diseño del panel administrativo · v2.1
 
    Todas las clases llevan el prefijo `adm-` y no se redefine ningún selector
-   de elemento, así conviven con Bootstrap sin pisarse. Las piezas de la v1
-   se conservan con el mismo nombre y significado; esta versión afina tokens,
-   añade jerarquía visual (cabeceras con icono, títulos de sección con chip,
-   métricas con acento) y nuevas piezas compartidas (pestañas, segmentado,
-   chips, modal, atajos, lista de datos, switch).
+   de elemento, así conviven con Bootstrap Reboot sin pisarse. Las piezas de la
+   v1 se conservan con el mismo nombre y significado; la v2 añadió jerarquía
+   visual (cabeceras con icono, títulos de sección con chip, métricas con
+   acento) y piezas compartidas (pestañas, segmentado, chips, modal, atajos,
+   lista de datos, switch).
+
+   v2.1 · acabado «suizo/enterprise»: superficies planas con bordes finos,
+   textos y estados con contraste AA, números tabulares, objetivos táctiles de
+   44 px con puntero grueso, estados de error/carga/vacío reutilizables y
+   micro-interacciones con los tokens del sistema de movimiento
+   (shared/styles/movimiento.css).
    --------------------------------------------------------------------------- */
 
 :root {
-  --adm-fuente: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --adm-fuente-titulos: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', Roboto, sans-serif;
+  --adm-fuente: var(--hs-fuente);
+  --adm-fuente-titulos: var(--hs-fuente-titulos);
 
   --adm-fondo: #f3f5fa;
   --adm-fondo-2: #eceff7;
@@ -23,8 +29,8 @@
 
   --adm-texto: #0f172a;
   --adm-texto-2: #1e293b;
-  --adm-texto-suave: #5b6578;
-  --adm-texto-tenue: #8a94a6;
+  --adm-texto-suave: #5b6578;   /* 5,9:1 sobre blanco */
+  --adm-texto-tenue: #667085;   /* 5,0:1 sobre blanco y ≥ 4,5:1 sobre las superficies grises (antes #8a94a6, 3,1:1) */
 
   --adm-primario: #4f46e5;
   --adm-primario-osc: #4338ca;
@@ -35,16 +41,23 @@
   --adm-gradiente: linear-gradient(135deg, #6366f1 0%, #4f46e5 60%, #4338ca 100%);
   --adm-gradiente-vivo: linear-gradient(135deg, #818cf8 0%, #4f46e5 55%, #7c3aed 100%);
 
+  /* Estados: el color base es para iconos, puntos, barras y fondos sólidos;
+     el «-texto» es el que se usa en letras (≥ 4,5:1 sobre blanco y sobre su
+     fondo claro). */
   --adm-exito: #059669;
+  --adm-exito-texto: #047857;
   --adm-exito-claro: #ecfdf5;
   --adm-exito-borde: #a7f3d0;
   --adm-peligro: #dc2626;
+  --adm-peligro-texto: #b91c1c;
   --adm-peligro-claro: #fef2f2;
   --adm-peligro-borde: #fecaca;
   --adm-aviso: #d97706;
+  --adm-aviso-texto: #b45309;
   --adm-aviso-claro: #fffbeb;
   --adm-aviso-borde: #fde68a;
   --adm-info: #0284c7;
+  --adm-info-texto: #0369a1;
   --adm-info-claro: #f0f9ff;
   --adm-info-borde: #bae6fd;
 
@@ -61,8 +74,9 @@
   --adm-sombra-primario: 0 6px 16px -4px rgba(79, 70, 229, 0.45);
   --adm-anillo: 0 0 0 4px rgba(79, 70, 229, 0.14);
 
-  --adm-transicion: 160ms cubic-bezier(0.4, 0, 0.2, 1);
-  --adm-transicion-suave: 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* Movimiento: derivan del sistema global (movimiento.css). */
+  --adm-transicion: var(--mov-micro, 140ms) var(--ease-salida-suave, cubic-bezier(0.2, 0, 0, 1));
+  --adm-transicion-suave: var(--mov-entrada, 240ms) var(--ease-entrada, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 /* ── Estructura ──────────────────────────────────────────────── */
@@ -80,7 +94,10 @@
   font-size: 14.5px;
   font-weight: 400;
   line-height: 1.5;
-  animation: adm-pagina-entrar 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Entrada: fundido + 6 px. `backwards` (no `both`): al terminar no queda
+     ningún transform, así los position: fixed de la página (paneles, barras)
+     vuelven a medirse contra la ventana. */
+  animation: adm-pagina-entrar var(--mov-entrada, 240ms) var(--ease-entrada, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
 }
 
 /* ── Cabecera de página ──────────────────────────────────────── */
@@ -146,7 +163,7 @@
 .adm-cabecera__titulo {
   margin: 0;
   font-family: var(--adm-fuente-titulos);
-  font-size: 27px;
+  font-size: clamp(22px, 1.1rem + 1.1vw, 27px);   /* 22 px en móvil → 27 px desde ~950 px */
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.025em;
@@ -260,7 +277,7 @@
   padding: 14px 20px;
   border-bottom: 1px solid var(--adm-borde);
   border-radius: var(--adm-r-lg) var(--adm-r-lg) 0 0;
-  background: linear-gradient(180deg, #ffffff 0%, var(--adm-superficie-2) 100%);
+  background: var(--adm-superficie);   /* plana: la línea inferior basta para separar */
 }
 
 .adm-tarjeta__cabecera--limpia { background: var(--adm-superficie); }
@@ -385,7 +402,7 @@
   border-radius: var(--adm-r-lg);
   box-shadow: var(--adm-sombra-sm);
   overflow: hidden;
-  transition: box-shadow var(--adm-transicion-suave), transform var(--adm-transicion-suave), border-color var(--adm-transicion);
+  transition: box-shadow var(--adm-transicion), transform var(--adm-transicion), border-color var(--adm-transicion);
 }
 
 /* Barra de acento lateral con el color del indicador */
@@ -401,10 +418,12 @@
   opacity: 0.9;
 }
 
-.adm-metrica:hover {
-  box-shadow: var(--adm-sombra-md);
-  transform: translateY(-1px);
-  border-color: #d6dce8;
+@media (hover: hover) {
+  .adm-metrica:hover {
+    box-shadow: var(--adm-sombra-md);
+    transform: translateY(var(--mov-elevar, -1px));
+    border-color: #d6dce8;
+  }
 }
 
 .adm-metrica > div:not(.adm-metrica__icono) { min-width: 0; flex: 1; }
@@ -467,11 +486,13 @@
   font-weight: 600;
   color: var(--adm-texto-suave);
 }
-.adm-metrica__delta--exito   { color: var(--adm-exito); }
-.adm-metrica__delta--peligro { color: var(--adm-peligro); }
+.adm-metrica__delta--exito   { color: var(--adm-exito-texto); }
+.adm-metrica__delta--peligro { color: var(--adm-peligro-texto); }
 
 /* Métrica seleccionable (por ejemplo, periodo de reporte) */
 .adm-metrica--boton { cursor: pointer; text-align: left; font: inherit; }
+.adm-metrica--boton:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; }
+.adm-metrica--boton:active { transform: scale(var(--mov-pulsar, 0.98)); transition-duration: var(--mov-pulsacion, 90ms); }
 .adm-metrica--activa { border-color: var(--adm-primario-borde); box-shadow: var(--adm-anillo), var(--adm-sombra-sm); background: linear-gradient(160deg, #ffffff, var(--adm-primario-claro)); }
 
 /* ── Formularios ─────────────────────────────────────────────── */
@@ -625,8 +646,24 @@
 .adm-input-grupo > .adm-input:not(:last-child)  { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
 .adm-ayuda { font-size: 12.5px; font-weight: 400; line-height: 1.45; color: var(--adm-texto-suave); }
-.adm-ayuda--error { color: var(--adm-peligro); font-weight: 500; }
-.adm-ayuda--exito { color: var(--adm-exito); font-weight: 500; }
+.adm-ayuda--error { color: var(--adm-peligro-texto); font-weight: 500; }
+.adm-ayuda--exito { color: var(--adm-exito-texto); font-weight: 500; }
+
+/* Error junto al campo: icono + texto, enlazado con aria-describedby.
+   <p class="adm-ayuda adm-ayuda--error" id="nombre-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> Escribe el nombre</p> */
+.adm-ayuda--error,
+.adm-ayuda--exito { display: flex; align-items: flex-start; gap: 5px; }
+.adm-ayuda--error > i,
+.adm-ayuda--exito > i { flex-shrink: 0; margin-top: 1px; font-size: 13px; }
+
+/* Campo inválido: [attr.aria-invalid]="ctrl.invalid && ctrl.touched" pinta el
+   borde (equivale a .adm-input--error y además lo anuncia el lector). */
+.adm-input[aria-invalid='true'],
+.adm-select[aria-invalid='true'],
+.adm-textarea[aria-invalid='true'] { border-color: var(--adm-peligro); }
+.adm-input[aria-invalid='true']:focus,
+.adm-select[aria-invalid='true']:focus,
+.adm-textarea[aria-invalid='true']:focus { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.14); }
 
 .adm-fila {
   display: flex;

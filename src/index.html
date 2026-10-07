@@ -6,15 +6,18 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="HatunSales S.A.C — Ferretería: tienda online y sistema de ventas.">
-  <meta name="theme-color" content="#4f46e5">
+  <!-- Solo tema claro: evita el oscurecido forzado de Chrome en Android. -->
+  <meta name="color-scheme" content="only light">
+  <!-- Color de la barra del navegador: el mismo de la franja superior de la tienda. -->
+  <meta name="theme-color" content="#0d1220">
   <meta name="application-name" content="HatunSales S.A.C">
   <meta name="apple-mobile-web-app-title" content="HatunSales S.A.C">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <!-- Inter: la fuente que ya declaran los estilos; sin esta carga caía a Segoe/Arial. -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <!-- Fuentes autoalojadas (Fontsource): se precargan las de alfabeto latino;
+       latin-ext solo se descarga si aparece un carácter de ese rango. -->
+  <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 <body>
   <app-root></app-root>

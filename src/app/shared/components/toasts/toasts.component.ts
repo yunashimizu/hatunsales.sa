@@ -1,147 +1,144 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, inject } from '@angular/core';
-import { Subscription } from 'rxjs';
-import { NotificationService, Toast } from '../../services/notification.service';
+import { DOCUMENT } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  ViewEncapsulation,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, NavigationStart, Router } from '@angular/router';
+import { Aviso, NotificationService, TipoAviso } from '../../services/notification.service';
 
-const TITULOS: Record<Toast['type'], string> = {
-  success: 'Listo',
-  error: 'Error',
-  warning: 'Atención',
-  info: 'Aviso',
-};
+export type TemaAvisos = 'panel' | 'tienda' | 'auth';
 
-const ICONOS: Record<Toast['type'], string> = {
-  success: 'bi-check-circle-fill',
-  error: 'bi-x-circle-fill',
-  warning: 'bi-exclamation-triangle-fill',
+const ICONOS: Readonly<Record<TipoAviso, string>> = {
+  exito: 'bi-check-circle-fill',
+  error: 'bi-x-octagon-fill',
+  advertencia: 'bi-exclamation-triangle-fill',
   info: 'bi-info-circle-fill',
+  cargando: 'bi-arrow-repeat',
 };
+
+function temaDeUrl(url: string): TemaAvisos {
+  if (url.startsWith('/store')) return 'tienda';
+  if (url.startsWith('/auth')) return 'auth';
+  return 'panel';
+}
+
+function rutaSinConsulta(url: string): string {
+  return url.split(/[?#]/, 1)[0] ?? url;
+}
 
 /**
- * Avisos apilados arriba a la derecha. Las clases llevan prefijo `nt-`:
- * Bootstrap define `.toast` y la oculta con `.toast:not(.show)`, así que con
- * el nombre genérico los avisos no se veían.
+ * Pila de avisos `nt-*` de toda la app (montada una sola vez en app.html).
+ *
+ * - Posición y aspecto según la zona: panel (arriba a la derecha, bajo la
+ *   cabecera), tienda (bajo su cabecera sticky) y login; en móvil, abajo al
+ *   centro respetando el área segura. Las páginas pueden mover la pila con
+ *   variables CSS (--hs-avisos-*) o con los marcadores .hs-reserva-inferior y
+ *   .hs-cajon-abierto (ver toasts.component.css).
+ * - Entrada y salida con la API nativa animate.enter / animate.leave.
+ * - Pausa al pasar el ratón o con el foco dentro; Escape cierra el aviso
+ *   enfocado y el foco vuelve a donde estaba.
+ * - Los lectores de pantalla leen las dos regiones vivas (no cada aviso).
+ *
+ * Las clases llevan prefijo `nt-` (Bootstrap ya define `.toast`) y la
+ * encapsulación está desactivada para poder usar `body:has(...)`.
  */
 @Component({
   selector: 'app-toasts',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
-  template: `
-    <div class="nt-pila" aria-live="polite">
-      <div *ngFor="let t of toasts; trackBy: trackToast"
-           class="nt-aviso"
-           [ngClass]="'nt-aviso--' + t.type"
-           [style.--nt-dur]="(t.timeout && t.timeout > 0 ? t.timeout : 0) + 'ms'"
-           [attr.role]="t.type === 'error' ? 'alert' : 'status'">
-        <span class="nt-aviso__icono" aria-hidden="true"><i class="bi" [ngClass]="iconoDe(t.type)"></i></span>
-        <div class="nt-aviso__cuerpo">
-          <span class="nt-aviso__titulo">{{ tituloDe(t.type) }}</span>
-          <span class="nt-aviso__texto">{{ t.message }}</span>
-        </div>
-        <button type="button" class="nt-aviso__cerrar" (click)="dismiss(t.id)" aria-label="Cerrar aviso">
-          <i class="bi bi-x-lg" aria-hidden="true"></i>
-        </button>
-        <span class="nt-aviso__progreso" *ngIf="t.timeout && t.timeout > 0" aria-hidden="true"></span>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .nt-pila {
-      position: fixed; top: 76px; right: 20px; z-index: 2100;
-      display: flex; flex-direction: column; gap: 10px;
-      width: min(400px, calc(100vw - 32px));
-      pointer-events: none;
-    }
-    .nt-aviso {
-      --nt-color: #0284c7; --nt-fondo: #f0f9ff;
-      position: relative; overflow: hidden;
-      display: flex; align-items: flex-start; gap: 12px;
-      padding: 12px 12px 13px 14px;
-      background: rgba(255, 255, 255, 0.97);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      color: #0f172a;
-      font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
-      font-size: 13.5px; line-height: 1.45;
-      border: 1px solid #e4e8f0; border-radius: 14px;
-      box-shadow: 0 18px 44px -12px rgba(15, 23, 42, 0.26), 0 4px 12px -4px rgba(15, 23, 42, 0.10);
-      pointer-events: auto;
-      animation: nt-entrar 260ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .nt-aviso--success { --nt-color: #059669; --nt-fondo: #ecfdf5; }
-    .nt-aviso--error   { --nt-color: #dc2626; --nt-fondo: #fef2f2; }
-    .nt-aviso--warning { --nt-color: #d97706; --nt-fondo: #fffbeb; }
-    .nt-aviso--info    { --nt-color: #0284c7; --nt-fondo: #f0f9ff; }
-    .nt-aviso__icono {
-      display: grid; place-items: center; flex-shrink: 0;
-      width: 34px; height: 34px; border-radius: 10px;
-      background: var(--nt-fondo); color: var(--nt-color); font-size: 16px;
-    }
-    .nt-aviso__cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-top: 1px; }
-    .nt-aviso__titulo { font-size: 12.5px; font-weight: 700; color: var(--nt-color); letter-spacing: 0.01em; }
-    .nt-aviso__texto { color: #1e293b; overflow-wrap: anywhere; }
-    .nt-aviso__cerrar {
-      flex-shrink: 0; display: grid; place-items: center;
-      width: 28px; height: 28px; margin: -2px -2px 0 0;
-      border: 0; border-radius: 8px; background: transparent;
-      color: #94a3b8; font-size: 12px; cursor: pointer;
-      transition: background 150ms, color 150ms;
-    }
-    .nt-aviso__cerrar:hover { background: #f1f4f9; color: #0f172a; }
-    .nt-aviso__cerrar:focus-visible { outline: 2px solid #4f46e5; outline-offset: 1px; }
-    .nt-aviso__progreso {
-      position: absolute; left: 0; bottom: 0; height: 3px; width: 100%;
-      background: var(--nt-color); opacity: 0.55; transform-origin: left;
-      animation: nt-progreso var(--nt-dur, 4000ms) linear forwards;
-    }
-    .nt-aviso:hover .nt-aviso__progreso { animation-play-state: paused; }
-    @keyframes nt-entrar {
-      from { opacity: 0; transform: translateY(-10px) scale(0.98); }
-      to   { opacity: 1; transform: none; }
-    }
-    @keyframes nt-progreso { from { transform: scaleX(1); } to { transform: scaleX(0); } }
-    @media (max-width: 640px) {
-      .nt-pila { top: 12px; right: 12px; left: 12px; width: auto; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .nt-aviso { animation: none; }
-      .nt-aviso__progreso { animation: none; display: none; }
-    }
-  `]
+  encapsulation: ViewEncapsulation.None,
+  templateUrl: './toasts.component.html',
+  styleUrl: './toasts.component.css',
 })
-export class ToastsComponent implements OnDestroy {
-  toasts: Toast[] = [];
-  private readonly sub: Subscription;
-  private readonly cdr = inject(ChangeDetectorRef);
+export class ToastsComponent {
+  protected readonly avisos = inject(NotificationService);
+  private readonly router = inject(Router);
+  private readonly documento = inject(DOCUMENT);
+  private readonly pila = viewChild.required<ElementRef<HTMLElement>>('pila');
 
-  constructor(ns: NotificationService) {
-    this.sub = ns.toasts$.subscribe((t) => {
-      this.toasts = [...this.toasts, t];
-      this.cdr.markForCheck();
-      if (t.timeout && t.timeout > 0) {
-        setTimeout(() => this.dismiss(t.id), t.timeout);
+  protected readonly tema = signal<TemaAvisos>(temaDeUrl(this.router.url));
+  protected readonly vacia = computed(() => this.avisos.avisos().length === 0);
+
+  /** Elemento enfocado antes de entrar a los avisos con el teclado. */
+  private focoPrevio: HTMLElement | null = null;
+
+  constructor() {
+    let rutaActual = rutaSinConsulta(this.router.url);
+    this.router.events.pipe(takeUntilDestroyed()).subscribe((evento) => {
+      if (evento instanceof NavigationStart) {
+        // Otra pantalla: los "Reintentar" de la anterior ya no aplican.
+        if (rutaSinConsulta(evento.url) !== rutaActual) this.avisos.descartarReintentos();
+      } else if (evento instanceof NavigationEnd) {
+        rutaActual = rutaSinConsulta(evento.urlAfterRedirects);
+        this.tema.set(temaDeUrl(evento.urlAfterRedirects));
       }
     });
   }
 
-  iconoDe(tipo: Toast['type']): string {
-    return ICONOS[tipo] ?? ICONOS.info;
+  protected icono(aviso: Aviso): string {
+    return aviso.icono || ICONOS[aviso.tipo];
   }
 
-  tituloDe(tipo: Toast['type']): string {
-    return TITULOS[tipo] ?? TITULOS.info;
+  protected progresoInicial(aviso: Aviso): number {
+    return aviso.duracion > 0 ? Math.min(1, aviso.restante / aviso.duracion) : 1;
   }
 
-  trackToast(_i: number, t: Toast): number {
-    return t.id;
+  protected alEntrarPuntero(evento: PointerEvent): void {
+    if (evento.pointerType !== 'touch') this.avisos.pausar('hover');
   }
 
-  dismiss(id: number): void {
-    this.toasts = this.toasts.filter((t) => t.id !== id);
-    this.cdr.markForCheck();
+  protected alSalirPuntero(evento: PointerEvent): void {
+    if (evento.pointerType !== 'touch') this.avisos.reanudar('hover');
   }
 
-  ngOnDestroy(): void {
-    this.sub.unsubscribe();
+  protected alEntrarFoco(evento: FocusEvent): void {
+    const desde = evento.relatedTarget;
+    if (!(desde instanceof Node) || !this.pila().nativeElement.contains(desde)) {
+      this.focoPrevio = desde instanceof HTMLElement ? desde : null;
+    }
+    this.avisos.pausar('foco');
+  }
+
+  protected alSalirFoco(evento: FocusEvent): void {
+    const hacia = evento.relatedTarget;
+    if (hacia instanceof Node && this.pila().nativeElement.contains(hacia)) return;
+    this.avisos.reanudar('foco');
+  }
+
+  protected alPulsarEscape(aviso: Aviso, evento: Event): void {
+    if (!aviso.cerrable) return;
+    // Que el Escape no cierre además un panel lateral o un modal de la página.
+    evento.stopPropagation();
+    this.cerrar(aviso);
+  }
+
+  protected cerrar(aviso: Aviso): void {
+    this.conFocoGestionado(aviso, () => this.avisos.cerrar(aviso.id));
+  }
+
+  protected ejecutar(aviso: Aviso): void {
+    this.conFocoGestionado(aviso, () => this.avisos.ejecutarAccion(aviso.id));
+  }
+
+  /** Si el aviso que se va tenía el foco, lo pasa al siguiente aviso o lo devuelve a la página. */
+  private conFocoGestionado(aviso: Aviso, accion: () => void): void {
+    const raiz = this.pila().nativeElement;
+    const elemento = raiz.querySelector<HTMLElement>(`[data-aviso-id="${aviso.id}"]`);
+    const activo = this.documento.activeElement;
+    const teniaFoco = !!elemento && !!activo && elemento.contains(activo);
+    accion();
+    if (!teniaFoco) return;
+    const siguiente = Array.from(raiz.querySelectorAll<HTMLElement>('[data-aviso-id]'))
+      .find((el) => el !== elemento && !el.classList.contains('nt-salir'))
+      ?.querySelector<HTMLElement>('button');
+    const destino = siguiente ?? (this.focoPrevio?.isConnected ? this.focoPrevio : null);
+    destino?.focus({ preventScroll: true });
   }
 }

@@ -1,0 +1,117 @@
+/* ---------------------------------------------------------------------------
+   Tokens globales · HatunSales
+
+   Base común del panel (--adm-*, en admin/styles/admin-ui.css), la tienda
+   (--t-*) y el login. Las páginas deberían usar los tokens de su zona; estos
+   son la fuente de verdad de la que derivan.
+   Contraste: todo token de texto pasa WCAG AA (≥ 4,5:1) sobre las superficies
+   claras de su zona. Los colores «vivos» (--t-exito, --t-acento…) quedan para
+   iconos, puntos, bordes y fondos con texto oscuro.
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* ── Tipografía ─────────────────────────────────────────────── */
+  --hs-fuente: 'Inter Variable', 'Inter', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --hs-fuente-titulos: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback',
+    'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --hs-fuente-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Reboot de Bootstrap lee esta variable para body/form: misma familia en todo. */
+  --bs-body-font-family: var(--hs-fuente);
+
+  /* ── Espaciado (escala 4/8/12/16/24/32) ─────────────────────── */
+  --hs-esp-1: 4px;
+  --hs-esp-2: 8px;
+  --hs-esp-3: 12px;
+  --hs-esp-4: 16px;
+  --hs-esp-5: 24px;
+  --hs-esp-6: 32px;
+
+  /* ── Interacción ────────────────────────────────────────────── */
+  --hs-foco: #4f46e5;              /* anillo de foco (6,3:1 sobre blanco) */
+  --hs-foco-ancho: 2px;
+  --hs-foco-separacion: 2px;
+  --hs-tactil: 44px;               /* objetivo táctil mínimo en puntero grueso */
+
+  /* Enlaces */
+  --hs-enlace: #4f46e5;
+  --hs-enlace-hover: #4338ca;
+
+  /* ── Escala de z-index (de abajo arriba) ────────────────────── */
+  --z-barra-pos: 60;               /* barra de total del POS */
+  --z-topbar: 99;
+  --z-sidebar: 100;
+  --z-tienda-cabecera: 1030;
+  --z-capa: 1040;                  /* capa del carrito */
+  --z-velo: 1050;                  /* .adm-velo y panel del carrito */
+  --z-panel: 1060;                 /* .adm-panel */
+  --z-modal: 1070;                 /* .adm-modal */
+  --z-overlay: 1080;               /* .cdk-overlay-container (menús, diálogos del CDK) */
+  --z-visor: 1200;                 /* .adm-visor */
+  --z-alerta: 2000;                /* SweetAlert */
+  --z-toast: 2100;                 /* toasts nt-* */
+}
+
+/* ---------------------------------------------------------------------------
+   Tienda (--t-*). Se usan dentro de /store.
+   --------------------------------------------------------------------------- */
+:root {
+  --t-fuente: var(--hs-fuente);
+  --t-fuente-titulos: var(--hs-fuente-titulos);
+
+  --t-fondo: #f7f8fc;
+  --t-superficie: #ffffff;
+  --t-superficie-2: #f4f6fb;
+  --t-borde: #e6e9f2;
+  --t-borde-fuerte: #d3d8e8;
+
+  --t-texto: #0d1220;
+  --t-texto-suave: #5b6377;        /* 6,0:1 */
+  --t-texto-tenue: #667085;        /* 5,0:1 (antes #8b93a7, 3,1:1) */
+
+  --t-primario: #4f46e5;
+  --t-primario-osc: #4338ca;
+  --t-primario-claro: #eef0ff;
+
+  /* Naranja de marca: vivo solo con texto oscuro o sobre fondo oscuro (6,7:1
+     contra #0d1220). Para texto naranja sobre claro, --t-acento-texto. */
+  --t-acento: #f97316;
+  --t-acento-texto: #c2410c;       /* 5,2:1 sobre blanco */
+
+  /* Botón de compra (CTA): naranja oscuro con texto blanco (5,2:1). */
+  --t-cta: #c2410c;
+  --t-cta-hover: #9a3412;
+  --t-cta-texto: #ffffff;
+
+  /* Estados: el color vivo es para iconos/puntos/bordes; el «-texto» para letras. */
+  --t-exito: #10b981;
+  --t-exito-texto: #047857;        /* 5,5:1 */
+  --t-exito-claro: #ecfdf5;
+  --t-aviso: #f59e0b;
+  --t-aviso-texto: #b45309;        /* 5,0:1 */
+  --t-aviso-claro: #fffbeb;
+  --t-peligro: #ef4444;
+  --t-peligro-texto: #b91c1c;      /* 6,5:1 */
+  --t-peligro-claro: #fef2f2;
+  --t-info-texto: #0369a1;         /* 5,9:1 */
+  --t-info-claro: #f0f9ff;
+  --t-estrella: #fbbf24;
+
+  --t-r-sm: 12px;
+  --t-r-md: 16px;
+  --t-r-lg: 24px;
+  --t-r-full: 999px;
+
+  --t-sombra-sm: 0 1px 2px rgba(13, 18, 32, 0.04), 0 1px 3px rgba(13, 18, 32, 0.06);
+  --t-sombra-md: 0 4px 12px rgba(13, 18, 32, 0.06), 0 2px 4px rgba(13, 18, 32, 0.04);
+  --t-sombra-lg: 0 18px 40px rgba(13, 18, 32, 0.1), 0 4px 12px rgba(13, 18, 32, 0.05);
+  --t-sombra-xl: 0 32px 64px rgba(13, 18, 32, 0.16);
+
+  /* Transición de micro-interacciones de la tienda (sistema de movimiento). */
+  --t-transicion: var(--mov-micro, 140ms) var(--ease-salida-suave, cubic-bezier(0.2, 0, 0, 1));
+
+  /* Alto de la barra sticky de la tienda. El header publica el valor real en
+     document.documentElement; este es el respaldo. */
+  --t-cabecera-alto: 124px;
+}

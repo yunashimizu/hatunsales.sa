@@ -1,0 +1,130 @@
+/* ---------------------------------------------------------------------------
+   Base global · HatunSales
+
+   Va después de Bootstrap Reboot (angular.json) y del preflight de Tailwind
+   (capa base). Aquí solo hay estilos de elemento y utilidades de accesibilidad
+   compartidas; los componentes visuales viven en admin-ui.css (panel) y en el
+   CSS de cada componente (tienda).
+   --------------------------------------------------------------------------- */
+
+:root {
+  font-family: var(--hs-fuente);
+  color-scheme: light;
+  color: #111827;
+  background: #f7f8fb;
+  /* Reboot activa scroll-behavior: smooth en :root; se anula para que la
+     restauración de scroll del router no se anime. Los scrollTo que quieren
+     suavidad ya pasan behavior: 'smooth'. */
+  scroll-behavior: auto;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--hs-fuente);
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+/* Enlaces: Reboot los subraya y pinta de azul; se mantienen sin subrayar y con
+   el índigo de la marca. Sin @layer para que gane a Reboot y a Tailwind. */
+a {
+  color: var(--hs-enlace);
+  text-decoration: none;
+  background-color: transparent;
+}
+
+a:hover {
+  color: var(--hs-enlace-hover);
+  text-decoration: underline;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(79, 70, 229, 0.18);
+}
+
+/* Foco visible por defecto. En la capa base: cualquier estilo de componente o
+   utilidad de Tailwind que defina su propio foco gana a esta regla. */
+@layer base {
+  :where(a[href], button, [role='button'], [tabindex]:not([tabindex='-1']), summary, select, textarea,
+    input:not([type='hidden'])):focus-visible {
+    outline: var(--hs-foco-ancho) solid var(--hs-foco);
+    outline-offset: var(--hs-foco-separacion);
+  }
+}
+
+/* Texto solo para lectores de pantalla (mismas reglas que tenía Bootstrap 5.3,
+   que ya no se carga completo). El CDK aporta además .cdk-visually-hidden. */
+.visually-hidden,
+.visually-hidden-focusable:not(:focus):not(:focus-within) {
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.visually-hidden:not(caption),
+.visually-hidden-focusable:not(:focus):not(:focus-within):not(caption) {
+  position: absolute !important;
+}
+
+/* iPhone/iPad: Safari amplía la página al enfocar un campo de menos de 16 px.
+   Con esta guarda ningún campo baja de 16 px allí; no afecta a escritorio ni a
+   Android. (Un campo de más de 16 px dentro de un contenedor de 16 px quedaría
+   en 16 px: hoy no hay ninguno.) */
+@supports (-webkit-touch-callout: none) {
+  @media (pointer: coarse) {
+    input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'],
+      [type='button'], [type='submit'], [type='reset'], [type='image']),
+    select,
+    textarea {
+      font-size: max(16px, 1em) !important;
+    }
+  }
+}
+
+/* Tienda: titulares con Plus Jakarta Sans. Los componentes que fijan su propio
+   letter-spacing o familia siguen mandando (van después y con igual o mayor
+   especificidad). */
+.tienda :is(h1, h2, h3) {
+  font-family: var(--t-fuente-titulos);
+  letter-spacing: -0.02em;
+}
+
+/* Overlays del CDK (menús, diálogos): por encima de paneles (1060) y modales
+   (1070) del panel; por debajo de SweetAlert (2000) y los toasts (2100). */
+.cdk-overlay-container {
+  z-index: var(--z-overlay, 1080);
+}
+
+/* Velo por defecto de los diálogos del CDK, con el aspecto de .adm-velo.
+   (No uses backdropClass: 'adm-velo': su z-index lo pondría sobre el diálogo.) */
+.cdk-overlay-dark-backdrop {
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.cdk-overlay-backdrop {
+  transition-duration: var(--mov-entrada, 240ms);
+  transition-timing-function: var(--ease-salida-suave, cubic-bezier(0.2, 0, 0, 1));
+}

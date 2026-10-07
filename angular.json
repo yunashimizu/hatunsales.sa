@@ -52,11 +52,24 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "inter-latin*-wght-normal.woff2",
+                "input": "node_modules/@fontsource-variable/inter/files",
+                "output": "fonts"
+              },
+              {
+                "glob": "plus-jakarta-sans-latin*-wght-normal.woff2",
+                "input": "node_modules/@fontsource-variable/plus-jakarta-sans/files",
+                "output": "fonts"
               }
             ],
             "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap.min.css",
+              "node_modules/bootstrap/dist/css/bootstrap-reboot.min.css",
               "node_modules/bootstrap-icons/font/bootstrap-icons.css",
+              "node_modules/@angular/cdk/overlay-prebuilt.css",
+              "node_modules/@angular/cdk/a11y-prebuilt.css",
+              "node_modules/@angular/cdk/text-field-prebuilt.css",
               "src/styles.css"
             ],
             "scripts": [],

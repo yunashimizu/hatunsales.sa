@@ -1,5 +1,21 @@
-import { Injectable } from '@angular/core';
-import Swal from 'sweetalert2';
+import { isPlatformBrowser } from '@angular/common';
+import { DestroyRef, Injectable, PLATFORM_ID, inject } from '@angular/core';
+import { NavigationEnd, NavigationStart, Router } from '@angular/router';
+import { Observable, firstValueFrom, isObservable } from 'rxjs';
+import Swal, { SweetAlertCustomClass, SweetAlertIcon, SweetAlertOptions, SweetAlertResult } from 'sweetalert2';
+import {
+  CODIGOS_GLOBALES,
+  MENSAJES_GLOBALES,
+  MENSAJE_SESION_EXPIRADA,
+  decodificarEntidadesHtml,
+  describirError,
+  escapeHtmlAlerta,
+  htmlATextoPlano,
+  htmlDeDescripcion,
+  idPeticionDeError,
+  yaNotificado,
+} from '../utils/errores-http.util';
+import { NotificationService, TipoAviso } from './notification.service';
 
 export interface AlertConfig {
   title?: string;
@@ -7,292 +23,486 @@ export interface AlertConfig {
   type?: 'success' | 'error' | 'warning' | 'info' | 'question';
   confirmText?: string;
   cancelText?: string;
+  /** Tercer botón (p. ej. "No guardar"); el resultado llega como `isDenied`. */
+  denyText?: string;
   allowOutsideClick?: boolean;
   allowEscapeKey?: boolean;
   timer?: number;
   /**
-   * Si true, `message` se interpreta como HTML (Fase 8).
-   * Por defecto se escapa para evitar XSS con mensajes de API / datos de usuario.
+   * Si true, `message` es HTML propio (se sanea con una lista blanca antes de
+   * mostrarlo). Por defecto se muestra como texto: nunca interpolar datos de
+   * usuario sin escapeHtml.
    */
   allowHtml?: boolean;
   /**
-   * Confirmación destructiva (eliminar, anular, vaciar…): el botón principal
-   * se pinta en rojo. Si no se indica, se deduce del texto del botón.
+   * Confirmación destructiva (eliminar, anular, vaciar…): botón rojo y foco en
+   * Cancelar. Si no se indica, se deduce del texto del botón o del título.
    */
   danger?: boolean;
+  /** El título es HTML propio (también se sanea). Por defecto el título es texto plano. */
+  tituloHtml?: boolean;
+  /** Código del backend; lo rellena errorOperativo(). */
+  codigo?: string;
+  /** true si la capa global ya avisó del error (lo rellena errorOperativo()); no se abre el modal. */
+  notificado?: boolean;
+  /** Solo toast(): avisos con la misma clave se agrupan (×N). */
+  clave?: string;
+  /** Botón enfocado al abrir una confirmación. */
+  foco?: 'confirmar' | 'cancelar';
 }
 
-/** Escapa texto para uso seguro en HTML (Alert2 / Swal). */
+export interface OpcionesPedirTexto extends AlertConfig {
+  /** Etiqueta visible del campo. */
+  etiqueta?: string;
+  placeholder?: string;
+  /** Caracteres mínimos (1 por defecto). */
+  minimo?: number;
+  /** Caracteres máximos (250 por defecto). */
+  maximo?: number;
+  mensajeMinimo?: string;
+  valorInicial?: string;
+  /** Área de texto de varias líneas. */
+  multilinea?: boolean;
+}
+
+/** Forma de `prompt()` (compatibilidad con el contrato CMP-10). */
+export type OpcionesPrompt = AlertConfig & { inputLabel?: string; inputPlaceholder?: string; minLength?: number };
+
+type PosicionToastLegada = 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end';
+
+interface OpcionesBase {
+  heightAuto: boolean;
+  returnFocus: boolean;
+  customClass: SweetAlertCustomClass;
+}
+
+/** Escapa texto para uso seguro en HTML (SweetAlert). */
 export function escapeHtml(texto: string): string {
-  return String(texto ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return escapeHtmlAlerta(texto);
 }
 
 /** Verbos que identifican una acción irreversible en el botón o el título. */
-const VERBOS_DESTRUCTIVOS = /\b(eliminar|borrar|anular|vaciar|quitar|desactivar|descartar|cerrar sesi[oó]n|cancelar (el|este|la|esta)\b)/i;
+const VERBOS_DESTRUCTIVOS =
+  /\b(eliminar|borrar|anular|vaciar|quitar|desactivar|descartar|rechazar|revocar|bloquear|dar de baja|cerrar sesi[oó]n|cancelar)\b/i;
+const TITULO_DESTRUCTIVO = /^¿?\s*(eliminar|borrar|anular|vaciar|quitar|desactivar|descartar|rechazar|cancelar)\b/i;
 
 function esAccionDestructiva(textoBoton: string, titulo?: string): boolean {
-  return VERBOS_DESTRUCTIVOS.test(textoBoton) || (!!titulo && /^¿?(eliminar|borrar|anular|vaciar|quitar|desactivar|descartar)\b/i.test(titulo));
+  return VERBOS_DESTRUCTIVOS.test(textoBoton) || (!!titulo && TITULO_DESTRUCTIVO.test(titulo.trim()));
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+const TIPO_TOAST: Readonly<Record<NonNullable<AlertConfig['type']>, TipoAviso>> = {
+  success: 'exito',
+  error: 'error',
+  warning: 'advertencia',
+  info: 'info',
+  question: 'info',
+};
+
+const RESULTADO_DESCARTADO: SweetAlertResult = { isConfirmed: false, isDenied: false, isDismissed: true };
+
+/* ===========================================================================
+ * Saneado de HTML (defensa en profundidad)
+ * ======================================================================== */
+
+const ETIQUETAS_PERMITIDAS = new Set([
+  'a', 'b', 'br', 'code', 'details', 'div', 'em', 'h3', 'h4', 'hr', 'i', 'kbd', 'li', 'mark', 'ol', 'p',
+  'small', 'span', 'strong', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'u', 'ul',
+]);
+/** Se descartan con todo su contenido. */
+const ETIQUETAS_PELIGROSAS = new Set([
+  'script', 'style', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'template', 'noscript', 'svg',
+  'math', 'textarea', 'select', 'option', 'title', 'xmp', 'noembed', 'noframes', 'plaintext', 'link', 'meta',
+  'base', 'form', 'input', 'button', 'img', 'video', 'audio', 'source', 'picture', 'canvas',
+]);
+const ATRIBUTOS_PERMITIDOS = new Set(['class', 'style', 'title', 'href', 'target', 'rel', 'colspan', 'rowspan', 'role', 'open']);
+const ESTILO_PELIGROSO = /url\s*\(|expression\s*\(|@import|javascript:|behavior\s*:|-moz-binding/i;
+const ENLACE_SEGURO = /^(https?:|mailto:|tel:|#|\/(?!\/))/i;
+
+/**
+ * Deja solo etiquetas y atributos inocuos del HTML que las pantallas marcan
+ * como propio (`allowHtml`). Así, aunque alguien olvide escapar un dato de
+ * usuario, no puede ejecutar código (`<img onerror>`, `javascript:`…).
+ */
+function sanearHtml(html: string): string {
+  if (typeof DOMParser === 'undefined') return escapeHtmlAlerta(htmlATextoPlano(html));
+  // Documento inerte: no ejecuta scripts ni carga imágenes mientras se analiza.
+  const doc = new DOMParser().parseFromString(String(html ?? ''), 'text/html');
+  const limpio = doc.createElement('div');
+  copiarNodosSeguros(doc.body, limpio, doc);
+  return limpio.innerHTML;
+}
+
+function copiarNodosSeguros(origen: Node, destino: Node, doc: Document): void {
+  origen.childNodes.forEach((nodo) => {
+    if (nodo.nodeType === Node.TEXT_NODE) {
+      destino.appendChild(doc.createTextNode(nodo.textContent ?? ''));
+      return;
+    }
+    if (nodo.nodeType !== Node.ELEMENT_NODE) return;
+    const elemento = nodo as Element;
+    const etiqueta = elemento.tagName.toLowerCase();
+    if (ETIQUETAS_PELIGROSAS.has(etiqueta)) return;
+    if (!ETIQUETAS_PERMITIDAS.has(etiqueta)) {
+      copiarNodosSeguros(elemento, destino, doc); // etiqueta desconocida: se conserva solo su texto
+      return;
+    }
+    const copia = doc.createElement(etiqueta);
+    for (const atributo of Array.from(elemento.attributes)) {
+      const nombre = atributo.name.toLowerCase();
+      const valor = atributo.value.trim();
+      if (!ATRIBUTOS_PERMITIDOS.has(nombre) && !nombre.startsWith('aria-')) continue;
+      if (nombre === 'href' && !ENLACE_SEGURO.test(valor)) continue;
+      if (nombre === 'target' && valor !== '_blank') continue;
+      if (nombre === 'style' && ESTILO_PELIGROSO.test(valor)) continue;
+      copia.setAttribute(nombre, valor);
+    }
+    if (etiqueta === 'a' && copia.getAttribute('target') === '_blank') copia.setAttribute('rel', 'noopener noreferrer');
+    copiarNodosSeguros(elemento, copia, doc);
+    destino.appendChild(copia);
+  });
+}
+
+/** Texto de botones y validaciones: Swal los inserta como HTML, así que se escapan. */
+function textoBoton(texto: string | undefined, porDefecto: string): string {
+  return escapeHtmlAlerta(decodificarEntidadesHtml(texto || porDefecto));
+}
+
+/**
+ * Tema mínimo por si `shared/styles/alertas.css` (tema completo, global) aún
+ * no se importó en styles.css: mantiene los modales por encima de paneles y
+ * cajones y el botón de peligro en rojo.
+ */
+const TEMA_RESPALDO = `
+.swal2-container{z-index:2000}
+.swal2-container{--swal2-confirm-button-background-color:#4f46e5;--swal2-border-radius:16px;--swal2-width:min(30em,calc(100vw - 32px))}
+.swal2-popup{font-family:'Inter','Segoe UI',Roboto,sans-serif}
+.swal2-confirm.hs-swal-peligro{--swal2-confirm-button-background-color:#dc2626}
+.swal2-html-container small{display:block;margin-top:.6rem;color:#64748b;font-size:.85em}
+.swal2-html-container .hs-swal-lista{margin:.4rem 0 0;padding-left:1.2em;text-align:left}
+`;
+
+/**
+ * Modales de toda la app (SweetAlert2 con el tema de la casa).
+ *
+ * - Solo modales: `toast()` delega en NotificationService, así un aviso nunca
+ *   cierra un modal o una confirmación abiertos.
+ * - Títulos siempre como texto (`titleText`); el HTML del mensaje solo con
+ *   `allowHtml` y pasa por un saneador de lista blanca.
+ * - Se cierra solo al cambiar de pantalla.
+ * - No inyectar en el interceptor ni en el ErrorHandler: metería sweetalert2
+ *   en el bundle inicial.
+ */
+@Injectable({ providedIn: 'root' })
 export class AlertService {
+  private readonly avisos = inject(NotificationService);
+  private readonly router = inject(Router);
+  private readonly navegador = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
-    this.configureTheme();
+    if (!this.navegador) return;
+    this.asegurarTema();
+    this.cerrarAlCambiarDePantalla();
   }
 
-  /** Tema alineado con la paleta del panel (indigo, sin gradientes). Se inyecta una sola vez y solo en navegador. */
-  private configureTheme() {
-    if (typeof document === 'undefined') return;
-    if (document.getElementById('hs-alert-theme')) return;
+  /* ------------------------------------------------------------------------
+   * Modales informativos (compatibles con la v1: devuelven el resultado de Swal)
+   * --------------------------------------------------------------------- */
 
-    const style = document.createElement('style');
-    style.id = 'hs-alert-theme';
-    style.textContent = `
-      .swal2-container { z-index: 2000 !important; padding: 16px; }
-      .swal2-container.swal2-backdrop-show { background: rgba(15, 23, 42, 0.5) !important; backdrop-filter: blur(3px); }
-      .swal2-popup {
-        width: min(30em, calc(100vw - 32px)) !important;
-        border-radius: 20px !important;
-        padding: 1.6rem 1.5rem 1.4rem !important;
-        border: 1px solid #e4e8f0;
-        box-shadow: 0 24px 60px -16px rgba(15, 23, 42, 0.32), 0 8px 24px -8px rgba(15, 23, 42, 0.12) !important;
-        font-family: 'Inter', 'Segoe UI', Roboto, sans-serif !important;
-        color: #0f172a;
-      }
-      .swal2-title {
-        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
-        font-size: 1.2rem !important;
-        font-weight: 700 !important;
-        letter-spacing: -0.015em;
-        color: #0f172a !important;
-        padding: 0.4em 0.6em 0 !important;
-      }
-      .swal2-html-container {
-        margin: 0.7em 0.6em 0 !important;
-        font-size: 0.92rem !important;
-        line-height: 1.55 !important;
-        color: #5b6578 !important;
-      }
-      .swal2-html-container small { display: block; margin-top: 0.5rem; color: #8a94a6; }
-      .swal2-html-container strong { color: #0f172a; }
-
-      /* Icono: chip redondeado con tinte del estado, sin anillo */
-      .swal2-icon {
-        width: 4.6em !important;
-        height: 4.6em !important;
-        margin: 0.4em auto 0.9em !important;
-        border: 0 !important;
-        border-radius: 22px !important;
-        font-size: 15px !important;
-      }
-      .swal2-icon .swal2-icon-content { font-size: 2.4em !important; font-weight: 700; }
-      .swal2-icon.swal2-success { background: #ecfdf5; color: #059669; }
-      .swal2-icon.swal2-success .swal2-success-ring,
-      .swal2-icon.swal2-success .swal2-success-fix,
-      .swal2-icon.swal2-success .swal2-success-circular-line-left,
-      .swal2-icon.swal2-success .swal2-success-circular-line-right { display: none !important; }
-      .swal2-icon.swal2-success [class^='swal2-success-line'] { background-color: #059669 !important; height: 0.32em !important; border-radius: 3px; }
-      .swal2-icon.swal2-error { background: #fef2f2; color: #dc2626; }
-      .swal2-icon.swal2-error [class^='swal2-x-mark-line'] { background-color: #dc2626 !important; height: 0.32em !important; border-radius: 3px; }
-      .swal2-icon.swal2-warning { background: #fffbeb; color: #d97706; }
-      .swal2-icon.swal2-info { background: #f0f9ff; color: #0284c7; }
-      .swal2-icon.swal2-question { background: #eef2ff; color: #4f46e5; }
-
-      .swal2-actions { gap: 0.55rem; margin-top: 1.4em !important; width: 100%; padding: 0 0.6em; }
-      .swal2-actions:not(.swal2-loading) .swal2-styled { margin: 0; }
-      .swal2-confirm,
-      .swal2-cancel,
-      .swal2-deny {
-        flex: 1 1 auto;
-        min-height: 42px;
-        border-radius: 10px !important;
-        font-weight: 600 !important;
-        font-size: 0.92rem !important;
-        padding: 0.6rem 1.2rem !important;
-        box-shadow: none !important;
-        transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease, background 160ms ease !important;
-      }
-      .swal2-confirm {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 60%, #4338ca 100%) !important;
-        box-shadow: 0 1px 2px rgba(67, 56, 202, 0.35) !important;
-      }
-      .swal2-confirm:hover { filter: brightness(1.05); transform: translateY(-1px); box-shadow: 0 8px 18px -6px rgba(79, 70, 229, 0.55) !important; }
-      .swal2-confirm:focus-visible { box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.22) !important; }
-      /* Acción destructiva (eliminar, anular, vaciar…): botón principal en rojo.
-         Un aviso simple con "Aceptar" conserva el color de marca. */
-      .swal2-confirm.hs-swal-peligro {
-        background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-        box-shadow: 0 1px 2px rgba(220, 38, 38, 0.35) !important;
-      }
-      .swal2-confirm.hs-swal-peligro:hover { box-shadow: 0 8px 18px -6px rgba(220, 38, 38, 0.55) !important; }
-      .swal2-confirm.hs-swal-peligro:focus-visible { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.22) !important; }
-      .swal2-cancel,
-      .swal2-deny {
-        background: #ffffff !important;
-        color: #334155 !important;
-        border: 1px solid #cfd6e2 !important;
-      }
-      .swal2-cancel:hover,
-      .swal2-deny:hover { background: #f1f4f9 !important; color: #0f172a !important; }
-      .swal2-cancel:focus-visible { box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.10) !important; }
-
-      .swal2-input, .swal2-textarea, .swal2-select {
-        margin: 1em 0.6em 0 !important;
-        border: 1px solid #cfd6e2 !important;
-        border-radius: 10px !important;
-        font-size: 0.95rem !important;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
-        color: #0f172a;
-      }
-      .swal2-input:focus, .swal2-textarea:focus, .swal2-select:focus {
-        border-color: #4f46e5 !important;
-        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.14) !important;
-      }
-      .swal2-input-label { margin: 1em 0.6em 0; font-size: 0.85rem; font-weight: 600; color: #1e293b; }
-      .swal2-validation-message {
-        margin: 0.8em 0.6em 0 !important;
-        border-radius: 10px;
-        background: #fef2f2 !important;
-        color: #b91c1c !important;
-        font-size: 0.85rem;
-      }
-      .swal2-loader { border-color: #4f46e5 transparent #4f46e5 transparent !important; }
-
-      /* Toasts de SweetAlert (esquina) */
-      .swal2-toast {
-        border-radius: 14px !important;
-        padding: 0.7rem 0.9rem !important;
-        border: 1px solid #e4e8f0;
-        box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.22) !important;
-      }
-      .swal2-toast .swal2-title { font-size: 0.92rem !important; font-weight: 600 !important; padding: 0 !important; }
-      .swal2-toast .swal2-html-container { font-size: 0.85rem !important; margin: 0.2em 0 0 !important; }
-      .swal2-toast .swal2-icon { width: 2em !important; height: 2em !important; margin: 0 0.6em 0 0 !important; border-radius: 10px !important; font-size: 16px !important; }
-      .swal2-toast .swal2-icon .swal2-icon-content { font-size: 1.3em !important; }
-      .swal2-timer-progress-bar { background: rgba(79, 70, 229, 0.4) !important; height: 3px !important; }
-
-      @media (max-width: 640px) {
-        .swal2-popup { padding: 1.3rem 1.1rem 1.15rem !important; border-radius: 18px !important; }
-        .swal2-actions { flex-direction: column-reverse; }
-        .swal2-confirm, .swal2-cancel, .swal2-deny { width: 100%; }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .swal2-show, .swal2-hide, .swal2-icon { animation: none !important; }
-      }
-    `;
-    document.head.appendChild(style);
+  success(config: AlertConfig = {}): Promise<SweetAlertResult> {
+    return this.informativo('success', config, 'Listo');
   }
 
-  /** Cuerpo del diálogo: HTML confiable o texto escapado. */
-  private cuerpoMensaje(config: AlertConfig): { html?: string; text?: string } {
-    const msg = config.message ?? '';
-    if (!msg) return {};
-    if (config.allowHtml) return { html: msg };
-    return { text: msg };
+  error(config: AlertConfig = {}): Promise<SweetAlertResult> {
+    if (this.yaAvisadoGlobalmente(config)) return Promise.resolve(RESULTADO_DESCARTADO);
+    return this.informativo('error', config, 'No se pudo completar');
   }
 
-  success(config: AlertConfig = {}) {
-    return Swal.fire({
-      icon: 'success',
-      title: config.title || 'Éxito',
-      ...this.cuerpoMensaje(config),
-      confirmButtonText: config.confirmText || 'Aceptar',
-      allowOutsideClick: config.allowOutsideClick ?? false,
-      allowEscapeKey: config.allowEscapeKey ?? true,
-      timer: config.timer || undefined,
-      timerProgressBar: true,
-    });
+  warning(config: AlertConfig = {}): Promise<SweetAlertResult> {
+    return this.informativo('warning', config, 'Atención');
   }
 
-  error(config: AlertConfig = {}) {
-    return Swal.fire({
-      icon: 'error',
-      title: config.title || 'Error',
-      ...this.cuerpoMensaje(config),
-      confirmButtonText: config.confirmText || 'Aceptar',
-      allowOutsideClick: config.allowOutsideClick ?? false,
-      allowEscapeKey: config.allowEscapeKey ?? true,
-    });
+  info(config: AlertConfig = {}): Promise<SweetAlertResult> {
+    return this.informativo('info', config, 'Información');
   }
 
-  warning(config: AlertConfig = {}) {
-    return Swal.fire({
-      icon: 'warning',
-      title: config.title || 'Advertencia',
-      ...this.cuerpoMensaje(config),
-      confirmButtonText: config.confirmText || 'Aceptar',
-      allowOutsideClick: config.allowOutsideClick ?? false,
-      allowEscapeKey: config.allowEscapeKey ?? true,
-    });
+  /** Modal de éxito (sin temporizador salvo `timer`). */
+  async exito(config: AlertConfig | string, mensaje?: string): Promise<void> {
+    await this.success(this.normalizar(config, mensaje));
   }
 
-  info(config: AlertConfig = {}) {
-    return Swal.fire({
-      icon: 'info',
-      title: config.title || 'Información',
-      ...this.cuerpoMensaje(config),
-      confirmButtonText: config.confirmText || 'Aceptar',
-      allowOutsideClick: config.allowOutsideClick ?? false,
-      allowEscapeKey: config.allowEscapeKey ?? true,
-      timer: config.timer || undefined,
-      timerProgressBar: true,
-    });
+  async advertencia(config: AlertConfig | string, mensaje?: string): Promise<void> {
+    await this.warning(this.normalizar(config, mensaje));
   }
 
-  confirm(config: AlertConfig = {}) {
+  async informacion(config: AlertConfig | string, mensaje?: string): Promise<void> {
+    await this.info(this.normalizar(config, mensaje));
+  }
+
+  /**
+   * Error de una petición en un modal: título = qué falló, mensaje del servidor
+   * en español, pista y código de soporte. No abre nada si la capa global ya
+   * avisó (sin conexión, sesión vencida, demasiadas solicitudes…).
+   * `extra.title` y `extra.message` sustituyen a los calculados.
+   */
+  async errorHttp(
+    error: unknown,
+    porDefecto = 'No se pudo completar la operación',
+    extra: Partial<AlertConfig> = {},
+  ): Promise<void> {
+    if (yaNotificado(error)) return;
+    const d = describirError(error, porDefecto, extra.title);
+    if (d.codigo === 'SESION_EXPIRADA') return;
+    let message: string;
+    if (extra.message !== undefined) {
+      const propio = extra.allowHtml ? extra.message : escapeHtmlAlerta(extra.message);
+      const soporte = idPeticionDeError(error);
+      message = soporte
+        ? `${propio}<small class="hs-swal-soporte">Código de soporte: <code>${escapeHtmlAlerta(soporte)}</code></small>`
+        : propio;
+    } else {
+      message = htmlDeDescripcion(d);
+    }
+    await this.error({ ...extra, title: d.titulo, message, allowHtml: true, codigo: d.codigo, notificado: false });
+  }
+
+  /* ------------------------------------------------------------------------
+   * Confirmaciones
+   * --------------------------------------------------------------------- */
+
+  /**
+   * Confirmación (v1): devuelve el resultado de Swal. Si es destructiva, botón
+   * rojo, icono de advertencia y foco en Cancelar.
+   */
+  confirm(config: AlertConfig = {}): Promise<SweetAlertResult> {
     const confirmText = config.confirmText || 'Sí, confirmar';
-    const destructiva = config.danger ?? esAccionDestructiva(confirmText, config.title);
+    const peligro = config.danger ?? esAccionDestructiva(confirmText, config.title);
+    const foco = config.foco ?? (peligro ? 'cancelar' : 'confirmar');
     return Swal.fire({
-      icon: config.type && config.type !== 'success' ? config.type : 'question',
-      title: config.title || '¿Confirmar?',
-      ...this.cuerpoMensaje(config),
+      ...this.base(peligro ? 'hs-swal-peligro' : undefined),
+      icon: config.type && config.type !== 'success' ? config.type : peligro ? 'warning' : 'question',
+      ...this.titulo(config, '¿Confirmar?'),
+      ...this.cuerpo(config),
       showCancelButton: true,
-      confirmButtonText: confirmText,
-      cancelButtonText: config.cancelText || 'Cancelar',
+      confirmButtonText: textoBoton(confirmText, 'Sí, confirmar'),
+      cancelButtonText: textoBoton(config.cancelText, 'Cancelar'),
+      showDenyButton: !!config.denyText,
+      denyButtonText: textoBoton(config.denyText, 'No'),
+      focusCancel: foco === 'cancelar',
+      focusConfirm: foco === 'confirmar',
+      reverseButtons: true,
       allowOutsideClick: config.allowOutsideClick ?? false,
       allowEscapeKey: config.allowEscapeKey ?? true,
-      reverseButtons: true,
-      customClass: destructiva ? { confirmButton: 'hs-swal-peligro' } : undefined,
     });
   }
 
-  toast(config: AlertConfig = {}, position: 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end' = 'top-end') {
-    return Swal.fire({
-      icon: config.type || 'info',
-      title: config.title,
-      ...this.cuerpoMensaje(config),
-      toast: true,
-      position,
-      showConfirmButton: false,
-      timer: config.timer || 3000,
-      timerProgressBar: true,
-      didOpen: (toast) => {
-        toast.addEventListener('mouseenter', Swal.stopTimer);
-        toast.addEventListener('mouseleave', Swal.resumeTimer);
-      }
+  /** Confirmación que devuelve true/false. El foco empieza en Cancelar. */
+  async confirmar(config: AlertConfig): Promise<boolean> {
+    const r = await this.confirm({ foco: 'cancelar', ...config });
+    return !!r.isConfirmed;
+  }
+
+  /** Confirmación destructiva: botón rojo ("Sí, eliminar" por defecto) y foco en Cancelar. */
+  async confirmarPeligro(config: AlertConfig): Promise<boolean> {
+    const r = await this.confirm({ confirmText: 'Sí, eliminar', ...config, danger: true, foco: 'cancelar' });
+    return !!r.isConfirmed;
+  }
+
+  /** Pide un texto (motivo de anulación…). Devuelve el texto sin espacios extremos o null si se cancela. */
+  async pedirTexto(config: OpcionesPedirTexto): Promise<string | null> {
+    const r = await this.dialogoTexto(config);
+    return r.isConfirmed ? String(r.value ?? '').trim() : null;
+  }
+
+  /** Igual que pedirTexto pero con la forma de opciones de Swal y su resultado (CMP-10). */
+  prompt(config: OpcionesPrompt): Promise<SweetAlertResult<string>> {
+    return this.dialogoTexto({
+      ...config,
+      etiqueta: config.inputLabel,
+      placeholder: config.inputPlaceholder,
+      minimo: config.minLength,
+      mensajeMinimo: config.minLength ? `Escriba al menos ${config.minLength} caracteres` : undefined,
     });
   }
 
-  loading(title: string = 'Cargando...') {
+  /* ------------------------------------------------------------------------
+   * Carga
+   * --------------------------------------------------------------------- */
+
+  /** Modal bloqueante con spinner (v1). Ciérralo con close()/cerrar(). */
+  loading(title: string = 'Cargando...'): Promise<SweetAlertResult> {
     return Swal.fire({
-      title,
+      ...this.base(),
+      titleText: decodificarEntidadesHtml(title),
       allowOutsideClick: false,
       allowEscapeKey: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
+      didOpen: () => Swal.showLoading(),
     });
   }
 
-  close() {
+  cargando(titulo = 'Procesando…'): void {
+    void this.loading(titulo);
+  }
+
+  /**
+   * Muestra el modal de carga mientras dura el trabajo y lo cierra al terminar
+   * (bien o mal). Devuelve el resultado o relanza el error.
+   */
+  async conCarga<T>(trabajo: Promise<T> | Observable<T>, titulo = 'Procesando…'): Promise<T> {
+    this.cargando(titulo);
+    try {
+      return await (isObservable(trabajo) ? firstValueFrom(trabajo) : trabajo);
+    } finally {
+      this.cerrar();
+    }
+  }
+
+  close(): void {
     Swal.close();
+  }
+
+  cerrar(): void {
+    this.close();
+  }
+
+  /** true si hay un modal de SweetAlert abierto. */
+  hayModalAbierto(): boolean {
+    return this.navegador && Swal.isVisible();
+  }
+
+  /* ------------------------------------------------------------------------
+   * Toast (compatibilidad): ahora es un aviso nt-*, no un Swal
+   * --------------------------------------------------------------------- */
+
+  /**
+   * @deprecated Usar NotificationService (exito, error, advertencia, info).
+   * Se mantiene la firma; la posición se ignora (la decide la pila de avisos).
+   */
+  toast(config: AlertConfig = {}, _posicion?: PosicionToastLegada): Promise<void> {
+    const titulo = decodificarEntidadesHtml(String(config.title ?? ''));
+    const mensaje = config.allowHtml ? htmlATextoPlano(String(config.message ?? '')) : String(config.message ?? '');
+    this.avisos.mostrar({
+      tipo: TIPO_TOAST[config.type ?? 'info'] ?? 'info',
+      titulo,
+      mensaje,
+      duracion: config.timer || undefined,
+      clave: config.clave,
+    });
+    return Promise.resolve();
+  }
+
+  /* ------------------------------------------------------------------------
+   * Internos
+   * --------------------------------------------------------------------- */
+
+  private informativo(icon: SweetAlertIcon, config: AlertConfig, tituloPorDefecto: string): Promise<SweetAlertResult> {
+    return Swal.fire({
+      ...this.base(),
+      icon,
+      ...this.titulo(config, tituloPorDefecto),
+      ...this.cuerpo(config),
+      confirmButtonText: textoBoton(config.confirmText, 'Aceptar'),
+      allowOutsideClick: config.allowOutsideClick ?? false,
+      allowEscapeKey: config.allowEscapeKey ?? true,
+      timer: config.timer || undefined,
+      timerProgressBar: !!config.timer,
+    });
+  }
+
+  private dialogoTexto(config: OpcionesPedirTexto): Promise<SweetAlertResult<string>> {
+    const minimo = Math.max(0, config.minimo ?? 1);
+    const maximo = Math.max(minimo || 1, config.maximo ?? 250);
+    const peligro = !!config.danger;
+    const aviso = config.mensajeMinimo ?? `Escribe al menos ${minimo} ${minimo === 1 ? 'carácter' : 'caracteres'}`;
+    return Swal.fire<string>({
+      ...this.base(peligro ? 'hs-swal-peligro' : undefined),
+      icon: config.type ?? (peligro ? 'warning' : 'question'),
+      ...this.titulo(config, 'Escribe un dato'),
+      ...this.cuerpo(config),
+      input: config.multilinea ? 'textarea' : 'text',
+      inputLabel: config.etiqueta,
+      inputPlaceholder: config.placeholder,
+      inputValue: config.valorInicial ?? '',
+      inputAttributes: { maxlength: String(maximo), autocomplete: 'off', autocapitalize: 'sentences' },
+      inputValidator: (valor: string) =>
+        String(valor ?? '').trim().length < minimo ? escapeHtmlAlerta(aviso) : null,
+      showCancelButton: true,
+      confirmButtonText: textoBoton(config.confirmText, 'Aceptar'),
+      cancelButtonText: textoBoton(config.cancelText, 'Cancelar'),
+      reverseButtons: true,
+      allowOutsideClick: config.allowOutsideClick ?? false,
+      allowEscapeKey: config.allowEscapeKey ?? true,
+    });
+  }
+
+  private normalizar(config: AlertConfig | string, mensaje?: string): AlertConfig {
+    return typeof config === 'string' ? { title: config, message: mensaje } : config;
+  }
+
+  private tema(): 'panel' | 'tienda' {
+    return this.router.url.startsWith('/store') ? 'tienda' : 'panel';
+  }
+
+  /** Opciones comunes: tema por zona, sin `height: auto` en body y foco devuelto al cerrar. */
+  private base(claseConfirmar?: string): OpcionesBase {
+    const tema = this.tema();
+    const customClass: SweetAlertCustomClass = {
+      container: `hs-swal-contenedor hs-swal-contenedor--${tema}`,
+      popup: `hs-swal hs-swal--${tema}`,
+    };
+    if (claseConfirmar) customClass.confirmButton = claseConfirmar;
+    return { heightAuto: false, returnFocus: true, customClass };
+  }
+
+  /** Título como texto (seguro) salvo `tituloHtml`; deshace escapes manuales antiguos. */
+  private titulo(config: AlertConfig, porDefecto: string): Pick<SweetAlertOptions, 'title' | 'titleText'> {
+    const t = config.title || porDefecto;
+    return config.tituloHtml ? { title: sanearHtml(t) } : { titleText: decodificarEntidadesHtml(t) };
+  }
+
+  /** Cuerpo: texto (seguro) o HTML propio saneado. */
+  private cuerpo(config: AlertConfig): Pick<SweetAlertOptions, 'html' | 'text'> {
+    const mensaje = config.message ?? '';
+    if (!mensaje) return {};
+    return config.allowHtml ? { html: sanearHtml(mensaje) } : { text: mensaje };
+  }
+
+  /**
+   * No repetir en un modal lo que ya avisó la capa global: sesión vencida
+   * siempre; fallos de red o 429 si su aviso sigue visible.
+   */
+  private yaAvisadoGlobalmente(config: AlertConfig): boolean {
+    const codigo = config.codigo ?? '';
+    const texto = htmlATextoPlano(String(config.message ?? ''));
+    if (codigo === 'SESION_EXPIRADA' || texto.includes(MENSAJE_SESION_EXPIRADA)) return true;
+    if (config.notificado === true) return true;
+    if (config.notificado === false) return false;
+    const transporte = CODIGOS_GLOBALES.has(codigo) || MENSAJES_GLOBALES.some((m) => texto.includes(m));
+    return transporte && ['conexion', 'offline', '429'].some((k) => this.avisos.hayActivo(k));
+  }
+
+  /** Cierra el modal abierto cuando cambia la ruta (no solo los parámetros). */
+  private cerrarAlCambiarDePantalla(): void {
+    const ruta = (url: string) => url.split(/[?#]/, 1)[0] ?? url;
+    let rutaActual = ruta(this.router.url);
+    const sub = this.router.events.subscribe((evento) => {
+      if (evento instanceof NavigationStart) {
+        if (ruta(evento.url) !== rutaActual && Swal.isVisible()) Swal.close();
+      } else if (evento instanceof NavigationEnd) {
+        rutaActual = ruta(evento.urlAfterRedirects);
+      }
+    });
+    this.destroyRef.onDestroy(() => sub.unsubscribe());
+  }
+
+  /** El tema completo vive en shared/styles/alertas.css; si no está cargado se usa uno mínimo. */
+  private asegurarTema(): void {
+    if (typeof document === 'undefined' || document.getElementById('hs-alert-theme')) return;
+    const cargado = getComputedStyle(document.documentElement).getPropertyValue('--hs-alertas-tema').trim();
+    if (cargado) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'hs-alert-theme';
+    estilo.textContent = TEMA_RESPALDO;
+    document.head.appendChild(estilo);
   }
 }

@@ -1,0 +1,392 @@
+/* ===========================================================================
+   Sistema de movimiento · HatunSales
+
+   Principios
+   - El movimiento explica (de dónde viene algo, qué cambió); nunca decora.
+   - Micro-interacciones 120–160 ms; entradas 200–260 ms con desaceleración
+     (--ease-entrada); salidas más cortas, 140–180 ms, que aceleran al irse
+     (--ease-salida).
+   - Solo opacity y transformaciones. Los keyframes usan las propiedades
+     individuales `translate` / `scale` / `rotate`: se suman al `transform`
+     propio del elemento (centrados con translate(-50%)…) en lugar de pisarlo,
+     y al terminar no dejan transform residual (no rompen position: fixed).
+   - prefers-reduced-motion: las distancias valen 0 y todo dura 1 ms.
+
+   Uso con Angular 21 (API nativa, sin @angular/animations):
+     <div animate.enter="mov-entra" animate.leave="mov-sale">…</div>
+   Angular añade la clase al entrar/salir y, en la salida, espera a que termine
+   la animación antes de quitar el nodo.
+   =========================================================================== */
+
+/* ── Tokens ──────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Duraciones */
+  --mov-micro: 140ms;              /* hover, foco, cambios de color, interruptores */
+  --mov-pulsacion: 90ms;           /* respuesta al pulsar: casi inmediata */
+  --mov-entrada: 240ms;            /* elementos que aparecen: tarjetas, menús, toasts */
+  --mov-panel: 260ms;              /* cajones y paneles laterales (recorren más) */
+  --mov-salida: 160ms;             /* salidas: siempre más rápidas que la entrada */
+  --mov-salida-panel: 180ms;
+  --mov-escalon: 35ms;             /* paso entre elementos de una lista escalonada */
+  --mov-esqueleto: 1400ms;         /* ciclo del brillo de los esqueletos */
+
+  /* Curvas */
+  --ease-entrada: cubic-bezier(0.16, 1, 0.3, 1);     /* llega rápido y se asienta */
+  --ease-salida: cubic-bezier(0.4, 0, 1, 1);         /* arranca suave y acelera al irse */
+  --ease-salida-suave: cubic-bezier(0.2, 0, 0, 1);   /* desaceleración suave: micro-interacciones */
+  --ease-estandar: cubic-bezier(0.4, 0, 0.2, 1);     /* movimientos dentro de la pantalla */
+
+  /* Distancias y escalas (se anulan con prefers-reduced-motion) */
+  --mov-dist: 6px;                 /* desplazamiento de entradas */
+  --mov-dist-lateral: 16px;        /* toasts y avisos que entran de lado */
+  --mov-escala: 0.98;              /* escala inicial de modales y menús */
+  --mov-elevar: -1px;              /* elevación en hover */
+  --mov-pulsar: 0.98;              /* escala al pulsar */
+  --mov-cajon-x: 100%;             /* recorrido de los cajones */
+}
+
+/* ── Keyframes ───────────────────────────────────────────────────────────────
+   Las entradas solo declaran `from`: el final es el estado natural del
+   elemento, así sirven para cualquier componente. Las salidas solo `to`. */
+
+@keyframes mov-aparecer {
+  from { opacity: 0; }
+}
+
+@keyframes mov-salir {
+  to { opacity: 0; }
+}
+
+/* Aparece subiendo a su sitio (contenido, tarjetas, filas, páginas) */
+@keyframes mov-aparecer-arriba {
+  from { opacity: 0; translate: 0 var(--mov-dist); }
+}
+
+/* Aparece bajando a su sitio (lo que cuelga de un disparador) */
+@keyframes mov-aparecer-abajo {
+  from { opacity: 0; translate: 0 calc(var(--mov-dist) * -1); }
+}
+
+/* Aparece desde la derecha (toasts de escritorio) */
+@keyframes mov-aparecer-derecha {
+  from { opacity: 0; translate: var(--mov-dist-lateral) 0; }
+}
+
+/* Aparece desde abajo con más recorrido (toasts y hojas en móvil) */
+@keyframes mov-aparecer-arriba-largo {
+  from { opacity: 0; translate: 0 var(--mov-dist-lateral); }
+}
+
+@keyframes mov-salir-derecha-corto {
+  to { opacity: 0; translate: var(--mov-dist-lateral) 0; }
+}
+
+@keyframes mov-salir-abajo-corto {
+  to { opacity: 0; translate: 0 var(--mov-dist-lateral); }
+}
+
+/* Modales y popovers: escala .98 → 1 con fundido */
+@keyframes mov-escalar-entrada {
+  from { opacity: 0; scale: var(--mov-escala); }
+}
+
+@keyframes mov-escalar-salida {
+  to { opacity: 0; scale: var(--mov-escala); }
+}
+
+/* Menús desplegables: bajan un poco y crecen desde su origen */
+@keyframes mov-desplegar {
+  from { opacity: 0; scale: var(--mov-escala); translate: 0 calc(var(--mov-dist) * -0.5); }
+}
+
+@keyframes mov-replegar {
+  to { opacity: 0; scale: var(--mov-escala); translate: 0 calc(var(--mov-dist) * -0.5); }
+}
+
+/* Cajones: entran desde su borde. Con movimiento reducido --mov-cajon-x = 0
+   y el keyframe se queda en un fundido. */
+@keyframes mov-deslizar-derecha {
+  from { translate: var(--mov-cajon-x) 0; opacity: var(--mov-cajon-opacidad, 1); }
+}
+
+@keyframes mov-deslizar-izquierda {
+  from { translate: calc(var(--mov-cajon-x) * -1) 0; opacity: var(--mov-cajon-opacidad, 1); }
+}
+
+@keyframes mov-deslizar-abajo {
+  from { translate: 0 var(--mov-cajon-x); opacity: var(--mov-cajon-opacidad, 1); }
+}
+
+@keyframes mov-salir-derecha {
+  to { translate: var(--mov-cajon-x) 0; opacity: var(--mov-cajon-opacidad, 1); }
+}
+
+@keyframes mov-salir-izquierda {
+  to { translate: calc(var(--mov-cajon-x) * -1) 0; opacity: var(--mov-cajon-opacidad, 1); }
+}
+
+@keyframes mov-salir-abajo {
+  to { translate: 0 var(--mov-cajon-x); opacity: var(--mov-cajon-opacidad, 1); }
+}
+
+/* Brillo de esqueleto: una banda clara recorre el bloque (solo transform) */
+@keyframes mov-shimmer {
+  from { translate: -100% 0; }
+  to   { translate: 100% 0; }
+}
+
+/* Latido de insignias (contador del carrito, avisos nuevos): una sola vez */
+@keyframes mov-latido {
+  0%, 100% { scale: 1; }
+  40%      { scale: 1.18; }
+}
+
+/* Onda de un punto de estado «en vivo» */
+@keyframes mov-onda {
+  from { opacity: 0.45; scale: 1; }
+  to   { opacity: 0; scale: 2.4; }
+}
+
+@keyframes mov-girar {
+  to { rotate: 360deg; }
+}
+
+/* ── Clases para animate.enter / animate.leave ───────────────────────────────
+   Todas aceptan --i (índice) para escalonar y --mov-retraso para un retraso
+   manual. No las combines con un elemento que ya tenga `animation` en el CSS
+   de su componente (esa regla ganaría por especificidad): usa una u otra. */
+
+.mov-entra,
+.mov-entra-fundido,
+.mov-entra-escala,
+.mov-entra-desplegable,
+.mov-entra-toast {
+  animation-duration: var(--mov-entrada);
+  animation-timing-function: var(--ease-entrada);
+  animation-fill-mode: both;
+  animation-delay: var(--mov-retraso, calc(min(var(--i, 0), 7) * var(--mov-escalon)));
+}
+
+.mov-entra             { animation-name: mov-aparecer-arriba; }
+.mov-entra-fundido     { animation-name: mov-aparecer; }
+.mov-entra-escala      { animation-name: mov-escalar-entrada; transform-origin: var(--mov-origen, center); }
+.mov-entra-desplegable { animation-name: mov-desplegar; transform-origin: var(--mov-origen, top center); }
+.mov-entra-toast       { animation-name: mov-aparecer-derecha; }
+
+.mov-entra-derecha,
+.mov-entra-izquierda,
+.mov-entra-abajo {
+  animation-duration: var(--mov-panel);
+  animation-timing-function: var(--ease-entrada);
+  animation-fill-mode: both;
+}
+
+.mov-entra-derecha   { animation-name: mov-deslizar-derecha; }
+.mov-entra-izquierda { animation-name: mov-deslizar-izquierda; }
+.mov-entra-abajo     { animation-name: mov-deslizar-abajo; }
+
+.mov-sale,
+.mov-sale-fundido,
+.mov-sale-escala,
+.mov-sale-desplegable,
+.mov-sale-toast {
+  animation-duration: var(--mov-salida);
+  animation-timing-function: var(--ease-salida);
+  animation-fill-mode: both;
+  pointer-events: none;            /* lo que se va ya no recibe clics */
+}
+
+.mov-sale             { animation-name: mov-salir; }
+.mov-sale-fundido     { animation-name: mov-salir; }
+.mov-sale-escala      { animation-name: mov-escalar-salida; transform-origin: var(--mov-origen, center); }
+.mov-sale-desplegable { animation-name: mov-replegar; transform-origin: var(--mov-origen, top center); }
+.mov-sale-toast       { animation-name: mov-salir-derecha-corto; }
+
+.mov-sale-derecha,
+.mov-sale-izquierda,
+.mov-sale-abajo {
+  animation-duration: var(--mov-salida-panel);
+  animation-timing-function: var(--ease-salida);
+  animation-fill-mode: both;
+  pointer-events: none;
+}
+
+.mov-sale-derecha   { animation-name: mov-salir-derecha; }
+.mov-sale-izquierda { animation-name: mov-salir-izquierda; }
+.mov-sale-abajo     { animation-name: mov-salir-abajo; }
+
+/* Toasts: arriba a la derecha en escritorio, desde abajo en móvil */
+@media (max-width: 640px) {
+  .mov-entra-toast { animation-name: mov-aparecer-arriba-largo; }
+  .mov-sale-toast  { animation-name: mov-salir-abajo-corto; }
+}
+
+/* ── Listas con entrada escalonada ───────────────────────────────────────────
+   <tbody class="mov-lista"> o <ul class="mov-lista">: cada hijo aparece 35 ms
+   después del anterior. Máximo 8 escalones; del 9.º al 24.º entran con el
+   último y a partir del 25.º no se animan (casi seguro están fuera de vista).
+   Si la página fija [style.--i]="$index", manda ese valor. */
+
+.mov-lista > * {
+  animation: mov-aparecer-arriba var(--mov-entrada) var(--ease-entrada) backwards;
+  animation-delay: calc(min(var(--i, 0), 7) * var(--mov-escalon));
+}
+
+.mov-lista > :nth-child(2) { --i: 1; }
+.mov-lista > :nth-child(3) { --i: 2; }
+.mov-lista > :nth-child(4) { --i: 3; }
+.mov-lista > :nth-child(5) { --i: 4; }
+.mov-lista > :nth-child(6) { --i: 5; }
+.mov-lista > :nth-child(7) { --i: 6; }
+.mov-lista > :nth-child(n + 8) { --i: 7; }
+.mov-lista > :nth-child(n + 25) { animation: none; }
+
+/* Elemento suelto escalonado (estructuras que no son hijos directos) */
+.mov-item {
+  animation: mov-aparecer-arriba var(--mov-entrada) var(--ease-entrada) backwards;
+  animation-delay: calc(min(var(--i, 0), 7) * var(--mov-escalon));
+}
+
+/* Entrada de una página o vista completa (la del panel ya la trae .adm-pagina) */
+.mov-pagina {
+  animation: mov-aparecer-arriba var(--mov-entrada) var(--ease-entrada) backwards;
+}
+
+/* ── Micro-interacciones genéricas ───────────────────────────────────────────
+   .mov-pulsable: escala .98 al pulsar. .mov-elevable: sube 1 px y gana sombra
+   en hover (solo con ratón: en táctil el hover se queda «pegado»).
+   Ejemplo: <a class="tarjeta mov-elevable mov-pulsable">. */
+
+.mov-pulsable,
+.mov-elevable {
+  transition-property: translate, scale, box-shadow, background-color, border-color, color, opacity;
+  transition-duration: var(--mov-micro);
+  transition-timing-function: var(--ease-salida-suave);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mov-elevable:hover:not(:disabled, [aria-disabled='true']) {
+    translate: 0 var(--mov-elevar);
+    box-shadow: var(--mov-sombra-elevada, 0 10px 24px -8px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.06));
+  }
+}
+
+.mov-pulsable:active:not(:disabled, [aria-disabled='true']) {
+  scale: var(--mov-pulsar);
+  transition-duration: var(--mov-pulsacion);
+}
+
+/* ── Esqueletos, latido, pulso y giro ───────────────────────────────────── */
+
+/* Esqueleto genérico (tienda y vistas nuevas). El del panel es .adm-esqueleto.
+   El contenedor de la carga debería llevar aria-busy="true". */
+.mov-esqueleto {
+  position: relative;
+  overflow: hidden;
+  min-height: 12px;
+  border-radius: var(--mov-esqueleto-radio, 8px);
+  background-color: var(--mov-esqueleto-fondo, #eceff5);
+}
+
+.mov-esqueleto::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--mov-esqueleto-brillo, rgba(255, 255, 255, 0.7)) 50%, transparent 100%);
+  translate: -100% 0;
+  animation: mov-shimmer var(--mov-esqueleto) var(--ease-estandar) infinite;
+}
+
+.mov-latido {
+  animation: mov-latido 420ms var(--ease-entrada);
+}
+
+/* Punto «en vivo»: una onda se expande desde el punto (usa su mismo fondo) */
+.mov-pulso {
+  position: relative;
+}
+
+.mov-pulso::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  pointer-events: none;
+  animation: mov-onda 1800ms var(--ease-salida-suave) infinite;
+}
+
+.mov-girar {
+  display: inline-block;
+  animation: mov-girar 900ms linear infinite;
+}
+
+/* ── Transiciones de ruta (View Transitions) ─────────────────────────────────
+   Requiere withViewTransitions() en provideRouter (app.config.ts).
+   El estado anterior se disuelve por encima del nuevo; como la cabecera y el
+   sidebar son iguales en ambos, solo se nota en el contenido, que además entra
+   con su propio fundido + 6 px (.adm-pagina / .mov-pagina). Así el marco no
+   «salta» y no hace falta nombrar elementos: un view-transition-name fijo
+   crearía un contexto de apilamiento que atraparía los paneles fixed. */
+
+::view-transition-group(root) {
+  animation-duration: var(--mov-salida);
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+  animation: mov-salir var(--mov-salida) var(--ease-salida) both;
+}
+
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* ── Movimiento reducido ─────────────────────────────────────────────────────
+   Sin desplazamientos ni escalas; todo termina en 1 ms (los eventos
+   animationend/transitionend siguen llegando, así que animate.leave no se
+   queda esperando). Se conservan los indicadores de carga (giran, más lento)
+   y el resaltado de color de lo recién creado. */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mov-dist: 0px;
+    --mov-dist-lateral: 0px;
+    --mov-escala: 1;
+    --mov-elevar: 0px;
+    --mov-pulsar: 1;
+    --mov-cajon-x: 0px;
+    --mov-cajon-opacidad: 0;
+    --mov-escalon: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+
+  .adm-spinner,
+  .adm-girando,
+  .mov-girar,
+  .animate-spin {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  .adm-recien-creado {
+    animation-duration: 2.4s !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

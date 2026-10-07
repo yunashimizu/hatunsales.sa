@@ -1,114 +1,29 @@
-:root {
-  font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color-scheme: light;
-  color: #111827;
-  background: #f7f8fb;
-  --surface: #ffffff;
-  --surface-soft: #f8fafc;
-  --surface-muted: #eef2ff;
-  --border: rgba(148, 163, 184, 0.24);
-  --text-strong: #0f172a;
-  --text-muted: #475569;
-  --accent-indigo: #6366f1;
-  --accent-violet: #7c3aed;
-  --accent-cyan: #22d3ee;
-}
+/* ===========================================================================
+   Estilos globales · HatunSales
 
-@import 'tailwindcss';
+   Desde angular.json se cargan antes: Bootstrap Reboot (solo la base de
+   elementos), Bootstrap Icons y los CSS estructurales del Angular CDK
+   (overlay, a11y, text-field).
 
-/* Sistema de diseño del panel. Todas sus clases van con prefijo `adm-`, así que
-   no interfiere con Bootstrap ni con SB Admin 2. */
+   Orden de este archivo:
+     1. Tailwind 4 (todo en capas: theme/base/utilities).
+     2. Fuentes autoalojadas, tokens y base global.
+     3. Legado de Bootstrap para /auth (temporal).
+     4. Sistema de diseño del panel (adm-*).
+     5. Sistema de movimiento, el último: sus clases de entrada/salida tienen
+        que ganar a las animaciones por defecto de adm-panel, adm-modal…
+   =========================================================================== */
+
+/* Tailwind 4 solo se usa en /auth. source() limita el escaneo a esa carpeta,
+   así no se generan utilidades por palabras sueltas del resto del código
+   (hidden, visible, sticky, container…) que chocarían con clases propias.
+   El preflight (capa base) se mantiene: el CSS de muchos componentes cuenta
+   con él (botones sin fondo, listas sin viñetas, imágenes en bloque). */
+@import 'tailwindcss' source('./app/auth');
+
+@import './app/shared/styles/fuentes.css';
+@import './app/shared/styles/tokens.css';
+@import './app/shared/styles/base.css';
+@import './app/shared/styles/legado-bootstrap-auth.css';
 @import './app/admin/styles/admin-ui.css';
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
-  min-height: 100vh;
-  color: var(--text-strong);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
-
-/* Enlaces: Bootstrap 5 los subraya y pinta de azul; el tema anterior (SB Admin 2,
-   un Bootstrap 4 completo) los dejaba sin subrayar. Mantenemos ese comportamiento
-   con el indigo de la marca. Regla sin @layer para que gane a Tailwind y Bootstrap. */
-:root {
-  --hs-enlace: #4f46e5;
-  --hs-enlace-hover: #4338ca;
-}
-
-a {
-  color: var(--hs-enlace);
-  text-decoration: none;
-  background-color: transparent;
-}
-
-a:hover {
-  color: var(--hs-enlace-hover);
-  text-decoration: underline;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-/* ---------------------------------------------------------------------------
-   Tokens del módulo tienda. Se usan solo dentro de /store, por lo que no
-   afectan al panel administrativo que corre sobre Bootstrap + SB Admin 2.
-   --------------------------------------------------------------------------- */
-:root {
-  --t-fondo: #f7f8fc;
-  --t-superficie: #ffffff;
-  --t-superficie-2: #f4f6fb;
-  --t-borde: #e6e9f2;
-  --t-borde-fuerte: #d3d8e8;
-
-  --t-texto: #0d1220;
-  --t-texto-suave: #5b6377;
-  --t-texto-tenue: #8b93a7;
-
-  --t-primario: #4f46e5;
-  --t-primario-osc: #4338ca;
-  --t-primario-claro: #eef0ff;
-  --t-acento: #f97316;
-  --t-exito: #10b981;
-  --t-peligro: #ef4444;
-  --t-aviso: #f59e0b;
-  --t-estrella: #fbbf24;
-
-  --t-r-sm: 12px;
-  --t-r-md: 16px;
-  --t-r-lg: 24px;
-  --t-r-full: 999px;
-
-  --t-sombra-sm: 0 1px 2px rgba(13, 18, 32, 0.04), 0 1px 3px rgba(13, 18, 32, 0.06);
-  --t-sombra-md: 0 4px 12px rgba(13, 18, 32, 0.06), 0 2px 4px rgba(13, 18, 32, 0.04);
-  --t-sombra-lg: 0 18px 40px rgba(13, 18, 32, 0.1), 0 4px 12px rgba(13, 18, 32, 0.05);
-  --t-sombra-xl: 0 32px 64px rgba(13, 18, 32, 0.16);
-
-  --t-transicion: 220ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tienda *,
-  .tienda *::before,
-  .tienda *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+@import './app/shared/styles/movimiento.css';

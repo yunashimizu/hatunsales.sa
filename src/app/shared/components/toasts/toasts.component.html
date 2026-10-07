@@ -1,0 +1,81 @@
+<section
+  #pila
+  class="nt-pila"
+  aria-label="Notificaciones"
+  [attr.data-tema]="tema()"
+  [attr.aria-hidden]="vacia() ? 'true' : null"
+  [class.nt-pila--pausada]="avisos.pausado()"
+  (pointerenter)="alEntrarPuntero($event)"
+  (pointerleave)="alSalirPuntero($event)"
+  (focusin)="alEntrarFoco($event)"
+  (focusout)="alSalirFoco($event)"
+>
+  <ol class="nt-lista" role="list">
+    @for (a of avisos.avisos(); track a.id) {
+      <li
+        class="nt-aviso"
+        animate.enter="nt-entrar"
+        animate.leave="nt-salir"
+        [attr.data-aviso-id]="a.id"
+        [attr.data-tipo]="a.tipo"
+        [class.nt-aviso--simple]="!a.mensaje"
+        (keydown.escape)="alPulsarEscape(a, $event)"
+      >
+        <span class="nt-aviso__icono" aria-hidden="true">
+          @if (a.tipo === 'cargando') {
+            <span class="nt-giro"></span>
+          } @else {
+            <i class="bi" [class]="icono(a)"></i>
+          }
+        </span>
+
+        <div class="nt-aviso__cuerpo">
+          <p class="nt-aviso__titulo">
+            <span>{{ a.titulo || a.mensaje }}</span>
+            @if (a.repeticiones > 1) {
+              @for (n of [a.repeticiones]; track n) {
+                <span class="nt-aviso__contador" animate.enter="nt-contador-entrar" [attr.aria-label]="n + ' veces'">×{{ n }}</span>
+              }
+            }
+          </p>
+          @if (a.titulo && a.mensaje) {
+            <p class="nt-aviso__texto">{{ a.mensaje }}</p>
+          }
+          @if (a.accion; as accion) {
+            <button type="button" class="nt-aviso__accion" (click)="ejecutar(a)">
+              @if (accion.icono) {
+                <i class="bi" [class]="accion.icono" aria-hidden="true"></i>
+              }
+              <span>{{ accion.etiqueta }}</span>
+            </button>
+          }
+        </div>
+
+        @if (a.cerrable) {
+          <button
+            type="button"
+            class="nt-aviso__cerrar"
+            [attr.aria-label]="'Cerrar aviso: ' + (a.titulo || a.mensaje)"
+            (click)="cerrar(a)"
+          >
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        }
+
+        @if (a.duracion > 0) {
+          @for (t of [a.tramo]; track t) {
+            <span
+              class="nt-aviso__progreso"
+              aria-hidden="true"
+              [style.--nt-dur]="a.restante + 'ms'"
+              [style.--nt-desde]="progresoInicial(a)"
+            ></span>
+          }
+        }
+      </li>
+    }
+  </ol>
+</section>
+
+<div class="nt-sr" role="status" aria-live="polite" aria-atomic="true">{{ avisos.anuncio() }}</div>
+<div class="nt-sr" role="alert" aria-live="assertive" aria-atomic="true">{{ avisos.anuncioUrgente() }}</div>

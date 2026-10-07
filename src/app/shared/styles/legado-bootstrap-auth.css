@@ -1,0 +1,49 @@
+/* ---------------------------------------------------------------------------
+   Legado temporal · utilidades de Bootstrap que hoy usa /auth
+
+   Antes se cargaba Bootstrap completo (232 KB) y sus utilidades, con
+   !important y fuera de capas, pisaban a las de Tailwind en login y registro.
+   Ahora solo se carga Reboot. Estas reglas son las de Bootstrap 5.3.8 con sus
+   valores exactos, limitadas a <app-auth-shell> (el único sitio donde se usan,
+   verificado con un barrido de clases en todo src/app), así que /auth se ve
+   igual que antes.
+
+   Al rehacer /auth (AUTH-1…5) se borra este archivo y su @import en
+   styles.css: desde ese momento rigen los valores de Tailwind.
+   --------------------------------------------------------------------------- */
+
+app-auth-shell .bg-white { --bs-bg-opacity: 1; background-color: rgba(var(--bs-white-rgb), var(--bs-bg-opacity)) !important; }
+app-auth-shell .text-white { --bs-text-opacity: 1; color: rgba(var(--bs-white-rgb), var(--bs-text-opacity)) !important; }
+app-auth-shell .text-center { text-align: center !important; }
+app-auth-shell .overflow-hidden { overflow: hidden !important; }
+app-auth-shell .bottom-0 { bottom: 0 !important; }
+
+app-auth-shell .border { border: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color) !important; }
+app-auth-shell .border-2 { border-width: 2px !important; }
+app-auth-shell .rounded { border-radius: var(--bs-border-radius) !important; }
+app-auth-shell .shadow-sm { box-shadow: var(--bs-box-shadow-sm) !important; }
+app-auth-shell .shadow-lg { box-shadow: var(--bs-box-shadow-lg) !important; }
+
+app-auth-shell .gap-1 { gap: 0.25rem !important; }
+app-auth-shell .gap-2 { gap: 0.5rem !important; }
+app-auth-shell .gap-3 { gap: 1rem !important; }
+
+app-auth-shell .mx-auto { margin-right: auto !important; margin-left: auto !important; }
+app-auth-shell .my-5 { margin-top: 3rem !important; margin-bottom: 3rem !important; }
+app-auth-shell .mt-1 { margin-top: 0.25rem !important; }
+app-auth-shell .mt-2 { margin-top: 0.5rem !important; }
+app-auth-shell .mt-3 { margin-top: 1rem !important; }
+app-auth-shell .mt-4 { margin-top: 1.5rem !important; }
+app-auth-shell .mt-5 { margin-top: 3rem !important; }
+app-auth-shell .mb-1 { margin-bottom: 0.25rem !important; }
+app-auth-shell .mb-2 { margin-bottom: 0.5rem !important; }
+app-auth-shell .mb-4 { margin-bottom: 1.5rem !important; }
+app-auth-shell .mb-5 { margin-bottom: 3rem !important; }
+
+app-auth-shell .p-3 { padding: 1rem !important; }
+app-auth-shell .px-3 { padding-right: 1rem !important; padding-left: 1rem !important; }
+app-auth-shell .px-4 { padding-right: 1.5rem !important; padding-left: 1.5rem !important; }
+app-auth-shell .px-5 { padding-right: 3rem !important; padding-left: 3rem !important; }
+app-auth-shell .py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+app-auth-shell .py-2 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+app-auth-shell .py-3 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
