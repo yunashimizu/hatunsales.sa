@@ -1,18 +1,21 @@
 /* ===========================================================================
    Estilos globales · HatunSales
 
-   Desde angular.json se cargan antes: Bootstrap Reboot (solo la base de
-   elementos), Bootstrap Icons y los CSS estructurales del Angular CDK
-   (overlay, a11y, text-field).
+   Desde angular.json se cargan antes Bootstrap Icons y los CSS estructurales
+   del Angular CDK (overlay, a11y, text-field).
 
-   Orden de este archivo:
-     1. Tailwind 4 (todo en capas: theme/base/utilities).
-     2. Fuentes autoalojadas, tokens y base global.
-     3. Legado de Bootstrap para /auth (temporal).
-     4. Sistema de diseño del panel (adm-*).
-     5. Sistema de movimiento, el último: sus clases de entrada/salida tienen
-        que ganar a las animaciones por defecto de adm-panel, adm-modal…
+   Capas de cascada (de menor a mayor prioridad). Lo que NO está en ninguna
+   capa (admin-ui.css, movimiento.css, el CSS de cada componente) gana siempre
+   a todas ellas, sin depender de la especificidad:
+     properties · theme   variables internas de Tailwind
+     base                 preflight de Tailwind (reset)
+     reboot               Bootstrap Reboot: márgenes y tamaños de elementos
+     hs-base              valores por defecto de la casa (base.css)
+     components           (sin uso)
+     utilities            utilidades de Tailwind (solo /auth): ganan a Reboot,
+                          así text-2xl, font-bold o rounded-2xl se aplican de verdad
    =========================================================================== */
+@layer properties, theme, base, reboot, hs-base, components, utilities;
 
 /* Tailwind 4 solo se usa en /auth. source() limita el escaneo a esa carpeta,
    así no se generan utilidades por palabras sueltas del resto del código
@@ -21,9 +24,16 @@
    con él (botones sin fondo, listas sin viñetas, imágenes en bloque). */
 @import 'tailwindcss' source('./app/auth');
 
+/* Bootstrap Reboot (10 KB): única parte de Bootstrap en uso (barrido de clases
+   del 13/10 en html y ts: ninguna clase de componente fuera de /auth). */
+@import '../node_modules/bootstrap/dist/css/bootstrap-reboot.min.css' layer(reboot);
+
 @import './app/shared/styles/fuentes.css';
 @import './app/shared/styles/tokens.css';
 @import './app/shared/styles/base.css';
+@import './app/shared/styles/tipografia.css';
+@import './app/shared/styles/estados.css';
 @import './app/shared/styles/legado-bootstrap-auth.css';
 @import './app/admin/styles/admin-ui.css';
+@import './app/shared/styles/alertas.css';
 @import './app/shared/styles/movimiento.css';

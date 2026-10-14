@@ -1,0 +1,240 @@
+/* ---------------------------------------------------------------------------
+   Estados inline · vacío, error de carga y cargando · HatunSales
+
+   El panel tiene su pieza propia (.adm-vacio / .adm-vacio--error en
+   admin-ui.css). Este bloque sirve en la tienda, el login y vistas nuevas:
+   mismo patrón (icono, título, texto y acción) con tokens de cada zona.
+
+   <div class="hs-estado hs-estado--error hs-estado--tienda" role="alert">
+     <span class="hs-estado__icono" aria-hidden="true"><i class="bi bi-wifi-off"></i></span>
+     <p class="hs-estado__titulo">No pudimos cargar los productos</p>
+     <p class="hs-estado__texto">Revisa tu conexión e inténtalo de nuevo.</p>
+     <div class="hs-estado__acciones">
+       <button type="button" class="hs-estado__boton" (click)="cargar()">
+         <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+       </button>
+     </div>
+   </div>
+
+   Modificadores: --error, --aviso, --exito, --carga (con .hs-estado__giro),
+   --compacto, --borde (recuadro punteado) y --tienda (tokens --t-*).
+   Accesibilidad: role="alert" en errores, role="status" en carga y vacío; el
+   contenedor de la lista que carga lleva aria-busy="true".
+   --------------------------------------------------------------------------- */
+
+.hs-estado {
+  --hs-estado-acento: var(--hs-enlace, #4f46e5);
+  --hs-estado-fondo-icono: #eef2ff;
+  --hs-estado-borde-icono: #c7d2fe;
+  --hs-estado-titulo: var(--hs-texto, #0f172a);
+  --hs-estado-texto: var(--hs-texto-suave, #5b6578);
+  --hs-estado-linea: #d3d8e8;
+  --hs-estado-superficie: #ffffff;
+  --hs-estado-radio: 16px;
+  --hs-estado-boton-radio: 9px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  font-size: var(--fs-base, 0.875rem);
+  line-height: 1.5;
+  color: var(--hs-estado-texto);
+  animation: mov-aparecer-arriba var(--mov-entrada, 240ms) var(--ease-entrada, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
+}
+
+.hs-estado__icono {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--hs-estado-fondo-icono), #ffffff);
+  color: var(--hs-estado-acento);
+  font-size: 24px;
+  box-shadow: inset 0 0 0 1px var(--hs-estado-borde-icono), 0 0 0 8px color-mix(in srgb, var(--hs-estado-acento) 6%, transparent);
+}
+
+.hs-estado__titulo {
+  margin: 0;
+  max-width: 40ch;
+  font-family: var(--hs-fuente-titulos);
+  font-size: var(--fs-lg, 1rem);
+  font-weight: var(--fw-negrita, 700);
+  line-height: 1.3;
+  letter-spacing: var(--tracking-ajustado, -0.01em);
+  color: var(--hs-estado-titulo);
+  text-wrap: balance;
+}
+
+.hs-estado__texto {
+  margin: 0;
+  max-width: 46ch;
+  text-wrap: pretty;
+}
+
+.hs-estado__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.hs-estado__boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 9px 18px;
+  border: 1px solid var(--hs-estado-linea);
+  border-radius: var(--hs-estado-boton-radio);
+  background: #ffffff;
+  color: var(--hs-estado-titulo);
+  font: inherit;
+  font-size: var(--fs-base, 0.875rem);
+  font-weight: var(--fw-semi, 600);
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  transition: background-color var(--mov-micro, 140ms) var(--ease-salida-suave, ease),
+    border-color var(--mov-micro, 140ms) var(--ease-salida-suave, ease),
+    translate var(--mov-micro, 140ms) var(--ease-salida-suave, ease),
+    scale var(--mov-pulsacion, 90ms) var(--ease-salida-suave, ease);
+}
+
+.hs-estado__boton:hover {
+  background: #f8fafc;
+  border-color: #b3bdcc;
+  color: var(--hs-estado-titulo);
+  text-decoration: none;
+}
+
+.hs-estado__boton:active {
+  scale: var(--mov-pulsar, 0.98);
+}
+
+.hs-estado__boton:focus-visible {
+  outline: 2px solid var(--hs-foco, #4f46e5);
+  outline-offset: 2px;
+}
+
+/* Botón principal (una sola acción recomendada) */
+.hs-estado__boton--primario {
+  border-color: transparent;
+  background: var(--hs-enlace, #4f46e5);
+  color: #ffffff;
+}
+
+.hs-estado__boton--primario:hover {
+  border-color: transparent;
+  background: var(--hs-enlace-hover, #4338ca);
+  color: #ffffff;
+}
+
+/* Cargando: giro + texto. La lista que carga lleva aria-busy="true". */
+.hs-estado__giro {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 4px;
+  border: 3px solid color-mix(in srgb, var(--hs-estado-acento) 18%, transparent);
+  border-top-color: var(--hs-estado-acento);
+  border-radius: 50%;
+  animation: mov-girar 800ms linear infinite;
+}
+
+/* ── Tonos ─────────────────────────────────────────────────────────────────
+   El color vivo pinta el icono; el título usa el tono oscuro (≥ 4,5:1). */
+
+.hs-estado--error {
+  --hs-estado-acento: #dc2626;
+  --hs-estado-fondo-icono: #fef2f2;
+  --hs-estado-borde-icono: #fecaca;
+  --hs-estado-titulo: #991b1b;
+}
+
+.hs-estado--aviso {
+  --hs-estado-acento: #d97706;
+  --hs-estado-fondo-icono: #fffbeb;
+  --hs-estado-borde-icono: #fde68a;
+  --hs-estado-titulo: #92400e;
+}
+
+.hs-estado--exito {
+  --hs-estado-acento: #059669;
+  --hs-estado-fondo-icono: #ecfdf5;
+  --hs-estado-borde-icono: #a7f3d0;
+  --hs-estado-titulo: #065f46;
+}
+
+.hs-estado--carga {
+  animation: none;
+}
+
+/* ── Variantes de forma ──────────────────────────────────────────────────── */
+
+.hs-estado--compacto {
+  gap: 6px;
+  padding: 24px 16px;
+}
+
+.hs-estado--compacto .hs-estado__icono {
+  width: 46px;
+  height: 46px;
+  font-size: 19px;
+  box-shadow: inset 0 0 0 1px var(--hs-estado-borde-icono);
+}
+
+.hs-estado--borde {
+  border: 1px dashed var(--hs-estado-linea);
+  border-radius: var(--hs-estado-radio);
+  background: var(--hs-estado-superficie);
+}
+
+/* ── Tienda: tokens --t-*, radios grandes y botón en píldora ─────────────── */
+
+.hs-estado--tienda {
+  --hs-estado-titulo: var(--t-texto, #0d1220);
+  --hs-estado-texto: var(--t-texto-suave, #5b6377);
+  --hs-estado-linea: var(--t-borde-fuerte, #d3d8e8);
+  --hs-estado-superficie: var(--t-superficie, #ffffff);
+  --hs-estado-radio: var(--t-r-lg, 24px);
+  --hs-estado-boton-radio: var(--t-r-full, 999px);
+  padding: 48px 20px;
+  font-size: var(--fs-md, 0.9375rem);
+}
+
+.hs-estado--tienda .hs-estado__titulo {
+  font-family: var(--t-fuente-titulos, var(--hs-fuente-titulos));
+  font-size: var(--fs-xl, 1.125rem);
+}
+
+.hs-estado--tienda .hs-estado__boton--primario {
+  background: var(--t-primario, #4f46e5);
+}
+
+.hs-estado--tienda .hs-estado__boton--primario:hover {
+  background: var(--t-primario-osc, #4338ca);
+}
+
+/* El tono de error manda sobre el título de la tienda */
+.hs-estado--tienda.hs-estado--error { --hs-estado-titulo: var(--t-peligro-texto, #b91c1c); }
+.hs-estado--tienda.hs-estado--aviso { --hs-estado-titulo: #92400e; }
+
+@media (pointer: coarse) {
+  .hs-estado__boton {
+    min-height: var(--hs-tactil, 44px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-estado {
+    animation: none;
+  }
+}

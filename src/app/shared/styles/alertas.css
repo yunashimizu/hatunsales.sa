@@ -1,0 +1,455 @@
+/* ===========================================================================
+   Modales de SweetAlert2 · tema HatunSales (panel adm-* v2 y tienda --t-*)
+
+   Lo usa AlertService (shared/services/alert.service.ts), que pone en cada
+   modal las clases hs-swal hs-swal--panel|tienda (popup) y
+   hs-swal-contenedor--panel|tienda (contenedor). Los toasts NO son de Swal:
+   son los avisos nt-* (shared/components/toasts).
+
+   Cómo gana a la hoja de Swal sin !important: Swal inyecta su CSS en tiempo
+   de ejecución (después de este archivo) pero con selectores de especificidad
+   mínima (div:where(.swal2-container) …); aquí todo va con clases (0,2,0) o
+   con sus variables --swal2-* fijadas en el contenedor, que heredan el popup
+   y sus hijos.
+
+   Movimiento: entrada scale .98 → 1 con fundido (220 ms, desaceleración) y
+   salida corta (160 ms, aceleración); con prefers-reduced-motion, solo fundido.
+   =========================================================================== */
+
+:root {
+  /* Testigo para AlertService: si existe, no inyecta su tema mínimo de respaldo. */
+  --hs-alertas-tema: 1;
+}
+
+/* ── Contenedor y velo ──────────────────────────────────────────────────── */
+
+.swal2-container {
+  /* Por encima de paneles (1060), modales adm (1070), overlays CDK (1080) y el
+     visor (1200); por debajo de los avisos nt-* (2100). */
+  z-index: var(--z-alerta, 2000);
+  padding: 16px;
+
+  --swal2-backdrop: rgba(15, 23, 42, 0.46);
+  --swal2-backdrop-transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1);
+  --swal2-width: min(30rem, 100%);
+  --swal2-padding: 28px 24px 22px;
+  --swal2-border: 1px solid var(--adm-borde, #e4e8f0);
+  --swal2-border-radius: var(--adm-r-xl, 22px);
+  --swal2-background: var(--adm-superficie, #ffffff);
+  --swal2-color: var(--adm-texto, #0f172a);
+  --swal2-title-padding: 0 4px;
+  --swal2-html-container-padding: 8px 4px 0;
+  --swal2-icon-zoom: 0.78;
+  --swal2-actions-margin: 22px 0 0;
+  --swal2-actions-width: 100%;
+  --swal2-input-border: 1px solid var(--adm-borde-fuerte, #cfd6e2);
+  --swal2-input-border-radius: var(--adm-r-sm, 9px);
+  --swal2-input-box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --swal2-input-hover-box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --swal2-input-focus-border: 1px solid var(--adm-primario, #4f46e5);
+  --swal2-input-focus-box-shadow: var(--adm-anillo, 0 0 0 4px rgba(79, 70, 229, 0.14));
+  --swal2-input-background: var(--adm-superficie, #ffffff);
+  --swal2-validation-message-background: var(--adm-peligro-claro, #fef2f2);
+  --swal2-validation-message-color: var(--adm-peligro-texto, #b91c1c);
+  --swal2-timer-progress-bar-background: rgba(79, 70, 229, 0.45);
+  --swal2-show-animation: hs-swal-entrar 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  --swal2-hide-animation: hs-swal-salir 160ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  --swal2-outline: 0 0 0 4px rgba(79, 70, 229, 0.18);
+
+  /* Colores de botones (también los usa el hover de Swal con color-mix) */
+  --swal2-confirm-button-background-color: var(--adm-primario, #4f46e5);
+  --swal2-confirm-button-color: #ffffff;
+  --swal2-deny-button-background-color: #ffffff;
+  --swal2-deny-button-color: var(--adm-texto-2, #1e293b);
+  --swal2-cancel-button-background-color: #ffffff;
+  --swal2-cancel-button-color: var(--adm-texto-2, #1e293b);
+}
+
+/* ── Popup ──────────────────────────────────────────────────────────────── */
+
+.swal2-container .swal2-popup {
+  box-shadow:
+    0 24px 60px -18px rgba(15, 23, 42, 0.32),
+    0 8px 22px -10px rgba(15, 23, 42, 0.14);
+  font-family: var(--hs-fuente, 'Inter', 'Segoe UI', Roboto, sans-serif);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.swal2-container .swal2-popup:focus {
+  outline: none;
+}
+
+.swal2-container .swal2-title {
+  font-family: var(--hs-fuente-titulos, 'Plus Jakarta Sans', 'Inter', sans-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  color: var(--adm-texto, #0f172a);
+  overflow-wrap: anywhere;
+}
+
+.swal2-container .swal2-html-container {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--adm-texto-suave, #5b6578);
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.swal2-container .swal2-html-container strong {
+  color: var(--adm-texto, #0f172a);
+  font-weight: 600;
+}
+
+/* Pista ("qué hacer ahora") y código de soporte de AlertService.errorHttp */
+.swal2-container .swal2-html-container small {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.85em;
+  line-height: 1.5;
+  color: #64748b; /* 4,8:1 sobre blanco */
+}
+
+.swal2-container .swal2-html-container .hs-swal-pista {
+  padding: 8px 10px;
+  border-radius: var(--adm-r-sm, 9px);
+  background: var(--adm-superficie-3, #f1f4f9);
+  color: var(--adm-texto-2, #1e293b);
+  text-align: left;
+}
+
+.swal2-container .swal2-html-container .hs-swal-soporte code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--adm-superficie-3, #f1f4f9);
+  color: var(--adm-texto-2, #1e293b);
+  font-family: var(--hs-fuente-mono, ui-monospace, monospace);
+  font-size: 0.95em;
+  user-select: all;
+}
+
+/* Lista de validaciones (varias a la vez) */
+.swal2-container .swal2-html-container .hs-swal-lista {
+  margin: 4px 0 0;
+  padding-left: 1.25em;
+  text-align: left;
+}
+
+.swal2-container .swal2-html-container .hs-swal-lista li + li {
+  margin-top: 4px;
+}
+
+/* ── Iconos: mismo dibujo de Swal, más pequeño y con la paleta del sistema ── */
+
+.swal2-container .swal2-icon {
+  --hs-icono: var(--adm-primario, #4f46e5);
+  margin: 0 auto 18px;
+  border-color: color-mix(in srgb, var(--hs-icono) 30%, transparent);
+  color: var(--hs-icono);
+}
+
+.swal2-container .swal2-icon.swal2-success {
+  --hs-icono: var(--adm-exito, #059669);
+}
+.swal2-container .swal2-icon.swal2-error {
+  --hs-icono: var(--adm-peligro, #dc2626);
+}
+.swal2-container .swal2-icon.swal2-warning {
+  --hs-icono: var(--adm-aviso, #d97706);
+}
+.swal2-container .swal2-icon.swal2-info {
+  --hs-icono: var(--adm-info, #0284c7);
+}
+.swal2-container .swal2-icon.swal2-question {
+  --hs-icono: var(--adm-primario, #4f46e5);
+}
+
+.swal2-container .swal2-icon.swal2-success .swal2-success-ring {
+  border-color: color-mix(in srgb, var(--hs-icono) 30%, transparent);
+}
+
+.swal2-container .swal2-icon.swal2-success [class^='swal2-success-line'],
+.swal2-container .swal2-icon.swal2-error [class^='swal2-x-mark-line'] {
+  background-color: var(--hs-icono);
+}
+
+/* ── Botones (equivalentes a adm-btn--primario / --suave / --peligro) ───── */
+
+.swal2-container .swal2-actions {
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.swal2-container .swal2-actions .swal2-styled {
+  min-height: 42px;
+  margin: 0;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--adm-r-sm, 9px);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.2;
+  box-shadow: none;
+  transition:
+    background-color 140ms cubic-bezier(0.2, 0, 0, 1),
+    border-color 140ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 140ms cubic-bezier(0.2, 0, 0, 1),
+    transform 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.swal2-container .swal2-actions .swal2-styled:hover:not([disabled]) {
+  transform: translateY(-1px);
+}
+
+.swal2-container .swal2-actions .swal2-styled:active:not([disabled]) {
+  transform: scale(0.98);
+}
+
+.swal2-container .swal2-actions .swal2-styled:focus-visible {
+  outline: 2px solid var(--hs-foco, #4f46e5);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.swal2-container .swal2-actions .swal2-confirm {
+  background: var(--adm-gradiente, linear-gradient(135deg, #6366f1 0%, #4f46e5 60%, #4338ca 100%));
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(67, 56, 202, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.swal2-container .swal2-actions .swal2-confirm:hover:not([disabled]) {
+  background: var(--adm-gradiente, linear-gradient(135deg, #6366f1 0%, #4f46e5 60%, #4338ca 100%));
+  box-shadow: var(--adm-sombra-primario, 0 6px 16px -4px rgba(79, 70, 229, 0.45)), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* Acción destructiva (confirmarPeligro / danger): rojo sólido, foco en Cancelar */
+.swal2-container .swal2-actions .swal2-confirm.hs-swal-peligro {
+  background: var(--adm-peligro, #dc2626);
+  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.35);
+}
+
+.swal2-container .swal2-actions .swal2-confirm.hs-swal-peligro:hover:not([disabled]) {
+  background: #b91c1c;
+  box-shadow: 0 6px 16px -4px rgba(220, 38, 38, 0.45);
+}
+
+.swal2-container .swal2-actions .swal2-confirm.hs-swal-peligro:focus-visible {
+  outline-color: var(--adm-peligro, #dc2626);
+}
+
+.swal2-container .swal2-actions .swal2-cancel,
+.swal2-container .swal2-actions .swal2-deny {
+  background: var(--adm-superficie, #ffffff);
+  color: var(--adm-texto-2, #1e293b);
+  border-color: var(--adm-borde-fuerte, #cfd6e2);
+  box-shadow: var(--adm-sombra-sm, 0 1px 2px rgba(15, 23, 42, 0.05));
+}
+
+.swal2-container .swal2-actions .swal2-cancel:hover:not([disabled]),
+.swal2-container .swal2-actions .swal2-deny:hover:not([disabled]) {
+  background: var(--adm-superficie-2, #f8fafc);
+  border-color: #b3bdcc;
+  color: var(--adm-texto, #0f172a);
+}
+
+.swal2-container .swal2-actions .swal2-styled[disabled] {
+  opacity: 0.55;
+  transform: none;
+}
+
+/* Spinner de alerta.loading / conCarga */
+.swal2-container .swal2-loader {
+  border-color: var(--adm-primario, #4f46e5) transparent var(--adm-primario, #4f46e5) transparent;
+}
+
+/* ── Campos (pedirTexto / prompt) ───────────────────────────────────────── */
+
+.swal2-container .swal2-input-label {
+  margin: 18px 4px 0;
+  justify-content: flex-start;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--adm-texto-2, #1e293b);
+}
+
+.swal2-container .swal2-input,
+.swal2-container .swal2-textarea {
+  width: auto;
+  margin: 6px 4px 0;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--adm-texto, #0f172a);
+}
+
+.swal2-container .swal2-input {
+  height: 44px;
+}
+
+.swal2-container .swal2-textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.swal2-container .swal2-input::placeholder,
+.swal2-container .swal2-textarea::placeholder {
+  color: var(--adm-texto-tenue, #667085);
+}
+
+.swal2-container .swal2-input.swal2-inputerror,
+.swal2-container .swal2-textarea.swal2-inputerror {
+  border-color: var(--adm-peligro, #dc2626) !important; /* Swal lo marca con !important */
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.14) !important;
+}
+
+.swal2-container .swal2-validation-message {
+  justify-content: flex-start;
+  margin: 10px 4px 0;
+  padding: 8px 10px;
+  border-radius: var(--adm-r-sm, 9px);
+  font-size: 0.86rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.swal2-container .swal2-validation-message::before {
+  flex-shrink: 0;
+  background-color: var(--adm-peligro, #dc2626);
+}
+
+/* ── Tienda: más redondeada, botones en píldora y marca --t-* ───────────── */
+
+.swal2-container.hs-swal-contenedor--tienda {
+  --swal2-backdrop: rgba(13, 18, 32, 0.42);
+  --swal2-border: 1px solid var(--t-borde, #e6e9f2);
+  --swal2-border-radius: var(--t-r-lg, 24px);
+  --swal2-color: var(--t-texto, #0d1220);
+}
+
+.swal2-container .hs-swal--tienda .swal2-title {
+  font-family: var(--t-fuente-titulos, var(--hs-fuente-titulos, 'Plus Jakarta Sans', sans-serif));
+  color: var(--t-texto, #0d1220);
+}
+
+.swal2-container .hs-swal--tienda .swal2-html-container {
+  color: var(--t-texto-suave, #5b6377);
+}
+
+.swal2-container .hs-swal--tienda .swal2-actions .swal2-styled {
+  border-radius: var(--t-r-full, 999px);
+  padding-inline: 22px;
+}
+
+.swal2-container .hs-swal--tienda .swal2-actions .swal2-confirm:not(.hs-swal-peligro),
+.swal2-container .hs-swal--tienda .swal2-actions .swal2-confirm:not(.hs-swal-peligro):hover:not([disabled]) {
+  background: var(--t-primario, #4f46e5);
+  box-shadow: 0 6px 16px -6px rgba(79, 70, 229, 0.5);
+}
+
+.swal2-container .hs-swal--tienda .swal2-actions .swal2-confirm:not(.hs-swal-peligro):hover:not([disabled]) {
+  background: var(--t-primario-osc, #4338ca);
+}
+
+.swal2-container .hs-swal--tienda .swal2-actions .swal2-cancel,
+.swal2-container .hs-swal--tienda .swal2-actions .swal2-deny {
+  border-color: var(--t-borde-fuerte, #d3d8e8);
+  color: var(--t-texto, #0d1220);
+}
+
+/* ── Movimiento ─────────────────────────────────────────────────────────── */
+
+@keyframes hs-swal-entrar {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes hs-swal-salir {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes hs-swal-fundido {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swal2-container {
+    --swal2-show-animation: hs-swal-fundido 120ms linear;
+    --swal2-hide-animation: none;
+    --swal2-backdrop-transition: none;
+  }
+
+  .swal2-container .swal2-icon,
+  .swal2-container .swal2-icon * {
+    animation: none !important;
+  }
+
+  .swal2-container .swal2-actions .swal2-styled:hover:not([disabled]),
+  .swal2-container .swal2-actions .swal2-styled:active:not([disabled]) {
+    transform: none;
+  }
+}
+
+/* ── Móvil y táctil ─────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .swal2-container {
+    --swal2-padding: 24px 18px 18px;
+    --swal2-border-radius: 20px;
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Botones a todo el ancho, el principal arriba (Swal los ordena cancelar → confirmar). */
+  .swal2-container .swal2-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .swal2-container .swal2-actions .swal2-styled {
+    width: 100%;
+  }
+
+  /* Evita el zoom automático de iOS al enfocar */
+  .swal2-container .swal2-input,
+  .swal2-container .swal2-textarea {
+    font-size: 16px;
+  }
+}
+
+@media (pointer: coarse) {
+  .swal2-container .swal2-actions .swal2-styled {
+    min-height: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  .swal2-container .swal2-popup {
+    border: 1px solid CanvasText;
+  }
+}
+
+/* Al imprimir un ticket o comprobante no debe salir el modal encima */
+@media print {
+  .swal2-container {
+    display: none !important;
+  }
+}
+
+/* ── Campo numérico inválido (directiva appNumero) ───────────────────────────
+   En el panel, .adm-input[aria-invalid='true'] ya lo pinta (admin-ui.css).
+   Respaldo para la tienda y el login, cuyos inputs no usan adm-*: el
+   !important vence a los estilos encapsulados de cada componente. */
+input.num-invalido:not(.adm-input) {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+}

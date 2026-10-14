@@ -1,0 +1,227 @@
+/* ---------------------------------------------------------------------------
+   Tipografía compartida · HatunSales
+
+   Clases opcionales para páginas sin pieza adm-* (tienda, login, vistas
+   nuevas). En el panel, las cabeceras, tarjetas, tablas y métricas ya traen su
+   tipografía desde admin-ui.css. Todo sale de la escala de tokens.css
+   (--fs-*, --lh-*, --fw-*, --tracking-*).
+
+   Reglas de la casa
+   - Títulos: Plus Jakarta Sans 700–800, tracking negativo según el tamaño y
+     text-wrap: balance. Cuerpo: Inter 400–600 con text-wrap: pretty.
+   - Rótulos en MAYÚSCULAS solo a 11–12 px, con tracking positivo y la variante
+     'case' (guiones y paréntesis a la altura de las mayúsculas).
+   - Cifras siempre tabulares (todas las cifras miden lo mismo) y sin partirse;
+     en tablas y totales, alineadas a la derecha.
+   --------------------------------------------------------------------------- */
+
+/* ── Títulos ──────────────────────────────────────────────────────────────── */
+
+.hs-display,
+.hs-titulo-1,
+.hs-titulo-2,
+.hs-titulo-3,
+.hs-titulo-4 {
+  margin: 0;
+  font-family: var(--hs-fuente-titulos);
+  color: var(--hs-titulo-color, inherit);
+  text-wrap: balance;
+}
+
+/* Héroes y banners de la tienda: 32 → 54 px */
+.hs-display {
+  font-size: var(--fs-display);
+  font-weight: var(--fw-extra);
+  line-height: 1.05;
+  letter-spacing: var(--tracking-display);
+}
+
+/* Título de página: 22 → 28 px */
+.hs-titulo-1 {
+  font-size: var(--fs-titulo-pagina);
+  font-weight: var(--fw-extra);
+  line-height: var(--lh-ajustado);
+  letter-spacing: -0.025em;
+}
+
+/* Título de sección: 20 px */
+.hs-titulo-2 {
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-negrita);
+  line-height: 1.25;
+  letter-spacing: var(--tracking-titulo);
+}
+
+/* Título de tarjeta o bloque: 16 px */
+.hs-titulo-3 {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-negrita);
+  line-height: 1.3;
+  letter-spacing: var(--tracking-ajustado);
+}
+
+/* Subtítulo de grupo: 15 px semibold */
+.hs-titulo-4 {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semi);
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+/* Rótulo corto sobre el título («VENTAS», «NUEVO») */
+.hs-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-family: var(--hs-fuente);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-negrita);
+  line-height: 1.4;
+  letter-spacing: var(--tracking-mayus-ancho);
+  text-transform: uppercase;
+  font-feature-settings: 'case' 1;
+  color: var(--hs-eyebrow-color, var(--hs-enlace));
+}
+
+/* ── Texto ────────────────────────────────────────────────────────────────── */
+
+.hs-subtitulo {
+  margin: 0;
+  max-width: var(--hs-medida);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--hs-texto-suave, #5b6578);
+  text-wrap: pretty;
+}
+
+.hs-texto    { font-size: var(--fs-base); line-height: var(--lh-texto); }
+.hs-texto-sm { font-size: var(--fs-sm);   line-height: 1.45; }
+.hs-meta     { font-size: var(--fs-xs);   line-height: 1.45; color: var(--hs-texto-tenue, #667085); }
+
+/* Párrafos largos: medida cómoda y más interlineado */
+.hs-lectura {
+  max-width: var(--hs-medida);
+  line-height: var(--lh-lectura);
+  text-wrap: pretty;
+}
+
+/* Rótulo en MAYÚSCULAS (cabeceras de tabla propias, etiquetas de dato) */
+.hs-rotulo {
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-negrita);
+  line-height: 1.4;
+  letter-spacing: var(--tracking-mayus);
+  text-transform: uppercase;
+  font-feature-settings: 'case' 1;
+  color: var(--hs-texto-suave, #5b6578);
+}
+
+/* Recorta a N líneas con puntos suspensivos: style="--lineas: 2" */
+.hs-lineas {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--lineas, 2);
+  line-clamp: var(--lineas, 2);
+  overflow: hidden;
+}
+
+/* ── Cifras y montos ──────────────────────────────────────────────────────── */
+
+/* Cualquier número: tabular y sin partirse («10,000,000», «S/ 1,250,000.00») */
+.hs-cifra {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Columna o celda numérica: además alineada a la derecha */
+.hs-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Monto destacado (totales, saldos): Plus Jakarta 800 con cifras tabulares.
+   Variantes de tamaño: --sm 16, (por defecto) 20, --lg 24, --xl 30 px. */
+.hs-monto {
+  font-family: var(--hs-fuente-titulos);
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-extra);
+  line-height: var(--lh-ajustado);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--hs-monto-color, inherit);
+}
+
+.hs-monto--sm { font-size: var(--fs-lg); letter-spacing: -0.01em; }
+.hs-monto--lg { font-size: var(--fs-3xl); }
+.hs-monto--xl { font-size: var(--fs-4xl); letter-spacing: -0.025em; }
+
+/* Moneda en tamaño menor y algo separada: <span class="hs-monto"><span class="hs-moneda">S/</span> 1,250.00</span> */
+.hs-moneda {
+  font-size: 0.72em;
+  font-weight: var(--fw-negrita);
+  letter-spacing: 0;
+  vertical-align: 0.06em;
+  opacity: 0.8;
+}
+
+/* Precio de tienda: llamativo, en el color del texto (no en el de la marca)
+   para que el botón de compra sea lo único naranja. */
+.hs-precio {
+  font-family: var(--t-fuente-titulos, var(--hs-fuente-titulos));
+  font-size: var(--t-fs-precio, 1.125rem);
+  font-weight: var(--fw-extra);
+  line-height: var(--lh-ajustado);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--t-texto, #0d1220);
+}
+
+.hs-precio--grande { font-size: var(--t-fs-precio-grande, 2rem); letter-spacing: -0.03em; }
+
+/* Precio anterior tachado (oferta) */
+.hs-precio-antes {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medio);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--t-texto-tenue, #667085);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* Descuento junto al precio: «-15%» */
+.hs-descuento {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--t-peligro-claro, #fef2f2);
+  color: var(--t-peligro-texto, #b91c1c);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-negrita);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Campos numéricos (directiva appNumero) ───────────────────────────────────
+   La directiva escribe type=text + inputmode numeric/decimal, pinta la clase
+   .num-invalido y aria-invalid="true" cuando el texto no es un número válido.
+   En el panel, .adm-input ya trae su versión (admin-ui.css); esto cubre la
+   tienda y cualquier input sin .adm-input. */
+
+input[appnumero] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* !important: los estilos de componente encapsulados tienen más especificidad
+   y casi todos fijan su propio borde. */
+input.num-invalido:not(.adm-input),
+input[appnumero][aria-invalid='true']:not(.adm-input) {
+  border-color: var(--t-peligro-texto, #b91c1c) !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+}

@@ -7,18 +7,76 @@
    Contraste: todo token de texto pasa WCAG AA (≥ 4,5:1) sobre las superficies
    claras de su zona. Los colores «vivos» (--t-exito, --t-acento…) quedan para
    iconos, puntos, bordes y fondos con texto oscuro.
+   Guía de uso para páginas: scratchpad/contratos/front-base-diseno.md.
    --------------------------------------------------------------------------- */
 
 :root {
-  /* ── Tipografía ─────────────────────────────────────────────── */
+  /* ── Familias ───────────────────────────────────────────────── */
+  /* Cuerpo: Inter (cifras tabulares nítidas, gran altura de x).
+     Títulos: Plus Jakarta Sans (600–800). Ambas autoalojadas (fuentes.css). */
   --hs-fuente: 'Inter Variable', 'Inter', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
   --hs-fuente-titulos: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback',
     'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --hs-fuente-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
-  /* Reboot de Bootstrap lee esta variable para body/form: misma familia en todo. */
+  /* Reboot de Bootstrap lee estas variables para body/form: misma familia en todo. */
   --bs-body-font-family: var(--hs-fuente);
+  --bs-font-monospace: var(--hs-fuente-mono);
+
+  /* ── Escala tipográfica (rem: respeta el tamaño de letra del usuario) ──
+     Escala de interfaz densa: pasos de 1 px hasta 16 y después ~1,2×.
+     Panel: cuerpo --fs-base (14). Tienda: cuerpo --fs-lg (16). */
+  --fs-2xs: 0.6875rem;   /* 11 px · rótulos en MAYÚSCULAS (cabeceras de tabla, etiquetas de métrica) */
+  --fs-xs: 0.75rem;      /* 12 px · insignias, ayudas de campo, metadatos */
+  --fs-sm: 0.8125rem;    /* 13 px · etiquetas de campo, pestañas, texto secundario */
+  --fs-base: 0.875rem;   /* 14 px · cuerpo del panel, celdas, botones */
+  --fs-md: 0.9375rem;    /* 15 px · cuerpo destacado, botón grande */
+  --fs-lg: 1rem;         /* 16 px · títulos de tarjeta, cuerpo de la tienda, campos en móvil */
+  --fs-xl: 1.125rem;     /* 18 px · títulos de sección y de panel lateral */
+  --fs-2xl: 1.25rem;     /* 20 px · dato destacado */
+  --fs-3xl: 1.5rem;      /* 24 px · totales, precio grande */
+  --fs-4xl: 1.875rem;    /* 30 px · títulos de página de la tienda */
+  --fs-5xl: 2.25rem;     /* 36 px */
+  --fs-6xl: 3rem;        /* 48 px */
+
+  /* Fluidas (crecen con el ancho, sin saltos por breakpoint) */
+  --fs-titulo-pagina: clamp(1.375rem, 1.1rem + 1.1vw, 1.75rem);    /* 22 → 28 px · h1 del panel */
+  --fs-titulo-tienda: clamp(1.5rem, 1.15rem + 1.4vw, 2.125rem);    /* 24 → 34 px · h1/h2 de la tienda */
+  --fs-display: clamp(2rem, 1.2rem + 3.2vw, 3.375rem);             /* 32 → 54 px · héroes */
+  --fs-metrica: clamp(1.125rem, 0.6rem + 9cqi, 1.625rem);          /* 18 → 26 px · según el ancho de la métrica (cqi) */
+
+  /* ── Interlineado ───────────────────────────────────────────── */
+  --lh-1: 1;              /* botones, insignias, cifras sueltas */
+  --lh-ajustado: 1.15;    /* display, métricas, totales */
+  --lh-titulo: 1.25;      /* títulos */
+  --lh-control: 1.4;      /* campos de formulario, celdas compactas */
+  --lh-texto: 1.5;        /* cuerpo */
+  --lh-lectura: 1.65;     /* párrafos largos (descripciones, políticas) */
+
+  /* ── Pesos (fuentes variables: cualquier valor entre 100 y 900) ── */
+  --fw-regular: 400;
+  --fw-medio: 500;
+  --fw-semi: 600;
+  --fw-negrita: 700;
+  --fw-extra: 800;
+
+  /* ── Tracking (letter-spacing) ──────────────────────────────── */
+  --tracking-display: -0.03em;    /* ≥ 32 px */
+  --tracking-titulo: -0.02em;     /* 18–30 px */
+  --tracking-ajustado: -0.01em;   /* 14–17 px en negrita */
+  --tracking-normal: 0;
+  --tracking-mayus: 0.06em;       /* rótulos en mayúsculas de 11–12 px */
+  --tracking-mayus-ancho: 0.09em; /* eyebrow */
+
+  /* Ancho cómodo de lectura */
+  --hs-medida: 68ch;
+
+  /* Neutros de texto compartidos (los del panel y la tienda derivan de estos
+     valores): 17,9:1 · 5,9:1 · 5,0:1 sobre blanco. */
+  --hs-texto: #0f172a;
+  --hs-texto-suave: #5b6578;
+  --hs-texto-tenue: #667085;
 
   /* ── Espaciado (escala 4/8/12/16/24/32) ─────────────────────── */
   --hs-esp-1: 4px;
@@ -38,6 +96,10 @@
   --hs-enlace: #4f46e5;
   --hs-enlace-hover: #4338ca;
 
+  /* Alto útil de la pantalla: 100dvh donde existe (la barra de Safari/Chrome
+     móvil no tapa el pie de cajones y modales); 100vh como respaldo. */
+  --hs-alto-pantalla: 100vh;
+
   /* ── Escala de z-index (de abajo arriba) ────────────────────── */
   --z-barra-pos: 60;               /* barra de total del POS */
   --z-topbar: 99;
@@ -53,12 +115,25 @@
   --z-toast: 2100;                 /* toasts nt-* */
 }
 
+@supports (height: 100dvh) {
+  :root {
+    --hs-alto-pantalla: 100dvh;
+  }
+}
+
 /* ---------------------------------------------------------------------------
    Tienda (--t-*). Se usan dentro de /store.
    --------------------------------------------------------------------------- */
 :root {
   --t-fuente: var(--hs-fuente);
   --t-fuente-titulos: var(--hs-fuente-titulos);
+
+  /* Tipografía comercial (derivada de la escala global) */
+  --t-fs-titulo: var(--fs-titulo-tienda);   /* h1/h2 de página y de sección */
+  --t-fs-display: var(--fs-display);        /* héroe y banners */
+  --t-fs-precio: var(--fs-xl);              /* precio en tarjeta de producto */
+  --t-fs-precio-grande: clamp(1.75rem, 1.4rem + 1.4vw, 2.25rem);  /* 28 → 36 px · ficha de producto */
+  --t-fs-total: var(--fs-3xl);              /* total del carrito / checkout */
 
   --t-fondo: #f7f8fc;
   --t-superficie: #ffffff;
@@ -67,8 +142,8 @@
   --t-borde-fuerte: #d3d8e8;
 
   --t-texto: #0d1220;
-  --t-texto-suave: #5b6377;        /* 6,0:1 */
-  --t-texto-tenue: #667085;        /* 5,0:1 (antes #8b93a7, 3,1:1) */
+  --t-texto-suave: #5b6377;        /* 6,0:1 sobre blanco · 5,6:1 sobre --t-superficie-2 */
+  --t-texto-tenue: #667085;        /* 5,0:1 sobre blanco · 4,6:1 sobre --t-superficie-2 (antes #8b93a7, 3,1:1) */
 
   --t-primario: #4f46e5;
   --t-primario-osc: #4338ca;
@@ -79,20 +154,20 @@
   --t-acento: #f97316;
   --t-acento-texto: #c2410c;       /* 5,2:1 sobre blanco */
 
-  /* Botón de compra (CTA): naranja oscuro con texto blanco (5,2:1). */
+  /* Botón de compra (CTA): naranja oscuro con texto blanco (5,2:1; hover 7,3:1). */
   --t-cta: #c2410c;
   --t-cta-hover: #9a3412;
   --t-cta-texto: #ffffff;
 
   /* Estados: el color vivo es para iconos/puntos/bordes; el «-texto» para letras. */
   --t-exito: #10b981;
-  --t-exito-texto: #047857;        /* 5,5:1 */
+  --t-exito-texto: #047857;        /* 5,5:1 sobre blanco · 5,2:1 sobre --t-exito-claro */
   --t-exito-claro: #ecfdf5;
   --t-aviso: #f59e0b;
-  --t-aviso-texto: #b45309;        /* 5,0:1 */
+  --t-aviso-texto: #b45309;        /* 5,0:1 sobre blanco · 4,8:1 sobre --t-aviso-claro */
   --t-aviso-claro: #fffbeb;
   --t-peligro: #ef4444;
-  --t-peligro-texto: #b91c1c;      /* 6,5:1 */
+  --t-peligro-texto: #b91c1c;      /* 6,5:1 sobre blanco · 5,9:1 sobre --t-peligro-claro */
   --t-peligro-claro: #fef2f2;
   --t-info-texto: #0369a1;         /* 5,9:1 */
   --t-info-claro: #f0f9ff;

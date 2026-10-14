@@ -1,7 +1,15 @@
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, Injectable, NgZone, PLATFORM_ID, Signal, inject, signal } from '@angular/core';
 import { Observable, Subject, firstValueFrom, isObservable } from 'rxjs';
-import { MENSAJES_GLOBALES, describirError, yaNotificado } from '../utils/errores-http.util';
+import {
+  MENSAJE_DEMASIADAS_SOLICITUDES,
+  MENSAJE_SERVIDOR_NO_DISPONIBLE,
+  MENSAJE_SESION_EXPIRADA,
+  MENSAJE_SIN_CONEXION,
+  MENSAJE_TIEMPO_AGOTADO,
+  describirError,
+  yaNotificado,
+} from '../utils/errores-http.util';
 
 /* ===========================================================================
  * Tipos públicos
@@ -31,6 +39,11 @@ export interface OpcionesAviso {
   cerrable?: boolean;
   /** Clase de Bootstrap Icons que sustituye al icono de la severidad. */
   icono?: string;
+  /**
+   * Al repetirse un aviso idéntico (misma clave): true (por defecto) muestra ×N;
+   * false solo lo refresca (avisos globales como "Sin conexión").
+   */
+  contar?: boolean;
 }
 
 export type OpcionesSinTipo = Omit<OpcionesAviso, 'tipo' | 'titulo'>;
@@ -84,8 +97,8 @@ export type MotivoPausa = 'hover' | 'foco' | 'oculto';
 
 const DURACION_BASE: Readonly<Record<TipoAviso, number>> = {
   exito: 3500,
-  info: 4500,
-  advertencia: 6000,
+  info: 5000,
+  advertencia: 6500,
   error: 8000,
   cargando: 0,
 };
@@ -122,8 +135,21 @@ const CONSULTA_MOVIL = '(max-width: 640px)';
 const LARGO_TITULO = 140;
 const LARGO_MENSAJE = 320;
 const RETARDO_ANUNCIO_MS = 80;
-/** Avisos globales que cubren los errores de transporte de toda la pantalla. */
-const CLAVES_GLOBALES: readonly string[] = ['conexion', 'offline'];
+/** Un aviso global registrado sin toast (p. ej. sesión vencida en el panel) cubre este margen. */
+const VIGENCIA_REGISTRO_GLOBAL_MS = 10_000;
+
+/**
+ * Texto de cada aviso global → claves de los avisos que ya lo dicen. Si uno
+ * de esos avisos está visible (o se registró hace poco), una pantalla que
+ * repite el mismo texto sin clave propia no apila otro aviso encima.
+ */
+const COBERTURA_GLOBAL: ReadonlyArray<readonly [string, readonly string[]]> = [
+  [MENSAJE_SESION_EXPIRADA, ['sesion']],
+  [MENSAJE_SIN_CONEXION, ['conexion', 'offline']],
+  [MENSAJE_SERVIDOR_NO_DISPONIBLE, ['conexion', 'offline']],
+  [MENSAJE_TIEMPO_AGOTADO, ['conexion', 'offline']],
+  [MENSAJE_DEMASIADAS_SOLICITUDES, ['429']],
+];
 
 interface Temporizador {
   manejador: ReturnType<typeof setTimeout> | null;
@@ -186,6 +212,8 @@ export class NotificationService {
   private readonly temporizadores = new Map<number, Temporizador>();
   /** Reintentos que las pantallas sumaron a un aviso global, por clave del aviso. */
   private readonly reintentos = new Map<string, Set<() => unknown>>();
+  /** Avisos globales informados sin toast: clave → instante (ms) hasta el que cubren. */
+  private readonly registrosGlobales = new Map<string, number>();
   private colaAnuncio: string[] = [];
   private colaAnuncioUrgente: string[] = [];
   private anuncioPendiente = false;
@@ -206,8 +234,11 @@ export class NotificationService {
     const mensaje = recortarTexto(opciones.mensaje, LARGO_MENSAJE);
     if (!titulo && !mensaje) return 0;
 
-    // Un error suelto que solo repite el aviso global de conexión no se apila encima.
-    if (tipo === 'error' && !opciones.clave && !mensaje && this.repiteAvisoGlobal(titulo)) return 0;
+    // Un error de pantalla que solo repite lo que ya dice un aviso global
+    // (sin conexión, sesión vencida, 429) no se apila encima.
+    if ((tipo === 'error' || tipo === 'advertencia') && !opciones.clave && this.repiteAvisoGlobal(titulo, mensaje)) {
+      return 0;
+    }
 
     const clave = opciones.clave ?? `${tipo}|${titulo}|${mensaje}`;
     const previo = this.lista().find((a) => a.clave === clave);
@@ -216,6 +247,7 @@ export class NotificationService {
 
     if (previo) {
       const igual = previo.tipo === tipo && previo.titulo === titulo && previo.mensaje === mensaje;
+      const contar = opciones.contar ?? true;
       this.reemplazar({
         ...previo,
         tipo,
@@ -225,7 +257,7 @@ export class NotificationService {
         accion,
         icono: opciones.icono ?? previo.icono,
         cerrable: opciones.cerrable ?? previo.cerrable,
-        repeticiones: igual ? previo.repeticiones + 1 : 1,
+        repeticiones: igual ? (contar ? previo.repeticiones + 1 : previo.repeticiones) : 1,
         version: previo.version + 1,
         restante: duracion,
         tramo: previo.tramo + 1,
@@ -373,6 +405,26 @@ export class NotificationService {
     return this.lista().some((a) => a.clave === clave);
   }
 
+  /**
+   * Deja constancia de que la capa global ya informó algo aunque no haya
+   * toast visible (p. ej. la sesión vencida en el panel se explica en el
+   * login). Durante unos segundos, los avisos de pantalla con ese mismo
+   * texto se omiten. Lo usa el interceptor.
+   */
+  registrarAvisoGlobal(clave: string, vigenciaMs = VIGENCIA_REGISTRO_GLOBAL_MS): void {
+    this.registrosGlobales.set(clave, Date.now() + Math.max(0, vigenciaMs));
+  }
+
+  /** true si hay un aviso visible con esa clave o se registró hace poco (registrarAvisoGlobal). */
+  cubiertoGlobalmente(clave: string): boolean {
+    if (this.hayActivo(clave)) return true;
+    const hasta = this.registrosGlobales.get(clave);
+    if (hasta === undefined) return false;
+    if (hasta > Date.now()) return true;
+    this.registrosGlobales.delete(clave);
+    return false;
+  }
+
   /** Detiene los temporizadores (ratón encima, foco dentro o pestaña oculta). */
   pausar(motivo: MotivoPausa = 'hover'): void {
     const yaPausado = this.motivosPausa.size > 0;
@@ -410,8 +462,12 @@ export class NotificationService {
     const aviso = this.lista().find((a) => a.id === id);
     const accion = aviso?.accion;
     if (!aviso || !accion) return;
-    if (accion.cerrarAlHacer !== false) this.cerrar(id);
+    // Primero la acción (cerrar descarta los reintentos que la acción va a usar)…
     this.ejecutarSeguro(accion.alHacer);
+    if (accion.cerrarAlHacer === false) return;
+    // …y luego se cierra, salvo que la propia acción lo haya reemplazado con otro contenido.
+    const despues = this.lista().find((a) => a.id === id);
+    if (despues && despues.version === aviso.version) this.cerrar(id);
   }
 
   /**
@@ -593,8 +649,13 @@ export class NotificationService {
     }
   }
 
-  private repiteAvisoGlobal(texto: string): boolean {
-    return MENSAJES_GLOBALES.some((m) => texto.includes(m)) && CLAVES_GLOBALES.some((k) => this.hayActivo(k));
+  private repiteAvisoGlobal(titulo: string, mensaje: string): boolean {
+    for (const [texto, claves] of COBERTURA_GLOBAL) {
+      if ((titulo.includes(texto) || mensaje.includes(texto)) && claves.some((k) => this.cubiertoGlobalmente(k))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private esMovil(): boolean {

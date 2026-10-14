@@ -22,7 +22,8 @@ export const MENSAJE_TIEMPO_AGOTADO =
 export const MENSAJE_DEMASIADAS_SOLICITUDES =
   'Demasiados intentos seguidos. Espera unos segundos y vuelve a intentarlo.';
 export const MENSAJE_SIN_PERMISO = 'No tienes permiso para realizar esta acción.';
-export const MENSAJE_ARCHIVO_MUY_GRANDE = 'El archivo es demasiado grande. El máximo permitido es 5 MB.';
+export const MENSAJE_ARCHIVO_MUY_GRANDE =
+  'El archivo es demasiado grande. Usa uno más liviano (las imágenes pueden pesar hasta 5 MB).';
 export const MENSAJE_FUNCION_NO_DISPONIBLE =
   'Esta función no está disponible en el servidor. Actualiza la página o avisa a sistemas.';
 export const MENSAJE_NO_ENCONTRADO = 'No encontramos lo que buscabas.';
@@ -65,6 +66,18 @@ const CODIGOS_TRANSPORTE: ReadonlySet<string> = new Set<string>([
   CODIGOS_ERROR.TIEMPO_AGOTADO,
 ]);
 
+/** Códigos que pone el front; cualquier otro `codigo` viene del backend (regla de negocio). */
+const CODIGOS_FRONT: ReadonlySet<string> = new Set<string>(Object.values(CODIGOS_ERROR));
+
+/**
+ * true si el código lo envió el backend (CAJA_*, FISCAL_*…): su mensaje es
+ * una explicación de negocio en español y se muestra tal cual, aunque llegue
+ * con 413, 429 o 503 (p. ej. FISCAL_SUNAT_NO_DISPONIBLE).
+ */
+export function esCodigoDeDominio(codigo: unknown): boolean {
+  return typeof codigo === 'string' && codigo.trim() !== '' && !CODIGOS_FRONT.has(codigo);
+}
+
 export const MENSAJES_GLOBALES: readonly string[] = Object.freeze([
   MENSAJE_SESION_EXPIRADA,
   MENSAJE_SIN_CONEXION,
@@ -93,6 +106,10 @@ export interface CuerpoErrorApi {
   claveAviso?: string;
   /** Segundos que pidió esperar el servidor (cabecera Retry-After). */
   reintentarEnSeg?: number;
+  /** La petición era de segundo plano (peticionSilenciosa): nadie debe mostrar este error por defecto. */
+  silenciosa?: boolean;
+  /** Ruta del backend que falló, si la envía (formato nuevo). */
+  ruta?: string;
   [campo: string]: unknown;
 }
 
@@ -140,6 +157,22 @@ const HINTS: Record<string, string> = {
   REPORTE_PERIODO_INVALIDO: 'Elija diario, quincenal, mensual o anual.',
   REPORTE_FECHA_INVALIDA: 'Revise el rango de fechas del reporte.',
   REPORTE_EXPORT_FALLIDA: 'Reintente la descarga; si persiste, avise a sistemas.',
+  // Facturación electrónica (SUNAT directo). El mensaje del servidor ya explica la causa.
+  FISCAL_CERT_CLAVE_INCORRECTA: 'Es la contraseña que definiste al descargar el certificado (no es tu clave SOL).',
+  FISCAL_CERT_FORMATO_INVALIDO: 'Sube el archivo .pfx o .p12 tal como lo descargaste, sin abrirlo ni convertirlo.',
+  FISCAL_CERT_FORMATO_NO_SOPORTADO: 'Sube el certificado en formato .pfx o .p12.',
+  FISCAL_CERT_SIN_CLAVE_PRIVADA: 'Exporta el certificado incluyendo la clave privada (archivo .pfx o .p12).',
+  FISCAL_CERT_VENCIDO: 'Descarga un certificado vigente y vuelve a subirlo.',
+  FISCAL_CERT_RUC_NO_COINCIDE: 'El certificado debe ser del mismo RUC configurado como emisor.',
+  FISCAL_CERT_DEMASIADO_GRANDE: 'Revisa que sea el archivo del certificado (.pfx o .p12) y no otro documento.',
+  FISCAL_CERT_NO_CARGADO: 'Sube el certificado digital en la configuración de facturación electrónica.',
+  FISCAL_CREDENCIALES_SOL_FALTAN: 'Regístralas en la configuración de facturación electrónica.',
+  FISCAL_SUNAT_NO_DISPONIBLE: 'SUNAT suele recuperarse en unos minutos; vuelve a intentarlo luego.',
+  FISCAL_ENVIO_EN_CURSO: 'Espera unos segundos y actualiza el estado del comprobante.',
+  FISCAL_ANULAR_REQUIERE_NC: 'Emite una nota de crédito que anule el comprobante.',
+  FISCAL_MIGRACION_PENDIENTE: 'Avisa a sistemas: falta actualizar la base de datos del servidor.',
+  FISCAL_CLAVE_MAESTRA_NO_CONFIGURADA: 'Avisa a sistemas: falta una configuración del servidor.',
+  FISCAL_SECRETO_ILEGIBLE: 'Avisa a sistemas: vuelve a registrar el dato protegido en la configuración.',
   // Generados por el front (interceptor)
   SIN_CONEXION: 'Si otras páginas tampoco cargan, revisa el wifi o el cable de red.',
   SERVIDOR_NO_DISPONIBLE: 'Suele resolverse solo en menos de un minuto.',
@@ -189,6 +222,38 @@ const TITULOS: Record<string, string> = {
   REPORTE_PERIODO_INVALIDO: 'Periodo inválido',
   REPORTE_FECHA_INVALIDA: 'Fechas inválidas',
   REPORTE_EXPORT_FALLIDA: 'No se pudo exportar',
+  // Facturación electrónica (SUNAT directo)
+  FISCAL_CERT_FORMATO_INVALIDO: 'Certificado no válido',
+  FISCAL_CERT_FORMATO_NO_SOPORTADO: 'Formato de certificado no soportado',
+  FISCAL_CERT_CLAVE_INCORRECTA: 'Contraseña del certificado incorrecta',
+  FISCAL_CERT_SIN_CLAVE_PRIVADA: 'Al certificado le falta la clave privada',
+  FISCAL_CERT_VENCIDO: 'Certificado vencido',
+  FISCAL_CERT_AUTOFIRMADO: 'Certificado no emitido por una entidad válida',
+  FISCAL_CERT_CLAVE_DEBIL: 'Certificado con clave insegura',
+  FISCAL_CONFIG_INVALIDA: 'Configuración de facturación incompleta',
+  FISCAL_VALIDACION_CPE: 'El comprobante tiene datos inválidos',
+  FISCAL_NOTA_SIN_REFERENCIA: 'Falta el comprobante de referencia',
+  FISCAL_CERT_NO_CARGADO: 'Falta el certificado digital',
+  FISCAL_DOC_NO_ENCONTRADO: 'Comprobante no encontrado',
+  FISCAL_XML_NO_DISPONIBLE: 'XML no disponible',
+  FISCAL_CDR_NO_DISPONIBLE: 'Constancia (CDR) no disponible',
+  FISCAL_NO_LISTO: 'Facturación electrónica sin configurar',
+  FISCAL_SOLO_BETA: 'Disponible solo en modo de pruebas',
+  FISCAL_CERT_EN_USO: 'Certificado en uso',
+  FISCAL_REENVIO_NO_PERMITIDO: 'No se puede reenviar',
+  FISCAL_ENVIO_EN_CURSO: 'Envío a SUNAT en curso',
+  FISCAL_DOC_OTRO_PROVEEDOR: 'Comprobante de otro proveedor',
+  FISCAL_ANULAR_REQUIERE_NC: 'Se anula con nota de crédito',
+  FISCAL_ANULACION_FUERA_DE_PLAZO: 'Fuera del plazo de anulación',
+  FISCAL_NOTA_EXCEDE_MONTO: 'La nota supera el monto del comprobante',
+  FISCAL_CERT_DEMASIADO_GRANDE: 'Archivo de certificado demasiado grande',
+  FISCAL_CERT_RUC_NO_COINCIDE: 'El certificado es de otro RUC',
+  FISCAL_CLAVE_MAESTRA_NO_CONFIGURADA: 'Servidor sin configurar',
+  FISCAL_SECRETO_ILEGIBLE: 'No se pudo leer un dato protegido',
+  FISCAL_CREDENCIALES_SOL_FALTAN: 'Faltan las credenciales SOL',
+  FISCAL_SUNAT_NO_DISPONIBLE: 'SUNAT no responde',
+  FISCAL_MIGRACION_PENDIENTE: 'Servidor pendiente de actualización',
+  FISCAL_SUNAT_RECHAZO: 'SUNAT rechazó el comprobante',
   // Generados por el front (interceptor)
   SIN_CONEXION: 'Sin conexión',
   SERVIDOR_NO_DISPONIBLE: 'Servidor no disponible',
@@ -350,12 +415,14 @@ function intentarJson(texto: string): Record<string, unknown> | null {
 
 /** Mensajes crudos del cuerpo: `message` (texto o arreglo), `mensaje` o `error`. */
 function mensajesCrudos(cuerpo: Record<string, unknown>): string[] {
-  const { message, mensaje, error, detail } = cuerpo as {
-    message?: unknown;
+  const { mensaje, error, detail } = cuerpo as {
     mensaje?: unknown;
     error?: unknown;
     detail?: unknown;
   };
+  let message: unknown = cuerpo['message'];
+  // HttpException de Nest construida con un objeto: { message: { message: [...] } }
+  if (esObjetoPlano(message) && message['message'] !== undefined) message = message['message'];
   if (Array.isArray(message)) {
     return message.map((m) => textoUtil(typeof m === 'string' ? m : (m as { message?: unknown })?.message)).filter(Boolean);
   }
@@ -432,24 +499,29 @@ export function normalizarCuerpoError(estado: number, cuerpo: unknown, metodo = 
 
   const codigoPrevio = typeof objeto['codigo'] === 'string' ? (objeto['codigo'] as string) : '';
   const codigo = codigoPrevio || codigoPorEstado(estado);
+  // Regla de negocio del backend (FISCAL_*, CAJA_*…): su mensaje manda aunque el estado sea 413/429/503.
+  const dominio = esCodigoDeDominio(codigoPrevio);
 
   let mensajes = sinDuplicados(mensajesCrudos(objeto).map(traducirMensajeServidor));
 
   // En fallos de transporte o de límites, el texto del proxy/servidor no le sirve al usuario.
   if (estado === 0) {
     mensajes = [codigo === CODIGOS_ERROR.TIEMPO_AGOTADO ? MENSAJE_TIEMPO_AGOTADO : MENSAJE_SIN_CONEXION];
+  } else if (dominio && mensajes.length) {
+    // se deja el mensaje del servidor
   } else if (estado >= 502 && estado <= 504) {
     mensajes = [MENSAJE_SERVIDOR_NO_DISPONIBLE];
   } else if (estado === 413) {
     mensajes = [MENSAJE_ARCHIVO_MUY_GRANDE];
-  } else if (estado === 429 && !codigoPrevio) {
+  } else if (estado === 429) {
     mensajes = [MENSAJE_DEMASIADAS_SOLICITUDES];
   } else if (estado >= 500 && mensajes.every(esInternalServerError)) {
     mensajes = [MENSAJE_ERROR_SERVIDOR];
   }
   if (!mensajes.length) mensajes = [mensajePorEstado(estado)];
 
-  const idPeticion = textoUtil(objeto['idPeticion']) || textoUtil(objeto['requestId']) || undefined;
+  const idPeticion =
+    textoUtil(objeto['idPeticion']) || textoUtil(objeto['requestId']) || textoUtil(objeto['request_id']) || undefined;
 
   return {
     ...objeto,
@@ -550,15 +622,43 @@ export function yaNotificado(error: unknown): boolean {
   return (error as { error?: { notificado?: unknown } } | null)?.error?.notificado === true;
 }
 
-/** Fallo de red o de disponibilidad: status 0/408/502/503/504 o código de transporte. */
+function esEstadoDeRed(estado: number): boolean {
+  return estado === 0 || estado === 408 || (estado >= 502 && estado <= 504);
+}
+
+/**
+ * Fallo de red o de disponibilidad: status 0/408/502/503/504 o código de
+ * transporte. Acepta el error o directamente el status (`esErrorDeRed(503)`).
+ * Un 503 con código de negocio del backend (p. ej. FISCAL_SUNAT_NO_DISPONIBLE)
+ * no cuenta: el servidor respondió y su mensaje explica qué pasó.
+ */
 export function esErrorDeRed(error: unknown): boolean {
+  if (typeof error === 'number') return esEstadoDeRed(error);
   if (!error || typeof error !== 'object') return false;
   if ((error as { name?: unknown }).name === 'TimeoutError') return true;
   const codigo = codigoDeError(error);
   if (CODIGOS_TRANSPORTE.has(codigo)) return true;
+  if (esCodigoDeDominio(codigo)) return false;
   const estado = estadoDeError(error);
-  if (estado === null) return false;
-  return estado === 0 || estado === 408 || (estado >= 502 && estado <= 504);
+  return estado !== null && esEstadoDeRed(estado);
+}
+
+/**
+ * Segundos de espera de una cabecera Retry-After (número o fecha HTTP).
+ * null si no hay o no se entiende. Nunca más de 10 minutos.
+ */
+export function segundosDeEspera(valor: string | null | undefined, ahora = Date.now()): number | null {
+  const t = String(valor ?? '').trim();
+  if (!t) return null;
+  let segundos: number;
+  if (/^\d+$/.test(t)) {
+    segundos = Number(t);
+  } else {
+    const fecha = Date.parse(t);
+    if (Number.isNaN(fecha)) return null;
+    segundos = Math.ceil((fecha - ahora) / 1000);
+  }
+  return Math.min(600, Math.max(0, segundos));
 }
 
 /** Lista de validaciones del cuerpo normalizado (vacía si solo hay un mensaje). */

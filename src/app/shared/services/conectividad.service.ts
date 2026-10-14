@@ -48,6 +48,19 @@ export class ConectividadService {
     if (navigator.onLine === false) this.desconectado();
   }
 
+  /**
+   * Una petición falló y el navegador está sin red: muestra ya el aviso
+   * "Sin conexión" (sin el margen de espera). Lo usa el interceptor.
+   */
+  avisarSinConexion(): void {
+    if (!this.navegador) return;
+    this.iniciar();
+    if (navigator.onLine !== false) return;
+    this._enLinea.set(false);
+    this.cancelarAvisoPendiente();
+    if (!this.avisoMostrado) this.mostrarSinConexion();
+  }
+
   private desconectado(): void {
     this._enLinea.set(false);
     if (this.avisoDesconexion !== null || this.avisoMostrado) return;

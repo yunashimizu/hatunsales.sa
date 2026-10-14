@@ -36,7 +36,6 @@ describe('VentasComponent', () => {
           lineaCredito: () => of(null),
           nuevaClaveIdempotencia: () => 'key',
           descontarStockLocal: () => undefined,
-          tieneCatalogo: false,
         } },
         { provide: AlertService, useValue: {
           toast: () => undefined,
@@ -59,20 +58,25 @@ describe('VentasComponent', () => {
 
   it('dispara la búsqueda al enfocar cuando ya hay texto escrito', () => {
     component.textoProducto = 'caña de pescar';
-    spyOn(component, 'alEscribirProducto');
+    const escribir = vi.spyOn(component, 'alEscribirProducto');
+    // buscarProducto$ es privado: se espía la emisión directa que hace alEnfocarProducto
+    const buscar = vi.spyOn((component as any).buscarProducto$, 'next');
 
     component.alEnfocarProducto();
 
-    expect(component.alEscribirProducto).toHaveBeenCalledTimes(0);
+    expect(escribir).not.toHaveBeenCalled();
+    expect(buscar).toHaveBeenCalledWith('caña de pescar');
     expect(component.textoProducto.trim()).toBe('caña de pescar');
   });
 
   it('no activa la búsqueda si el campo está vacío al enfocar', () => {
     component.textoProducto = '   ';
-    spyOn(component, 'alEscribirProducto');
+    const escribir = vi.spyOn(component, 'alEscribirProducto');
+    const buscar = vi.spyOn((component as any).buscarProducto$, 'next');
 
     component.alEnfocarProducto();
 
-    expect(component.alEscribirProducto).not.toHaveBeenCalled();
+    expect(escribir).not.toHaveBeenCalled();
+    expect(buscar).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ import Swal, { SweetAlertCustomClass, SweetAlertIcon, SweetAlertOptions, SweetAl
 import {
   CODIGOS_GLOBALES,
   MENSAJES_GLOBALES,
+  MENSAJE_DEMASIADAS_SOLICITUDES,
   MENSAJE_SESION_EXPIRADA,
   decodificarEntidadesHtml,
   describirError,
@@ -99,6 +100,15 @@ const TIPO_TOAST: Readonly<Record<NonNullable<AlertConfig['type']>, TipoAviso>> 
 };
 
 const RESULTADO_DESCARTADO: SweetAlertResult = { isConfirmed: false, isDenied: false, isDismissed: true };
+
+/**
+ * Los `timer` de los toasts antiguos (1000–1800 ms) se pensaron para Swal; en
+ * la pila nt-* un aviso tan breve no alcanza a leerse.
+ */
+const DURACION_MINIMA_TOAST_LEGADO = 2_500;
+
+/** Aviso global que ya cubre cada código o texto (ver NotificationService). */
+const CLAVES_TRANSPORTE: readonly string[] = ['conexion', 'offline'];
 
 /* ===========================================================================
  * Saneado de HTML (defensa en profundidad)
@@ -381,11 +391,12 @@ export class AlertService {
   toast(config: AlertConfig = {}, _posicion?: PosicionToastLegada): Promise<void> {
     const titulo = decodificarEntidadesHtml(String(config.title ?? ''));
     const mensaje = config.allowHtml ? htmlATextoPlano(String(config.message ?? '')) : String(config.message ?? '');
+    const timer = Number(config.timer);
     this.avisos.mostrar({
       tipo: TIPO_TOAST[config.type ?? 'info'] ?? 'info',
       titulo,
       mensaje,
-      duracion: config.timer || undefined,
+      duracion: Number.isFinite(timer) && timer > 0 ? Math.max(timer, DURACION_MINIMA_TOAST_LEGADO) : undefined,
       clave: config.clave,
     });
     return Promise.resolve();
@@ -474,11 +485,15 @@ export class AlertService {
   private yaAvisadoGlobalmente(config: AlertConfig): boolean {
     const codigo = config.codigo ?? '';
     const texto = htmlATextoPlano(String(config.message ?? ''));
+    // La sesión vencida la explica la capa global (login o aviso de la tienda), nunca un modal.
     if (codigo === 'SESION_EXPIRADA' || texto.includes(MENSAJE_SESION_EXPIRADA)) return true;
     if (config.notificado === true) return true;
     if (config.notificado === false) return false;
+    if (codigo === 'DEMASIADAS_SOLICITUDES' || texto.includes(MENSAJE_DEMASIADAS_SOLICITUDES)) {
+      return this.avisos.cubiertoGlobalmente('429');
+    }
     const transporte = CODIGOS_GLOBALES.has(codigo) || MENSAJES_GLOBALES.some((m) => texto.includes(m));
-    return transporte && ['conexion', 'offline', '429'].some((k) => this.avisos.hayActivo(k));
+    return transporte && CLAVES_TRANSPORTE.some((k) => this.avisos.cubiertoGlobalmente(k));
   }
 
   /** Cierra el modal abierto cuando cambia la ruta (no solo los parámetros). */

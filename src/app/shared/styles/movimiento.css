@@ -16,6 +16,16 @@
      <div animate.enter="mov-entra" animate.leave="mov-sale">…</div>
    Angular añade la clase al entrar/salir y, en la salida, espera a que termine
    la animación antes de quitar el nodo.
+
+   Catálogo (guía completa en scratchpad/contratos/front-base-diseno.md)
+     Entradas   mov-entra (= mov-entra-arriba) · mov-entra-fundido · mov-entra-escala
+                mov-entra-desplegable · mov-entra-toast
+     Cajones    mov-entra-derecha · mov-entra-izquierda · mov-entra-abajo (hoja)
+     Salidas    mov-sale · mov-sale-arriba · mov-sale-escala · mov-sale-desplegable
+                mov-sale-toast · mov-sale-derecha · mov-sale-izquierda · mov-sale-abajo
+     Listas     mov-lista (hijos escalonados) · mov-item + [style.--i]
+     Micro      mov-elevable · mov-pulsable
+     Carga      mov-esqueleto · mov-girar · mov-pulso · mov-latido
    =========================================================================== */
 
 /* ── Tokens ──────────────────────────────────────────────────────────────── */
@@ -80,6 +90,11 @@
 
 @keyframes mov-salir-derecha-corto {
   to { opacity: 0; translate: var(--mov-dist-lateral) 0; }
+}
+
+/* Se va subiendo un poco (aviso descartado, fila que se archiva) */
+@keyframes mov-salir-arriba {
+  to { opacity: 0; translate: 0 calc(var(--mov-dist) * -1); }
 }
 
 @keyframes mov-salir-abajo-corto {
@@ -158,6 +173,7 @@
    de su componente (esa regla ganaría por especificidad): usa una u otra. */
 
 .mov-entra,
+.mov-entra-arriba,
 .mov-entra-fundido,
 .mov-entra-escala,
 .mov-entra-desplegable,
@@ -168,7 +184,8 @@
   animation-delay: var(--mov-retraso, calc(min(var(--i, 0), 7) * var(--mov-escalon)));
 }
 
-.mov-entra             { animation-name: mov-aparecer-arriba; }
+.mov-entra,
+.mov-entra-arriba      { animation-name: mov-aparecer-arriba; }
 .mov-entra-fundido     { animation-name: mov-aparecer; }
 .mov-entra-escala      { animation-name: mov-escalar-entrada; transform-origin: var(--mov-origen, center); }
 .mov-entra-desplegable { animation-name: mov-desplegar; transform-origin: var(--mov-origen, top center); }
@@ -188,6 +205,7 @@
 
 .mov-sale,
 .mov-sale-fundido,
+.mov-sale-arriba,
 .mov-sale-escala,
 .mov-sale-desplegable,
 .mov-sale-toast {
@@ -198,6 +216,7 @@
 }
 
 .mov-sale             { animation-name: mov-salir; }
+.mov-sale-arriba      { animation-name: mov-salir-arriba; }
 .mov-sale-fundido     { animation-name: mov-salir; }
 .mov-sale-escala      { animation-name: mov-escalar-salida; transform-origin: var(--mov-origen, center); }
 .mov-sale-desplegable { animation-name: mov-replegar; transform-origin: var(--mov-origen, top center); }
@@ -248,7 +267,9 @@
   animation-delay: calc(min(var(--i, 0), 7) * var(--mov-escalon));
 }
 
-/* Entrada de una página o vista completa (la del panel ya la trae .adm-pagina) */
+/* Entrada de una página o vista completa (la del panel ya la trae .adm-pagina).
+   Ojo: el host de un componente es inline por defecto y translate no se aplica
+   a cajas inline; ponla en un elemento de bloque (o :host { display: block }). */
 .mov-pagina {
   animation: mov-aparecer-arriba var(--mov-entrada) var(--ease-entrada) backwards;
 }
@@ -323,12 +344,15 @@
 }
 
 /* ── Transiciones de ruta (View Transitions) ─────────────────────────────────
-   Requiere withViewTransitions() en provideRouter (app.config.ts).
-   El estado anterior se disuelve por encima del nuevo; como la cabecera y el
-   sidebar son iguales en ambos, solo se nota en el contenido, que además entra
-   con su propio fundido + 6 px (.adm-pagina / .mov-pagina). Así el marco no
-   «salta» y no hace falta nombrar elementos: un view-transition-name fijo
-   crearía un contexto de apilamiento que atraparía los paneles fixed. */
+   Activas con withViewTransitions() en app.config.ts, que las omite con
+   movimiento reducido y cuando solo cambian los query params (filtros).
+   El estado anterior se disuelve por encima del nuevo (160 ms); como la
+   cabecera y el sidebar son iguales en ambos, solo se nota en el contenido, que
+   además entra con su propio fundido + 6 px (.adm-pagina / .mov-pagina). Así
+   el marco no «salta» y no hace falta nombrar elementos: un
+   view-transition-name fijo crearía un contexto de apilamiento que atraparía
+   los paneles fixed. Al quitar la animación por defecto también se quita su
+   mezcla plus-lighter, así las zonas idénticas no destellan. */
 
 ::view-transition-group(root) {
   animation-duration: var(--mov-salida);
@@ -375,6 +399,7 @@
   .adm-spinner,
   .adm-girando,
   .mov-girar,
+  .hs-estado__giro,
   .animate-spin {
     animation-duration: 1.6s !important;
     animation-iteration-count: infinite !important;
