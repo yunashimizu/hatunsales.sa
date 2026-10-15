@@ -3,7 +3,9 @@ import {
   ChangeDetectorRef,
   Component,
   DestroyRef,
+  ElementRef,
   OnInit,
+  ViewChild,
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -28,6 +30,7 @@ const CLAVE_MENU = 'hs.panel.menu';
   styleUrl: './template.component.scss',
 })
 export class TemplateComponent implements OnInit {
+  @ViewChild('contenidoPanel') private contenidoPanel?: ElementRef<HTMLDivElement>;
   sidebarCollapsed = false;
 
   private readonly router = inject(Router);
@@ -44,6 +47,11 @@ export class TemplateComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => {
+        const contenido = this.contenidoPanel?.nativeElement;
+        if (contenido) {
+          contenido.scrollTop = 0;
+          contenido.scrollLeft = 0;
+        }
         if (this.esMovil() && !this.sidebarCollapsed) {
           this.sidebarCollapsed = true;
           this.cdr.markForCheck();

@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import lottie, { AnimationItem } from 'lottie-web';
+import type { AnimationItem } from 'lottie-web';
 import gsap from 'gsap';
 
 @Component({
@@ -27,6 +27,8 @@ export class AuthShellComponent implements AfterViewInit, OnDestroy {
   @ViewChild('shellRoot') shellRoot?: ElementRef<HTMLElement>;
 
   private animacion?: AnimationItem;
+  private contexto?: gsap.Context;
+  private destruido = false;
   private readonly enBrowser: boolean;
 
   readonly beneficios = [
@@ -42,18 +44,29 @@ export class AuthShellComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     if (!this.enBrowser) return;
-    this.montarLottie();
-    this.animarEntrada();
+    void this.montarLottie();
+    this.contexto = gsap.context(() => this.animarEntrada(), this.shellRoot?.nativeElement);
   }
 
   ngOnDestroy(): void {
+    this.destruido = true;
     this.animacion?.destroy();
+    this.contexto?.revert();
   }
 
-  private montarLottie(): void {
+  private async montarLottie(): Promise<void> {
     const host = this.lottieHost?.nativeElement;
     if (!host) return;
 
+    // Lottie inspecciona canvas al importar: cargarlo solo en el navegador,
+    // después de montar la vista, también permite renderizar el login con SSR.
+    let lottie: typeof import('lottie-web')['default'];
+    try {
+      lottie = (await import('lottie-web')).default;
+    } catch {
+      return; // La animación es decorativa; el formulario sigue disponible.
+    }
+    if (this.destruido) return;
     this.animacion = lottie.loadAnimation({
       container: host,
       renderer: 'svg',
@@ -62,13 +75,13 @@ export class AuthShellComponent implements AfterViewInit, OnDestroy {
       path: 'https://assets2.lottiefiles.com/packages/lf20_jbrw3hcz.json',
     });
 
-    gsap.to(host, {
+    this.contexto?.add(() => gsap.to(host, {
       y: -10,
       duration: 2.4,
       repeat: -1,
       yoyo: true,
       ease: 'sine.inOut',
-    });
+    }));
   }
 
   private animarEntrada(): void {

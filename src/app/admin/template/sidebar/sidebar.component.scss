@@ -1,3 +1,10 @@
+:host {
+  display: flex;
+  flex-shrink: 0;
+  height: 100%;
+  min-height: 0;
+}
+
 .sidebar {
   --sb-width: 258px;
   --sb-width-mini: 78px;
@@ -18,8 +25,8 @@
 
   width: var(--sb-width);
   min-width: var(--sb-width);
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
+  min-height: 0;
   background:
     radial-gradient(520px 260px at -10% -10%, rgba(99, 102, 241, 0.22), transparent 60%),
     linear-gradient(180deg, var(--sb-bg) 0%, var(--sb-bg-2) 100%);
@@ -92,8 +99,10 @@
   /* ── Menú ──────────────────────────────────────────────── */
   .sb-menu-wrap {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    overscroll-behavior-y: contain;
     padding: 10px 0 12px;
     scrollbar-width: thin;
     scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
@@ -270,6 +279,7 @@
 
   /* ── Pie: usuario ──────────────────────────────────────── */
   .sb-footer {
+    flex-shrink: 0;
     padding: 12px var(--sb-pad-x);
     border-top: 1px solid var(--sb-borde);
     background: rgba(2, 6, 23, 0.35);
@@ -383,6 +393,8 @@
 @media (max-width: 900px) {
   .sidebar {
     position: fixed;
+    height: 100vh;
+    height: 100dvh;
     left: 0;
     top: 0;
     width: min(var(--sb-width), 86vw);

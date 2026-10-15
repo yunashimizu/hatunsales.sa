@@ -165,6 +165,17 @@ const routes: Routes = [
       import('./component/caja-sesion/caja-sesion.component').then((c) => c.CajaSesionComponent),
   },
   {
+    path: 'arqueo-caja',
+    canActivate: [roleGuard],
+    data: {
+      roles: ['admin', 'vendedor', 'caja'],
+      title: 'Arqueo de caja',
+      subtitle: 'Conteo, conciliación e historial del turno.',
+      icon: 'bi-calculator',
+    },
+    loadComponent: () => import('./component/caja-sesion/arqueo-caja-pagina.component').then(c => c.ArqueoCajaPaginaComponent),
+  },
+  {
     path: 'cuentas-por-cobrar',
     canActivate: [roleGuard],
     data: {

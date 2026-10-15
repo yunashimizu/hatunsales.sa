@@ -8,15 +8,20 @@
       </p>
     </div>
     <div class="adm-acciones">
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/arqueo-caja"
+         [queryParams]="apertura ? { id_apertura: apertura.id_apertura } : {}">
+        <i class="bi bi-calculator" aria-hidden="true"></i> Arqueo de caja
+      </a>
       <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/ventas">
         <i class="bi bi-receipt"></i> Ir al POS
       </a>
-      <button type="button" class="adm-btn adm-btn--suave" (click)="cargarTodo()" [disabled]="cargando">
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargarTodo()" [disabled]="cargando || cargandoCajas">
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
         Actualizar
       </button>
     </div>
   </header>
+  @if (errorSesion) { <p class="adm-aviso adm-aviso--aviso" role="alert">{{ errorSesion }}</p> }
 
   <section class="adm-grid adm-grid--3">
     <div class="adm-metrica">
@@ -26,7 +31,7 @@
         <i class="bi" [ngClass]="sesion?.abierta ? 'bi-unlock' : 'bi-lock'"></i>
       </div>
       <div>
-        <div class="adm-metrica__valor">{{ sesion?.abierta ? 'Abierta' : (cargando ? '…' : 'Cerrada') }}</div>
+        <div class="adm-metrica__valor">{{ errorSesion ? 'Sin verificar' : (sesion?.abierta ? 'Abierta' : (cargando ? '…' : 'Cerrada')) }}</div>
         <div class="adm-metrica__etiqueta">Tu sesión</div>
       </div>
     </div>
@@ -98,26 +103,15 @@
             </div>
           </div>
 
-          <div class="adm-fila" style="margin-top:1rem">
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="monto-conteo">Monto al cerrar (opcional)</label>
-              <input id="monto-conteo" class="adm-input" type="number" min="0" step="0.01"
-                     [(ngModel)]="montoConteo" placeholder="0.00">
+          @if (arqueoDisponible === false) {
+            <div class="adm-fila" style="margin-top:1rem">
+              <div class="adm-campo"><label class="adm-etiqueta" for="monto-conteo">Efectivo contado (opcional)</label><input id="monto-conteo" class="adm-input" type="number" min="0" max="10000000" step="0.01" [(ngModel)]="montoConteo" [disabled]="cerrando"></div>
+              <div class="adm-campo"><label class="adm-etiqueta" for="obs-cierre">Observación</label><input id="obs-cierre" class="adm-input" maxlength="500" [(ngModel)]="observacion" [disabled]="cerrando"></div>
             </div>
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="obs-cierre">Observación</label>
-              <input id="obs-cierre" class="adm-input" type="text" [(ngModel)]="observacion"
-                     placeholder="Opcional">
-            </div>
-          </div>
-          <p class="adm-ayuda">Solo se guarda si la base tiene esas columnas; no afecta el cobro.</p>
-
-          <div class="adm-acciones" style="margin-top:1rem">
-            <button type="button" class="adm-btn adm-btn--primario" (click)="cerrar()" [disabled]="cerrando">
-              <i class="bi" [ngClass]="cerrando ? 'bi-arrow-repeat adm-girando' : 'bi-lock'"></i>
-              {{ cerrando ? 'Cerrando…' : 'Cerrar caja' }}
-            </button>
-          </div>
+            <button class="adm-btn adm-btn--primario" type="button" (click)="cerrarSinArqueo()" [disabled]="cerrando || cargando">{{ cerrando ? 'Cerrando…' : 'Cerrar turno' }}</button>
+          } @else {
+            <p class="adm-ayuda">Para cerrar el turno, realiza el conteo en «Arqueo del turno», debajo.</p>
+          }
         </ng-container>
         <ng-template #sinApertura>
           <div class="adm-vacio" style="padding:1.5rem 0">
@@ -158,12 +152,13 @@
 
           <div class="adm-acciones" style="margin-top:1rem">
             <button type="button" class="adm-btn adm-btn--primario"
-                    (click)="abrir()" [disabled]="abriendo || !idCajaElegida || !cajasLibres.length">
+                     (click)="abrir()" [disabled]="cargando || cargandoCajas || !!errorSesion || !!errorCajas || abriendo || !idCajaElegida || !cajasLibres.length">
               <i class="bi" [ngClass]="abriendo ? 'bi-arrow-repeat adm-girando' : 'bi-unlock'"></i>
               {{ abriendo ? 'Abriendo…' : 'Abrir turno' }}
             </button>
           </div>
-          <p class="adm-ayuda" *ngIf="!cajas.length && !cargando">
+          @if (errorCajas) { <p class="adm-ayuda" role="alert">{{ errorCajas }}</p> }
+          <p class="adm-ayuda" *ngIf="!cajas.length && !cargando && !cargandoCajas && !errorCajas">
             No hay cajas registradas en el sistema. Crea cajas en la base o pide a un admin.
           </p>
         </ng-container>
@@ -176,4 +171,7 @@
     </section>
 
   </div>
+  @if (idTurnoArqueo; as idTurno) {
+    <app-caja-arqueo [idApertura]="idTurno" (actualizado)="cargarTodo()" (disponibilidad)="arqueoDisponible = $event" />
+  }
 </div>

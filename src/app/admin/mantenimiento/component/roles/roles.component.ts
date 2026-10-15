@@ -8,6 +8,7 @@ import {
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { esRolStaff } from '../../../../auth/roles.constants';
 import { Subject, takeUntil } from 'rxjs';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { mensajeDeError } from '../../../service/api-base.service';
@@ -177,10 +178,8 @@ export class RolesComponent implements OnInit, OnDestroy {
   }
 
   destinoDe(rol: RolAdmin): string {
-    const id = Number(rol.id_rol);
-    if ([1, 3, 4].includes(id)) return 'Panel admin';
-    if (id === 5 || (rol.nombre || '').toLowerCase() === 'cliente') return 'Store (cuenta)';
-    if (id === 2) return 'Store';
+    if (esRolStaff(rol.id_rol, rol.nombre)) return 'Panel admin';
+    if (Number(rol.id_rol) === 5 || (rol.nombre || '').toLowerCase() === 'cliente') return 'Store (cuenta)';
     return 'Store (por defecto)';
   }
 

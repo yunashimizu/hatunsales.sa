@@ -113,6 +113,10 @@ export const urlConstants = {
     disponibles: `${dominio}caja/disponibles`,
     abrir: `${dominio}caja/abrir`,
     cerrar: `${dominio}caja/cerrar`,
+    arqueo: `${dominio}caja/arqueo`,
+    arqueoEsperado: `${dominio}caja/arqueo/esperado`,
+    arqueoPdf: (id: number) => `${dominio}caja/arqueo/${id}/pdf`,
+    movimientos: `${dominio}caja/movimientos`,
   },
 
   proforma: {
@@ -157,6 +161,21 @@ export const urlConstants = {
   configuracion: {
     series: `${dominio}configuracion/series`,
     fiscal: `${dominio}configuracion/fiscal`,
+  },
+
+  fiscal: {
+    configuracion: `${dominio}fiscal/configuracion`,
+    certificado: `${dominio}fiscal/certificado`,
+    certificadoPublico: `${dominio}fiscal/certificado/publico`,
+    certificadoAutofirmado: `${dominio}fiscal/certificado/autofirmado`,
+    sol: `${dominio}fiscal/credenciales/sol`,
+    gre: `${dominio}fiscal/credenciales/gre`,
+    probarConexion: `${dominio}fiscal/probar-conexion`,
+    auditoria: `${dominio}fiscal/auditoria`,
+    emisorBeta: `${dominio}fiscal/beta/emisor`,
+    enviosBeta: `${dominio}fiscal/beta/envios`,
+    archivoBeta: (id: number, tipo: string) => `${dominio}fiscal/beta/envios/${id}/archivos/${tipo}`,
+    reintentarBeta: (id: number) => `${dominio}fiscal/beta/envios/${id}/reintentar`,
   },
 
   stock: {

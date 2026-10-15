@@ -13,6 +13,9 @@
       </div>
     </div>
     <div class="adm-acciones">
+      <a *ngIf="esAdminPuro" routerLink="/dashboard/facturacion-sunat" class="adm-btn adm-btn--suave">
+        <i class="bi bi-file-earmark-check" aria-hidden="true"></i> Facturación SUNAT
+      </a>
       <a routerLink="/dashboard/perfil" class="adm-btn adm-btn--suave">
         <i class="bi bi-person-circle" aria-hidden="true"></i> Editar perfil
       </a>
@@ -264,7 +267,7 @@
         Se guardan juntos las series, el emisor, el contacto y las condiciones.
       </p>
       <button type="button" class="adm-btn adm-btn--primario"
-              (click)="guardarFiscal()" [disabled]="guardandoFiscal || cargandoFiscal">
+              (click)="guardarFiscal()" [disabled]="!fiscal || guardandoFiscal || cargandoFiscal">
         <i class="bi" [ngClass]="guardandoFiscal ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
         {{ guardandoFiscal ? 'Guardando…' : 'Guardar configuración' }}
       </button>

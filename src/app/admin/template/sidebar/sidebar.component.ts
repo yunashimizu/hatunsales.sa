@@ -94,6 +94,12 @@ export class SidebarComponent implements OnInit {
           roles: ['admin', 'superadmin', 'vendedor', 'caja'],
         },
         {
+          etiqueta: 'Arqueo de caja',
+          ruta: '/dashboard/mantenimiento/arqueo-caja',
+          icono: 'bi-calculator',
+          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+        },
+        {
           etiqueta: 'Cotizaciones',
           ruta: '/dashboard/mantenimiento/cotizaciones',
           icono: 'bi-file-earmark-ruled',
@@ -200,6 +206,12 @@ export class SidebarComponent implements OnInit {
     {
       titulo: 'Administración',
       items: [
+        {
+          etiqueta: 'Facturación SUNAT',
+          ruta: '/dashboard/facturacion-sunat',
+          icono: 'bi-file-earmark-check',
+          roles: ['admin', 'superadmin'],
+        },
         {
           etiqueta: 'Usuarios',
           ruta: '/dashboard/mantenimiento/usuarios',

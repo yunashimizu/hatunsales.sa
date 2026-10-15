@@ -56,6 +56,7 @@ export class CajaSesionService {
     id_apertura?: number;
     monto_conteo?: number | null;
     observacion?: string | null;
+    id_arqueo?: number;
   }): Observable<{
     id_apertura: number;
     id_cierre: number | null;

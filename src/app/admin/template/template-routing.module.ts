@@ -31,6 +31,12 @@ const routes: Routes = [
         data: { roles: ['admin'] },
       },
       {
+        path: 'facturacion-sunat',
+        loadComponent: () => import('./facturacion-sunat/facturacion-sunat.component').then(m => m.FacturacionSunatComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['admin'] },
+      },
+      {
         path: 'mantenimiento',
         loadChildren: () => import('../mantenimiento/mantenimiento.module').then((m) => m.MantenimientoModule)
       }

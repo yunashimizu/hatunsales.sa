@@ -118,7 +118,7 @@ export class AdminConfiguracionComponent implements OnInit {
   }
 
   guardarFiscal(): void {
-    if (!this.esAdminPuro) return;
+    if (!this.esAdminPuro || !this.fiscal || this.guardandoFiscal || this.cargandoFiscal) return;
     this.guardandoFiscal = true;
     this.cdr.markForCheck();
     this.fiscalApi

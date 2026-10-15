@@ -1,0 +1,50 @@
+:host {
+  display: block;
+}
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+fieldset:disabled {
+  opacity: 0.65;
+}
+legend {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 1rem 0;
+}
+.fiscal-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.fiscal-opcion {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0.85rem 0;
+}
+.fiscal-opcion input {
+  margin-top: 0.2rem;
+}
+.fiscal-lista {
+  list-style: none;
+  margin: 0;
+}
+.fiscal-lista li {
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--adm-borde, #e2e8f0);
+}
+.fiscal-tabla {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+.adm-campo {
+  margin-bottom: 0.75rem;
+}
+.adm-acciones {
+  margin: 0.75rem 0;
+}

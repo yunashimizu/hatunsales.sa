@@ -1,0 +1,297 @@
+<section class="adm-tarjeta" [attr.aria-busy]="cargando || guardando">
+  <div class="adm-tarjeta__cabecera">
+    <div>
+      <h2 class="adm-tarjeta__titulo">
+        <i class="bi bi-calculator" aria-hidden="true"></i> Arqueo del turno #{{ idApertura }}
+      </h2>
+      <p class="adm-ayuda">Cuenta el efectivo, concilia los otros medios y registra el cierre.</p>
+    </div>
+    <button
+      type="button"
+      class="adm-btn adm-btn--suave"
+      (click)="cargar()"
+      [disabled]="cargando || guardando || guardandoMovimiento"
+    >
+      Actualizar arqueo
+    </button>
+  </div>
+  <div class="adm-tarjeta__cuerpo">
+    @if (cargando) {
+      <p role="status">Consultando el turno…</p>
+    }
+    @if (errorCarga) {
+      <div class="adm-aviso adm-aviso--aviso" role="alert">{{ errorCarga }}</div>
+    }
+    @if (esperado; as datos) {
+      <div class="adm-grid adm-grid--3">
+        <div class="adm-bloque">
+          <span class="adm-etiqueta">Efectivo esperado</span
+          ><strong>S/ {{ datos.efectivo.esperado | number: '1.2-2' }}</strong>
+        </div>
+        <div class="adm-bloque">
+          <span class="adm-etiqueta">Efectivo contado</span
+          ><strong>S/ {{ contado | number: '1.2-2' }}</strong>
+        </div>
+        <div class="adm-bloque">
+          <span class="adm-etiqueta">Diferencia estimada</span
+          ><strong>S/ {{ diferencia | number: '1.2-2' }}</strong>
+        </div>
+      </div>
+      <p class="adm-ayuda">
+        Inicial: S/ {{ datos.efectivo.monto_inicial | number: '1.2-2' }} · Ventas: S/
+        {{ datos.efectivo.ventas | number: '1.2-2' }} · Abonos: S/
+        {{ datos.efectivo.abonos | number: '1.2-2' }} · Ingresos: S/
+        {{ datos.efectivo.ingresos | number: '1.2-2' }} · Egresos: S/
+        {{ datos.efectivo.egresos | number: '1.2-2' }}. Calculado:
+        {{ datos.generado_en | date: 'short' }}. El servidor vuelve a calcular al guardar.
+      </p>
+      @if (cierrePendiente) {
+        <div class="adm-aviso adm-aviso--aviso" role="status">
+          <span
+            >El arqueo {{ cierrePendiente.codigo }} ya está guardado; queda pendiente cerrar el
+            turno.</span
+          >
+          <button
+            class="adm-btn adm-btn--primario"
+            type="button"
+            (click)="reintentarCierre()"
+            [disabled]="guardando || cargando"
+          >
+            Reintentar cierre
+          </button>
+        </div>
+      }
+      @if (datos.apertura.abierta) {
+        <fieldset
+          [disabled]="
+            cargando || guardando || guardandoMovimiento || !!errorCarga || !!cierrePendiente
+          "
+        >
+          <legend>Conteo de efectivo</legend>
+          <label class="arqueo-opcion"
+            ><input type="checkbox" [(ngModel)]="porDenominacion" /> Contar por billetes y
+            monedas</label
+          >
+          @if (porDenominacion) {
+            <div class="arqueo-denominaciones">
+              @for (d of denominaciones; track d.denominacion) {
+                <div class="adm-campo">
+                  <label class="adm-etiqueta" [for]="'denominacion-' + d.denominacion">{{
+                    d.etiqueta
+                  }}</label>
+                  <input
+                    class="adm-input"
+                    [id]="'denominacion-' + d.denominacion"
+                    type="number"
+                    min="0"
+                    max="100000"
+                    step="1"
+                    [(ngModel)]="d.cantidad"
+                  />
+                  <span class="adm-ayuda"
+                    >S/ {{ d.denominacion * (d.cantidad || 0) | number: '1.2-2' }}</span
+                  >
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="arqueo-manual">Total de efectivo contado (S/)</label>
+              <input
+                id="arqueo-manual"
+                class="adm-input"
+                type="number"
+                min="0"
+                max="10000000"
+                step="0.01"
+                [(ngModel)]="efectivoManual"
+              />
+            </div>
+          }
+          @if (medios.length) {
+            <h3 class="adm-bloque__titulo">Otros medios de pago</h3>
+            <p class="adm-ayuda">
+              Dejar vacío significa «sin declarar». Escriba 0 si comprobó que no hay saldo.
+            </p>
+            <div class="adm-fila">
+              @for (medio of medios; track medio.id_metodo) {
+                <div class="adm-campo">
+                  <label class="adm-etiqueta" [for]="'medio-' + medio.id_metodo">{{
+                    medio.nombre
+                  }}</label>
+                  <input
+                    class="adm-input"
+                    [id]="'medio-' + medio.id_metodo"
+                    type="number"
+                    min="0"
+                    max="10000000"
+                    step="0.01"
+                    [(ngModel)]="medio.declarado"
+                    placeholder="Sin declarar"
+                  />
+                  <span class="adm-ayuda"
+                    >Esperado: S/ {{ esperadoMedio(medio.id_metodo) | number: '1.2-2' }}</span
+                  >
+                </div>
+              }
+            </div>
+          }
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="arqueo-observacion"
+              >Observación
+              {{ requiereObservacion ? '(obligatoria por diferencia)' : '(opcional)' }}</label
+            >
+            <textarea
+              id="arqueo-observacion"
+              class="adm-textarea"
+              rows="2"
+              maxlength="500"
+              [(ngModel)]="observacion"
+            ></textarea>
+          </div>
+          <div class="adm-acciones">
+            <button class="adm-btn adm-btn--suave" type="button" (click)="registrar('parcial')">
+              Guardar arqueo parcial
+            </button>
+            <button class="adm-btn adm-btn--primario" type="button" (click)="registrar('cierre')">
+              Guardar arqueo y cerrar turno
+            </button>
+          </div>
+        </fieldset>
+        <form #formMovimiento="ngForm" (ngSubmit)="registrarMovimiento()">
+          <fieldset
+            [disabled]="
+              cargando || guardando || guardandoMovimiento || !!errorCarga || !!cierrePendiente
+            "
+          >
+            <legend>Ingreso o egreso de efectivo</legend>
+            <div class="adm-fila">
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="mov-tipo">Tipo</label
+                ><select id="mov-tipo" name="tipo" class="adm-select" [(ngModel)]="movimiento.tipo">
+                  <option value="ingreso">Ingreso</option>
+                  <option value="egreso">Egreso</option>
+                </select>
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="mov-monto">Monto (S/)</label
+                ><input
+                  id="mov-monto"
+                  name="monto"
+                  class="adm-input"
+                  type="number"
+                  required
+                  min="0.01"
+                  max="10000000"
+                  step="0.01"
+                  [(ngModel)]="movimiento.monto"
+                />
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="mov-motivo">Motivo</label
+                ><input
+                  id="mov-motivo"
+                  name="motivo"
+                  class="adm-input"
+                  required
+                  minlength="3"
+                  maxlength="200"
+                  [(ngModel)]="movimiento.descripcion"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              class="adm-btn adm-btn--suave"
+              [disabled]="formMovimiento.invalid"
+            >
+              Registrar movimiento
+            </button>
+          </fieldset>
+        </form>
+      } @else {
+        <p class="adm-aviso adm-aviso--neutro" role="status">
+          Turno cerrado. Puede consultar y descargar sus arqueos.
+        </p>
+      }
+    }
+    <h3 class="adm-bloque__titulo">Arqueos registrados</h3>
+    <div class="arqueo-tabla">
+      <table class="adm-tabla">
+        <thead>
+          <tr>
+            <th>Arqueo</th>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Contado</th>
+            <th>Diferencia</th>
+            <th>Comprobante</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of historial; track a.id_arqueo) {
+            <tr>
+              <td>{{ a.codigo }}</td>
+              <td>{{ a.fecha | date: 'short' }}</td>
+              <td>{{ a.tipo }}</td>
+              <td>S/ {{ a.efectivo_contado | number: '1.2-2' }}</td>
+              <td [attr.title]="a.mensaje">S/ {{ a.diferencia | number: '1.2-2' }}</td>
+              <td>
+                <div class="adm-acciones">
+                  <button
+                    class="adm-btn adm-btn--suave"
+                    type="button"
+                    (click)="descargar(a, 'ticket')"
+                    [disabled]="descargando !== null"
+                  >
+                    Ticket</button
+                  ><button
+                    class="adm-btn adm-btn--suave"
+                    type="button"
+                    (click)="descargar(a, 'a4')"
+                    [disabled]="descargando !== null"
+                  >
+                    A4
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6">No hay arqueos registrados en este turno.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <h3 class="adm-bloque__titulo">Movimientos del turno</h3>
+    <div class="arqueo-tabla">
+      <table class="adm-tabla">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Motivo</th>
+            <th>Monto</th>
+            <th>Usuario</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of movimientos; track m.id_movimiento) {
+            <tr>
+              <td>{{ m.fecha | date: 'short' }}</td>
+              <td>{{ m.tipo }}</td>
+              <td>{{ m.descripcion }}</td>
+              <td>S/ {{ m.monto | number: '1.2-2' }}</td>
+              <td>{{ m.usuario_nombre || '—' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5">No hay movimientos de efectivo.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

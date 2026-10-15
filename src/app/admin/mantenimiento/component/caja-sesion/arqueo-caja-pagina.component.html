@@ -1,0 +1,76 @@
+<div class="adm-pagina">
+  <header class="adm-cabecera">
+    <div>
+      <h1 class="adm-cabecera__titulo">Arqueo de caja</h1>
+      <p class="adm-cabecera__sub">Conteo, conciliación, movimientos e historial por turno.</p>
+    </div>
+    <div class="adm-acciones">
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/caja-sesion"
+        >Apertura y cierre de caja</a
+      ><button
+        type="button"
+        class="adm-btn adm-btn--suave"
+        (click)="actualizar()"
+        [disabled]="cargando || ocupado"
+      >
+        Actualizar
+      </button>
+    </div>
+  </header>
+  <section class="adm-tarjeta">
+    <div class="adm-tarjeta__cuerpo">
+      <form #consultaForm="ngForm" (ngSubmit)="consultaForm.valid && consultar()" class="adm-fila">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="turno-arqueo">Número de turno / apertura</label
+          ><input
+            id="turno-arqueo"
+            class="adm-input"
+            name="turno"
+            type="number"
+            required
+            min="1"
+            max="2147483647"
+            step="1"
+            [(ngModel)]="idConsulta"
+            [disabled]="cargando || ocupado"
+          />
+        </div>
+        <div class="adm-acciones">
+          <button
+            type="submit"
+            class="adm-btn adm-btn--primario"
+            [disabled]="consultaForm.invalid || cargando || ocupado"
+          >
+            Consultar turno</button
+          ><button
+            type="button"
+            class="adm-btn adm-btn--suave"
+            (click)="usarTurnoActual()"
+            [disabled]="cargando || ocupado"
+          >
+            Mi turno actual
+          </button>
+        </div>
+      </form>
+      <p class="adm-ayuda">
+        Puede consultar sus turnos anteriores. Un administrador puede consultar otros turnos; el
+        servidor verifica el acceso.
+      </p>
+      @if (cargando) {
+        <p role="status">Consultando turno…</p>
+      }
+      @if (error) {
+        <p class="adm-aviso adm-aviso--aviso" role="alert">{{ error }}</p>
+      }
+      @if (!cargando && !error && !idApertura) {
+        <p role="status">
+          No tiene un turno abierto. Puede abrir una caja o indicar el número de una apertura
+          anterior para consultar su historial y descargar los arqueos.
+        </p>
+      }
+    </div>
+  </section>
+  @if (idApertura; as id) {
+    <app-caja-arqueo [idApertura]="id" />
+  }
+</div>
