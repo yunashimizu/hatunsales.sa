@@ -68,7 +68,7 @@ export class ComprobanteService {
     );
   }
 
-  /** Reconsulta en NUBEFACT un comprobante que quedó en error o pendiente. */
+  /** Recupera un envío SUNAT BETA que quedó pendiente de respuesta. */
   reintentar(idComprobante: number): Observable<ComprobanteEmitido> {
     return this.http.post<ComprobanteEmitido>(
       urlConstants.comprobante.reintentar(idComprobante),

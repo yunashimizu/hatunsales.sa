@@ -9,8 +9,18 @@ export interface EnvioBeta {
   estado: string;
   codigo_sunat: string | null;
   mensaje_sunat: string | null;
+  accion_sunat: string | null;
   creado_en: string;
   archivos: TipoArchivoBeta[];
+}
+export interface EstadoPosBetaFiscal {
+  habilitado: boolean;
+  activo: boolean;
+  ambiente: AmbienteFiscal;
+  listo: boolean;
+  ruc_emisor_beta: string;
+  ruc_certificado_beta: string | null;
+  advertencia: string;
 }
 export interface SeriesSunat {
   factura: string;
@@ -34,7 +44,7 @@ export interface EmisorSunat {
 }
 
 export interface OperacionFiscal {
-  proveedor: ProveedorFiscal;
+  proveedor?: ProveedorFiscal;
   ambiente: AmbienteFiscal;
   boletas_modo: 'individual' | 'resumen';
   envio_en_linea: boolean;

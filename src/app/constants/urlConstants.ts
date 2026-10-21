@@ -173,6 +173,7 @@ export const urlConstants = {
     probarConexion: `${dominio}fiscal/probar-conexion`,
     auditoria: `${dominio}fiscal/auditoria`,
     emisorBeta: `${dominio}fiscal/beta/emisor`,
+    posBeta: `${dominio}fiscal/beta/pos`,
     enviosBeta: `${dominio}fiscal/beta/envios`,
     archivoBeta: (id: number, tipo: string) => `${dominio}fiscal/beta/envios/${id}/archivos/${tipo}`,
     reintentarBeta: (id: number) => `${dominio}fiscal/beta/envios/${id}/reintentar`,

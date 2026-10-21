@@ -9,8 +9,8 @@ import { FacturacionSunatComponent } from './facturacion-sunat.component';
 
 function configuracionPrueba(): ConfiguracionSunat {
   return {
-    proveedor: 'nubefact',
-    proveedor_efectivo: 'nubefact',
+    proveedor: 'sunat_directo',
+    proveedor_efectivo: 'sunat_directo',
     ambiente: 'beta',
     boletas_modo: 'individual',
     envio_en_linea: true,
@@ -109,6 +109,15 @@ describe('FacturacionSunatComponent', () => {
       .expectOne(urlConstants.fiscal.emisorBeta)
       .flush({ emisor: config.emisor, ruc_certificado_beta: config.certificado.beta?.ruc ?? null });
     http.expectOne(urlConstants.fiscal.enviosBeta).flush({ items: [] });
+    http.expectOne(urlConstants.fiscal.posBeta).flush({
+      habilitado: false,
+      activo: false,
+      ambiente: config.ambiente,
+      listo: config.estado.esquema.listo,
+      ruc_emisor_beta: config.emisor.ruc,
+      ruc_certificado_beta: config.certificado.beta?.ruc ?? null,
+      advertencia: 'Emisión comercial de prueba SUNAT BETA.',
+    });
   }
 
   beforeEach(async () => {
@@ -138,6 +147,19 @@ describe('FacturacionSunatComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('[object Object]');
     component.probar();
     http.expectNone((r) => r.method !== 'GET');
+  });
+
+  it('solo ofrece reenvío para un envío pendiente que no requiere recuperar el CDR', () => {
+    responderConfiguracion();
+    expect(component.puedeReintentarBeta({ estado: 'ENVIANDO', accion_sunat: null })).toBe(false);
+    expect(component.puedeReintentarBeta({
+      estado: 'PENDIENTE_REENVIO',
+      accion_sunat: 'RECUPERAR_CDR',
+    })).toBe(false);
+    expect(component.puedeReintentarBeta({
+      estado: 'PENDIENTE_REENVIO',
+      accion_sunat: 'REINTENTAR',
+    })).toBe(true);
   });
 
   it('conserva los borradores de otras secciones y omite la clave SOL vacía', () => {

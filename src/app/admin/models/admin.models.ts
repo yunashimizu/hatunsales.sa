@@ -97,7 +97,18 @@ export interface PreviewComprobante {
   observaciones: string;
   nota?: { motivo_codigo: string; motivo_texto: string; documento_modificado: string };
   advertencias: string[];
-  json_nubefact: Record<string, any>;
+  proveedor_fiscal?: 'sunat_directo';
+  ambiente_fiscal?: 'beta' | 'produccion';
+  /** Solo si algún pago es con tarjeta: el recargo ya va como línea en `items` y dentro de `totales.total`. */
+  recargo_tarjeta?: {
+    porcentaje: number;
+    /** Parte de la venta (con IGV, sin recargo) que se cobra con tarjeta. */
+    base_tarjeta: number;
+    /** Recargo con IGV incluido. */
+    monto: number;
+    /** Total de los productos antes del recargo. */
+    total_sin_recargo: number;
+  };
 }
 
 export interface ComprobanteEmitido {
@@ -112,6 +123,11 @@ export interface ComprobanteEmitido {
   cadena_qr?: string;
   anulado?: boolean;
   estado?: string;
+  error?: string;
+  proveedor_fiscal?: 'sunat_directo';
+  ambiente_fiscal?: 'beta' | 'produccion';
+  estado_sunat?: string;
+  id_envio_ultimo?: number;
 }
 
 export interface ComprobanteFila {
@@ -134,6 +150,11 @@ export interface ComprobanteFila {
   error_mensaje?: string;
   enlace?: string;
   enlace_pdf?: string;
+  proveedor_fiscal?: 'sunat_directo' | null;
+  ambiente_fiscal?: 'beta' | 'produccion' | null;
+  estado_sunat?: string | null;
+  id_envio_ultimo?: number | null;
+  puede_reintentar?: boolean;
   puede_anular: boolean;
 }
 
@@ -147,6 +168,8 @@ export interface VentaRegistrada {
   total: number;
   comprobante?: ComprobanteEmitido;
   comprobante_error?: string;
+  /** Recargo por pago con tarjeta (con IGV) que ya está dentro de `total`. */
+  recargo_tarjeta?: number;
 }
 
 export interface Paginado<T> {

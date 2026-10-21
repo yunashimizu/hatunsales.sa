@@ -103,6 +103,16 @@
 
 .pv-ticket .adm-ticket__dato > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 
+/* ── Vista previa en vivo: la anterior se atenúa mientras llega el cálculo nuevo ── */
+.pv-ticket { transition: opacity 160ms ease; }
+.pv-ticket--actualizando { opacity: 0.55; }
+.pv-ticket__recargo { color: var(--adm-info); }
+.pv-descuento-detalle {
+  margin-top: 3px; font-size: 11.5px; line-height: 1.3; text-align: right;
+  color: var(--adm-texto-suave); font-variant-numeric: tabular-nums;
+}
+.pv-descuento-detalle--aviso { color: var(--adm-aviso); }
+
 /* ── Cliente ── */
 .pv-receptor { display: flex; align-items: flex-start; gap: 12px; padding: 14px; background: var(--adm-info-claro); border: 1px solid var(--adm-info-borde); border-radius: var(--adm-r-md); }
 .pv-receptor__avatar {
@@ -164,6 +174,17 @@
 .pv-total > span:first-child { font-size: 12px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--adm-texto-suave); }
 .pv-total > .pv-total__monto { font-size: 32px; line-height: 1.1; letter-spacing: -0.03em; color: var(--adm-exito); overflow-wrap: anywhere; }
 .pv-cobrar { min-height: 54px; font-size: 16.5px; box-shadow: 0 10px 22px -10px rgba(5, 150, 105, 0.6); }
+.pv-resumen__recargo { color: var(--adm-info); }
+.pv-resumen__desactualizado { opacity: 0.55; }
+.pv-total__monto--calculando { opacity: 0.75; }
+
+/* Aviso de lo que se pasa por la maquinita, con el recargo incluido */
+.pv-recargo-aviso {
+  display: flex; align-items: flex-start; gap: 8px; padding: 9px 12px; font-size: 13px; line-height: 1.4;
+  color: var(--adm-info); background: var(--adm-info-claro); border: 1px solid var(--adm-info-borde); border-radius: var(--adm-r-sm);
+}
+.pv-recargo-aviso > i { margin-top: 2px; }
+.pv-recargo-aviso strong { font-variant-numeric: tabular-nums; }
 
 /* Barra fija con el total: solo en pantallas chicas */
 .pv-total-movil { display: none; }
@@ -232,4 +253,5 @@
 @media (prefers-reduced-motion: reduce) {
   .pv-resultado,
   .pv-total-movil { animation: none; }
+  .pv-ticket { transition: none; }
 }

@@ -48,6 +48,8 @@ export interface AlmacenPos {
 export interface ContextoPos {
   almacenes: AlmacenPos[];
   almacen_default?: number;
+  /** % que se suma a la parte de la venta cobrada con tarjeta (0 = sin recargo). */
+  recargo_tarjeta_pct?: number;
 }
 
 const CATALOGO_TTL_MS = 3 * 60 * 1000;
@@ -104,9 +106,7 @@ export class PuntoVentaService {
   }
 
   contextoPos(): Observable<ContextoPos> {
-    return this.http.get<ContextoPos>(urlConstants.puntoVenta.contextoPos, opcionesHttp()).pipe(
-      catchError(() => of({ almacenes: [] as AlmacenPos[] })),
-    );
+    return this.http.get<ContextoPos>(urlConstants.puntoVenta.contextoPos, opcionesHttp());
   }
 
   /**

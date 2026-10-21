@@ -23,6 +23,7 @@ import {
   EmisorSunat,
   EmisorBeta,
   EnvioBeta,
+  EstadoPosBetaFiscal,
   TipoArchivoBeta,
   OperacionFiscal,
   ResultadoPruebaFiscal,
@@ -65,8 +66,12 @@ export class FacturacionSunatComponent implements OnInit {
   rucCertificadoBeta: string | null = null;
   rucEmisorBetaGuardado: string | null = null;
   enviosBeta: EnvioBeta[] = [];
+  estadoPosBeta: EstadoPosBetaFiscal | null = null;
   cargandoBeta = false;
   errorBeta = '';
+  puedeReintentarBeta(envio: Pick<EnvioBeta, 'estado' | 'accion_sunat'>): boolean {
+    return envio.estado === 'PENDIENTE_REENVIO' && envio.accion_sunat !== 'RECUPERAR_CDR';
+  }
   readonly nombresArchivoBeta: Record<TipoArchivoBeta, string> = {
     xml_original: 'XML original',
     xml_firmado: 'XML firmado',
@@ -180,7 +185,9 @@ export class FacturacionSunatComponent implements OnInit {
   }
 
   guardarOperacion(): void {
-    this.ejecutar(this.api.guardar(this.operacion), 'Configuración fiscal guardada');
+    const operacion = { ...this.operacion };
+    delete operacion.proveedor;
+    this.ejecutar(this.api.guardar(operacion), 'Configuración fiscal guardada');
   }
   guardarEmisor(): void {
     this.ejecutar(this.api.guardar({ emisor: this.emisor }), 'Datos fiscales del emisor guardados');
@@ -354,7 +361,11 @@ export class FacturacionSunatComponent implements OnInit {
     if (this.cargandoBeta) return;
     this.cargandoBeta = true;
     this.errorBeta = '';
-    forkJoin({ emisor: this.api.emisorBeta(), envios: this.api.enviosBeta() })
+    forkJoin({
+      emisor: this.api.emisorBeta(),
+      envios: this.api.enviosBeta(),
+      pos: this.api.estadoPosBeta(),
+    })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
@@ -368,6 +379,7 @@ export class FacturacionSunatComponent implements OnInit {
           this.rucCertificadoBeta = r.emisor.ruc_certificado_beta;
           this.rucEmisorBetaGuardado = r.emisor.emisor.ruc;
           this.enviosBeta = r.envios.items;
+          this.estadoPosBeta = r.pos;
         },
         error: (e) => {
           this.errorBeta = mensajeDeError(e, 'El módulo de pruebas BETA aún no está disponible');
@@ -378,6 +390,34 @@ export class FacturacionSunatComponent implements OnInit {
   guardarEmisorBeta(): void {
     if (!this.emisorBeta) return;
     this.ejecutar(this.api.guardarEmisorBeta(this.emisorBeta), 'Emisor de pruebas BETA guardado');
+  }
+
+  get puedeActivarPosBeta(): boolean {
+    return (
+      this.config?.ambiente === 'beta' &&
+      !!this.config.estado.esquema.listo &&
+      !!this.estadoPosBeta?.listo &&
+      this.estadoPosBeta.ruc_emisor_beta === this.estadoPosBeta.ruc_certificado_beta
+    );
+  }
+
+  async cambiarEstadoPosBeta(): Promise<void> {
+    if (!this.estadoPosBeta || this.ocupado || this.cargando || this.cargandoBeta) return;
+    const activar = !this.estadoPosBeta.habilitado;
+    if (activar && !this.puedeActivarPosBeta) return;
+    const respuesta = await this.alerta.confirm({
+      title: activar ? '¿Activar emisión comercial de prueba en BETA?' : '¿Desactivar emisión comercial BETA?',
+      message: activar
+        ? 'Las ventas del POS se enviarán a SUNAT BETA con el emisor de pruebas configurado. Estos comprobantes no tienen validez tributaria y no sustituyen la emisión real.'
+        : 'Las nuevas ventas dejarán de enviarse directamente a SUNAT BETA.',
+      confirmText: activar ? 'Activar solo para pruebas' : 'Desactivar',
+    });
+    if (respuesta.isConfirmed && !this.destroyRef.destroyed) {
+      this.ejecutar(
+        this.api.cambiarEstadoPosBeta(activar),
+        activar ? 'Emisión comercial BETA activada' : 'Emisión comercial BETA desactivada',
+      );
+    }
   }
 
   descargarBeta(envio: EnvioBeta, tipo: TipoArchivoBeta): void {

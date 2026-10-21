@@ -40,6 +40,7 @@ export class DocComponent implements OnInit, OnDestroy {
   cargando = false;
   /** CPE pendiente + error (monitor diario). */
   atencion = { pendientes: 0, errores: 0, total: 0 };
+  errorMonitor = '';
 
   filtro: FiltroComprobantes = { texto: '', id_tipo: '', estado: '', desde: '', hasta: '' };
 
@@ -66,6 +67,7 @@ export class DocComponent implements OnInit, OnDestroy {
   }
 
   cargarMonitor(): void {
+    this.errorMonitor = '';
     this.service.monitorAtencion().pipe(takeUntil(this.destruir$)).subscribe({
       next: (r) => {
         this.atencion = {
@@ -73,10 +75,11 @@ export class DocComponent implements OnInit, OnDestroy {
           errores: Number(r?.errores ?? 0),
           total: Number(r?.total ?? 0),
         };
+        this.errorMonitor = '';
         this.cdr.markForCheck();
       },
-      error: () => {
-        this.atencion = { pendientes: 0, errores: 0, total: 0 };
+      error: (error) => {
+        this.errorMonitor = mensajeDeError(error, 'No se pudo actualizar el monitor de documentos');
         this.cdr.markForCheck();
       },
     });
@@ -264,7 +267,7 @@ export class DocComponent implements OnInit, OnDestroy {
       });
   }
 
-  /** Reconsulta en NUBEFACT los que quedaron sin respuesta. */
+  /** Recupera un envío SUNAT BETA que quedó pendiente de respuesta. */
   reintentar(fila: ComprobanteFila): void {
     this.idEnProceso = fila.id_comprobante;
     this.cdr.markForCheck();
@@ -273,10 +276,15 @@ export class DocComponent implements OnInit, OnDestroy {
       .reintentar(fila.id_comprobante)
       .pipe(takeUntil(this.destruir$))
       .subscribe({
-        next: () => {
+        next: (resultado) => {
           this.idEnProceso = null;
           this.cdr.markForCheck();
-          this.alerta.toast({ type: 'success', title: 'El comprobante sí estaba registrado en SUNAT' });
+          this.alerta.toast({
+            type: resultado.aceptada_sunat ? 'success' : 'warning',
+            title: resultado.aceptada_sunat
+              ? 'SUNAT aceptó el comprobante'
+              : resultado.sunat_description || 'El comprobante sigue pendiente de confirmación',
+          });
           this.cargar();
         },
         error: (error) => {

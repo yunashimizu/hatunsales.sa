@@ -30,7 +30,7 @@
       <div class="adm-metrica">
         <div>
           <div class="adm-metrica__valor">
-            {{ cfg.proveedor_efectivo === 'nubefact' ? 'Nubefact' : 'SUNAT directo' }}
+            SUNAT directo
           </div>
           <div class="adm-metrica__etiqueta">Proveedor efectivo de las ventas</div>
         </div>
@@ -65,7 +65,7 @@
 
     <section class="adm-tarjeta">
       <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo">Proveedor y series</h2>
+        <h2 class="adm-tarjeta__titulo">SUNAT directo y series</h2>
       </div>
       <form
         #operacionForm="ngForm"
@@ -74,18 +74,6 @@
       >
         <fieldset [disabled]="ocupado || cargando || !!errorCarga">
           <div class="adm-fila">
-            <div class="adm-campo">
-              <label for="fiscal-proveedor" class="adm-etiqueta">Proveedor elegido</label
-              ><select
-                id="fiscal-proveedor"
-                name="proveedor"
-                class="adm-select"
-                [(ngModel)]="operacion.proveedor"
-              >
-                <option value="nubefact">Nubefact</option>
-                <option value="sunat_directo">SUNAT directo</option>
-              </select>
-            </div>
             <div class="adm-campo">
               <label for="fiscal-ambiente" class="adm-etiqueta">Ambiente</label
               ><select
@@ -175,11 +163,11 @@
             type="submit"
             [disabled]="operacionForm.invalid"
           >
-            Guardar proveedor y series
+            Guardar configuración y series
           </button>
           <p class="adm-ayuda">
-            La selección y el proveedor efectivo se muestran por separado. El servidor valida los
-            requisitos antes de activar producción.
+            Los comprobantes se emiten directamente a SUNAT. El servidor valida los requisitos
+            antes de activar producción.
           </p>
         </fieldset>
       </form>
@@ -711,6 +699,52 @@
     </section>
     <section class="adm-tarjeta">
       <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo">Emisión comercial del POS a SUNAT BETA</h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo">
+        @if (estadoPosBeta; as posBeta) {
+          <p role="status">
+            <strong>
+              {{
+                posBeta.activo
+                  ? 'Activa solo en BETA'
+                  : posBeta.habilitado
+                    ? 'Habilitada, pero suspendida fuera del ambiente BETA'
+                    : 'Desactivada'
+              }}
+            </strong>
+            · Emisor BETA {{ posBeta.ruc_emisor_beta }} · Certificado
+            {{ posBeta.ruc_certificado_beta || 'pendiente' }}
+          </p>
+          <p class="adm-ayuda">{{ posBeta.advertencia }}</p>
+          @if (!posBeta.listo) {
+            <p class="adm-aviso adm-aviso--aviso" role="status">
+              Para activarla se requiere el esquema fiscal aplicado y un certificado BETA vigente
+              cuyo RUC coincida con el emisor BETA.
+            </p>
+          }
+          <button
+            class="adm-btn"
+            [class.adm-btn--primario]="!posBeta.habilitado"
+            [class.adm-btn--suave]="posBeta.habilitado"
+            type="button"
+            (click)="cambiarEstadoPosBeta()"
+            [disabled]="
+              ocupado ||
+              cargando ||
+              cargandoBeta ||
+              (!posBeta.habilitado && !puedeActivarPosBeta)
+            "
+          >
+            {{ posBeta.habilitado ? 'Desactivar envío BETA desde el POS' : 'Activar pruebas del POS en BETA' }}
+          </button>
+        } @else {
+          <p class="adm-ayuda">Consultando el estado de la integración BETA del POS…</p>
+        }
+      </div>
+    </section>
+    <section class="adm-tarjeta">
+      <div class="adm-tarjeta__cabecera">
         <h2 class="adm-tarjeta__titulo">XML, ZIP y CDR de pruebas BETA</h2>
         <button
           class="adm-btn adm-btn--suave"
@@ -740,6 +774,11 @@
                 <td [attr.title]="envio.mensaje_sunat">
                   {{ envio.estado }}
                   {{ envio.codigo_sunat !== null ? '(' + envio.codigo_sunat + ')' : '' }}
+                  @if (envio.accion_sunat === 'RECUPERAR_CDR') {
+                    <div class="adm-texto-suave">SUNAT reporta recepción; no reenvíe el ZIP. Verifique el CDR antes de continuar.</div>
+                  } @else if (envio.estado === 'ENVIANDO') {
+                    <div class="adm-texto-suave">Resultado aún en curso; no reenvíe mientras no se confirme el estado.</div>
+                  }
                 </td>
                 <td>
                   <div class="adm-acciones">
@@ -756,7 +795,7 @@
                   </div>
                 </td>
                 <td>
-                  @if (envio.estado === 'ENVIANDO' || envio.estado === 'PENDIENTE_REENVIO') {
+                  @if (puedeReintentarBeta(envio)) {
                     <button
                       class="adm-btn adm-btn--suave"
                       type="button"

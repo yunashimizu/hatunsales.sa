@@ -9,6 +9,7 @@ export type SeriesPos = {
   serie_factura: string;
   por_tipo: Record<number, string>;
   editable_en_pos: boolean;
+  beta_pos_directo?: boolean;
   mensaje?: string;
 };
 
@@ -28,7 +29,6 @@ export type ConfigFiscal = {
   proforma?: { condiciones: string };
   series: { serie_boleta: string; serie_factura: string };
   estados: {
-    nubefact_configurado: boolean;
     whatsapp_cloud: boolean;
     caja_modo: string;
   };

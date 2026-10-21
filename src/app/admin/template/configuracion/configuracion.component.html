@@ -64,19 +64,10 @@
   <section class="adm-tarjeta adm-tarjeta--acento" *ngIf="esAdminPuro">
     <div class="adm-tarjeta__cabecera">
       <div class="adm-tarjeta__encabezado">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-receipt"></i> Emisor y series (Nubefact)</h2>
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-receipt"></i> Emisor y series</h2>
         <p class="adm-tarjeta__sub">Datos que salen en boletas, facturas y proformas.</p>
       </div>
       <ul class="adm-tarjeta__extra cfg-estados" *ngIf="fiscal" aria-label="Estado de la integración">
-        <li class="adm-insignia"
-            [class.adm-insignia--exito]="fiscal.estados.nubefact_configurado"
-            [class.adm-insignia--aviso]="!fiscal.estados.nubefact_configurado">
-          <span class="adm-leyenda__punto"
-                [class.adm-leyenda__punto--exito]="fiscal.estados.nubefact_configurado"
-                [class.adm-leyenda__punto--aviso]="!fiscal.estados.nubefact_configurado"
-                aria-hidden="true"></span>
-          Nubefact {{ fiscal.estados.nubefact_configurado ? 'configurado' : 'revisar variables' }}
-        </li>
         <li class="adm-insignia adm-insignia--info">
           <i class="bi bi-cash-stack" aria-hidden="true"></i>
           Caja: {{ fiscal.estados.caja_modo }}
@@ -132,7 +123,7 @@
             <h3 class="adm-bloque__titulo"><i class="bi bi-123" aria-hidden="true"></i> Series de comprobantes</h3>
             <p class="adm-ayuda">
               El punto de venta elige la serie solo (boleta = B…, factura = F…) y <strong>no se puede cambiar</strong>
-              en Ventas. Deben coincidir con las de su cuenta Nubefact.
+              en Ventas. El POS SUNAT BETA usa series de prueba independientes.
             </p>
           </div>
           <div class="cfg-bloque__campos">
@@ -150,7 +141,7 @@
                        [(ngModel)]="formSeries.serie_factura" placeholder="FFF1">
               </div>
             </div>
-            <p class="adm-ayuda cfg-sin-margen">4 caracteres cada una, tal como figuran en Nubefact.</p>
+            <p class="adm-ayuda cfg-sin-margen">4 caracteres cada una; las pruebas del POS usan las series FB01 y BB01.</p>
           </div>
         </div>
 

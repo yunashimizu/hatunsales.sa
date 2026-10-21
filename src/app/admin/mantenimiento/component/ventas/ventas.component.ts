@@ -21,7 +21,7 @@ import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { ReceptorService } from '../../../service/receptor.service';
-import { AlmacenPos, ContextoPos, PuntoVentaService, SolicitudVenta } from '../../../service/punto-venta.service';
+import { AlmacenPos, PuntoVentaService, SolicitudVenta } from '../../../service/punto-venta.service';
 import { CajaSesionService } from '../../../service/caja-sesion.service';
 import { CotizacionService } from '../../../service/cotizacion.service';
 import { ConfiguracionFiscalService } from '../../../service/configuracion-fiscal.service';
@@ -76,6 +76,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   serie = '';
   private serieBoletaCfg = 'BBB1';
   private serieFacturaCfg = 'FFF1';
+  avisoEmisionFiscal = '';
   observaciones = '';
   enviarPorCorreo = false;
   emitirComprobante = true;
@@ -86,6 +87,12 @@ export class VentasComponent implements OnInit, OnDestroy {
   /** Evita doble cambio / UI mientras recarga catálogo del almacén. */
   cambiandoAlmacen = false;
   cargandoContextoPos = true;
+  errorContextoPos = '';
+  errorCatalogo = '';
+  errorMetodosPago = '';
+  errorCuentasBancarias = '';
+  errorPasarelaCaja = '';
+  errorSeriesFiscales = '';
 
   // ── Receptor ──────────────────────────────────────────────────
   textoReceptor = '';
@@ -93,12 +100,14 @@ export class VentasComponent implements OnInit, OnDestroy {
   sugerenciasReceptor: SugerenciaReceptor[] = [];
   indiceReceptor = -1;
   buscandoReceptor = false;
+  errorBusquedaReceptor = '';
 
   // ── Productos ─────────────────────────────────────────────────
   textoProducto = '';
   sugerenciasProducto: ProductoVenta[] = [];
   indiceProducto = -1;
   buscandoProducto = false;
+  errorBusquedaProducto = '';
   /** Último intento explícito (Enter / lector) que no encontró nada; habilita la tarjeta «Sin resultados». */
   busquedaFallida: { texto: string; esCodigo: boolean } | null = null;
 
@@ -138,6 +147,8 @@ export class VentasComponent implements OnInit, OnDestroy {
     dias_credito: number;
     denominacion: string;
   } | null = null;
+  errorLineaCredito = '';
+  cargandoLineaCredito = false;
   cuentasBancarias: any[] = [];
   pasarelaInfo: any = null;
   yapeCargando = false;
@@ -148,6 +159,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   /** Cotización cargada vía ?cotizacion=ID (no bloquea cobro normal). */
   idCotizacionCargada: number | null = null;
   codigoCotizacionCargada = '';
+  errorReceptorCotizacion = '';
   private idAlmacenCotizacion: number | null = null;
 
   private lineaPagoVacia() {
@@ -180,6 +192,13 @@ export class VentasComponent implements OnInit, OnDestroy {
   errorPreview = '';
   emitiendo = false;
   ultimaVenta: VentaRegistrada | null = null;
+
+  /** % de recargo por pagar con tarjeta que informa el servidor (0 = sin recargo); solo alimenta la estimación en vivo. */
+  recargoTarjetaPct = 0;
+  /** Si el último cálculo enviado al servidor incluía un pago con tarjeta (para saber cuándo recalcular al dejarla). */
+  private previewConTarjeta = false;
+  /** `cobrar()` completó con el total el monto de un único medio de pago (se deshace si no se cobra). */
+  private montoUnicoAutocompletado = false;
 
   private claveIdempotencia = '';
   private readonly buscarReceptor$ = new Subject<string>();
@@ -235,6 +254,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   /** Hidrata carrito/cliente desde Cotizaciones sin tocar el cobro. */
   private cargarCotizacionEnPos(id: number): void {
+    this.errorReceptorCotizacion = '';
     this.cotizaciones.porId(id).pipe(takeUntil(this.destruir$)).subscribe({
       next: (cot) => {
         if (cot.estado === 'convertida') {
@@ -246,6 +266,9 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.refrescarVista();
           return;
         }
+        this.receptor = null;
+        this.lineaCredito = null;
+        this.errorLineaCredito = '';
         if (cot.valida_hasta) {
           const fin = new Date(cot.valida_hasta + 'T23:59:59');
           if (fin.getTime() < Date.now()) {
@@ -277,29 +300,38 @@ export class VentasComponent implements OnInit, OnDestroy {
         if (cot.id_cliente) {
           this.receptorService.porCliente(cot.id_cliente).pipe(
             takeUntil(this.destruir$),
-            catchError(() => of(null)),
-          ).subscribe((r) => {
-            if (r) this.aplicarReceptor(r);
-            else {
-              this.receptor = {
-                tipo_documento: 1,
-                numero_documento: '',
-                denominacion: cot.cliente_nombre || 'Cliente',
-                id_cliente: cot.id_cliente!,
-              } as Receptor;
-              this.cargarLineaCredito();
-            }
-            this.pedirRecalculo();
-            this.refrescarVista();
+          ).subscribe({
+            next: (receptor) => {
+              this.aplicarReceptor(receptor);
+              this.pedirRecalculo();
+              this.refrescarVista();
+            },
+            error: (error) => {
+              this.errorReceptorCotizacion = mensajeDeError(
+                error,
+                'No se pudo verificar el cliente de la cotización',
+              );
+              this.pedirRecalculo();
+              this.refrescarVista();
+            },
           });
         } else if (cot.id_empresa) {
           this.receptorService.porEmpresa(cot.id_empresa).pipe(
             takeUntil(this.destruir$),
-            catchError(() => of(null)),
-          ).subscribe((r) => {
-            if (r) this.aplicarReceptor(r);
-            this.pedirRecalculo();
-            this.refrescarVista();
+          ).subscribe({
+            next: (receptor) => {
+              this.aplicarReceptor(receptor);
+              this.pedirRecalculo();
+              this.refrescarVista();
+            },
+            error: (error) => {
+              this.errorReceptorCotizacion = mensajeDeError(
+                error,
+                'No se pudo verificar la empresa de la cotización',
+              );
+              this.pedirRecalculo();
+              this.refrescarVista();
+            },
           });
         } else if (cot.cliente_nombre) {
           this.receptor = {
@@ -337,7 +369,11 @@ export class VentasComponent implements OnInit, OnDestroy {
     }
     this.puntoVenta.cargarCatalogo(true, this.idAlmacen).pipe(
       takeUntil(this.destruir$),
-      catchError(() => EMPTY),
+      catchError((error) => {
+        this.errorCatalogo = mensajeDeError(error, 'No se pudo cargar el catálogo de la cotización');
+        this.refrescarVista();
+        return EMPTY;
+      }),
     ).subscribe(() => {
       this.sincronizarStockCarritoDesdeCatalogo(true);
       this.pedirRecalculo();
@@ -410,16 +446,23 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   private cargarContextoPos(): void {
     this.cargandoContextoPos = true;
+    this.errorContextoPos = '';
     this.refrescarVista();
     this.puntoVenta.contextoPos().pipe(
       takeUntil(this.destruir$),
-      catchError(() => of({ almacenes: [] as AlmacenPos[], almacen_default: undefined } as ContextoPos)),
+      catchError((error) => {
+        this.errorContextoPos = mensajeDeError(error, 'No se pudo cargar el contexto del punto de venta');
+        this.refrescarVista();
+        return of(null);
+      }),
       finalize(() => {
         this.cargandoContextoPos = false;
         this.refrescarVista();
       }),
     ).subscribe((ctx) => {
+      if (!ctx) return;
       this.almacenes = ctx.almacenes ?? [];
+      this.recargoTarjetaPct = Math.max(0, Number(ctx.recargo_tarjeta_pct) || 0);
 
       const guardado = Number(localStorage.getItem(LS_ALMACEN) || 0);
       const enLista = this.almacenes.some((a) => a.id_almacen === guardado);
@@ -443,26 +486,41 @@ export class VentasComponent implements OnInit, OnDestroy {
       this.refrescarVista();
       if (!this.idAlmacen) return;
 
-      this.puntoVenta
-        .cargarCatalogo(true, this.idAlmacen)
-        .pipe(
-          takeUntil(this.destruir$),
-          catchError(() => {
-            this.alerta.toast({
-              type: 'warning',
-              title: 'No se pudo cargar el stock del almacén',
-              timer: 4000,
-            });
-            return EMPTY;
-          }),
-          tap(() => {
+      this.cargarCatalogoAlmacen(this.idAlmacen, true);
+    });
+  }
+
+  reintentarCargaPos(): void {
+    if (this.cargandoContextoPos || this.cambiandoAlmacen || this.emitiendo) return;
+    this.cargarContextoPos();
+  }
+
+  private cargarCatalogoAlmacen(idAlmacen: number, actualizarCarrito: boolean): void {
+    this.errorCatalogo = '';
+    this.refrescarVista();
+    this.puntoVenta
+      .cargarCatalogo(true, idAlmacen)
+      .pipe(
+        takeUntil(this.destruir$),
+        catchError((error) => {
+          this.errorCatalogo = mensajeDeError(error, 'No se pudo cargar el catálogo del almacén');
+          this.refrescarVista();
+          return EMPTY;
+        }),
+        tap(() => {
+          if (actualizarCarrito) {
             this.sincronizarStockCarritoDesdeCatalogo(true);
             this.pedirRecalculo();
-          }),
-          finalize(() => this.refrescarVista()),
-        )
-        .subscribe();
-    });
+          }
+        }),
+        finalize(() => this.refrescarVista()),
+      )
+      .subscribe();
+  }
+
+  reintentarCargaCatalogo(): void {
+    if (!this.idAlmacen || this.cambiandoAlmacen || this.emitiendo) return;
+    this.cargarCatalogoAlmacen(this.idAlmacen, true);
   }
 
   /**
@@ -509,8 +567,9 @@ export class VentasComponent implements OnInit, OnDestroy {
               });
               this.refrescarVista();
             }),
-            catchError(() => {
+            catchError((error) => {
               this.idAlmacen = anterior;
+              this.errorCatalogo = mensajeDeError(error, 'No se pudo cargar el catálogo del almacén');
               if (anterior) {
                 localStorage.setItem(LS_ALMACEN, String(anterior));
               } else {
@@ -520,7 +579,7 @@ export class VentasComponent implements OnInit, OnDestroy {
               this.alerta.toast({
                 type: 'error',
                 title: 'No se pudo cambiar el almacén',
-                message: 'Se mantiene el anterior. Reintente en un momento.',
+                message: `${this.errorCatalogo}. Se mantiene el almacén anterior.`,
                 timer: 4500,
               });
               this.refrescarVista();
@@ -593,19 +652,36 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.pedirRecalculo();
   }
 
-  /** Carga series desde config (Nubefact). No editables en el POS. */
+  /** Carga las series efectivas de comprobantes. No son editables en el POS. */
   private cargarSeriesFiscales(): void {
     this.fiscalCfg
       .seriesPos()
-      .pipe(takeUntil(this.destruir$), catchError(() => of(null)))
+      .pipe(
+        takeUntil(this.destruir$),
+        catchError((error) => {
+          this.errorSeriesFiscales = mensajeDeError(error, 'No se pudieron cargar las series fiscales');
+          this.avisoEmisionFiscal = this.errorSeriesFiscales;
+          this.refrescarVista();
+          return of(null);
+        }),
+      )
       .subscribe((s) => {
         if (s) {
+          this.errorSeriesFiscales = '';
           this.serieBoletaCfg = s.serie_boleta || 'BBB1';
           this.serieFacturaCfg = s.serie_factura || 'FFF1';
+          this.avisoEmisionFiscal = s.mensaje ?? '';
+        } else if (!this.errorSeriesFiscales) {
+          this.avisoEmisionFiscal = '';
         }
         this.aplicarSeriePorTipo();
         this.refrescarVista();
       });
+  }
+
+  reintentarSeriesFiscales(): void {
+    if (this.emitiendo) return;
+    this.cargarSeriesFiscales();
   }
 
   private aplicarSeriePorTipo(): void {
@@ -624,13 +700,23 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.buscarReceptor$
       .pipe(
         debounceTime(200),
-        distinctUntilChanged(),
+        distinctUntilChanged((anterior, actual) => anterior === actual && !this.errorBusquedaReceptor),
         switchMap((termino) => {
-          if (termino.trim().length < 2) return of([] as SugerenciaReceptor[]);
+          if (termino.trim().length < 2) {
+            this.errorBusquedaReceptor = '';
+            return of([] as SugerenciaReceptor[]);
+          }
           // DNI/RUC completo lo resuelve documentoExacto$ (base o SUNAT).
           if (this.esDocumentoExacto(termino)) return of([] as SugerenciaReceptor[]);
+          this.errorBusquedaReceptor = '';
           this.buscandoReceptor = true;
-          return this.receptorService.sugerencias(termino).pipe(catchError(() => of([])));
+          return this.receptorService.sugerencias(termino).pipe(
+            catchError((error) => {
+              this.errorBusquedaReceptor = mensajeDeError(error, 'No se pudieron buscar clientes');
+              this.refrescarVista();
+              return of([] as SugerenciaReceptor[]);
+            }),
+          );
         }),
         takeUntil(this.destruir$),
       )
@@ -645,8 +731,9 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.documentoExacto$
       .pipe(
         debounceTime(280),
-        distinctUntilChanged(),
+        distinctUntilChanged((anterior, actual) => anterior === actual && !this.errorBusquedaReceptor),
         switchMap((documento) => {
+          this.errorBusquedaReceptor = '';
           this.buscandoReceptor = true;
           this.sugerenciasReceptor = [];
           this.refrescarVista();
@@ -654,11 +741,8 @@ export class VentasComponent implements OnInit, OnDestroy {
             catchError((error) => {
               this.buscandoReceptor = false;
               this.ultimoDocumentoAuto = '';
+              this.errorBusquedaReceptor = mensajeDeError(error, 'No se pudo verificar el documento');
               this.refrescarVista();
-              void this.alerta.error({
-                title: 'No se encontró el documento',
-                message: mensajeDeError(error, 'Verifique el número e intente de nuevo'),
-              });
               return EMPTY;
             }),
           );
@@ -761,15 +845,22 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.receptorService
       .consumidorFinal()
       .pipe(takeUntil(this.destruir$))
-      .subscribe((receptor) => {
-        this.aplicarReceptor(receptor);
-        this.refrescarVista();
+      .subscribe({
+        next: (receptor) => {
+          this.aplicarReceptor(receptor);
+          this.refrescarVista();
+        },
+        error: (error) => {
+          this.errorBusquedaReceptor = mensajeDeError(error, 'No se pudo cargar el consumidor final');
+          this.refrescarVista();
+        },
       });
   }
 
   private aplicarReceptor(receptor: Receptor): void {
     this.receptor = receptor;
-    this.cargarLineaCredito();
+    this.errorBusquedaReceptor = '';
+    this.errorReceptorCotizacion = '';
     this.textoReceptor = '';
     this.sugerenciasReceptor = [];
     this.ultimoDocumentoAuto = '';
@@ -794,6 +885,8 @@ export class VentasComponent implements OnInit, OnDestroy {
   quitarReceptor(): void {
     this.receptor = null;
     this.lineaCredito = null;
+    this.errorLineaCredito = '';
+    this.errorReceptorCotizacion = '';
     this.pedirRecalculo();
   }
 
@@ -803,7 +896,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.buscarProducto$
       .pipe(
         debounceTime(50),
-        distinctUntilChanged(),
+        distinctUntilChanged((anterior, actual) => anterior === actual && !this.errorBusquedaProducto),
         takeUntil(this.destruir$),
       )
       .subscribe((termino) => {
@@ -815,6 +908,9 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.refrescarVista();
           return;
         }
+        // Escáner + Enter: el producto ya entró al carrito y el buscador se vació antes de que
+        // llegara esta búsqueda con retraso; si no se descarta, la lista reaparece sobre la pantalla.
+        if (this.textoProducto.trim() !== texto) return;
 
         if (this.puntoVenta.tieneCatalogo) {
           const locales = this.puntoVenta.filtrarLocal(texto);
@@ -832,13 +928,22 @@ export class VentasComponent implements OnInit, OnDestroy {
         // productos nuevos o catálogos en caché todavía desactualizados.
         const busquedaId = ++this.busquedaProductoId;
         this.buscandoProducto = true;
+        this.errorBusquedaProducto = '';
         this.busquedaFallida = null;
         this.refrescarVista();
         this.puntoVenta.buscarProductos(texto, 12, this.idAlmacen).pipe(
-          catchError(() => of([] as ProductoVenta[])),
+          catchError((error) => {
+            if (busquedaId === this.busquedaProductoId) {
+              this.errorBusquedaProducto = mensajeDeError(error, 'No se pudieron buscar productos');
+              this.buscandoProducto = false;
+              this.refrescarVista();
+            }
+            return of(null);
+          }),
           takeUntil(this.destruir$),
         ).subscribe((productos) => {
           if (busquedaId !== this.busquedaProductoId) return;
+          if (!productos) return;
           this.buscandoProducto = false;
           this.sugerenciasProducto = productos;
           this.indiceProducto = -1;
@@ -861,6 +966,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       this.refrescarVista();
       return;
     }
+    this.errorBusquedaProducto = '';
     this.busquedaFallida = null;
     this.buscarProducto$.next(this.textoProducto);
   }
@@ -945,6 +1051,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
     this.escaneandoCodigo = true;
     this.buscandoProducto = true;
+    this.errorBusquedaProducto = '';
     this.refrescarVista();
     this.puntoVenta.porCodigoBarras(codigo, this.idAlmacen).subscribe({
       next: (producto) => {
@@ -958,17 +1065,15 @@ export class VentasComponent implements OnInit, OnDestroy {
         this.escaneandoCodigo = false;
         this.buscandoProducto = false;
         this.refrescarVista();
-        if (this.sugerenciasProducto.length === 1) {
-          this.agregarProducto(this.sugerenciasProducto[0]);
-          return;
-        }
-        if (this.sugerenciasProducto.length > 1) {
-          this.alerta.toast({ type: 'warning', title: 'Elija el producto de la lista' });
-          return;
-        }
-        this.alerta.toast({ type: 'warning', title: `No hay producto con el código ${codigo}` });
         // Solo un 404 prueba que el código no existe; con un corte de red no se ofrece crearlo.
-        if (error?.status === 404) this.marcarBusquedaFallida(codigo);
+        if (error?.status === 404) {
+          this.errorBusquedaProducto = '';
+          this.alerta.toast({ type: 'warning', title: `No hay producto con el código ${codigo}` });
+          this.marcarBusquedaFallida(codigo);
+        } else {
+          this.errorBusquedaProducto = mensajeDeError(error, 'No se pudo verificar el código');
+          this.alerta.toast({ type: 'error', title: this.errorBusquedaProducto });
+        }
         this.enfocarBuscadorProducto();
       },
     });
@@ -994,8 +1099,9 @@ export class VentasComponent implements OnInit, OnDestroy {
     // la caché ya cargó, porque puede estar desactualizada.
     const busquedaId = ++this.busquedaProductoId;
     this.buscandoProducto = true;
+    this.errorBusquedaProducto = '';
     this.refrescarVista();
-    this.puntoVenta.buscarProductos(termino, 12, this.idAlmacen).pipe(catchError(() => of([] as ProductoVenta[]))).subscribe({
+    this.puntoVenta.buscarProductos(termino, 12, this.idAlmacen).pipe(takeUntil(this.destruir$)).subscribe({
       next: (productos) => {
         if (busquedaId !== this.busquedaProductoId) return;
         this.buscandoProducto = false;
@@ -1014,6 +1120,13 @@ export class VentasComponent implements OnInit, OnDestroy {
         this.alerta.toast({ type: 'warning', title: `No se encontró "${termino}"` });
         this.marcarBusquedaFallida(termino);
         this.enfocarBuscadorProducto();
+      },
+      error: (error) => {
+        if (busquedaId !== this.busquedaProductoId) return;
+        this.buscandoProducto = false;
+        this.errorBusquedaProducto = mensajeDeError(error, 'No se pudo buscar el producto');
+        this.refrescarVista();
+        this.alerta.toast({ type: 'error', title: this.errorBusquedaProducto });
       },
     });
   }
@@ -1136,25 +1249,21 @@ export class VentasComponent implements OnInit, OnDestroy {
   private escucharRecalculo(): void {
     this.recalcular$
       .pipe(
-        debounceTime(220),
-        switchMap(() => {
-          if (!this.lineas.length) {
-            this.preview = null;
-            this.errorPreview = '';
-            this.refrescarVista();
-            return of(null);
-          }
-
-          this.calculandoPreview = true;
-          this.refrescarVista();
-          return this.puntoVenta.preview(this.armarSolicitud(false)).pipe(
-            catchError((error) => {
-              this.errorPreview = mensajeDeError(error, 'No se pudo calcular el comprobante');
-              this.refrescarVista();
-              return of(null);
-            }),
-          );
-        }),
+        switchMap(() => timer(220).pipe(
+          switchMap(() => {
+            if (!this.lineas.length) return of(null);
+            this.previewConTarjeta = this.hayPagoTarjeta;
+            return this.puntoVenta.preview(this.armarSolicitud(false)).pipe(
+              catchError((error) => {
+                // Un cálculo fallido no deja a la vista cifras de antes: el cobro queda bloqueado con el motivo.
+                this.errorPreview = mensajeDeError(error, 'No se pudo calcular el comprobante');
+                this.preview = null;
+                this.refrescarVista();
+                return of(null);
+              }),
+            );
+          }),
+        )),
         takeUntil(this.destruir$),
       )
       .subscribe((preview) => {
@@ -1167,7 +1276,16 @@ export class VentasComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Cada cambio pide un cálculo nuevo al servidor (con una pausa corta para no saturarlo).
+   * La vista previa anterior se queda a la vista, atenuada, hasta que llega la nueva, y los
+   * totales se muestran al instante con la estimación local: nada parpadea ni desaparece.
+   * El cobro sigue bloqueado mientras se recalcula.
+   */
   private pedirRecalculo(): void {
+    this.errorPreview = '';
+    this.calculandoPreview = this.lineas.length > 0;
+    if (!this.lineas.length) this.preview = null;
     this.recalcular$.next();
     this.refrescarVista();
   }
@@ -1183,7 +1301,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.pedirRecalculo();
   }
 
-  /** Total aproximado mientras llega la respuesta del servidor. */
+  /** Total de los productos con sus descuentos (sin recargo), calculado aquí al instante. */
   get totalLocal(): number {
     return this.redondear(this.lineas.reduce((suma, linea) => suma + this.subtotalLinea(linea), 0));
   }
@@ -1196,13 +1314,24 @@ export class VentasComponent implements OnInit, OnDestroy {
     return Math.max(0, Number(linea.cantidad || 0) * Number(linea.precio_unitario || 0));
   }
 
-  private descuentoLinea(linea: LineaVenta): number {
-    const unitario = Number(linea.descuento ?? 0) || 0;
-    return Math.max(0, Number(linea.cantidad || 0) * unitario);
+  /** Descuento por unidad que de verdad se aplica: admite decimales (S/ 0.20) y nunca pasa del precio. */
+  descuentoUnitarioEfectivo(linea: LineaVenta): number {
+    const unitario = Math.max(0, this.redondear(Number(linea.descuento ?? 0) || 0));
+    return Math.min(unitario, Math.max(0, this.redondear(Number(linea.precio_unitario) || 0)));
+  }
+
+  /** Descuento de toda la línea: el de cada unidad × la cantidad (2 cementos con S/ 0.20 c/u = S/ 0.40). */
+  descuentoTotalLinea(linea: LineaVenta): number {
+    return this.redondear(Number(linea.cantidad || 0) * this.descuentoUnitarioEfectivo(linea));
+  }
+
+  /** El cajero escribió un descuento mayor que el precio: el sistema lo topa en el precio. */
+  descuentoExcede(linea: LineaVenta): boolean {
+    return this.redondear(Number(linea.descuento ?? 0) || 0) > this.redondear(Number(linea.precio_unitario) || 0);
   }
 
   subtotalLinea(linea: LineaVenta): number {
-    return this.redondear(this.brutoLinea(linea) - this.descuentoLinea(linea));
+    return this.redondear(this.brutoLinea(linea) - this.descuentoTotalLinea(linea));
   }
 
   private brutoCarrito(): number {
@@ -1215,8 +1344,61 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
 
+  /**
+   * Total a cobrar. Con el cálculo del servidor al día es el suyo (lo mismo que se registra y
+   * se emite); mientras se recalcula, la estimación local con descuentos y recargo de tarjeta,
+   * para que el cajero vea el cambio en el momento.
+   */
   get total(): number {
-    return this.preview?.totales.total ?? this.totalLocal;
+    if (this.preview && !this.calculandoPreview) return this.preview.totales.total;
+    return this.redondear(this.totalLocal + this.recargoEstimado);
+  }
+
+  /** Hay un medio de pago de tarjeta elegido. */
+  get hayPagoTarjeta(): boolean {
+    return this.lineasPago.some((l) => !!l.id_metodo && this.esTarjeta(l.id_metodo));
+  }
+
+  /** Misma regla que el servidor: el recargo es solo sobre lo que queda para la tarjeta tras los otros medios. */
+  get recargoEstimado(): number {
+    const pct = this.recargoTarjetaPct;
+    if (!(pct > 0) || !this.lineas.length || !this.hayPagoTarjeta) return 0;
+    const otros = this.lineasPago.reduce(
+      (suma, l) => (this.esTarjeta(l.id_metodo) ? suma : suma + Math.max(0, Number(l.monto) || 0)),
+      0,
+    );
+    const base = Math.max(0, this.redondear(this.totalLocal - otros));
+    return this.redondear((base * pct) / 100);
+  }
+
+  /** Recargo por tarjeta a mostrar: el del servidor si está al día; si no, la estimación. */
+  get recargoMostrado(): number {
+    if (this.preview && !this.calculandoPreview) return this.preview.recargo_tarjeta?.monto ?? 0;
+    return this.recargoEstimado;
+  }
+
+  get recargoPctMostrado(): number {
+    return this.preview?.recargo_tarjeta?.porcentaje ?? this.recargoTarjetaPct;
+  }
+
+  /** Descuento total del carrito, siempre al día (se calcula aquí). */
+  get descuentoCarrito(): number {
+    return this.redondear(this.lineas.reduce((suma, linea) => suma + this.descuentoTotalLinea(linea), 0));
+  }
+
+  /** Lo que hay que pasar por la maquinita en una línea de tarjeta (con el recargo incluido). */
+  montoACobrarTarjeta(indice: number): number {
+    const propio = Number(this.lineasPago[indice]?.monto) || 0;
+    if (propio > 0) return propio;
+    const otros = this.lineasPago.reduce((suma, l, i) => (i === indice ? suma : suma + (Number(l.monto) || 0)), 0);
+    return Math.max(0, this.redondear(this.total - otros));
+  }
+
+  /** Cambió un medio de pago o su monto: puede cambiar el recargo de tarjeta, así que se recalcula. */
+  alCambiarPago(): void {
+    if (this.emitiendo || !this.lineas.length || !(this.recargoTarjetaPct > 0)) return;
+    if (!this.hayPagoTarjeta && !this.previewConTarjeta) return;
+    this.pedirRecalculo();
   }
 
   get vuelto(): number {
@@ -1241,8 +1423,19 @@ export class VentasComponent implements OnInit, OnDestroy {
     return Math.abs(this.sumaPagos - this.total) <= 0.05;
   }
 
+  /**
+   * Un solo medio de pago con el monto vacío significa «todo en este medio»: al cobrar se completa
+   * con el total (con el recargo de tarjeta, si lo hay). Es el flujo rápido de la mayoría de ventas.
+   */
+  get pagoUnicoSinMonto(): boolean {
+    return this.lineasPago.length === 1
+      && !!this.lineasPago[0].id_metodo
+      && !(Number(this.lineasPago[0].monto) > 0);
+  }
+
   get puedeEmitir(): boolean {
-    if (!this.lineas.length || this.emitiendo) return false;
+    if (!this.lineas.length || this.emitiendo || this.calculandoPreview || this.errorPreview || !this.preview) return false;
+    if (this.errorReceptorCotizacion) return false;
     if (this.idTipo === TIPO_FACTURA && this.receptor?.tipo_documento !== 6) return false;
     if (
       this.receptor
@@ -1251,7 +1444,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     ) {
       return false;
     }
-    if (!this.metodosPago.length || !this.pagoCubierto) return false;
+    if (!this.metodosPago.length || !(this.pagoCubierto || this.pagoUnicoSinMonto)) return false;
     if (this.lineasPago.some((linea) => Number(linea.monto) > 0 && !linea.id_metodo)) return false;
     return true;
   }
@@ -1278,7 +1471,7 @@ export class VentasComponent implements OnInit, OnDestroy {
         id_producto: l.id_producto,
         cantidad: l.cantidad,
         precio_unitario: Number(l.precio_unitario) || 0,
-        descuento: Number(l.descuento ?? 0) || 0,
+        descuento: this.descuentoUnitarioEfectivo(l),
       })),
     };
 
@@ -1321,6 +1514,12 @@ export class VentasComponent implements OnInit, OnDestroy {
           referencia_externa: l.referencia_externa || undefined,
         }));
       if (pagos.length) solicitud.pagos = pagos;
+    } else {
+      // Para el recargo de tarjeta el servidor necesita saber qué medios se eligieron y cuánto cubren los demás.
+      const medios = this.lineasPago
+        .filter((l) => !!l.id_metodo)
+        .map((l) => ({ id_metodo: Number(l.id_metodo), monto: Math.max(0, Number(l.monto) || 0) }));
+      if (medios.length) solicitud.pagos = medios;
     }
 
     return solicitud;
@@ -1387,6 +1586,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     );
     const resto = Math.max(0, Math.round((this.total - otros + Number.EPSILON) * 100) / 100);
     this.lineasPago[indice].monto = resto;
+    this.alCambiarPago();
   }
 
   iniciarYape(indice: number): void {
@@ -1460,22 +1660,47 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   cargarLineaCredito(): void {
     this.lineaCredito = null;
+    this.errorLineaCredito = '';
+    this.cargandoLineaCredito = false;
     this.refrescarVista();
     const idCliente = this.receptor?.id_cliente;
     const idEmpresa = this.receptor?.id_empresa;
     if (!idCliente && !idEmpresa) return;
 
+    this.cargandoLineaCredito = true;
     this.puntoVenta.lineaCredito({ id_cliente: idCliente, id_empresa: idEmpresa })
-      .pipe(takeUntil(this.destruir$), catchError(() => of(null)))
-      .subscribe((linea) => {
-        this.lineaCredito = linea;
-        this.refrescarVista();
+      .pipe(
+        takeUntil(this.destruir$),
+        finalize(() => {
+          this.cargandoLineaCredito = false;
+          this.refrescarVista();
+        }),
+      )
+      .subscribe({
+        next: (linea) => {
+          this.lineaCredito = linea;
+          this.refrescarVista();
+        },
+        error: (error) => {
+          this.errorLineaCredito = mensajeDeError(error, 'No se pudo consultar la línea de crédito');
+          this.refrescarVista();
+        },
       });
   }
 
-  cobrar(): void {
-    if (!this.puedeEmitir) return;
+  reintentarLineaCredito(): void {
+    if (this.cargandoLineaCredito) return;
+    this.cargarLineaCredito();
+  }
 
+  cobrar(): void {
+    if (this.errorReceptorCotizacion) {
+      void this.alerta.error({
+        title: 'No se pudo verificar el cliente',
+        message: `${this.errorReceptorCotizacion}. Busque y seleccione manualmente al cliente antes de cobrar.`,
+      });
+      return;
+    }
     if (this.errorPreview) {
       void this.alerta.error({
         title: 'Comprobante inválido',
@@ -1483,19 +1708,25 @@ export class VentasComponent implements OnInit, OnDestroy {
       });
       return;
     }
+    if (!this.puedeEmitir) return;
 
-    // Una sola línea sin monto → asume el total (flujo rápido).
-    if (this.lineasPago.length === 1 && !Number(this.lineasPago[0].monto)) {
+    // Una sola línea sin monto → asume el total (flujo rápido). Solo vale para este intento: si se
+    // cancela o el cobro falla se deshace, para no dejar un monto fijo con un total que puede
+    // cambiar al elegir otro medio de pago (p. ej. por el recargo de la tarjeta).
+    if (this.pagoUnicoSinMonto) {
       this.lineasPago[0].monto = this.total;
+      this.montoUnicoAutocompletado = true;
     }
 
     if (!this.pagoCubierto) {
+      this.deshacerMontoAutocompletado();
       this.alerta.toast({ type: 'warning', title: 'Los pagos deben cubrir el total' });
       return;
     }
 
     const bloqueoCredito = this.validarCreditoAntesDeCobrar();
     if (bloqueoCredito) {
+      this.deshacerMontoAutocompletado();
       void this.alerta.error({
         title: 'No se puede cobrar a crédito',
         message: bloqueoCredito,
@@ -1507,6 +1738,9 @@ export class VentasComponent implements OnInit, OnDestroy {
       <div style="text-align:left;font-size:14px">
         <div><strong>${escapeHtmlAlerta(this.preview?.tipo_nombre ?? 'Comprobante')}</strong> ${escapeHtmlAlerta(this.preview?.numero_formateado ?? '')}</div>
         <div>Cliente: ${escapeHtmlAlerta(this.receptor?.denominacion ?? 'CLIENTES VARIOS')}</div>
+        ${this.recargoMostrado > 0
+          ? `<div>Incluye recargo por tarjeta (${this.recargoPctMostrado}%): S/ ${this.recargoMostrado.toFixed(2)}</div>`
+          : ''}
         <div>IGV (${this.preview?.porcentaje_igv ?? 18}%): S/ ${(this.preview?.totales.igv ?? 0).toFixed(2)}</div>
         <div style="margin-top:6px;font-size:18px"><strong>Total: S/ ${this.total.toFixed(2)}</strong></div>
       </div>`;
@@ -1515,7 +1749,16 @@ export class VentasComponent implements OnInit, OnDestroy {
       .confirm({ title: '¿Confirmar la venta?', message: resumen, confirmText: 'Sí, cobrar', allowHtml: true })
       .then((resultado) => {
         if (resultado.isConfirmed) this.registrar();
+        else this.deshacerMontoAutocompletado();
       });
+  }
+
+  /** Deshace el «todo en este medio» que `cobrar()` puso al confirmar, si el cobro no llegó a hacerse. */
+  private deshacerMontoAutocompletado(): void {
+    if (!this.montoUnicoAutocompletado) return;
+    this.montoUnicoAutocompletado = false;
+    if (this.lineasPago.length === 1) this.lineasPago[0].monto = null;
+    this.refrescarVista();
   }
 
   /** Misma reglas que el backend, para avisar antes del POST /venta. */
@@ -1525,6 +1768,8 @@ export class VentasComponent implements OnInit, OnDestroy {
       return suma + (Number(pago.monto) || 0);
     }, 0);
     if (montoCredito <= 0) return null;
+    if (this.cargandoLineaCredito) return 'Espere a que termine la verificación de crédito antes de cobrar.';
+    if (this.errorLineaCredito) return `No se pudo verificar el crédito: ${this.errorLineaCredito}. Reintente la consulta.`;
 
     if (!this.receptor?.id_cliente && !this.receptor?.id_empresa) {
       return 'El crédito solo aplica a clientes o empresas registradas. Busque DNI/RUC antes de cobrar.';
@@ -1557,11 +1802,11 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.ultimaVenta = venta;
 
           if (venta.comprobante_error) {
-            // La venta quedó registrada; solo falló el envío a NUBEFACT.
+            // La venta quedó registrada aunque la emisión SUNAT directa falle.
             this.alerta.warning({
               title: 'Venta registrada, comprobante pendiente',
               allowHtml: true,
-              message: `${escapeHtmlAlerta(venta.comprobante_error)}<br><br>Puede reintentar el envío desde la pantalla de Documentos.`,
+              message: `${escapeHtmlAlerta(venta.comprobante_error)}<br><br>Revise el estado del comprobante en la pantalla de Documentos.`,
             });
           } else {
             this.alerta.toast({
@@ -1587,6 +1832,7 @@ export class VentasComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.emitiendo = false;
+          this.deshacerMontoAutocompletado();
           this.refrescarVista();
           const op = errorOperativo(error, 'No se pudo registrar la venta');
           this.alerta.error({
@@ -1618,6 +1864,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       ...this.lineaPagoVacia(),
       id_metodo: this.metodosPago[0]?.id_metodo ?? null,
     }];
+    this.montoUnicoAutocompletado = false;
     this.lineaCredito = null;
     this.idTipo = TIPO_BOLETA;
     this.aplicarSeriePorTipo();
@@ -1638,9 +1885,17 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
   private cargarMetodosPago(): void {
+    this.errorMetodosPago = '';
     this.puntoVenta
       .metodosPago()
-      .pipe(takeUntil(this.destruir$), catchError(() => of([])))
+      .pipe(
+        takeUntil(this.destruir$),
+        catchError((error) => {
+          this.errorMetodosPago = mensajeDeError(error, 'No se pudieron cargar los métodos de pago');
+          this.refrescarVista();
+          return of([]);
+        }),
+      )
       .subscribe((metodos) => {
         this.metodosPago = metodos as any;
         if (metodos.length && !this.lineasPago[0]?.id_metodo) {
@@ -1649,19 +1904,57 @@ export class VentasComponent implements OnInit, OnDestroy {
         this.refrescarVista();
       });
 
+    this.cargarCuentasBancarias();
+    this.cargarPasarelaCaja();
+  }
+
+  private cargarCuentasBancarias(): void {
+    this.errorCuentasBancarias = '';
     this.puntoVenta.cuentasBancarias(false)
-      .pipe(takeUntil(this.destruir$), catchError(() => of([])))
+      .pipe(
+        takeUntil(this.destruir$),
+        catchError((error) => {
+          this.errorCuentasBancarias = mensajeDeError(error, 'No se pudieron cargar las cuentas bancarias');
+          this.refrescarVista();
+          return of([]);
+        }),
+      )
       .subscribe((cuentas) => {
         this.cuentasBancarias = cuentas || [];
         this.refrescarVista();
       });
+  }
 
+  private cargarPasarelaCaja(): void {
+    this.errorPasarelaCaja = '';
     this.puntoVenta.pasarelaCaja()
-      .pipe(takeUntil(this.destruir$), catchError(() => of(null)))
+      .pipe(
+        takeUntil(this.destruir$),
+        catchError((error) => {
+          this.errorPasarelaCaja = mensajeDeError(error, 'No se pudo consultar la pasarela de pago');
+          this.refrescarVista();
+          return of(null);
+        }),
+      )
       .subscribe((info) => {
         this.pasarelaInfo = info;
         this.refrescarVista();
       });
+  }
+
+  reintentarMetodosPago(): void {
+    if (this.emitiendo) return;
+    this.cargarMetodosPago();
+  }
+
+  reintentarCuentasBancarias(): void {
+    if (this.emitiendo) return;
+    this.cargarCuentasBancarias();
+  }
+
+  reintentarPasarelaCaja(): void {
+    if (this.emitiendo) return;
+    this.cargarPasarelaCaja();
   }
 
   // ── Alta rápida de producto ──────────────────────────────────

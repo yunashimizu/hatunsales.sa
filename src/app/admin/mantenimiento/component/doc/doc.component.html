@@ -20,6 +20,14 @@
     </div>
   </header>
 
+  <div class="adm-aviso adm-aviso--peligro" *ngIf="errorMonitor" role="alert">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>No se pudo actualizar el resumen de documentos: {{ errorMonitor }}. Los contadores podrían estar desactualizados.</span>
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cargarMonitor()">
+      Reintentar
+    </button>
+  </div>
+
   <!-- Monitor de atención: comprobantes rechazados o sin respuesta de SUNAT -->
   <div class="adm-aviso doc-monitor" *ngIf="atencion.total > 0" role="status"
        [class.adm-aviso--peligro]="atencion.errores > 0"
@@ -219,6 +227,9 @@
                 <span class="adm-insignia adm-insignia--punto" [ngClass]="claseEstado(fila.estado)">
                   {{ textoEstado(fila.estado) }}
                 </span>
+                <div class="adm-tabla__secundario" *ngIf="fila.proveedor_fiscal === 'sunat_directo'">
+                  SUNAT {{ fila.ambiente_fiscal === 'beta' ? 'BETA · ' : '' }}{{ fila.estado_sunat }}
+                </div>
                 <div class="adm-tabla__secundario doc-error" *ngIf="fila.error_mensaje && fila.estado === 'error'"
                      [title]="fila.error_mensaje">
                   {{ fila.error_mensaje }}
@@ -233,16 +244,7 @@
                   <i class="bi bi-eye"></i>
                 </button>
 
-                <button type="button" class="adm-btn-icono adm-btn-icono--primario"
-                        *ngIf="fila.estado !== 'anulado'"
-                        [disabled]="idEnProceso === fila.id_comprobante || !fila.enlace_pdf"
-                        (click)="descargarPdf(fila)"
-                        [title]="fila.enlace_pdf ? 'Descargar PDF' : 'PDF aún no disponible (espera respuesta de SUNAT/NUBEFACT)'"
-                        [attr.aria-label]="'Descargar PDF de ' + fila.numero_formateado">
-                  <i class="bi bi-file-earmark-pdf"></i>
-                </button>
-
-                <button type="button" class="adm-btn-icono" *ngIf="fila.estado === 'error' || fila.estado === 'pendiente'"
+                <button type="button" class="adm-btn-icono" *ngIf="fila.puede_reintentar"
                         [disabled]="idEnProceso === fila.id_comprobante"
                         (click)="reintentar(fila)" title="Reconsultar en SUNAT"
                         [attr.aria-label]="'Reconsultar ' + fila.numero_formateado + ' en SUNAT'">
@@ -420,21 +422,5 @@
       <i class="bi bi-hourglass-split" aria-hidden="true"></i>
       PDF aún no disponible para este comprobante.
     </span>
-    <button type="button" class="adm-btn adm-btn--suave" *ngIf="detalle.enlace"
-            (click)="abrirEnlace(detalle.enlace)">
-      <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Ver en NUBEFACT
-    </button>
-    <button type="button" class="adm-btn adm-btn--suave" *ngIf="detalle.enlace_pdf"
-            (click)="abrirEnlace(detalle.enlace_pdf)">
-      <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Abrir PDF
-    </button>
-    <button type="button" class="adm-btn adm-btn--primario"
-            *ngIf="detalle.enlace_pdf"
-            [disabled]="idEnProceso === detalle.id_comprobante"
-            (click)="descargarPdf(detalle)">
-      <i class="bi" [ngClass]="idEnProceso === detalle.id_comprobante ? 'bi-arrow-repeat adm-girando' : 'bi-download'"
-         aria-hidden="true"></i>
-      Descargar PDF
-    </button>
   </div>
 </aside>

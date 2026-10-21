@@ -12,6 +12,7 @@ import {
   EnvioBeta,
   TipoArchivoBeta,
   OperacionFiscal,
+  EstadoPosBetaFiscal,
   ResultadoPruebaFiscal,
 } from '../models/fiscal.models';
 import { opcionesHttp } from './api-base.service';
@@ -105,6 +106,18 @@ export class FiscalAdminService {
 
   guardarEmisorBeta(emisor: EmisorBeta) {
     return this.http.put(urlConstants.fiscal.emisorBeta, emisor, opcionesHttp());
+  }
+
+  estadoPosBeta() {
+    return this.http.get<EstadoPosBetaFiscal>(urlConstants.fiscal.posBeta, opcionesHttp());
+  }
+
+  cambiarEstadoPosBeta(activo: boolean) {
+    return this.http.put<EstadoPosBetaFiscal>(
+      urlConstants.fiscal.posBeta,
+      { activo },
+      opcionesHttp(),
+    );
   }
 
   enviosBeta() {

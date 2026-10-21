@@ -19,6 +19,65 @@
     </div>
   </header>
 
+  <div class="adm-aviso adm-aviso--aviso" *ngIf="avisoEmisionFiscal" role="status">
+    <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+    {{ avisoEmisionFiscal }}
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+            *ngIf="errorSeriesFiscales" (click)="reintentarSeriesFiscales()">
+      Reintentar
+    </button>
+  </div>
+
+  <div class="adm-aviso adm-aviso--peligro" *ngIf="errorContextoPos" role="alert">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>No se pudo preparar el punto de venta: {{ errorContextoPos }}</span>
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+            [disabled]="cargandoContextoPos || emitiendo" (click)="reintentarCargaPos()">
+      Reintentar
+    </button>
+  </div>
+
+  <div class="adm-aviso adm-aviso--peligro" *ngIf="errorCatalogo" role="alert">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>No se pudo cargar el catálogo/stock: {{ errorCatalogo }}</span>
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+            [disabled]="cambiandoAlmacen || emitiendo" (click)="reintentarCargaCatalogo()">
+      Reintentar
+    </button>
+  </div>
+
+  <div class="adm-aviso adm-aviso--peligro" *ngIf="errorMetodosPago" role="alert">
+    <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+    <span>No se pudieron cargar los métodos de pago: {{ errorMetodosPago }}</span>
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+            [disabled]="emitiendo" (click)="reintentarMetodosPago()">
+      Reintentar
+    </button>
+  </div>
+
+  <div class="adm-aviso adm-aviso--aviso" *ngIf="errorCuentasBancarias" role="status">
+    <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+    <span>No se pudieron cargar las cuentas bancarias: {{ errorCuentasBancarias }}</span>
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+            [disabled]="emitiendo" (click)="reintentarCuentasBancarias()">
+      Reintentar
+    </button>
+  </div>
+
+  <div class="adm-aviso adm-aviso--aviso" *ngIf="errorPasarelaCaja" role="status">
+    <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+    <span>No se pudo consultar la pasarela de pago: {{ errorPasarelaCaja }}</span>
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+            [disabled]="emitiendo" (click)="reintentarPasarelaCaja()">
+      Reintentar
+    </button>
+  </div>
+
+  <div class="adm-aviso adm-aviso--aviso" *ngIf="errorReceptorCotizacion" role="alert">
+    <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+    <span>No se verificó el cliente guardado en la cotización: {{ errorReceptorCotizacion }}. Selecciónelo manualmente antes de cobrar.</span>
+  </div>
+
   <!-- Contexto operativo: caja y almacén de esta venta -->
   <section class="adm-filtros pv-contexto"
            *ngIf="almacenes.length || cajaChip || cargandoContextoPos"
@@ -62,7 +121,7 @@
     </div>
 
     <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto pv-contexto__aviso"
-         *ngIf="!almacenes.length && !cargandoContextoPos">
+         *ngIf="!almacenes.length && !cargandoContextoPos && !errorContextoPos">
       <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
       <span>No hay almacenes disponibles para este usuario. Contacte al administrador.</span>
     </div>
@@ -88,6 +147,9 @@
             · {{ ultimaVenta.comprobante?.numero_formateado }}
           </span>
           · Total S/ {{ ultimaVenta.total | number:'1.2-2' }}
+          <span *ngIf="ultimaVenta.recargo_tarjeta">
+            (incluye recargo por tarjeta S/ {{ ultimaVenta.recargo_tarjeta | number:'1.2-2' }})
+          </span>
         </div>
         <div class="adm-ayuda adm-ayuda--error" *ngIf="ultimaVenta.comprobante_error">
           {{ ultimaVenta.comprobante_error }}
@@ -167,6 +229,12 @@
                      (ngModelChange)="alEscribirProducto()"
                      (keydown)="alPresionarEnProducto($event)">
               <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProducto" aria-hidden="true"></i>
+
+              <div class="adm-aviso adm-aviso--peligro" *ngIf="errorBusquedaProducto" role="alert">
+                <span>{{ errorBusquedaProducto }}</span>
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                        (click)="alEnfocarProducto()">Reintentar</button>
+              </div>
 
               <ul class="adm-sugerencias" *ngIf="sugerenciasProducto.length">
                 <li *ngFor="let producto of sugerenciasProducto; trackBy: identificarProductoSugerido; let i = index"
@@ -307,7 +375,13 @@
                          step="0.01"
                          [ngModel]="linea.descuento ?? 0"
                          (ngModelChange)="cambiarDescuento(linea, $event)"
-                         [attr.aria-label]="'Descuento para ' + linea.descripcion">
+                         [attr.aria-label]="'Descuento por unidad para ' + linea.descripcion">
+                  <div class="pv-descuento-detalle" *ngIf="descuentoTotalLinea(linea) > 0" aria-live="polite">
+                    <ng-container *ngIf="linea.cantidad !== 1">{{ linea.cantidad }} × {{ descuentoUnitarioEfectivo(linea) | number:'1.2-2' }} = </ng-container>− S/ {{ descuentoTotalLinea(linea) | number:'1.2-2' }}
+                  </div>
+                  <div class="pv-descuento-detalle pv-descuento-detalle--aviso" *ngIf="descuentoExcede(linea)" role="status">
+                    No puede superar el precio: se aplica S/ {{ descuentoUnitarioEfectivo(linea) | number:'1.2-2' }}
+                  </div>
                 </td>
 
                 <td data-etiqueta="Subtotal" class="adm-num adm-tabla__principal pv-carrito__subtotal">
@@ -346,7 +420,9 @@
         </div>
 
         <div class="adm-tarjeta__cuerpo pv-pila">
-          <div class="adm-ticket pv-ticket">
+          <div class="adm-ticket pv-ticket"
+               [class.pv-ticket--actualizando]="calculandoPreview"
+               [attr.aria-busy]="calculandoPreview">
             <div class="adm-ticket__cabecera">
               <div class="adm-ticket__emisor">
                 <strong>{{ preview.emisor.razon_social }}</strong>
@@ -384,6 +460,7 @@
                     <th class="adm-num">Cant.</th>
                     <th class="adm-num">V. unit.</th>
                     <th class="adm-num">P. unit.</th>
+                    <th class="adm-num">Desc. línea</th>
                     <th class="adm-num">Importe</th>
                   </tr>
                 </thead>
@@ -393,6 +470,9 @@
                     <td data-etiqueta="Cant." class="adm-num">{{ item.cantidad }}</td>
                     <td data-etiqueta="V. unit." class="adm-num">{{ item.valor_unitario | number:'1.2-4' }}</td>
                     <td data-etiqueta="P. unit." class="adm-num">{{ item.precio_unitario | number:'1.2-2' }}</td>
+                    <td data-etiqueta="Desc. línea" class="adm-num">
+                      <ng-container *ngIf="item.descuento > 0">− </ng-container>{{ item.descuento | number:'1.2-2' }}
+                    </td>
                     <td data-etiqueta="Importe" class="adm-num">{{ item.total | number:'1.2-2' }}</td>
                   </tr>
                 </tbody>
@@ -420,6 +500,10 @@
                 <span>Descuentos</span>
                 <span>− {{ preview.moneda.simbolo }} {{ preview.totales.descuento | number:'1.2-2' }}</span>
               </div>
+              <div class="adm-ticket__total-fila pv-ticket__recargo" *ngIf="preview.recargo_tarjeta as recargo">
+                <span>Incluye recargo por tarjeta ({{ recargo.porcentaje }}%)</span>
+                <span>{{ preview.moneda.simbolo }} {{ recargo.monto | number:'1.2-2' }}</span>
+              </div>
               <div class="adm-ticket__total-fila">
                 <span>IGV ({{ preview.porcentaje_igv }}%)</span>
                 <span>{{ preview.moneda.simbolo }} {{ preview.totales.igv | number:'1.2-2' }}</span>
@@ -442,7 +526,7 @@
         </div>
       </section>
 
-      <!-- Primer cálculo del comprobante en curso -->
+      <!-- Cálculo del comprobante en curso -->
       <section class="adm-tarjeta pv-vista-previa" *ngIf="calculandoPreview && !preview" aria-busy="true">
         <div class="adm-tarjeta__cabecera">
           <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--neutro">
@@ -541,6 +625,11 @@
                       </div>
                     </li>
                   </ul>
+                </div>
+                <div class="adm-aviso adm-aviso--peligro" *ngIf="errorBusquedaReceptor" role="alert">
+                  <span>{{ errorBusquedaReceptor }}</span>
+                  <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                          (click)="alEscribirReceptor()">Reintentar</button>
                 </div>
                 <span class="adm-ayuda">
                   Con 8 dígitos (DNI) u 11 (RUC) se busca solo; si no está registrado se consulta a SUNAT y queda guardado para la próxima venta.
@@ -642,7 +731,15 @@
         <div class="adm-tarjeta__cuerpo pv-pila">
           <div class="adm-aviso adm-aviso--peligro" *ngIf="!metodosPago.length">
             <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
-            <span>No se cargaron los medios de pago. No se puede emitir hasta recuperar esta configuración.</span>
+            <span>{{ errorMetodosPago || 'No hay medios de pago disponibles. No se puede emitir hasta recuperar esta configuración.' }}</span>
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                    [disabled]="emitiendo" (click)="reintentarMetodosPago()">Reintentar</button>
+          </div>
+
+          <div class="adm-aviso adm-aviso--peligro" *ngIf="errorLineaCredito" role="alert">
+            <span>No se pudo verificar el crédito: {{ errorLineaCredito }}</span>
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                    [disabled]="cargandoLineaCredito" (click)="reintentarLineaCredito()">Reintentar</button>
           </div>
 
           <div
@@ -680,7 +777,8 @@
             <div class="adm-fila">
               <div class="adm-campo">
                 <label class="adm-etiqueta" [attr.for]="'pv-metodo-' + i">Medio de pago</label>
-                <select class="adm-select" [id]="'pv-metodo-' + i" [(ngModel)]="pago.id_metodo" [name]="'metodo'+i">
+                <select class="adm-select" [id]="'pv-metodo-' + i" [name]="'metodo'+i"
+                        [ngModel]="pago.id_metodo" (ngModelChange)="pago.id_metodo = $event; alCambiarPago()">
                   <option *ngFor="let m of metodosPago" [ngValue]="m.id_metodo">{{ m.nombre }}</option>
                 </select>
               </div>
@@ -689,7 +787,7 @@
                 <div class="adm-input-grupo">
                   <span class="adm-input-grupo__afijo">S/</span>
                   <input class="adm-input adm-input--num" [id]="'pv-monto-' + i" type="number" min="0" step="0.10"
-                         [(ngModel)]="pago.monto" [name]="'monto'+i"
+                         [ngModel]="pago.monto" (ngModelChange)="pago.monto = $event; alCambiarPago()" [name]="'monto'+i"
                          (focus)="!pago.monto && completarConRestante(i)">
                 </div>
               </div>
@@ -757,6 +855,13 @@
                 <i class="bi bi-credit-card" aria-hidden="true"></i>
                 <span>{{ pasarelaInfo?.mensaje_tarjeta || 'Cobre en el POS (maquinita) y anote el Nº de voucher. La boleta o factura la emite este sistema.' }}</span>
               </div>
+              <div class="pv-recargo-aviso" *ngIf="recargoTarjetaPct > 0" role="status">
+                <i class="bi bi-percent" aria-hidden="true"></i>
+                <span>
+                  Cobre <strong>S/ {{ montoACobrarTarjeta(i) | number:'1.2-2' }}</strong> en la maquinita: incluye el recargo
+                  por tarjeta ({{ recargoPctMostrado }}%)<ng-container *ngIf="recargoMostrado > 0"> de S/ {{ recargoMostrado | number:'1.2-2' }}</ng-container>.
+                </span>
+              </div>
               <div class="adm-campo">
                 <label class="adm-etiqueta adm-etiqueta--requerida" [attr.for]="'pv-voucher-' + i">Nº voucher POS</label>
                 <input class="adm-input" [id]="'pv-voucher-' + i" type="text" [(ngModel)]="pago.voucher_pos" [name]="'voucher'+i"
@@ -798,12 +903,18 @@
             </button>
           </div>
 
-          <div class="pv-cobertura"
-               [class.adm-aviso--peligro]="!pagoCubierto && total > 0"
-               [class.pv-cobertura--ok]="pagoCubierto && total > 0">
-            <span>Cubierto <strong>S/ {{ sumaPagos | number:'1.2-2' }}</strong></span>
-            <span>Resta <strong>S/ {{ restantePago | number:'1.2-2' }}</strong></span>
+          <div class="pv-cobertura pv-cobertura--ok" *ngIf="pagoUnicoSinMonto && total > 0; else coberturaPagos">
+            <span>Se cobra todo en este medio</span>
+            <span><strong>S/ {{ total | number:'1.2-2' }}</strong></span>
           </div>
+          <ng-template #coberturaPagos>
+            <div class="pv-cobertura"
+                 [class.adm-aviso--peligro]="!pagoCubierto && total > 0"
+                 [class.pv-cobertura--ok]="pagoCubierto && total > 0">
+              <span>Cubierto <strong>S/ {{ sumaPagos | number:'1.2-2' }}</strong></span>
+              <span>Resta <strong>S/ {{ restantePago | number:'1.2-2' }}</strong></span>
+            </div>
+          </ng-template>
         </div>
       </section>
 
@@ -814,14 +925,18 @@
             <li class="adm-resumen__fila">
               <span>Productos</span><span>{{ lineas.length }}</span>
             </li>
-            <li class="adm-resumen__fila" *ngIf="preview && preview.totales.descuento">
-              <span>Descuentos</span><span>− S/ {{ preview.totales.descuento | number:'1.2-2' }}</span>
+            <li class="adm-resumen__fila" *ngIf="descuentoCarrito > 0">
+              <span>Descuentos</span><span>− S/ {{ descuentoCarrito | number:'1.2-2' }}</span>
             </li>
-            <li class="adm-resumen__fila" *ngIf="preview">
+            <li class="adm-resumen__fila pv-resumen__recargo" *ngIf="recargoMostrado > 0">
+              <span>Recargo por tarjeta ({{ recargoPctMostrado }}%)</span><span>+ S/ {{ recargoMostrado | number:'1.2-2' }}</span>
+            </li>
+            <li class="adm-resumen__fila" [class.pv-resumen__desactualizado]="calculandoPreview" *ngIf="preview">
               <span>IGV incluido ({{ preview.porcentaje_igv }}%)</span><span>S/ {{ preview.totales.igv | number:'1.2-2' }}</span>
             </li>
             <li class="adm-resumen__fila adm-resumen__fila--total pv-total">
-              <span>Total a pagar</span><span class="pv-total__monto">S/ {{ total | number:'1.2-2' }}</span>
+              <span>Total a pagar</span>
+              <span class="pv-total__monto" [class.pv-total__monto--calculando]="calculandoPreview">S/ {{ total | number:'1.2-2' }}</span>
             </li>
           </ul>
 
