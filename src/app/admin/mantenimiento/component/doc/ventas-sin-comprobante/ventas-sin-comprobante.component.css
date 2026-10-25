@@ -1,0 +1,40 @@
+:host { display: block; }
+
+/* El motivo puede ser largo (mensaje de SUNAT o del sistema): hasta tres líneas, completo en el title */
+.vsc-motivo {
+  display: -webkit-box;
+  max-width: 360px;
+  overflow: hidden;
+  color: var(--adm-texto-suave);
+  font-size: var(--adm-fs-etiqueta);
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.vsc-marco:focus { outline: none; }
+
+.vsc-documento {
+  display: flex;
+  gap: 8px;
+}
+
+.vsc-documento > .adm-input { flex: 1; min-width: 0; }
+
+.vsc-error {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.vsc-error__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .vsc-motivo { max-width: none; text-align: right; }
+}

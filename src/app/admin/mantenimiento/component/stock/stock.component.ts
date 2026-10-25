@@ -17,6 +17,8 @@ import { InventarioAdminService } from '../../../service/inventario-admin.servic
 import { mensajeDeError } from '../../../service/api-base.service';
 import { Almacen, FilaInventario, ResumenInventario } from '../../../models/admin.models';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
 type FiltroEstado = 'alertas' | 'sin_stock' | 'bajo' | 'ok' | 'todos';
 
@@ -24,7 +26,7 @@ type FiltroEstado = 'alertas' | 'sin_stock' | 'bajo' | 'ok' | 'todos';
   selector: 'app-stock',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, CountUpDirective, RevealDirective],
   templateUrl: './stock.component.html',
   styleUrl: './stock.component.css',
 })
@@ -34,6 +36,8 @@ export class StockComponent implements OnInit, OnDestroy {
   resumen: ResumenInventario | null = null;
 
   cargando = false;
+  /** La última carga de la lista falló (solo para mostrar el estado de error en pantalla). */
+  errorCarga = false;
   filtroEstado: FiltroEstado = 'alertas';
   idAlmacen: number | '' = '';
   texto = '';
@@ -89,12 +93,22 @@ export class StockComponent implements OnInit, OnDestroy {
     return (this.resumen?.sin_stock ?? 0) + (this.resumen?.bajo_stock ?? 0);
   }
 
+  /** Relleno (0–100) de la barra de nivel: el stock medido contra el doble del mínimo; sin mínimo, llena si hay existencias. */
+  nivel(stock: number | string | null | undefined, minimo: number | string | null | undefined): number {
+    const existencias = Number(stock) || 0;
+    const umbral = Number(minimo) || 0;
+    if (existencias <= 0) return 0;
+    if (umbral <= 0) return 100;
+    return Math.min(100, (existencias / (umbral * 2)) * 100);
+  }
+
   identificarFila(_i: number, f: FilaInventario): string {
     return `${f.id_producto}-${f.id_almacen}`;
   }
 
   cargar(): void {
     this.cargando = true;
+    this.errorCarga = false;
     this.cdr.markForCheck();
     // Pedimos detalle amplio; el filtro fino (sin_stock/bajo/ok) se aplica en pantalla.
     this.service
@@ -113,6 +127,7 @@ export class StockComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.cargando = false;
+          this.errorCarga = true;
           this.filas = [];
           this.cdr.markForCheck();
           this.alerta.error({

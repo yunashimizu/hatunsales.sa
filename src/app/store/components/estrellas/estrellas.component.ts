@@ -13,12 +13,13 @@ import { CommonModule } from '@angular/common';
     </span>
   `,
   styles: [`
+    /* --est-size permite agrandirlas desde la página (ficha, opiniones) sin tocar esta hoja */
     .estrellas {
       display: inline-flex;
       align-items: center;
-      gap: 2px;
+      gap: calc(var(--est-size, 0.8rem) * 0.15);
       color: var(--t-estrella);
-      font-size: 0.8rem;
+      font-size: var(--est-size, 0.8rem);
       line-height: 1;
     }
     .conteo {

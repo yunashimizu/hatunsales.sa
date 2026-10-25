@@ -4,17 +4,24 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { FiltrosComponent } from '../../components/filtros/filtros.component';
+import { FiltrosActivosComponent } from '../../components/filtros/filtros-activos.component';
 import { ProductoCardComponent } from '../../components/producto-card/producto-card.component';
 import { CatalogoService } from '../../service/catalogo.service';
 import { AccionesTiendaService } from '../../service/acciones.service';
 import { CuentaTiendaService } from '../../service/cuenta.service';
 import { ConsultaCatalogo, FiltrosDisponibles, ProductoTienda } from '../../models/tienda.models';
+import { urlWhatsapp } from '../../config/empresa-tienda.config';
+import { CountUpDirective } from '../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
 
 @Component({
   selector: 'app-catalogo',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, FiltrosComponent, ProductoCardComponent],
+  imports: [
+    CommonModule, FormsModule, RouterLink, FiltrosComponent, FiltrosActivosComponent, ProductoCardComponent,
+    CountUpDirective, RevealDirective,
+  ],
   templateUrl: './catalogo.component.html',
   styleUrl: './catalogo.component.css',
 })
@@ -114,6 +121,29 @@ export class CatalogoComponent implements OnInit, OnDestroy {
 
     const categoria = this.disponibles.categorias.find((c) => c.id_categoria === this.consulta.id_categoria);
     return categoria?.nombre ?? 'Catálogo completo';
+  }
+
+  /** Descripción de la categoría elegida (si el catálogo la trae): solo se muestra en la cabecera. */
+  get descripcionCategoria(): string | undefined {
+    if (this.consulta.q || this.consulta.solo_oferta) return undefined;
+    return this.disponibles.categorias.find((c) => c.id_categoria === this.consulta.id_categoria)?.descripcion || undefined;
+  }
+
+  /** Fracción (0–1) del total ya recorrida al llegar a esta página; alimenta el medidor de la paginación. */
+  get avance(): number {
+    if (this.total <= 0) return 0;
+    const limite = this.consulta.limite ?? 12;
+    return Math.min(1, ((this.consulta.pagina ?? 1) * limite) / this.total);
+  }
+
+  /** Enlace de WhatsApp del estado vacío (con lo que se buscó, si hay búsqueda). */
+  get waVacio(): string {
+    const q = this.consulta.q;
+    return urlWhatsapp(
+      q
+        ? `Hola, busco «${q}» y no lo encuentro en la tienda. ¿Lo tienen disponible?`
+        : 'Hola, no encontré un producto en la tienda y quisiera consultar su disponibilidad.',
+    );
   }
 
   esFavorito(producto: ProductoTienda): boolean {

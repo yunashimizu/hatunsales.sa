@@ -227,7 +227,7 @@
 
 /* Acción destructiva (confirmarPeligro / danger): rojo sólido, foco en Cancelar */
 .swal2-container .swal2-actions .swal2-confirm.hs-swal-peligro {
-  background: var(--adm-peligro, #dc2626);
+  background: var(--adm-peligro-solido, #dc2626);
   box-shadow: 0 1px 2px rgba(220, 38, 38, 0.35);
 }
 

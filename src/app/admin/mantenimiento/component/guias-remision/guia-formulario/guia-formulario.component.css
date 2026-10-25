@@ -1,0 +1,57 @@
+:host { display: contents; }
+
+.gre-form__pasos { flex-wrap: wrap; }
+.gre-form__numero {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--adm-superficie-3);
+  font-size: 11px;
+  font-weight: 700;
+}
+.adm-pestania--activa .gre-form__numero { background: var(--adm-primario); color: #fff; }
+
+.gre-form__paso { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.gre-form__fila { margin-top: 12px; }
+.gre-form__subtitulo { margin-top: 16px; }
+.gre-form__puntos { align-items: start; }
+.gre-form__puntos .adm-bloque { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.gre-form__grupo { display: flex; flex-direction: column; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.gre-form__opciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.gre-opcion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  background: var(--adm-superficie);
+  cursor: pointer;
+}
+.gre-opcion--activa { border-color: var(--adm-primario-borde); background: var(--adm-primario-claro); }
+.gre-opcion input { margin-top: 3px; accent-color: var(--adm-primario); }
+.gre-opcion__texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gre-opcion__texto small { color: var(--adm-texto-suave); font-size: var(--adm-fs-ayuda); }
+
+.gre-form__sugerencia { width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; }
+.gre-form__guias-venta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0; }
+.gre-form__resumen { min-width: 0; }
+.gre-form__resumen ul { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 0; padding-left: 18px; }
+
+.gre-form__items .adm-input,
+.gre-form__items .adm-select { min-width: 0; }
+.gre-form__cantidad { width: 110px; }
+.gre-form__unidad-peso { flex: 0 0 auto; width: auto; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+
+.gre-form__pie .gre-form__navegacion { display: flex; gap: 8px; margin-right: auto; }
+.gre-form__acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.gre-form__sin-emitir { flex: 1 1 100%; margin: 0; }
+
+@media (max-width: 640px) {
+  .gre-form__pie { flex-direction: column; align-items: stretch; }
+  .gre-form__pie .gre-form__navegacion { justify-content: space-between; margin-right: 0; }
+  .gre-form__acciones .adm-btn { flex: 1 1 auto; }
+}

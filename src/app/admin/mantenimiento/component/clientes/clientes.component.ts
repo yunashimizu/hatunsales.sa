@@ -16,6 +16,8 @@ import { rolPermitido } from '../../../../auth/roles.constants';
 import { GestionService } from '../../service/gestion.service';
 import { ReceptorService } from '../../../service/receptor.service';
 import { errorOperativo, mensajeDeError } from '../../../service/api-base.service';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
 type Pestania = 'personas' | 'empresas';
 
@@ -23,7 +25,7 @@ type Pestania = 'personas' | 'empresas';
   selector: 'app-clientes',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CountUpDirective, RevealDirective],
   templateUrl: './clientes.component.html',
   styleUrl: './clientes.component.css',
 })
@@ -34,6 +36,9 @@ export class ClientesComponent implements OnInit, OnDestroy {
   clientes: any[] = [];
   empresas: any[] = [];
   cargando = false;
+  /** La última carga falló (solo para mostrar el estado de error en pantalla; el aviso modal sigue igual). */
+  errorCarga = false;
+  errorEmpresas = false;
   filtro = '';
 
   /** Alta por documento: el backend consulta SUNAT y guarda el resultado. */
@@ -80,6 +85,8 @@ export class ClientesComponent implements OnInit, OnDestroy {
 
   cargar(): void {
     this.cargando = true;
+    this.errorCarga = false;
+    this.errorEmpresas = false;
     this.cdr.markForCheck();
 
     this.gestion.getClientes().pipe(takeUntil(this.destruir$)).subscribe({
@@ -90,6 +97,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.cargando = false;
+        this.errorCarga = true;
         this.cdr.markForCheck();
         this.alerta.error({ title: 'No se pudieron cargar los clientes', message: mensajeDeError(error) });
       },
@@ -103,6 +111,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
         },
         error: () => {
           this.empresas = [];
+          this.errorEmpresas = true;
           this.cdr.markForCheck();
         },
       });
@@ -131,6 +140,62 @@ export class ClientesComponent implements OnInit, OnDestroy {
     return this.empresas.filter((e) =>
       `${e.razon_social ?? ''} ${e.nombre_comercial ?? ''} ${e.ruc ?? ''}`.toLowerCase().includes(texto),
     );
+  }
+
+  // ── Resumen y presentación (solo vista) ──────────────────────
+
+  get personasConCuenta(): number {
+    return this.clientes.filter((c) => !!c.tiene_cuenta).length;
+  }
+
+  get personasConCorreo(): number {
+    return this.clientes.filter((c) => !!`${c.email ?? ''}`.trim()).length;
+  }
+
+  get personasConTelefono(): number {
+    return this.clientes.filter((c) => !!`${c.telefono ?? ''}`.trim()).length;
+  }
+
+  get empresasActivas(): number {
+    return this.empresas.filter((e) => `${e.estado ?? ''}`.toUpperCase() === 'ACTIVO').length;
+  }
+
+  get empresasConAviso(): number {
+    return this.empresas.length - this.empresasActivas;
+  }
+
+  /** Dígitos escritos en «Registrar por documento» (alimenta el contador y el tipo detectado). */
+  get digitosDocumento(): number {
+    return this.documento.replace(/\D/g, '').length;
+  }
+
+  get tipoDocumento(): 'dni' | 'ruc' | null {
+    const n = this.digitosDocumento;
+    return n === 8 ? 'dni' : n === 11 ? 'ruc' : null;
+  }
+
+  /** Tono estable (0–5) del avatar: la misma persona o empresa conserva siempre su color. */
+  tonoDe(item: any): number {
+    const clave = String(item?.id_cliente ?? item?.id_empresa ?? this.nombreDe(item ?? {}));
+    let h = 0;
+    for (let i = 0; i < clave.length; i++) h = (h * 31 + clave.charCodeAt(i)) >>> 0;
+    return h % 6;
+  }
+
+  /** Color de la insignia de la situación de la empresa en SUNAT. */
+  claseEstadoEmpresa(estado: string | null | undefined): string {
+    const e = `${estado ?? ''}`.toUpperCase();
+    if (e === 'ACTIVO') return 'adm-insignia--exito';
+    if (e.startsWith('BAJA')) return 'adm-insignia--peligro';
+    return 'adm-insignia--aviso';
+  }
+
+  /** Color de la condición de domicilio (HABIDO / NO HABIDO …). */
+  claseCondicion(condicion: string | null | undefined): string {
+    const c = `${condicion ?? ''}`.toUpperCase();
+    if (c === 'HABIDO') return 'adm-insignia--exito';
+    if (c.startsWith('NO ')) return 'adm-insignia--peligro';
+    return 'adm-insignia--neutra';
   }
 
   // ── Alta por documento ───────────────────────────────────────

@@ -13,21 +13,28 @@ import { NotificationService } from '../../../../shared/services/notification.se
 import { AlertService } from '../../../../shared/services/alert.service';
 import { mensajeDeError } from '../../../service/api-base.service';
 import { CatalogoService } from '../../../../store/service/catalogo.service';
+import { urlMedia } from '../../../../shared/utils/media-url.util';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
 @Component({
   selector: 'app-marcas',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CountUpDirective, RevealDirective],
   templateUrl: './marcas.component.html',
   styleUrl: './marcas.component.css',
 })
 export class MarcasComponent implements OnInit {
   marcas: any[] = [];
   cargando = false;
+  /** La última carga de la lista falló (solo para mostrar el estado de error en pantalla). */
+  errorCarga = false;
   guardando = false;
   idDestacado: number | null = null;
   editandoId: number | null = null;
+  /** Texto del buscador de la lista (filtra en pantalla, no llama al servidor). */
+  filtro = '';
 
   modelo = { nombre: '', logo_url: '', activo: true };
 
@@ -61,8 +68,30 @@ export class MarcasComponent implements OnInit {
     return this.marcas.reduce((sum, m) => sum + Number(m.productos ?? 0), 0);
   }
 
+  get marcasFiltradas(): any[] {
+    const texto = this.filtro.trim().toLowerCase();
+    if (!texto) return this.marcas;
+    return this.marcas.filter((m) => `${m.nombre ?? ''} ${m.slug ?? ''}`.toLowerCase().includes(texto));
+  }
+
+  /** La marca con más productos: fondo de escala de las barras de la lista. */
+  get maxProductos(): number {
+    return Math.max(1, ...this.marcas.map((m) => Number(m.productos ?? 0)));
+  }
+
+  /** URL del logo que se está escribiendo, solo cuando ya parece completa (evita pedir imágenes a medias). */
+  get logoVista(): string {
+    const url = (this.modelo.logo_url ?? '').trim();
+    return /^https?:\/\/[^\s/]+\.[a-z]{2,}([/?#]\S*)?$/i.test(url) ? url : '';
+  }
+
+  urlDe(ruta?: string | null): string {
+    return urlMedia(ruta);
+  }
+
   cargar(): void {
     this.cargando = true;
+    this.errorCarga = false;
     this.cdr.markForCheck();
     this.gestion.getMarcas().subscribe({
       next: (lista) => {
@@ -72,6 +101,7 @@ export class MarcasComponent implements OnInit {
       },
       error: (error) => {
         this.cargando = false;
+        this.errorCarga = true;
         this.cdr.markForCheck();
         this.ns.error(mensajeDeError(error, 'No se pudieron cargar las marcas'));
       },

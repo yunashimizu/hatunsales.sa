@@ -1,47 +1,79 @@
-<div class="contenedor">
+<div class="home">
 
   <!-- Hero -->
-  <section class="seccion-hero">
-    <app-hero-banner [slides]="banners" *ngIf="banners.length > 0"></app-hero-banner>
-
-    <div class="hero-respaldo" *ngIf="banners.length === 0 && !cargandoHero">
-      <div class="hero-texto">
-        <span class="etiqueta"><i class="bi bi-lightning-charge-fill"></i>Nuevo catálogo en línea</span>
-        <h1>Todo lo que necesitas para construir tus proyectos</h1>
-        <p>Herramientas, materiales y equipos de las mejores marcas, con envío a todo el Perú.</p>
-        <a class="cta" routerLink="/store/catalogo">Explorar catálogo<i class="bi bi-arrow-right"></i></a>
-      </div>
-    </div>
-
+  <section class="seccion-hero x-contenedor">
+    <app-hero-banner *ngIf="!cargandoHero" [slides]="banners.length > 0 ? banners : bannerRespaldo"></app-hero-banner>
     <div class="hero-esqueleto esqueleto" *ngIf="cargandoHero"></div>
   </section>
 
+  <!-- Ticker: la cinta lima del escaparate -->
+  <div class="ticker x-banda-lima" aria-hidden="true">
+    <div class="x-marquesina">
+      <div class="x-marquesina__pista">
+        <span class="x-ticker-texto">Envíos a todo el Perú</span>
+        <span class="x-ticker-texto">Garantía oficial</span>
+        <span class="x-ticker-texto">Asesoría técnica</span>
+        <span class="x-ticker-texto">Pago con Yape y Plin</span>
+        <span class="x-ticker-texto">Marcas originales</span>
+      </div>
+      <div class="x-marquesina__pista" aria-hidden="true">
+        <span class="x-ticker-texto">Envíos a todo el Perú</span>
+        <span class="x-ticker-texto">Garantía oficial</span>
+        <span class="x-ticker-texto">Asesoría técnica</span>
+        <span class="x-ticker-texto">Pago con Yape y Plin</span>
+        <span class="x-ticker-texto">Marcas originales</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cifras -->
+  <section class="cifras x-contenedor" *ngIf="categorias.length > 0" hsReveal="lista" aria-label="La tienda en cifras">
+    <div class="cifra">
+      <span class="cifra__valor x-numero"><span [hsCountUp]="totalProductos" hsSufijo="+"></span></span>
+      <span class="x-etiqueta">Productos en catálogo</span>
+    </div>
+    <div class="cifra">
+      <span class="cifra__valor x-numero"><span [hsCountUp]="categorias.length"></span></span>
+      <span class="x-etiqueta">Categorías</span>
+    </div>
+    <div class="cifra" *ngIf="marcasTotal > 0">
+      <span class="cifra__valor x-numero"><span [hsCountUp]="marcasTotal"></span></span>
+      <span class="x-etiqueta">Marcas</span>
+    </div>
+    <div class="cifra">
+      <span class="cifra__valor x-numero">24–72<small>h</small></span>
+      <span class="x-etiqueta">Entrega a todo el Perú</span>
+    </div>
+  </section>
+
   <!-- Categorías -->
-  <section class="seccion" *ngIf="categorias.length > 0">
-    <header class="cabecera-seccion">
-      <div>
-        <h2>Compra por categoría</h2>
+  <section class="seccion x-contenedor" *ngIf="categorias.length > 0">
+    <header class="cab-seccion" hsReveal>
+      <div class="cab-seccion__texto">
+        <span class="x-etiqueta x-etiqueta--corchetes"><span class="x-etiqueta__n n-sec"></span>Categorías</span>
+        <h2 class="x-titulo">Compra por categoría</h2>
         <p>Encuentra rápido lo que buscas dentro de nuestro catálogo</p>
       </div>
-      <a class="ver-mas" routerLink="/store/catalogo">Ver todo<i class="bi bi-arrow-right"></i></a>
+      <a class="ver-mas x-chip" routerLink="/store/catalogo">Ver todo<i class="bi bi-arrow-right"></i></a>
     </header>
 
     <app-categorias-grid [categorias]="categorias" [limite]="8"></app-categorias-grid>
   </section>
 
   <!-- Ofertas -->
-  <section class="seccion" *ngIf="ofertas.length > 0">
-    <header class="cabecera-seccion">
-      <div>
-        <h2><i class="bi bi-fire icono-fuego"></i>Ofertas de la semana</h2>
+  <section class="seccion x-contenedor" *ngIf="ofertas.length > 0">
+    <header class="cab-seccion" hsReveal>
+      <div class="cab-seccion__texto">
+        <span class="x-etiqueta x-etiqueta--corchetes"><span class="x-etiqueta__n n-sec"></span>Ofertas</span>
+        <h2 class="x-titulo"><i class="bi bi-fire icono-fuego"></i>Ofertas de la semana</h2>
         <p>Precios rebajados por tiempo limitado</p>
       </div>
-      <a class="ver-mas" [routerLink]="['/store/catalogo']" [queryParams]="{ oferta: 1 }">
+      <a class="ver-mas x-chip" [routerLink]="['/store/catalogo']" [queryParams]="{ oferta: 1 }">
         Ver todas<i class="bi bi-arrow-right"></i>
       </a>
     </header>
 
-    <div class="grilla-productos">
+    <div class="grilla-productos" hsReveal="lista">
       <app-producto-card
         *ngFor="let p of ofertas; trackBy: trackProducto"
         [producto]="p"
@@ -53,16 +85,17 @@
   </section>
 
   <!-- Destacados -->
-  <section class="seccion" *ngIf="destacados.length > 0 || cargando">
-    <header class="cabecera-seccion">
-      <div>
-        <h2>Productos destacados</h2>
+  <section class="seccion x-contenedor" *ngIf="destacados.length > 0 || cargando">
+    <header class="cab-seccion" hsReveal>
+      <div class="cab-seccion__texto">
+        <span class="x-etiqueta x-etiqueta--corchetes"><span class="x-etiqueta__n n-sec"></span>Destacados</span>
+        <h2 class="x-titulo">Productos destacados</h2>
         <p>Los favoritos de nuestros clientes</p>
       </div>
-      <a class="ver-mas" routerLink="/store/catalogo">Ver catálogo<i class="bi bi-arrow-right"></i></a>
+      <a class="ver-mas x-chip" routerLink="/store/catalogo">Ver catálogo<i class="bi bi-arrow-right"></i></a>
     </header>
 
-    <div class="grilla-productos">
+    <div class="grilla-productos" hsReveal="lista">
       <ng-container *ngIf="!cargando">
         <app-producto-card
           *ngFor="let p of destacados; trackBy: trackProducto"
@@ -78,35 +111,49 @@
   </section>
 
   <!-- Banda promocional -->
-  <section class="seccion">
-    <div class="banda">
+  <section class="seccion x-contenedor">
+    <div class="banda x-grano x-plano" hsReveal="escala">
       <div class="banda-texto">
-        <span class="etiqueta-clara">Servicio profesional</span>
-        <h2>¿Necesitas cotizar un proyecto completo?</h2>
+        <span class="x-sticker x-sticker--naranja banda-sticker">Servicio profesional</span>
+        <h2 class="x-display banda-titulo">¿Necesitas cotizar un proyecto completo?</h2>
         <p>Nuestro equipo prepara una proforma con precios especiales por volumen y coordina la entrega en obra.</p>
-        <a class="cta-clara" routerLink="/store/catalogo">Armar mi pedido<i class="bi bi-arrow-right"></i></a>
+        <div class="banda-acciones">
+          <span class="x-iman" hsMagnetic>
+            <a class="x-boton x-boton--vivo x-boton--lg" routerLink="/store/catalogo">Armar mi pedido<i class="bi bi-arrow-right"></i></a>
+          </span>
+          <a class="x-boton x-boton--mono x-boton--lg" [href]="waCotizar" target="_blank" rel="noopener">
+            <i class="bi bi-whatsapp"></i>Cotizar por WhatsApp
+          </a>
+        </div>
       </div>
+
       <div class="banda-arte" aria-hidden="true">
-        <i class="bi bi-hammer"></i>
-        <i class="bi bi-wrench-adjustable"></i>
-        <i class="bi bi-nut"></i>
+        <div class="cinta-metrica">
+          <span class="cinta-metrica__marca x-numero" *ngFor="let cm of cinta">{{ cm }}</span>
+        </div>
+        <div class="banda-iconos">
+          <i class="bi bi-hammer x-flota"></i>
+          <i class="bi bi-wrench-adjustable x-flota"></i>
+          <i class="bi bi-nut x-flota"></i>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- Novedades -->
-  <section class="seccion" *ngIf="nuevos.length > 0">
-    <header class="cabecera-seccion">
-      <div>
-        <h2>Recién llegados</h2>
+  <section class="seccion x-contenedor" *ngIf="nuevos.length > 0">
+    <header class="cab-seccion" hsReveal>
+      <div class="cab-seccion__texto">
+        <span class="x-etiqueta x-etiqueta--corchetes"><span class="x-etiqueta__n n-sec"></span>Novedades</span>
+        <h2 class="x-titulo">Recién llegados</h2>
         <p>Lo último que sumamos al catálogo</p>
       </div>
-      <a class="ver-mas" [routerLink]="['/store/catalogo']" [queryParams]="{ orden: 'nuevo' }">
+      <a class="ver-mas x-chip" [routerLink]="['/store/catalogo']" [queryParams]="{ orden: 'nuevo' }">
         Ver novedades<i class="bi bi-arrow-right"></i>
       </a>
     </header>
 
-    <div class="grilla-productos">
+    <div class="grilla-productos" hsReveal="lista">
       <app-producto-card
         *ngFor="let p of nuevos; trackBy: trackProducto"
         [producto]="p"
@@ -117,29 +164,75 @@
     </div>
   </section>
 
+  <!-- Cómo comprar -->
+  <section class="seccion x-contenedor" *ngIf="hayContenido">
+    <header class="cab-seccion" hsReveal>
+      <div class="cab-seccion__texto">
+        <span class="x-etiqueta x-etiqueta--corchetes"><span class="x-etiqueta__n n-sec"></span>Cómo comprar</span>
+        <h2 class="x-titulo">De tu pantalla a tu obra</h2>
+        <p>Tres pasos y tu pedido está en camino.</p>
+      </div>
+    </header>
+
+    <ol class="pasos" hsReveal="lista">
+      <li class="paso x-brillo" hsSpotlight>
+        <span class="paso__n x-numero" aria-hidden="true">01</span>
+        <i class="bi bi-search paso__icono"></i>
+        <h3>Elige tus productos</h3>
+        <p>Busca por nombre, SKU o marca, filtra por categoría y compara precios.</p>
+      </li>
+      <li class="paso x-brillo" hsSpotlight>
+        <span class="paso__n x-numero" aria-hidden="true">02</span>
+        <i class="bi bi-credit-card-2-back paso__icono"></i>
+        <h3>Paga con seguridad</h3>
+        <p>Tarjetas, Yape, Plin o transferencia, con comprobante electrónico.</p>
+      </li>
+      <li class="paso x-brillo" hsSpotlight>
+        <span class="paso__n x-numero" aria-hidden="true">03</span>
+        <i class="bi bi-truck paso__icono"></i>
+        <h3>Recíbelo donde estés</h3>
+        <p>Delivery en 24 a 72 horas a todo el Perú, con seguimiento de tu pedido.</p>
+      </li>
+    </ol>
+  </section>
+
   <!-- Marcas -->
-  <section class="seccion" *ngIf="marcas.length > 0">
-    <header class="cabecera-seccion">
-      <div>
-        <h2>Marcas que trabajamos</h2>
+  <section class="seccion seccion--marcas" *ngIf="marcas.length > 0">
+    <header class="cab-seccion x-contenedor" hsReveal>
+      <div class="cab-seccion__texto">
+        <span class="x-etiqueta x-etiqueta--corchetes"><span class="x-etiqueta__n n-sec"></span>Marcas</span>
+        <h2 class="x-titulo">Marcas que trabajamos</h2>
         <p>Productos originales con garantía del fabricante</p>
       </div>
     </header>
 
-    <div class="marcas">
-      <a
-        class="marca"
-        *ngFor="let m of marcas"
-        [routerLink]="['/store/catalogo']"
-        [queryParams]="{ marca: m.id_marca }">
-        <img *ngIf="m.logo_url" [src]="m.logo_url" [alt]="m.nombre" loading="lazy" />
-        <span *ngIf="!m.logo_url">{{ m.nombre }}</span>
-      </a>
+    <div class="x-marquesina marcas-marq" hsReveal="fundido">
+      <div class="x-marquesina__pista">
+        <a
+          class="marca"
+          *ngFor="let m of marcas"
+          [routerLink]="['/store/catalogo']"
+          [queryParams]="{ marca: m.id_marca }">
+          <img *ngIf="m.logo_url" [src]="m.logo_url" [alt]="m.nombre" loading="lazy" />
+          <span *ngIf="!m.logo_url">{{ m.nombre }}</span>
+        </a>
+      </div>
+      <div class="x-marquesina__pista" aria-hidden="true">
+        <a
+          class="marca"
+          tabindex="-1"
+          *ngFor="let m of marcas"
+          [routerLink]="['/store/catalogo']"
+          [queryParams]="{ marca: m.id_marca }">
+          <img *ngIf="m.logo_url" [src]="m.logo_url" alt="" loading="lazy" />
+          <span *ngIf="!m.logo_url">{{ m.nombre }}</span>
+        </a>
+      </div>
     </div>
   </section>
 
   <!-- Sin datos -->
-  <section class="seccion" *ngIf="!cargando && !hayContenido">
+  <section class="seccion x-contenedor" *ngIf="!cargando && !hayContenido">
     <div class="vacio">
       <i class="bi bi-box-seam"></i>
       <h2>El catálogo aún está vacío</h2>

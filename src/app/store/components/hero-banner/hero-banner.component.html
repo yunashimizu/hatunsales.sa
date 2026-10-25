@@ -1,12 +1,51 @@
 <section
-  class="hero"
+  class="hero x-grano x-plano"
   *ngIf="slides.length > 0"
+  [class.pausado]="pausado"
+  [class.imagen-activa]="!!slide?.imagen_url"
+  [style.--intervalo.ms]="intervalo"
+  hsParallaxPuntero
   (mouseenter)="pausar()"
   (mouseleave)="reanudar()"
   (focusin)="pausar()"
   (focusout)="reanudar()"
   aria-roledescription="carrusel"
   aria-label="Promociones destacadas">
+
+  <div class="aurora" aria-hidden="true"></div>
+
+  <!-- Instrumento del escenario: anillo vivo, marcas de medir y herramientas en órbita -->
+  <div class="arte" aria-hidden="true">
+    <div class="x-dial capa-dial">
+      <i class="x-dial__anillo"></i>
+      <i class="x-dial__marcas"></i>
+      <i class="x-dial__aro"></i>
+      <div class="x-dial__disco">
+        <svg class="tuerca" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">
+          <path class="t-hex" pathLength="1" d="M60 8 L105 34 V86 L60 112 L15 86 V34 Z" />
+          <path class="t-hex t-hex--2" pathLength="1" d="M60 18 L96 39 V81 L60 102 L24 81 V39 Z" />
+          <circle class="t-rosca" pathLength="1" cx="60" cy="60" r="27" />
+          <circle class="t-rosca2" cx="60" cy="60" r="19" />
+          <path class="t-cruz" pathLength="1" d="M60 41 V79 M41 60 H79" />
+        </svg>
+        <span class="dial-leyenda x-etiqueta">Ferretería profesional</span>
+      </div>
+      <div class="x-dial__orbita">
+        <span class="x-dial__chip" *ngFor="let h of herramientas; let k = index" [style.--i]="k" [style.--x-chip-color]="h.color">
+          <i class="bi" [ngClass]="h.icono"></i>
+        </span>
+      </div>
+    </div>
+
+    <div class="flota flota--a x-cristal x-cristal--oscuro x-flota">
+      <i class="bi bi-shield-check"></i>
+      <span><strong>Garantía oficial</strong><small>Productos originales</small></span>
+    </div>
+    <div class="flota flota--b x-cristal x-cristal--oscuro x-flota">
+      <i class="bi bi-truck"></i>
+      <span><strong>Todo el Perú</strong><small>Delivery en 24 a 72 h</small></span>
+    </div>
+  </div>
 
   <div class="pistas">
     <div
@@ -15,46 +54,61 @@
       [class.activa]="i === actual"
       [attr.aria-hidden]="i !== actual">
 
-      <div class="fondo" [style.background-image]="s.imagen_url ? 'url(' + s.imagen_url + ')' : null"></div>
-      <div class="velo"></div>
+      <div class="pista-imagen" *ngIf="s.imagen_url" [style.background-image]="'url(' + s.imagen_url + ')'" aria-hidden="true"></div>
 
       <div class="contenido">
-        <span class="etiqueta" *ngIf="s.etiqueta">
+        <span class="x-sticker etiqueta" [ngClass]="stickerDe(i)" *ngIf="s.etiqueta">
           <i class="bi bi-lightning-charge-fill"></i>{{ s.etiqueta }}
         </span>
 
-        <h1 class="titulo">{{ s.titulo }}</h1>
+        <h1 class="x-display titulo" [attr.aria-label]="s.titulo">
+          <span aria-hidden="true"><span class="x-palabra" *ngFor="let w of (s.titulo | hsPalabras); let k = index"><span [style.--i]="k">{{ w }}</span></span></span>
+        </h1>
+
         <p class="subtitulo" *ngIf="s.subtitulo">{{ s.subtitulo }}</p>
 
         <div class="acciones" *ngIf="s.cta_texto">
-          <button type="button" class="cta" (click)="irACta()">
-            {{ s.cta_texto }}<i class="bi bi-arrow-right"></i>
-          </button>
+          <span class="x-iman" hsMagnetic>
+            <button type="button" class="x-boton x-boton--vivo x-boton--lg" (click)="irACta()">
+              {{ s.cta_texto }}<i class="bi bi-arrow-right"></i>
+            </button>
+          </span>
+          <a class="x-boton x-boton--mono x-boton--lg" routerLink="/store/catalogo">
+            Ver catálogo<i class="bi bi-arrow-down-right"></i>
+          </a>
         </div>
       </div>
     </div>
   </div>
 
   <ng-container *ngIf="slides.length > 1">
-    <button type="button" class="flecha izq" (click)="anterior()" aria-label="Promoción anterior">
-      <i class="bi bi-chevron-left"></i>
-    </button>
+    <div class="control">
+      <span class="contador x-numero" aria-hidden="true">{{ dos(actual + 1) }}<i>/</i>{{ dos(slides.length) }}</span>
 
-    <button type="button" class="flecha der" (click)="siguiente()" aria-label="Promoción siguiente">
-      <i class="bi bi-chevron-right"></i>
-    </button>
+      <div class="progreso" role="tablist" aria-label="Seleccionar promoción">
+        <button
+          type="button"
+          *ngFor="let s of slides; let i = index"
+          class="seg"
+          [class.hecho]="i < actual"
+          role="tab"
+          [attr.aria-selected]="i === actual"
+          [attr.aria-label]="'Promoción ' + (i + 1)"
+          (click)="ir(i)">
+          <ng-container *ngIf="i === actual">
+            <span class="seg-relleno" *ngFor="let c of [ciclo]"></span>
+          </ng-container>
+        </button>
+      </div>
 
-    <div class="puntos" role="tablist" aria-label="Seleccionar promoción">
-      <button
-        type="button"
-        *ngFor="let s of slides; let i = index"
-        class="punto"
-        [class.activo]="i === actual"
-        role="tab"
-        [attr.aria-selected]="i === actual"
-        [attr.aria-label]="'Promoción ' + (i + 1)"
-        (click)="ir(i)">
-      </button>
+      <div class="flechas">
+        <button type="button" class="flecha" (click)="anterior()" aria-label="Promoción anterior">
+          <i class="bi bi-arrow-left"></i>
+        </button>
+        <button type="button" class="flecha" (click)="siguiente()" aria-label="Promoción siguiente">
+          <i class="bi bi-arrow-right"></i>
+        </button>
+      </div>
     </div>
   </ng-container>
 </section>

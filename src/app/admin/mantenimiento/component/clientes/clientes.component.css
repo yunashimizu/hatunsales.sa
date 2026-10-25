@@ -1,5 +1,7 @@
 :host { display: block; }
 
+/* Clientes · «Taller» v3. Todo color sale de tokens; lo compartido vive en admin-ui.css. */
+
 /* ── Cabecera e indicadores ──────────────────────────────────── */
 
 .cli-cabecera__texto { min-width: 0; }
@@ -12,6 +14,12 @@
 }
 
 /* ── Alta por documento ──────────────────────────────────────── */
+
+/* Plano de dibujo técnico muy tenue detrás del formulario (x-plano usa --x-plano-linea) */
+.cli-alta-tarjeta {
+  --x-plano-linea: color-mix(in srgb, var(--adm-primario) 11%, transparent);
+  --x-plano-paso: 30px;
+}
 
 .cli-alta {
   display: grid;
@@ -55,9 +63,17 @@
   border: 1px solid var(--adm-borde);
   border-radius: 999px;
   box-shadow: var(--adm-sombra-sm);
+  transition: border-color var(--adm-transicion), box-shadow var(--adm-transicion), background var(--adm-transicion);
 }
 
 .cli-alta__tipo strong { font-weight: 700; color: var(--adm-texto); }
+
+/* El tipo que coincide con los dígitos escritos se enciende */
+.cli-alta__tipo--activo {
+  border-color: var(--adm-primario);
+  background: var(--adm-primario-claro);
+  box-shadow: var(--adm-anillo);
+}
 
 .cli-alta__tipo-icono {
   display: grid;
@@ -72,8 +88,9 @@
 }
 
 .cli-alta__tipo-icono--empresa { background: var(--adm-info-claro); color: var(--adm-info); }
+.cli-alta__tipo--activo .cli-alta__tipo-icono { background: var(--adm-gradiente); color: var(--x-lienzo-texto); }
 
-/* El formulario va en un recuadro blanco sobre el tinte de la tarjeta destacada */
+/* El formulario va en un recuadro sobre el tinte de la tarjeta destacada */
 .cli-alta__form {
   display: flex;
   flex-direction: column;
@@ -95,10 +112,31 @@
 
 .cli-alta__fila > .cli-campo--doc { flex: 1 1 220px; }
 
-.cli-alta__input {
-  font-variant-numeric: tabular-nums;
+.cli-alta__etiqueta { justify-content: space-between; flex-wrap: nowrap; }
+
+/* Contador de dígitos: «5 / 8» y se pone verde al completar un DNI o un RUC */
+.cli-alta__contador {
+  padding: 1px 9px;
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: 11px;
+  font-weight: 500;
   letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-texto-suave);
+  background: var(--adm-superficie-3);
+  border-radius: 999px;
+  transition: background var(--adm-transicion), color var(--adm-transicion);
 }
+
+.cli-alta__contador--ok { color: var(--adm-exito-texto); background: var(--adm-exito-claro); }
+
+.cli-alta__input {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.cli-alta__input::placeholder { font-family: var(--adm-fuente); letter-spacing: 0; }
 
 .cli-alta__boton {
   flex: 0 0 auto;
@@ -112,7 +150,7 @@
   margin: 0;
 }
 
-/* ── Listado: buscador y pestañas ────────────────────────────── */
+/* ── Listado: buscador, pestañas y resumen ───────────────────── */
 
 .cli-buscar { flex: 1 1 260px; max-width: 360px; }
 .cli-buscar > .adm-input-icono { flex: 1 1 auto; }
@@ -127,6 +165,30 @@
   background: var(--adm-primario-claro);
   color: var(--adm-primario);
 }
+
+/* Resumen de la pestaña: cápsulas informativas con la cifra en negrita */
+.cli-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 20px;
+  list-style: none;
+  background: var(--adm-superficie);
+  border-bottom: 1px solid var(--adm-borde);
+}
+
+.cli-resumen .adm-insignia > strong { font-variant-numeric: tabular-nums; }
+
+.cli-resumen__filtro {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--adm-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.cli-resumen__filtro strong { color: var(--adm-texto); }
 
 /* Esqueleto de fila: avatar + dos líneas + dato */
 .cli-esqueleto {
@@ -163,14 +225,40 @@
 .cli-identidad__texto { min-width: 0; }
 .cli-identidad__texto .adm-tabla__principal { overflow-wrap: anywhere; }
 
+/* Avatar con iniciales: seis tonos estables por persona (data-tono lo calcula tonoDe) */
+.cli-avatar {
+  background: var(--adm-primario-claro);
+  color: var(--adm-primario);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent);
+  transition: transform 360ms var(--x-resorte-suave, ease);
+}
+
+.cli-avatar[data-tono='1'] { background: var(--adm-exito-claro); color: var(--adm-exito-texto); }
+.cli-avatar[data-tono='2'] { background: var(--adm-info-claro); color: var(--adm-info-texto); }
+.cli-avatar[data-tono='3'] { background: var(--adm-aviso-claro); color: var(--adm-aviso-texto); }
+.cli-avatar[data-tono='4'] { background: var(--adm-peligro-claro); color: var(--adm-peligro-texto); }
+.cli-avatar[data-tono='5'] { background: color-mix(in srgb, var(--adm-violeta) 14%, var(--adm-superficie)); color: var(--adm-violeta); }
+
 .cli-avatar--empresa {
   border-radius: var(--adm-r-sm);
-  background: var(--adm-info-claro);
-  color: var(--adm-info);
   font-size: 15px;
 }
 
+@media (hover: hover) {
+  .adm-tabla tbody tr:hover .cli-avatar { transform: scale(1.08) rotate(-4deg); }
+}
+
 .cli-cuenta { margin-top: 4px; }
+
+/* Tipo de documento + número */
+.cli-doc {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.cli-doc__tipo { letter-spacing: 0.06em; }
 
 .cli-documento {
   color: var(--adm-texto-2);
@@ -185,6 +273,8 @@
   gap: 3px;
   min-width: 0;
 }
+
+.cli-condicion { letter-spacing: 0.04em; }
 
 .cli-contacto {
   display: block;
@@ -214,7 +304,34 @@
 
 /* ── Panel de edición ────────────────────────────────────────── */
 
-.cli-panel__sub { overflow-wrap: anywhere; }
+/* Ficha: quién se está editando (avatar grande + nombre + insignias) */
+.cli-ficha {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--adm-primario) 7%, var(--adm-superficie)), var(--adm-superficie) 70%);
+}
+
+.cli-ficha__avatar { width: 56px; height: 56px; font-size: 19px; }
+.cli-ficha__avatar.cli-avatar--empresa { font-size: 24px; border-radius: var(--adm-r-md); }
+
+.cli-ficha__texto { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.cli-ficha__nombre {
+  margin: 0;
+  font-family: var(--adm-fuente-titulos);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--adm-texto);
+  overflow-wrap: anywhere;
+}
+
+.cli-ficha__chips { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .cli-bloque__cuerpo {
   display: flex;
@@ -232,11 +349,6 @@
   .cli-alta { grid-template-columns: minmax(0, 1fr); }
 }
 
-@media (max-width: 900px) {
-  /* Los tres indicadores siguen en una fila (evita el 2 + 1 de la rejilla compartida) */
-  .adm-grid.cli-metricas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
 @media (max-width: 640px) {
   .adm-grid.cli-metricas { gap: 10px; }
   .cli-metricas .adm-metrica__delta { display: none; }
@@ -247,6 +359,8 @@
   .cli-buscar { flex-basis: 100%; max-width: none; }
 
   .cli-pestanias { padding: 0; }
+  .cli-resumen { padding: 10px 14px; }
+  .cli-resumen__filtro { margin-left: 0; flex-basis: 100%; }
 
   .cli-td-principal { min-width: 0; }
 
@@ -264,6 +378,9 @@
 
   .cli-apilado { align-items: flex-end; text-align: right; }
 
+  /* En la ficha apilada la etiqueta «DNI» / «RUC» ya la da data-etiqueta */
+  .cli-doc__tipo { display: none; }
+
   .cli-direccion {
     display: block;
     max-width: none;
@@ -271,6 +388,8 @@
   }
 }
 
-@media (max-width: 360px) {
-  .adm-grid.cli-metricas { grid-template-columns: minmax(0, 1fr); }
+@media (prefers-reduced-motion: reduce) {
+  .cli-avatar,
+  .cli-alta__tipo { transition: none; }
+  .adm-tabla tbody tr:hover .cli-avatar { transform: none; }
 }

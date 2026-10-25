@@ -1,20 +1,39 @@
+/* Mi perfil · usa el sistema compartido (admin-ui.css, clases adm-*). Aquí solo lo propio, con prefijo perfil-. */
+:host {
+  display: block;
+  width: 100%;
+}
+
+/* Avatar (adm-avatar--gradiente) + nombre, correo y rol */
 .perfil-identidad {
   align-items: center;
+  flex-wrap: nowrap;
+  gap: 16px;
   margin-bottom: 1.1rem;
 }
 
-.perfil-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--adm-primario, #4f46e5);
-  color: #fff;
-  font-weight: 700;
+.perfil-identidad__texto {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.05rem;
-  flex-shrink: 0;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.perfil-identidad__nombre {
+  font-family: var(--adm-fuente-titulos);
+  font-size: var(--fs-xl);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.perfil-identidad__texto .adm-tabla__secundario { overflow-wrap: anywhere; }
+
+.perfil-identidad__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .perfil-espaciado {
@@ -23,4 +42,44 @@
 
 .perfil-ayuda {
   margin: 0 0 1rem;
+}
+
+.perfil-nota {
+  margin: 6px 0 0;
+}
+
+/* Requisitos de la nueva contraseña: se marcan mientras se escribe */
+.perfil-requisitos {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--adm-fs-ayuda);
+  color: var(--adm-texto-suave);
+}
+
+.perfil-requisitos li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.perfil-requisitos i {
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--adm-texto-tenue);
+}
+
+.perfil-requisito--ok {
+  color: var(--adm-exito-texto);
+  font-weight: var(--fw-medio);
+}
+
+.perfil-requisito--ok i { color: var(--adm-exito); }
+
+@media (max-width: 640px) {
+  .perfil-identidad { gap: 12px; }
+  .perfil-identidad .adm-avatar--xl { width: 64px; height: 64px; font-size: 22px; }
+  .perfil-identidad__nombre { font-size: var(--fs-lg); }
 }

@@ -4,7 +4,8 @@
 .activacion {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+  counter-reset: paso;
 }
 fieldset {
   border: 0;
@@ -15,6 +16,54 @@ fieldset {
 fieldset:disabled {
   opacity: 0.65;
 }
+
+/* ── Asistente por pasos: riel vertical con una marca por paso (número o ✓) ─ */
+.activacion__paso {
+  position: relative;
+  margin-left: 46px;
+  counter-increment: paso;
+}
+.activacion__paso::before {
+  content: counter(paso);
+  position: absolute;
+  top: 12px;
+  left: -46px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--adm-texto-suave);
+  background: var(--adm-superficie);
+  border: 2px solid var(--adm-borde-fuerte);
+  border-radius: 50%;
+}
+.activacion__paso:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 44px;
+  bottom: -14px;
+  left: -32px;
+  width: 2px;
+  background: var(--adm-borde-fuerte);
+}
+/* Paso cumplido: la marca se rellena de verde y muestra el ✓ */
+.activacion__paso--ok::before {
+  content: '\f633';
+  font-family: 'bootstrap-icons';
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--x-lienzo-texto);
+  background: var(--adm-exito-solido);
+  border-color: var(--adm-exito-solido);
+}
+.activacion__paso--ok:not(:last-child)::after {
+  background: var(--adm-exito);
+}
+
 .activacion__progreso {
   display: flex;
   align-items: center;
@@ -42,6 +91,7 @@ fieldset:disabled {
   padding: 10px 12px;
   background: var(--adm-superficie);
   border: 1px solid var(--adm-borde);
+  border-left: 3px solid var(--adm-peligro);
   border-radius: var(--adm-r-sm);
 }
 .activacion__item > div {
@@ -58,6 +108,11 @@ fieldset:disabled {
   cursor: pointer;
   font-size: var(--adm-fs-etiqueta);
   color: var(--adm-texto-suave);
+}
+.activacion__cumplidos summary:focus-visible {
+  outline: 2px solid var(--adm-primario);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 .activacion__cumplidos ul {
   gap: 4px;
@@ -92,6 +147,14 @@ fieldset:disabled {
   max-width: 80ch;
 }
 @media (max-width: 640px) {
+  /* Sin riel: cada paso ya lleva su número en el título */
+  .activacion__paso {
+    margin-left: 0;
+  }
+  .activacion__paso::before,
+  .activacion__paso::after {
+    display: none;
+  }
   .activacion__item {
     flex-wrap: wrap;
   }

@@ -2,10 +2,201 @@
   display: block;
 }
 
+/* ------------------------------------------------------------------ página */
+
+.auth {
+  background: var(--t-fondo);
+  color: var(--t-texto);
+}
+
+.auth-fondo {
+  background:
+    radial-gradient(60% 50% at 100% 100%, color-mix(in srgb, var(--t-primario) 18%, transparent), transparent 70%),
+    radial-gradient(circle at 1px 1px, var(--adm-punteado, rgba(15, 23, 42, 0.07)) 1px, transparent 0) 0 0 / 24px 24px;
+}
+
+/* ---------------------------------------------------------------- escenario */
+
+.auth-escenario {
+  min-height: 560px;
+  border: 1px solid var(--x-lienzo-linea);
+  background:
+    radial-gradient(70% 60% at 100% 0%, rgba(99, 102, 241, 0.5), transparent 66%),
+    radial-gradient(60% 50% at 0% 100%, rgba(255, 125, 54, 0.32), transparent 64%),
+    var(--x-lienzo);
+  color: var(--x-lienzo-texto);
+  box-shadow: 0 50px 90px -50px rgba(20, 18, 15, 0.7);
+}
+
+.auth-aurora {
+  position: absolute;
+  inset: -12%;
+  z-index: 0;
+  background:
+    radial-gradient(40% 40% at 70% 30%, rgba(34, 211, 238, 0.14), transparent 70%),
+    radial-gradient(34% 34% at 20% 70%, rgba(255, 168, 40, 0.12), transparent 70%);
+  animation: auth-aurora 22s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes auth-aurora {
+  to { scale: 1.12; translate: -3% 2%; }
+}
+
+.auth-marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.auth-marca:hover {
+  text-decoration: none;
+}
+
+.auth-marca__logo {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 45%, #7c3aed 100%);
+  color: #fff;
+  font-size: 1.3rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 10px 24px -8px rgba(79, 70, 229, 0.7);
+}
+
+.auth-marca__texto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.auth-marca__texto strong {
+  font-family: var(--hs-fuente-titulos);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--x-lienzo-texto);
+}
+
+.auth-marca__texto small {
+  margin-top: 3px;
+  font-family: var(--x-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--x-lienzo-tenue);
+}
+
+/* Marca sobre el formulario en móvil (el escenario queda debajo) */
+.auth-marca--movil {
+  margin: 0 0 18px 6px;
+}
+
+.auth-marca--movil .auth-marca__texto strong { color: var(--t-texto); }
+.auth-marca--movil .auth-marca__texto small { color: var(--t-texto-tenue); }
+
+.auth-etiqueta {
+  color: var(--x-lienzo-tenue);
+}
+
+.auth-titulo {
+  max-width: 11ch;
+  margin-top: 18px;
+  font-size: clamp(2.4rem, 1.2rem + 3.6vw, 4.4rem);
+  color: var(--x-lienzo-texto);
+}
+
+.auth-parrafo {
+  max-width: 44ch;
+  margin: 18px 0 0;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--x-lienzo-suave);
+}
+
+.auth-instrumento {
+  margin: 28px 0 0;
+}
+
+.auth-dial {
+  --x-dial: 300px;
+}
+
+.auth-ilustracion {
+  width: 74%;
+  height: 74%;
+  animation: auth-flotar 2.6s ease-in-out infinite alternate;
+}
+
+/* Flotación suave de la ilustración. Solo la propiedad translate: no pisa
+   transformaciones propias y movimiento.css la apaga con movimiento reducido. */
+@keyframes auth-flotar {
+  to { translate: 0 -6px; }
+}
+
+.auth-beneficio {
+  padding: 14px;
+  border: 1px solid var(--x-lienzo-linea);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--x-lienzo-2) 72%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: border-color 220ms ease, translate 360ms var(--x-resorte-suave);
+}
+
+.auth-beneficio:hover {
+  border-color: var(--x-lienzo-linea-fuerte);
+  translate: 0 -3px;
+}
+
+.auth-beneficio__icono {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 10px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--x-ambar) 15%, transparent);
+  color: var(--x-ambar);
+  font-size: 0.95rem;
+}
+
+.auth-beneficio__titulo {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--x-lienzo-texto);
+}
+
+.auth-beneficio__texto {
+  font-family: var(--x-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--x-lienzo-tenue);
+}
+
+.auth-seguro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--x-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--x-lienzo-tenue);
+}
+
+/* ---------------------------------------------------------------- formulario */
+
 /* Entrada de la tarjeta del formulario: solo un leve ascenso, sin fundido ni
    desenfoque, para que se vea y acepte clics desde el primer cuadro. Con
    movimiento reducido, movimiento.css deja la distancia en 0 y la duración en 1 ms. */
 .auth-card {
+  border: 1px solid var(--t-borde);
+  background: var(--t-superficie);
+  box-shadow: var(--t-sombra-xl);
   animation: auth-card-sube var(--mov-entrada, 240ms)
     var(--ease-entrada, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
 }
@@ -16,16 +207,15 @@
   }
 }
 
-/* Flotación suave de la ilustración. Solo la propiedad translate: no pisa
-   transformaciones propias y movimiento.css la apaga con movimiento reducido. */
-.auth-ilustracion {
-  animation: auth-flotar 2.4s ease-in-out infinite alternate;
-}
-
-@keyframes auth-flotar {
-  to {
-    translate: 0 -10px;
-  }
+.auth-pie {
+  border-top: 1px solid var(--t-borde);
+  background: color-mix(in srgb, var(--t-fondo) 70%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  font-family: var(--x-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--t-texto-tenue);
 }
 
 :host ::ng-deep .auth-shake {
@@ -38,4 +228,18 @@
   40% { transform: translateX(8px); }
   60% { transform: translateX(-6px); }
   80% { transform: translateX(6px); }
+}
+
+@media (max-width: 1023px) {
+  .auth-escenario {
+    min-height: 0;
+    margin-top: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-aurora,
+  .auth-ilustracion {
+    animation: none;
+  }
 }

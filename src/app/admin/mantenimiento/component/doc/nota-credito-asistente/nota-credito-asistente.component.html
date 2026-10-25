@@ -1,0 +1,411 @@
+<div class="adm-velo nca-velo" (click)="cerrar()" aria-hidden="true"></div>
+
+<div class="adm-modal nca">
+  <div #marco class="adm-modal__marco adm-modal__marco--ancho nca-marco" role="dialog" aria-modal="true"
+       aria-labelledby="nca-titulo" tabindex="-1" (keydown.escape)="cerrar()">
+    <div class="adm-modal__cabecera">
+      <div class="adm-tarjeta__encabezado nca-encabezado">
+        <h2 class="adm-tarjeta__titulo" id="nca-titulo">
+          <i class="bi bi-arrow-return-left"></i> Nota de crédito
+        </h2>
+        <p class="adm-tarjeta__sub">
+          @if (contexto; as c) {
+            Sobre <span class="adm-tabular">{{ c.origen.numero_formateado }}</span> · {{ c.origen.cliente.denominacion }}
+          } @else {
+            Preparando el comprobante…
+          }
+        </p>
+      </div>
+      <button type="button" class="adm-btn-icono" (click)="cerrar()" [disabled]="enviando"
+              aria-label="Cerrar el asistente de nota de crédito" title="Cerrar">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="adm-modal__cuerpo">
+      @if (errorCarga) {
+        <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+          <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+          <div class="adm-vacio__titulo">No se pudo preparar la nota de crédito</div>
+          <p>{{ errorCarga }}</p>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+          </button>
+        </div>
+      } @else if (contexto; as c) {
+        @if (paso === 'resultado' && resultado) {
+          <!-- Resultado de SUNAT en el acto -->
+          <app-resultado-sunat [resultado]="resultado">
+            @if (efectos.length) {
+              <ul class="nca-efectos" aria-label="Lo que ya se aplicó">
+                @for (efecto of efectos; track efecto) {
+                  <li><i class="bi bi-check2-circle" aria-hidden="true"></i> {{ efecto }}</li>
+                }
+              </ul>
+            }
+          </app-resultado-sunat>
+          @if (resultado.avisos.length) {
+            <div class="adm-aviso adm-aviso--info">
+              <i class="bi bi-info-circle" aria-hidden="true"></i>
+              <div>
+                <ul class="nca-lista">
+                  @for (aviso of resultado.avisos; track $index) {
+                    <li>{{ aviso }}</li>
+                  }
+                </ul>
+              </div>
+            </div>
+          }
+        } @else {
+          <dl class="adm-datos nca-origen">
+            <div class="adm-dato">
+              <dt class="adm-dato__etiqueta">Comprobante</dt>
+              <dd class="adm-dato__valor adm-tabular">{{ c.origen.numero_formateado }}</dd>
+            </div>
+            <div class="adm-dato">
+              <dt class="adm-dato__etiqueta">Emitido el</dt>
+              <dd class="adm-dato__valor adm-tabular">{{ c.origen.fecha }}</dd>
+            </div>
+            <div class="adm-dato">
+              <dt class="adm-dato__etiqueta">Total</dt>
+              <dd class="adm-dato__valor adm-tabular">{{ simbolo }} {{ c.origen.total | number: '1.2-2' }}</dd>
+            </div>
+            <div class="adm-dato">
+              <dt class="adm-dato__etiqueta">Saldo por acreditar</dt>
+              <dd class="adm-dato__valor adm-tabular adm-negrita">{{ simbolo }} {{ c.saldo | number: '1.2-2' }}</dd>
+            </div>
+          </dl>
+
+          @if (esBeta) {
+            <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto">
+              <i class="bi bi-cone-striped" aria-hidden="true"></i>
+              <span>Prueba en SUNAT BETA: la nota se envía a SUNAT pero no tiene validez tributaria.</span>
+            </div>
+          }
+
+          @if (emisionInactiva; as motivoInactiva) {
+            <div class="adm-aviso adm-aviso--peligro" role="alert">
+              <i class="bi bi-pause-circle" aria-hidden="true"></i>
+              <span>
+                <strong class="adm-aviso__titulo">La emisión electrónica no está activa</strong>
+                {{ motivoInactiva }} La nota no se podrá enviar a SUNAT hasta que un administrador la reactive en Facturación SUNAT.
+              </span>
+            </div>
+          }
+
+          @if (!puedeEmitir) {
+            <div class="adm-aviso adm-aviso--info adm-aviso--compacto">
+              <i class="bi bi-person-lock" aria-hidden="true"></i>
+              <span>Solo un administrador o un vendedor puede emitir notas de crédito.</span>
+            </div>
+          }
+
+          @if (!c.permitido) {
+            <div class="adm-aviso adm-aviso--aviso" role="status">
+              <i class="bi bi-slash-circle" aria-hidden="true"></i>
+              <span>
+                <strong class="adm-aviso__titulo">Este comprobante no admite una nota de crédito ahora</strong>
+                {{ c.motivo_no_permitido || 'El comprobante no cumple las condiciones para emitirle una nota de crédito.' }}
+              </span>
+            </div>
+          } @else if (paso === 'motivo') {
+            <fieldset class="nca-motivos" [disabled]="!puedeEmitir">
+              <legend class="nca-subtitulo">Paso 1 de 2 · ¿Por qué se emite la nota?</legend>
+              @for (opcion of c.motivos; track opcion.codigo) {
+                <label class="nca-motivo" [class.nca-motivo--activo]="motivo?.codigo === opcion.codigo">
+                  <input type="radio" name="nca-motivo" [value]="opcion.codigo"
+                         [checked]="motivo?.codigo === opcion.codigo" (change)="elegirMotivo(opcion)">
+                  <span class="nca-motivo__texto">
+                    <span class="nca-motivo__nombre">
+                      <span class="adm-mono">{{ opcion.codigo }}</span>
+                      <span class="nca-oracion">{{ opcion.nombre }}</span>
+                      <span class="adm-insignia adm-insignia--neutra adm-insignia--sm">{{ nombreForma[opcion.forma] }}</span>
+                    </span>
+                    <span class="adm-ayuda">{{ explicacion(opcion) }}</span>
+                  </span>
+                </label>
+              } @empty {
+                <p class="adm-ayuda">Hoy no queda ningún motivo disponible para este comprobante.</p>
+              }
+            </fieldset>
+            @if (motivo?.aviso) {
+              <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto">
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                <span>{{ motivo?.aviso }}</span>
+              </div>
+            }
+          } @else if (motivo) {
+            <form #formNota="ngForm" class="nca-detalle" novalidate>
+              <div class="nca-paso">
+                <span class="nca-subtitulo">Paso 2 de 2 · Motivo {{ motivo.codigo }}: <span class="nca-oracion">{{ motivo.nombre }}</span></span>
+                <button type="button" class="adm-btn adm-btn--fantasma adm-btn--sm" (click)="volver()" [disabled]="enviando">
+                  <i class="bi bi-arrow-left" aria-hidden="true"></i> Cambiar motivo
+                </button>
+              </div>
+
+              @switch (motivo.forma) {
+                @case ('total') {
+                  <p class="adm-ayuda">Se acredita el comprobante completo:</p>
+                  <ul class="adm-resumen">
+                    @for (item of c.items; track item.id_item) {
+                      <li class="adm-resumen__fila">
+                        <span>{{ item.descripcion }} × {{ item.cantidad_origen }}</span>
+                        <span>{{ simbolo }} {{ item.total_origen | number: '1.2-2' }}</span>
+                      </li>
+                    }
+                  </ul>
+                }
+                @case ('items') {
+                  <div class="adm-tabla-envoltorio">
+                    <table class="adm-tabla adm-tabla--compacta adm-tabla--adaptable nca-tabla">
+                      <thead>
+                        <tr>
+                          <th>Producto</th>
+                          <th class="adm-num">Vendido</th>
+                          <th class="adm-num">Ya devuelto</th>
+                          <th class="adm-num">Disponible</th>
+                          <th class="adm-num">P. unit.</th>
+                          <th class="adm-num">Devolver</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (item of productos; track item.id_item) {
+                          <tr [class.adm-fila--atenuada]="item.cantidad_disponible <= 0">
+                            <td data-etiqueta="Producto">
+                              <div class="adm-tabla__principal">{{ item.descripcion }}</div>
+                              <div class="adm-tabla__secundario">{{ item.unidad }}</div>
+                            </td>
+                            <td data-etiqueta="Vendido" class="adm-num adm-tabular">{{ item.cantidad_origen }}</td>
+                            <td data-etiqueta="Ya devuelto" class="adm-num adm-tabular">{{ item.cantidad_acreditada }}</td>
+                            <td data-etiqueta="Disponible" class="adm-num adm-tabular">{{ item.cantidad_disponible }}</td>
+                            <td data-etiqueta="P. unit." class="adm-num adm-tabular">{{ simbolo }} {{ item.precio_unitario | number: '1.2-2' }}</td>
+                            <td data-etiqueta="Devolver" class="adm-num">
+                              <input class="adm-input adm-input--chico adm-input--num nca-input" appNumero="decimal"
+                                     [name]="'cantidad-' + item.id_item" [(ngModel)]="cantidades[item.id_item]"
+                                     (ngModelChange)="recalcular()" #campo="appNumero"
+                                     [errorId]="'nca-error-' + item.id_item"
+                                     [disabled]="item.cantidad_disponible <= 0 || enviando"
+                                     [attr.aria-label]="'Unidades de ' + item.descripcion + ' que se devuelven'">
+                              @if (erroresLinea[item.id_item] || campo.invalido()) {
+                                <div class="adm-ayuda adm-ayuda--error nca-error-linea" [id]="'nca-error-' + item.id_item">
+                                  {{ erroresLinea[item.id_item] || campo.motivo() }}
+                                </div>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  @if (tieneRecargo) {
+                    <p class="adm-ayuda">El recargo por pago con tarjeta no se elige: se acredita solo, en proporción a lo devuelto.</p>
+                  }
+                }
+                @case ('descuento_items') {
+                  <div class="adm-tabla-envoltorio">
+                    <table class="adm-tabla adm-tabla--compacta adm-tabla--adaptable nca-tabla">
+                      <thead>
+                        <tr>
+                          <th>Línea</th>
+                          <th class="adm-num">Importe</th>
+                          <th class="adm-num">Disponible</th>
+                          <th class="adm-num">Descuento</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (item of productos; track item.id_item) {
+                          <tr [class.adm-fila--atenuada]="item.importe_disponible <= 0">
+                            <td data-etiqueta="Línea">
+                              <div class="adm-tabla__principal">{{ item.descripcion }}</div>
+                              <div class="adm-tabla__secundario adm-tabular">{{ item.cantidad_origen }} {{ item.unidad }}</div>
+                            </td>
+                            <td data-etiqueta="Importe" class="adm-num adm-tabular">{{ simbolo }} {{ item.total_origen | number: '1.2-2' }}</td>
+                            <td data-etiqueta="Disponible" class="adm-num adm-tabular">{{ simbolo }} {{ item.importe_disponible | number: '1.2-2' }}</td>
+                            <td data-etiqueta="Descuento" class="adm-num">
+                              <input class="adm-input adm-input--chico adm-input--num nca-input" appNumero="moneda"
+                                     [name]="'descuento-' + item.id_item" [(ngModel)]="descuentos[item.id_item]"
+                                     (ngModelChange)="recalcular()" #campo="appNumero"
+                                     [errorId]="'nca-error-' + item.id_item"
+                                     [disabled]="item.importe_disponible <= 0 || enviando"
+                                     [attr.aria-label]="'Descuento con IGV de ' + item.descripcion">
+                              @if (erroresLinea[item.id_item] || campo.invalido()) {
+                                <div class="adm-ayuda adm-ayuda--error nca-error-linea" [id]="'nca-error-' + item.id_item">
+                                  {{ erroresLinea[item.id_item] || campo.motivo() }}
+                                </div>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+                @case ('monto') {
+                  <div class="adm-campo">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="nca-monto">Importe que acredita la nota (con IGV)</label>
+                    <div class="adm-input-grupo nca-monto">
+                      <span class="adm-input-grupo__afijo">{{ simbolo }}</span>
+                      <input id="nca-monto" class="adm-input adm-input--num" appNumero="moneda" name="monto"
+                             [(ngModel)]="monto" (ngModelChange)="recalcular()" #campoMonto="appNumero"
+                             errorId="nca-error-monto" [disabled]="enviando">
+                    </div>
+                    @if ((monto && errorMonto) || campoMonto.invalido()) {
+                      <div class="adm-ayuda adm-ayuda--error" id="nca-error-monto">{{ campoMonto.motivo() || errorMonto }}</div>
+                    } @else {
+                      <span class="adm-ayuda">
+                        Hasta {{ simbolo }} {{ c.saldo | number: '1.2-2' }} (saldo por acreditar). Se reparte entre los tramos
+                        gravado, exonerado e inafecto del comprobante.
+                      </span>
+                    }
+                  </div>
+                }
+              }
+
+              @if (ofreceReingreso) {
+                <div class="nca-reingreso">
+                  <label class="adm-check">
+                    <input type="checkbox" name="reingresar" [(ngModel)]="reingresarStock" (ngModelChange)="recalcular()"
+                           [disabled]="enviando">
+                    Reingresar al almacén lo devuelto
+                  </label>
+                  <span class="adm-ayuda">Cuando SUNAT acepte la nota, las unidades vuelven al almacén del que salieron.</span>
+                </div>
+              }
+
+              <div class="adm-campo adm-campo--completo">
+                <label class="adm-etiqueta adm-etiqueta--requerida" for="nca-sustento">Sustento</label>
+                <textarea id="nca-sustento" name="sustento" class="adm-textarea" rows="3" [maxlength]="maximoSustento"
+                          [(ngModel)]="sustento" [disabled]="enviando" aria-describedby="nca-sustento-ayuda"
+                          placeholder="Ej.: el cliente devolvió 2 unidades por fallas de fábrica"></textarea>
+                <div class="nca-contador" id="nca-sustento-ayuda">
+                  @if (sustento.trim().length && errorSustento) {
+                    <span class="adm-ayuda adm-ayuda--error">{{ errorSustento }}</span>
+                  } @else {
+                    <span class="adm-ayuda">Viaja a SUNAT en la nota (de 3 a 250 caracteres).</span>
+                  }
+                  <span class="adm-ayuda adm-tabular">{{ sustento.length }}/{{ maximoSustento }}</span>
+                </div>
+              </div>
+
+              <ul class="adm-resumen nca-total">
+                <li class="adm-resumen__fila adm-resumen__fila--total">
+                  <span>Total de la nota{{ motivo.forma === 'items' ? ' (estimado)' : '' }}</span>
+                  <span>{{ simbolo }} {{ totalCentimos / 100 | number: '1.2-2' }}</span>
+                </li>
+              </ul>
+              @if (motivo.forma === 'items' && totalCentimos > 0) {
+                <p class="adm-ayuda">El importe exacto lo calcula el sistema al emitir, con la parte proporcional del recargo por tarjeta si lo hubo.</p>
+              }
+
+              @if (errorEnvio; as fallo) {
+                <div class="adm-aviso adm-aviso--peligro" role="alert">
+                  <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+                  <div class="nca-error">
+                    <strong class="adm-aviso__titulo">{{ fallo.titulo }}</strong>
+                    <span>{{ fallo.mensaje }}</span>
+                    @if (fallo.idNota || fallo.recargar) {
+                      <div class="nca-error__acciones">
+                        @if (fallo.idNota) {
+                          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="verEnDocumentos(fallo.idNota)">
+                            <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Ver la nota en curso
+                          </button>
+                        }
+                        @if (fallo.recargar) {
+                          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cargar()">
+                            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Actualizar datos
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </form>
+          }
+
+          @if (c.avisos.length) {
+            <div class="adm-aviso adm-aviso--info adm-aviso--compacto">
+              <i class="bi bi-info-circle" aria-hidden="true"></i>
+              <div>
+                <ul class="nca-lista">
+                  @for (aviso of c.avisos; track $index) {
+                    <li>{{ aviso }}</li>
+                  }
+                </ul>
+              </div>
+            </div>
+          }
+
+          @if (c.notas_previas.length) {
+            <section class="nca-previas" aria-labelledby="nca-previas-titulo">
+              <h3 class="nca-subtitulo" id="nca-previas-titulo">Notas anteriores de este comprobante</h3>
+              <ul class="adm-resumen">
+                @for (previa of c.notas_previas; track previa.id) {
+                  <li class="adm-resumen__fila">
+                    <span class="nca-previa">
+                      <span class="adm-tabular">{{ previa.numero_formateado }}</span>
+                      @if (previa.motivo) {
+                        <span class="adm-texto-suave">motivo {{ previa.motivo }}</span>
+                      }
+                      <span class="adm-insignia adm-insignia--sm" [ngClass]="claseInsignia(tonoEstadoSunat(previa.estado_sunat))">
+                        {{ textoEstadoSunat(previa.estado_sunat) }}
+                      </span>
+                      @if (!previa.vigente) {
+                        <span class="adm-texto-tenue">no cuenta para el saldo</span>
+                      }
+                    </span>
+                    <span>{{ simbolo }} {{ previa.total | number: '1.2-2' }}</span>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+        }
+      } @else {
+        <div class="nca-esqueleto" aria-busy="true" aria-label="Cargando el comprobante">
+          <div class="adm-esqueleto adm-esqueleto--titulo"></div>
+          @for (n of [1, 2, 3, 4]; track n) {
+            <div class="adm-esqueleto adm-esqueleto--fila"></div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="adm-modal__pie nca-pie">
+      @if (paso === 'resultado' && resultado) {
+        @if (resultado.estado !== 'error') {
+          <button type="button" class="adm-btn adm-btn--suave" (click)="descargarPdf('a4')" [disabled]="descargando !== null">
+            <i class="bi" [ngClass]="descargando === 'a4' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-pdf'" aria-hidden="true"></i>
+            PDF A4
+          </button>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="descargarPdf('ticket')" [disabled]="descargando !== null">
+            <i class="bi" [ngClass]="descargando === 'ticket' ? 'bi-arrow-repeat adm-girando' : 'bi-receipt-cutoff'" aria-hidden="true"></i>
+            Ticket 80 mm
+          </button>
+        }
+        <button type="button" class="adm-btn adm-btn--suave" (click)="verEnDocumentos(resultado.id_comprobante)">
+          <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Ver en Documentos
+        </button>
+        <button type="button" class="adm-btn adm-btn--primario" (click)="cerrar()">Listo</button>
+      } @else if (paso === 'detalle' && contexto?.permitido) {
+        @if (pendiente) {
+          <span class="adm-ayuda nca-pie__pendiente" role="status">{{ pendiente }}</span>
+        }
+        <button type="button" class="adm-btn adm-btn--fantasma" (click)="cerrar()" [disabled]="enviando">Cancelar</button>
+        <button type="button" class="adm-btn adm-btn--primario" (click)="emitir()" [disabled]="enviando || !!pendiente">
+          <i class="bi" [ngClass]="enviando ? 'bi-arrow-repeat adm-girando' : 'bi-send'" aria-hidden="true"></i>
+          {{ enviando ? 'Enviando a SUNAT…' : 'Emitir nota de crédito a SUNAT' }}
+        </button>
+      } @else {
+        <button type="button" class="adm-btn adm-btn--fantasma" (click)="cerrar()">
+          {{ contexto?.permitido && puedeEmitir ? 'Cancelar' : 'Cerrar' }}
+        </button>
+        @if (contexto?.permitido && puedeEmitir) {
+          <button type="button" class="adm-btn adm-btn--primario" (click)="continuar()" [disabled]="!motivo">
+            Continuar <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          </button>
+        }
+      }
+    </div>
+  </div>
+</div>

@@ -37,3 +37,5 @@
 @import './app/admin/styles/admin-ui.css';
 @import './app/shared/styles/alertas.css';
 @import './app/shared/styles/movimiento.css';
+@import './app/shared/styles/expresivo.css';
+@import './app/shared/styles/tema-oscuro.css';

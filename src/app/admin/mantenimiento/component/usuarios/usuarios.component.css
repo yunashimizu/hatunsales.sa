@@ -1,1 +1,45 @@
-/* Estilos compartidos en admin-ui.css (igual que roles / categorías / productos). */
+/* Usuarios · usa el sistema compartido (admin-ui.css, clases adm-*). Aquí solo lo propio, con prefijo usr-. */
+:host {
+  display: block;
+  width: 100%;
+}
+
+/* Etiquetas alineadas arriba aunque un campo lleve ayuda debajo */
+.usr-fila {
+  align-items: flex-start;
+}
+
+/* Avatar con las iniciales + nombre en la primera columna */
+.usr-persona {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.usr-persona .adm-tabla__principal {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* El avatar de un usuario inactivo se apaga (la fila ya baja el contraste del texto) */
+.usr-avatar--inactivo {
+  background: var(--adm-superficie-3);
+  color: var(--adm-texto-tenue);
+}
+
+/* Interruptor de estado: misma altura que los campos de la fila */
+.usr-estado {
+  min-height: 40px;
+  font-weight: var(--fw-medio);
+}
+
+.usr-nota {
+  margin: 6px 0 0;
+}
+
+@media (max-width: 640px) {
+  /* Ficha apilada: el valor va a la derecha, junto a su etiqueta */
+  .usr-persona { justify-content: flex-end; }
+  .usr-estado { min-height: 44px; }
+}

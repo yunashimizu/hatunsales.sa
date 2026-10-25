@@ -25,6 +25,19 @@
 .envios-fila--procesando td {
   opacity: 0.6;
 }
+
+/* Marca de color en la fila según el estado: lo que necesita atención se ve sin leer */
+.envios-tabla tbody tr[data-estado='RECHAZADO'] > td:first-child,
+.envios-tabla tbody tr[data-estado='EXCEPCION'] > td:first-child,
+.envios-tabla tbody tr[data-estado='ERROR_CONFIG'] > td:first-child {
+  box-shadow: inset 3px 0 0 var(--adm-peligro);
+}
+.envios-tabla tbody tr[data-estado='PENDIENTE_REENVIO'] > td:first-child,
+.envios-tabla tbody tr[data-estado='ENVIANDO'] > td:first-child,
+.envios-tabla tbody tr[data-estado='TICKET_PENDIENTE'] > td:first-child {
+  box-shadow: inset 3px 0 0 var(--adm-aviso);
+}
+
 @media (max-width: 900px) {
   .envios-estado {
     min-width: 0;
@@ -34,5 +47,19 @@
   }
   .envios-mensaje {
     max-width: none;
+  }
+  /* En fichas apiladas la marca va en el borde de la ficha, no en la primera celda */
+  .envios-tabla tbody tr[data-estado] > td:first-child {
+    box-shadow: none;
+  }
+  .envios-tabla tbody tr[data-estado='RECHAZADO'],
+  .envios-tabla tbody tr[data-estado='EXCEPCION'],
+  .envios-tabla tbody tr[data-estado='ERROR_CONFIG'] {
+    border-left: 3px solid var(--adm-peligro);
+  }
+  .envios-tabla tbody tr[data-estado='PENDIENTE_REENVIO'],
+  .envios-tabla tbody tr[data-estado='ENVIANDO'],
+  .envios-tabla tbody tr[data-estado='TICKET_PENDIENTE'] {
+    border-left: 3px solid var(--adm-aviso);
   }
 }

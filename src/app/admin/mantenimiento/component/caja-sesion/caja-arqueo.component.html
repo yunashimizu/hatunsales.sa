@@ -1,10 +1,10 @@
 <section class="adm-tarjeta" [attr.aria-busy]="cargando || guardando">
   <div class="adm-tarjeta__cabecera">
-    <div>
+    <div class="adm-tarjeta__encabezado">
       <h2 class="adm-tarjeta__titulo">
         <i class="bi bi-calculator" aria-hidden="true"></i> Arqueo del turno #{{ idApertura }}
       </h2>
-      <p class="adm-ayuda">Cuenta el efectivo, concilia los otros medios y registra el cierre.</p>
+      <p class="adm-tarjeta__sub">Cuenta el efectivo, concilia los otros medios y registra el cierre.</p>
     </div>
     <button
       type="button"
@@ -12,41 +12,60 @@
       (click)="cargar()"
       [disabled]="cargando || guardando || guardandoMovimiento"
     >
+      <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
       Actualizar arqueo
     </button>
   </div>
-  <div class="adm-tarjeta__cuerpo">
+  <div class="adm-tarjeta__cuerpo arq-cuerpo">
     @if (cargando) {
-      <p role="status">Consultando el turno…</p>
+      <p class="adm-aviso adm-aviso--info adm-aviso--compacto" role="status">
+        <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i>
+        <span>Consultando el turno…</span>
+      </p>
     }
     @if (errorCarga) {
-      <div class="adm-aviso adm-aviso--aviso" role="alert">{{ errorCarga }}</div>
+      <div class="adm-aviso adm-aviso--aviso" role="alert">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+        <span>{{ errorCarga }}</span>
+      </div>
     }
     @if (esperado; as datos) {
-      <div class="adm-grid adm-grid--3">
-        <div class="adm-bloque">
+      <div class="adm-grid adm-grid--3 arq-cifras">
+        <div class="adm-bloque arq-cifra">
           <span class="adm-etiqueta">Efectivo esperado</span
           ><strong>S/ {{ datos.efectivo.esperado | number: '1.2-2' }}</strong>
         </div>
-        <div class="adm-bloque">
+        <div class="adm-bloque arq-cifra">
           <span class="adm-etiqueta">Efectivo contado</span
           ><strong>S/ {{ contado | number: '1.2-2' }}</strong>
         </div>
-        <div class="adm-bloque">
+        <div class="adm-bloque arq-cifra"
+             [class.arq-cifra--cuadra]="diferencia === 0"
+             [class.arq-cifra--sobra]="diferencia > 0"
+             [class.arq-cifra--falta]="diferencia < 0">
           <span class="adm-etiqueta">Diferencia estimada</span
           ><strong>S/ {{ diferencia | number: '1.2-2' }}</strong>
+          <span class="arq-cifra__estado">
+            @if (diferencia === 0) { Cuadra }
+            @else if (diferencia > 0) { Sobra }
+            @else { Falta }
+            · tolerancia S/ {{ datos.tolerancia | number: '1.2-2' }}
+          </span>
         </div>
       </div>
-      <p class="adm-ayuda">
-        Inicial: S/ {{ datos.efectivo.monto_inicial | number: '1.2-2' }} · Ventas: S/
-        {{ datos.efectivo.ventas | number: '1.2-2' }} · Abonos: S/
-        {{ datos.efectivo.abonos | number: '1.2-2' }} · Ingresos: S/
-        {{ datos.efectivo.ingresos | number: '1.2-2' }} · Egresos: S/
-        {{ datos.efectivo.egresos | number: '1.2-2' }}. Calculado:
-        {{ datos.generado_en | date: 'short' }}. El servidor vuelve a calcular al guardar.
+      <ul class="arq-desglose" aria-label="Cómo se calcula el efectivo esperado">
+        <li><span>Inicial</span><strong>S/ {{ datos.efectivo.monto_inicial | number: '1.2-2' }}</strong></li>
+        <li><span>Ventas</span><strong>S/ {{ datos.efectivo.ventas | number: '1.2-2' }}</strong></li>
+        <li><span>Abonos</span><strong>S/ {{ datos.efectivo.abonos | number: '1.2-2' }}</strong></li>
+        <li><span>Ingresos</span><strong>S/ {{ datos.efectivo.ingresos | number: '1.2-2' }}</strong></li>
+        <li><span>Egresos</span><strong>S/ {{ datos.efectivo.egresos | number: '1.2-2' }}</strong></li>
+      </ul>
+      <p class="adm-ayuda arq-nota">
+        Calculado: {{ datos.generado_en | date: 'dd/MM/yyyy HH:mm' }}. El servidor vuelve a calcular al guardar.
       </p>
       @if (cierrePendiente) {
         <div class="adm-aviso adm-aviso--aviso" role="status">
+          <i class="bi bi-hourglass-split" aria-hidden="true"></i>
           <span
             >El arqueo {{ cierrePendiente.codigo }} ya está guardado; queda pendiente cerrar el
             turno.</span
@@ -63,24 +82,28 @@
       }
       @if (datos.apertura.abierta) {
         <fieldset
+          class="arq-grupo"
           [disabled]="
             cargando || guardando || guardandoMovimiento || !!errorCarga || !!cierrePendiente
           "
         >
-          <legend>Conteo de efectivo</legend>
-          <label class="arqueo-opcion"
+          <legend><i class="bi bi-cash-coin" aria-hidden="true"></i> Conteo de efectivo</legend>
+          <label class="arqueo-opcion adm-switch"
             ><input type="checkbox" [(ngModel)]="porDenominacion" /> Contar por billetes y
             monedas</label
           >
           @if (porDenominacion) {
             <div class="arqueo-denominaciones">
               @for (d of denominaciones; track d.denominacion) {
-                <div class="adm-campo">
+                <div class="adm-campo arq-den"
+                     [class.arq-den--billete]="d.tipo === 'billete'"
+                     [class.arq-den--moneda]="d.tipo === 'moneda'"
+                     [class.arq-den--con-cantidad]="(d.cantidad || 0) > 0">
                   <label class="adm-etiqueta" [for]="'denominacion-' + d.denominacion">{{
                     d.etiqueta
                   }}</label>
                   <input
-                    class="adm-input"
+                    class="adm-input adm-input--num"
                     [id]="'denominacion-' + d.denominacion"
                     type="number"
                     min="0"
@@ -88,7 +111,7 @@
                     step="1"
                     [(ngModel)]="d.cantidad"
                   />
-                  <span class="adm-ayuda"
+                  <span class="adm-ayuda arq-den__subtotal"
                     >S/ {{ d.denominacion * (d.cantidad || 0) | number: '1.2-2' }}</span
                   >
                 </div>
@@ -97,19 +120,22 @@
           } @else {
             <div class="adm-campo">
               <label class="adm-etiqueta" for="arqueo-manual">Total de efectivo contado (S/)</label>
-              <input
-                id="arqueo-manual"
-                class="adm-input"
-                type="number"
-                min="0"
-                max="10000000"
-                step="0.01"
-                [(ngModel)]="efectivoManual"
-              />
+              <div class="adm-input-grupo arq-manual">
+                <span class="adm-input-grupo__afijo" aria-hidden="true">S/</span>
+                <input
+                  id="arqueo-manual"
+                  class="adm-input adm-input--num"
+                  type="number"
+                  min="0"
+                  max="10000000"
+                  step="0.01"
+                  [(ngModel)]="efectivoManual"
+                />
+              </div>
             </div>
           }
           @if (medios.length) {
-            <h3 class="adm-bloque__titulo">Otros medios de pago</h3>
+            <h3 class="adm-bloque__titulo arq-subtitulo">Otros medios de pago</h3>
             <p class="adm-ayuda">
               Dejar vacío significa «sin declarar». Escriba 0 si comprobó que no hay saldo.
             </p>
@@ -136,8 +162,8 @@
               }
             </div>
           }
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="arqueo-observacion"
+          <div class="adm-campo arq-observacion">
+            <label class="adm-etiqueta" for="arqueo-observacion" [class.arq-observacion--obligatoria]="requiereObservacion"
               >Observación
               {{ requiereObservacion ? '(obligatoria por diferencia)' : '(opcional)' }}</label
             >
@@ -160,11 +186,12 @@
         </fieldset>
         <form #formMovimiento="ngForm" (ngSubmit)="registrarMovimiento()">
           <fieldset
+            class="arq-grupo"
             [disabled]="
               cargando || guardando || guardandoMovimiento || !!errorCarga || !!cierrePendiente
             "
           >
-            <legend>Ingreso o egreso de efectivo</legend>
+            <legend><i class="bi bi-arrow-left-right" aria-hidden="true"></i> Ingreso o egreso de efectivo</legend>
             <div class="adm-fila">
               <div class="adm-campo">
                 <label class="adm-etiqueta" for="mov-tipo">Tipo</label
@@ -178,7 +205,7 @@
                 ><input
                   id="mov-monto"
                   name="monto"
-                  class="adm-input"
+                  class="adm-input adm-input--num"
                   type="number"
                   required
                   min="0.01"
@@ -187,7 +214,7 @@
                   [(ngModel)]="movimiento.monto"
                 />
               </div>
-              <div class="adm-campo">
+              <div class="adm-campo adm-campo--grande">
                 <label class="adm-etiqueta" for="mov-motivo">Motivo</label
                 ><input
                   id="mov-motivo"
@@ -211,83 +238,96 @@
         </form>
       } @else {
         <p class="adm-aviso adm-aviso--neutro" role="status">
-          Turno cerrado. Puede consultar y descargar sus arqueos.
+          <i class="bi bi-lock" aria-hidden="true"></i>
+          <span>Turno cerrado. Puede consultar y descargar sus arqueos.</span>
         </p>
       }
     }
-    <h3 class="adm-bloque__titulo">Arqueos registrados</h3>
-    <div class="arqueo-tabla">
-      <table class="adm-tabla">
+    <h3 class="adm-bloque__titulo arq-subtitulo">Arqueos registrados</h3>
+    <div class="arqueo-tabla adm-tabla-envoltorio">
+      <table class="adm-tabla adm-tabla--adaptable">
         <thead>
           <tr>
             <th>Arqueo</th>
             <th>Fecha</th>
             <th>Tipo</th>
-            <th>Contado</th>
-            <th>Diferencia</th>
+            <th class="adm-num">Contado</th>
+            <th class="adm-num">Diferencia</th>
             <th>Comprobante</th>
           </tr>
         </thead>
         <tbody>
           @for (a of historial; track a.id_arqueo) {
             <tr>
-              <td>{{ a.codigo }}</td>
-              <td>{{ a.fecha | date: 'short' }}</td>
-              <td>{{ a.tipo }}</td>
-              <td>S/ {{ a.efectivo_contado | number: '1.2-2' }}</td>
-              <td [attr.title]="a.mensaje">S/ {{ a.diferencia | number: '1.2-2' }}</td>
-              <td>
+              <td data-etiqueta="Arqueo"><span class="adm-tabla__principal arq-codigo">{{ a.codigo }}</span></td>
+              <td data-etiqueta="Fecha">{{ a.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td data-etiqueta="Tipo">
+                <span class="adm-insignia adm-insignia--sm"
+                      [ngClass]="a.tipo === 'cierre' ? 'adm-insignia--primaria' : 'adm-insignia--neutra'">{{ a.tipo }}</span>
+              </td>
+              <td data-etiqueta="Contado" class="adm-num">S/ {{ a.efectivo_contado | number: '1.2-2' }}</td>
+              <td data-etiqueta="Diferencia" class="adm-num" [attr.title]="a.mensaje"
+                  [class.arq-dif--falta]="a.diferencia < 0" [class.arq-dif--sobra]="a.diferencia > 0"
+                  [class.arq-dif--cuadra]="a.diferencia === 0">
+                S/ {{ a.diferencia | number: '1.2-2' }}
+                <div class="adm-tabla__secundario">{{ a.mensaje }}</div>
+              </td>
+              <td data-etiqueta="Comprobante">
                 <div class="adm-acciones">
                   <button
-                    class="adm-btn adm-btn--suave"
+                    class="adm-btn adm-btn--suave adm-btn--sm"
                     type="button"
                     (click)="descargar(a, 'ticket')"
                     [disabled]="descargando !== null"
                   >
-                    Ticket</button
+                    <i class="bi bi-receipt" aria-hidden="true"></i> Ticket</button
                   ><button
-                    class="adm-btn adm-btn--suave"
+                    class="adm-btn adm-btn--suave adm-btn--sm"
                     type="button"
                     (click)="descargar(a, 'a4')"
                     [disabled]="descargando !== null"
                   >
-                    A4
+                    <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> A4
                   </button>
                 </div>
               </td>
             </tr>
           } @empty {
             <tr>
-              <td colspan="6">No hay arqueos registrados en este turno.</td>
+              <td colspan="6" class="arq-vacio">No hay arqueos registrados en este turno.</td>
             </tr>
           }
         </tbody>
       </table>
     </div>
-    <h3 class="adm-bloque__titulo">Movimientos del turno</h3>
-    <div class="arqueo-tabla">
-      <table class="adm-tabla">
+    <h3 class="adm-bloque__titulo arq-subtitulo">Movimientos del turno</h3>
+    <div class="arqueo-tabla adm-tabla-envoltorio">
+      <table class="adm-tabla adm-tabla--adaptable">
         <thead>
           <tr>
             <th>Fecha</th>
             <th>Tipo</th>
             <th>Motivo</th>
-            <th>Monto</th>
+            <th class="adm-num">Monto</th>
             <th>Usuario</th>
           </tr>
         </thead>
         <tbody>
           @for (m of movimientos; track m.id_movimiento) {
             <tr>
-              <td>{{ m.fecha | date: 'short' }}</td>
-              <td>{{ m.tipo }}</td>
-              <td>{{ m.descripcion }}</td>
-              <td>S/ {{ m.monto | number: '1.2-2' }}</td>
-              <td>{{ m.usuario_nombre || '—' }}</td>
+              <td data-etiqueta="Fecha">{{ m.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td data-etiqueta="Tipo">
+                <span class="adm-insignia adm-insignia--sm adm-insignia--punto"
+                      [ngClass]="m.tipo === 'ingreso' ? 'adm-insignia--exito' : 'adm-insignia--peligro'">{{ m.tipo }}</span>
+              </td>
+              <td data-etiqueta="Motivo">{{ m.descripcion }}</td>
+              <td data-etiqueta="Monto" class="adm-num"
+                  [class.arq-mov--ingreso]="m.tipo === 'ingreso'" [class.arq-mov--egreso]="m.tipo === 'egreso'">S/ {{ m.monto | number: '1.2-2' }}</td>
+              <td data-etiqueta="Usuario">{{ m.usuario_nombre || '—' }}</td>
             </tr>
           } @empty {
             <tr>
-              <td colspan="5">No hay movimientos de efectivo.</td>
+              <td colspan="5" class="arq-vacio">No hay movimientos de efectivo.</td>
             </tr>
           }
         </tbody>

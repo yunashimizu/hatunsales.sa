@@ -1,73 +1,95 @@
-<section class="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50 to-sky-100">
-  <!-- Orbes de fondo -->
-  <div class="pointer-events-none absolute inset-0" aria-hidden="true">
-    <div class="absolute -left-24 top-10 h-72 w-72 rounded-full bg-indigo-300/40 blur-3xl"></div>
-    <div class="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-sky-300/40 blur-3xl"></div>
-    <div class="absolute left-1/3 top-1/2 h-64 w-64 rounded-full bg-indigo-200/30 blur-3xl"></div>
-  </div>
+<section class="auth relative min-h-screen overflow-hidden">
+  <!-- Fondo: resplandores de marca y papel cuadriculado -->
+  <div class="auth-fondo pointer-events-none absolute inset-0" aria-hidden="true"></div>
 
-  <div class="relative mx-auto grid min-h-screen max-w-7xl grid-cols-1 lg:grid-cols-2">
+  <div class="relative mx-auto grid min-h-screen max-w-[1480px] grid-cols-1 gap-0 p-3 sm:p-5 lg:grid-cols-[1.08fr_0.92fr] lg:gap-4">
 
-    <!-- ── Aside branding (entrada escalonada: mov-item + --i) ── -->
-    <aside class="relative flex flex-col justify-between px-8 py-10 lg:px-14 lg:py-12">
-      <div class="mov-item" style="--i: 0">
-        <a routerLink="/store" class="inline-flex items-center gap-3" title="Ir a la tienda">
-          <span class="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/30">
-            <i class="bi bi-building-gear text-xl"></i>
-          </span>
-          <span>
-            <span class="block text-lg font-bold tracking-tight text-slate-900">HatunSales S.A.C</span>
-            <span class="block text-xs text-slate-500">Todo para construir tus sueños</span>
+    <!-- ── Escenario de marca (entrada escalonada: mov-item + --i) ── -->
+    <aside class="auth-escenario x-grano x-plano relative flex flex-col justify-between overflow-hidden rounded-[2rem] px-7 py-9 lg:px-12 lg:py-12">
+      <div class="auth-aurora" aria-hidden="true"></div>
+
+      <div class="mov-item relative z-10 flex flex-wrap items-center justify-between gap-3" style="--i: 0">
+        <a routerLink="/store" class="auth-marca" title="Ir a la tienda">
+          <span class="auth-marca__logo"><i class="bi bi-tools"></i></span>
+          <span class="auth-marca__texto">
+            <strong>HatunSales S.A.C</strong>
+            <small>Todo para construir tus sueños</small>
           </span>
         </a>
-        <a routerLink="/store"
-           class="mt-3 inline-flex w-fit items-center gap-2 rounded-xl border border-indigo-200 bg-white/80 px-3 py-2 text-xs font-semibold text-indigo-700 shadow-sm backdrop-blur hover:bg-indigo-50">
+        <a routerLink="/store" class="x-boton x-boton--mono x-boton--sm">
           <i class="bi bi-shop"></i> Visitar tienda online
         </a>
       </div>
 
-      <div class="my-10 flex flex-1 flex-col justify-center">
-        <h2 class="mov-item max-w-md text-3xl font-bold leading-tight text-slate-900 sm:text-4xl" style="--i: 1">
+      <div class="relative z-10 my-10 flex flex-1 flex-col justify-center">
+        <span class="mov-item x-etiqueta x-etiqueta--corchetes auth-etiqueta" style="--i: 1">
+          {{ modo === 'login' ? 'Acceso' : 'Registro' }}
+        </span>
+        <h2 class="mov-item x-display auth-titulo" style="--i: 1">
           {{ modo === 'login' ? 'Bienvenido de nuevo.' : 'Construye más, con lo mejor.' }}
         </h2>
-        <p class="mov-item mt-4 max-w-md text-sm leading-relaxed text-slate-600 sm:text-base" style="--i: 2">
+        <p class="mov-item auth-parrafo" style="--i: 2">
           Accede a miles de productos de ferretería, herramientas y materiales con la confianza de Hatunsales S.A.C.
         </p>
 
-        <!-- Ilustración decorativa: solo escritorio (en móvil ni se muestra ni se descarga lottie). -->
-        <div class="mov-item relative mx-auto mt-8 hidden h-56 w-full max-w-md sm:h-64 lg:block" style="--i: 3" aria-hidden="true">
-          <div class="absolute inset-x-10 bottom-4 h-8 rounded-full bg-indigo-400/20 blur-xl"></div>
-          <div #lottieHost class="auth-ilustracion relative z-10 mx-auto h-full w-full max-w-sm"></div>
+        <!-- Instrumento decorativo: solo escritorio (en móvil ni se muestra ni se descarga lottie). -->
+        <div class="mov-item auth-instrumento hidden lg:block" style="--i: 3" aria-hidden="true">
+          <div class="x-dial auth-dial">
+            <i class="x-dial__anillo"></i>
+            <i class="x-dial__marcas"></i>
+            <i class="x-dial__aro"></i>
+            <div class="x-dial__disco hidden lg:block">
+              <div #lottieHost class="auth-ilustracion"></div>
+            </div>
+            <div class="x-dial__orbita">
+              <span class="x-dial__chip" style="--i: 0; --x-chip-color: var(--x-coral)"><i class="bi bi-hammer"></i></span>
+              <span class="x-dial__chip" style="--i: 1; --x-chip-color: var(--x-amarillo)"><i class="bi bi-lightning-charge-fill"></i></span>
+              <span class="x-dial__chip" style="--i: 2; --x-chip-color: var(--x-menta)"><i class="bi bi-brush"></i></span>
+              <span class="x-dial__chip" style="--i: 3; --x-chip-color: var(--x-cian)"><i class="bi bi-plug-fill"></i></span>
+              <span class="x-dial__chip" style="--i: 4; --x-chip-color: var(--x-azul)"><i class="bi bi-wrench-adjustable"></i></span>
+              <span class="x-dial__chip" style="--i: 5; --x-chip-color: var(--x-rosa)"><i class="bi bi-shield-check"></i></span>
+            </div>
+          </div>
         </div>
 
-        <div class="mov-item mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" style="--i: 4">
+        <div class="mov-item mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4" style="--i: 4">
           @for (b of beneficios; track b.titulo) {
-            <div class="rounded-2xl border border-white/60 bg-white/70 p-3 shadow-sm backdrop-blur-xl">
-              <div class="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-xl text-sm" [ngClass]="b.tono">
+            <div class="auth-beneficio">
+              <div class="auth-beneficio__icono">
                 <i class="bi" [ngClass]="b.icono"></i>
               </div>
-              <div class="text-xs font-semibold text-slate-800">{{ b.titulo }}</div>
-              <div class="text-[11px] text-slate-500">{{ b.texto }}</div>
+              <div class="auth-beneficio__titulo">{{ b.titulo }}</div>
+              <div class="auth-beneficio__texto">{{ b.texto }}</div>
             </div>
           }
         </div>
       </div>
 
-      <p class="mov-item flex items-center gap-2 text-xs text-slate-500" style="--i: 5">
+      <p class="mov-item auth-seguro relative z-10" style="--i: 5">
         <i class="bi bi-shield-lock"></i>
         Conexión segura · Datos cifrados · Hatunsales S.A.C
       </p>
     </aside>
 
     <!-- ── Formulario (contenido proyectado): primero en móvil y sin fundido de entrada ── -->
-    <main class="order-first flex items-center justify-center px-5 py-10 sm:px-10 lg:order-none" (focusin)="precargarPanelAlEscribir()">
-      <div class="auth-card w-full max-w-md rounded-[2rem] border border-white/50 bg-white/80 p-7 shadow-2xl backdrop-blur-xl sm:p-9">
-        <ng-content></ng-content>
+    <main class="order-first flex items-center justify-center px-2 py-8 sm:px-10 lg:order-none" (focusin)="precargarPanelAlEscribir()">
+      <div class="w-full max-w-md">
+        <a routerLink="/store" class="auth-marca auth-marca--movil lg:hidden" title="Ir a la tienda">
+          <span class="auth-marca__logo"><i class="bi bi-tools"></i></span>
+          <span class="auth-marca__texto">
+            <strong>HatunSales S.A.C</strong>
+            <small>Todo para construir tus sueños</small>
+          </span>
+        </a>
+
+        <div class="auth-card w-full rounded-[2rem] p-7 sm:p-9">
+          <ng-content></ng-content>
+        </div>
       </div>
     </main>
   </div>
 
-  <footer class="pointer-events-none absolute inset-x-0 bottom-0 hidden border-t border-white/40 bg-white/40 px-8 py-3 text-xs text-slate-500 backdrop-blur-md lg:flex lg:items-center lg:justify-between">
+  <footer class="auth-pie pointer-events-none absolute inset-x-0 bottom-0 hidden px-8 py-3 lg:flex lg:items-center lg:justify-between">
     <span class="inline-flex items-center gap-3">
       <span class="inline-flex items-center gap-1"><i class="bi bi-shield-check"></i> SSL</span>
       <span class="inline-flex items-center gap-1"><i class="bi bi-lock"></i> Privacidad</span>

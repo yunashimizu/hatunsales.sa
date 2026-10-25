@@ -44,6 +44,17 @@
 
 .doc-monitor__texto .adm-aviso__titulo { font-size: 14px; }
 
+/* ── Pestañas ────────────────────────────────────────────────── */
+
+.doc-pestanias { align-self: flex-start; }
+
+.doc-panel-pestana {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  min-width: 0;
+}
+
 /* ── Indicadores ─────────────────────────────────────────────── */
 
 .doc-esqueleto-valor {
@@ -55,9 +66,9 @@
 
 /* ── Filtros ─────────────────────────────────────────────────── */
 
-/* Bases ajustadas para que los seis controles quepan en una línea a 1440 px
-   y se repartan en dos filas limpias en tableta. */
-.doc-filtros > .doc-campo--select { flex: 1 1 140px; }
+/* Bases ajustadas para que los controles quepan en una o dos líneas a 1440 px
+   y se repartan en filas limpias en tableta. */
+.doc-filtros > .doc-campo--select { flex: 1 1 150px; }
 .doc-filtros > .doc-campo--fecha { flex: 1 1 140px; }
 
 /* Mismo alto que los inputs para que el borde inferior quede alineado */
@@ -122,6 +133,22 @@
   -webkit-box-orient: vertical;
 }
 
+/* Enlaces dentro de la tabla (venta, comprobante que modifica una nota) */
+.doc-enlace {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: var(--fw-semi, 600);
+  color: var(--adm-primario);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.doc-enlace:hover { text-decoration-thickness: 2px; }
+.doc-enlace:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; border-radius: 2px; }
+
 /* Un documento anulado sigue visible, pero se nota que ya no vale.
    Las acciones quedan nítidas: el detalle se sigue pudiendo abrir. */
 .doc-fila--anulada > td:not(.doc-td-acciones) { opacity: 0.62; }
@@ -133,68 +160,11 @@
   box-shadow: inset 0 0 0 1px var(--adm-borde);
 }
 
-/* Fila con una operación en curso (PDF, reconsulta o anulación) */
+/* Fila con una descarga en curso */
 .doc-fila--procesando { cursor: progress; }
 .doc-fila--procesando > td:first-child { box-shadow: inset 3px 0 0 var(--adm-primario); }
 
 .doc-paginacion__total { color: var(--adm-texto); font-weight: 700; }
-
-/* ── Panel de detalle ────────────────────────────────────────── */
-
-.doc-panel__sub {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
-}
-
-.doc-aviso__texto { display: block; overflow-wrap: anywhere; }
-
-.doc-ticket .adm-ticket__emisor,
-.doc-ticket .adm-ticket__dato span:last-child,
-.doc-ticket__descripcion { min-width: 0; overflow-wrap: anywhere; }
-
-.doc-ticket-esqueleto {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--adm-borde);
-  border-radius: var(--adm-r-md);
-}
-
-.doc-ticket-esqueleto__cabecera {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px dashed var(--adm-borde-fuerte);
-}
-
-.doc-ticket-esqueleto__emisor {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 9px;
-  min-width: 0;
-}
-
-.doc-ticket-esqueleto__nombre { width: 70%; }
-.doc-ticket-esqueleto__corta { width: 40%; }
-
-.doc-ticket-esqueleto__recuadro {
-  width: 136px;
-  height: 66px;
-  flex-shrink: 0;
-  border-radius: var(--adm-r-sm);
-}
-
-.doc-pie__ayuda {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-right: auto;
-}
 
 /* ── Tableta y portátil chico: columnas prioritarias ─────────── */
 
@@ -230,6 +200,9 @@
 @media (max-width: 640px) {
   .doc-monitor { flex-wrap: wrap; }
   .doc-monitor > .adm-aviso__accion { flex: 1 1 100%; margin-left: 0; }
+
+  .doc-pestanias { align-self: stretch; }
+  .doc-pestanias > .adm-pestania { flex: 1 1 auto; justify-content: center; }
 
   /* El total ocupa todo el ancho y los dos estados quedan lado a lado */
   .doc-metricas > .doc-metrica--total {
@@ -269,7 +242,4 @@
     padding-top: 9px;
     border-top: 1px dashed var(--adm-borde);
   }
-
-  .doc-pie__ayuda { flex: 1 1 100%; }
-  .doc-ticket-esqueleto__recuadro { width: 96px; }
 }

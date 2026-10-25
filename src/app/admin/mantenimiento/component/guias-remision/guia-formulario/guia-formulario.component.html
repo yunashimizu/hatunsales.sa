@@ -1,0 +1,775 @@
+<div class="adm-velo" aria-hidden="true" (click)="solicitarCierre()"></div>
+
+<aside class="adm-panel adm-panel--ancho gre-form" role="dialog" aria-modal="true" aria-labelledby="gre-form-titulo"
+       (keydown.escape)="solicitarCierre()">
+  <div class="adm-panel__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="gre-form-titulo"><i class="bi bi-truck" aria-hidden="true"></i> {{ titulo }}</h2>
+      @if (catalogos) {
+        <p class="adm-panel__sub">{{ subtitulo }}</p>
+      }
+    </div>
+    <button type="button" class="adm-btn-icono" (click)="solicitarCierre()" [disabled]="!!ocupado"
+            aria-label="Cerrar el formulario de la guía">
+      <i class="bi bi-x-lg" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="adm-panel__cuerpo">
+    @if (cargando) {
+      <div class="adm-esqueletos" aria-busy="true" aria-label="Preparando el formulario de la guía">
+        <div class="adm-esqueleto adm-esqueleto--titulo"></div>
+        <div class="adm-esqueleto adm-esqueleto--fila"></div>
+        <div class="adm-esqueleto adm-esqueleto--fila"></div>
+      </div>
+    } @else if (errorCarga) {
+      <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+        <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">No se pudo abrir el formulario</div>
+        <p>{{ errorCarga }}</p>
+        <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+          <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+        </button>
+      </div>
+    } @else if (catalogos; as cat) {
+      @if (rechazada) {
+        <div class="adm-aviso adm-aviso--peligro" role="status">
+          <i class="bi bi-x-octagon" aria-hidden="true"></i>
+          <div>
+            <span class="adm-aviso__titulo">SUNAT rechazó esta guía</span>
+            {{ guia?.error_mensaje || 'Revise los datos que indicó SUNAT.' }}
+            Corrija y vuelva a emitir: se reenviará con el mismo número {{ guia?.numero_formateado }}.
+          </div>
+        </div>
+      }
+      @if (modo && !modo.activo) {
+        <div class="adm-aviso adm-aviso--info" role="status">
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+          <div>
+            <span class="adm-aviso__titulo">Emitir a SUNAT no está disponible</span>
+            {{ modo.motivo }} Puede guardar el borrador y validarlo sin enviar.
+          </div>
+        </div>
+      }
+      @if (errorModo) {
+        <div class="adm-aviso adm-aviso--aviso" role="alert">
+          <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+          <span>No se pudo comprobar si la emisión de guías está activa: {{ errorModo }}</span>
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargarModo(true)">Reintentar</button>
+        </div>
+      }
+      @if (avisoGuardado) {
+        <div class="adm-aviso adm-aviso--info" role="status">
+          <i class="bi bi-save" aria-hidden="true"></i><span>{{ avisoGuardado }}</span>
+        </div>
+      }
+      @for (aviso of avisosCarga; track aviso) {
+        <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto">
+          <i class="bi bi-info-circle" aria-hidden="true"></i><span>{{ aviso }}</span>
+        </div>
+      }
+      @if (resumenErrores.length) {
+        <div class="adm-aviso adm-aviso--peligro" role="alert">
+          <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+          <div class="gre-form__resumen">
+            <span class="adm-aviso__titulo">
+              {{ resumenErrores.length === 1 ? 'Hay 1 dato por corregir' : 'Hay ' + resumenErrores.length + ' datos por corregir' }}
+            </span>
+            <ul>
+              @for (e of resumenErrores; track $index) {
+                <li>
+                  {{ e.mensaje }}
+                  @if (e.paso && e.paso !== paso) {
+                    <button type="button" class="adm-btn adm-btn--fantasma adm-btn--sm" (click)="irA(e.paso)">
+                      Ir a «{{ nombrePaso(e.paso) }}»
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      }
+      @if (validacionVigente) {
+        <div class="adm-aviso adm-aviso--exito" role="status">
+          <i class="bi bi-check2-circle" aria-hidden="true"></i>
+          <span>La guía cumple las validaciones de SUNAT: ya puede emitirla.</span>
+        </div>
+      }
+      @if (advertencias.length) {
+        <div class="adm-aviso adm-aviso--aviso" role="status">
+          <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+          <div class="gre-form__resumen">
+            <span class="adm-aviso__titulo">Advertencias (no impiden emitir)</span>
+            <ul>
+              @for (a of advertencias; track a) {
+                <li>{{ a }}</li>
+              }
+            </ul>
+          </div>
+        </div>
+      }
+
+      <div class="adm-pestanias gre-form__pasos" role="tablist" aria-label="Pasos de la guía">
+        @for (p of pasos; track p.id; let i = $index) {
+          <button type="button" role="tab" class="adm-pestania" [id]="'gre-tab-' + p.id"
+                  [class.adm-pestania--activa]="paso === p.id" [attr.aria-selected]="paso === p.id"
+                  [attr.aria-controls]="'gre-paso-' + p.id" (click)="irA(p.id)">
+            <span class="gre-form__numero" aria-hidden="true">{{ i + 1 }}</span> {{ p.titulo }}
+            @if (erroresDePaso(p.id); as n) {
+              <span class="adm-insignia adm-insignia--peligro adm-insignia--sm">{{ n }}<span class="visually-hidden"> por corregir</span></span>
+            }
+          </button>
+        }
+      </div>
+
+      <section class="gre-form__paso" role="tabpanel" [id]="'gre-paso-' + paso" [attr.aria-labelledby]="'gre-tab-' + paso">
+        @switch (paso) {
+          @case ('origen') {
+            <div class="adm-campo">
+              <span class="adm-etiqueta" id="gre-origen-etiqueta">¿De dónde sale la guía?</span>
+              <div class="adm-segmentado adm-segmentado--bloque" role="radiogroup" aria-labelledby="gre-origen-etiqueta">
+                <button type="button" role="radio" class="adm-segmento" [class.adm-segmento--activo]="f.origen === 'venta'"
+                        [attr.aria-checked]="f.origen === 'venta'" [disabled]="origenFijo && f.origen !== 'venta'"
+                        (click)="cambiarOrigen('venta')">
+                  <i class="bi bi-receipt" aria-hidden="true"></i> Desde una venta
+                </button>
+                <button type="button" role="radio" class="adm-segmento" [class.adm-segmento--activo]="f.origen === 'sin_venta'"
+                        [attr.aria-checked]="f.origen === 'sin_venta'" [disabled]="origenFijo && f.origen !== 'sin_venta'"
+                        (click)="cambiarOrigen('sin_venta')">
+                  <i class="bi bi-building" aria-hidden="true"></i> Sin venta (entre locales u otros)
+                </button>
+              </div>
+              @if (origenFijo) {
+                <p class="adm-ayuda">El origen de una guía guardada no cambia: para otra venta, anule esta guía y cree una nueva.</p>
+              }
+            </div>
+
+            @if (f.origen === 'venta') {
+              @if (contexto; as ctx) {
+                <div class="adm-bloque">
+                  <h3 class="adm-bloque__titulo"><i class="bi bi-receipt" aria-hidden="true"></i> Venta #{{ ctx.venta.id_venta }}</h3>
+                  <div class="adm-datos">
+                    <div class="adm-dato"><span class="adm-dato__etiqueta">Fecha</span><span class="adm-dato__valor">{{ fechaGuia(ctx.venta.fecha) }}</span></div>
+                    <div class="adm-dato"><span class="adm-dato__etiqueta">Total</span><span class="adm-dato__valor">S/ {{ ctx.venta.total | number: '1.2-2' }}</span></div>
+                    <div class="adm-dato">
+                      <span class="adm-dato__etiqueta">Documento relacionado</span>
+                      <span class="adm-dato__valor">
+                        {{ ctx.documento_relacionado ? ctx.documento_relacionado.tipo_texto + ' ' + ctx.documento_relacionado.numero_formateado : 'Sin factura ni boleta' }}
+                      </span>
+                    </div>
+                    <div class="adm-dato"><span class="adm-dato__etiqueta">Cliente</span><span class="adm-dato__valor">{{ ctx.destinatario.denominacion || 'Sin nombre' }}</span></div>
+                  </div>
+                  @if (ctx.guias.length) {
+                    <p class="adm-ayuda gre-form__guias-venta">
+                      Guías de esta venta:
+                      @for (g of ctx.guias; track g.id_guia) {
+                        <span class="adm-insignia adm-insignia--neutra adm-insignia--sm">{{ g.numero_formateado || 'Borrador #' + g.id_guia }} · {{ g.estado_texto }}</span>
+                      }
+                    </p>
+                  }
+                  @if (!origenFijo) {
+                    <button type="button" class="adm-btn adm-btn--fantasma adm-btn--sm" (click)="cambiarVenta()">
+                      <i class="bi bi-arrow-left-right" aria-hidden="true"></i> Elegir otra venta
+                    </button>
+                  }
+                </div>
+                @if (!ctx.permitido && !origenFijo) {
+                  <div class="adm-aviso adm-aviso--peligro" role="alert">
+                    <i class="bi bi-slash-circle" aria-hidden="true"></i><span>{{ ctx.motivo_no_permitido }}</span>
+                  </div>
+                }
+              } @else {
+                <div class="adm-campo adm-autocompletar">
+                  <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-buscar-venta">Venta</label>
+                  <input id="gre-buscar-venta" class="adm-input" type="text" autocomplete="off"
+                         placeholder="N.° de venta, cliente o RUC" [ngModel]="busquedaVenta" (ngModelChange)="buscarVenta($event)"
+                         [disabled]="cargandoVenta" [class.adm-input--error]="!!error('venta')" aria-describedby="gre-venta-ayuda">
+                  @if (ventasEncontradas.length) {
+                    <ul class="adm-sugerencias" aria-label="Ventas encontradas">
+                      @for (v of ventasEncontradas; track v.id_venta) {
+                        <li>
+                          <button type="button" class="adm-sugerencia gre-form__sugerencia" (click)="elegirVenta(v.id_venta)">
+                            <span class="adm-insignia adm-insignia--neutra adm-mono">#{{ v.id_venta }}</span>
+                            <span class="adm-sugerencia__texto">
+                              <span class="adm-sugerencia__titulo">{{ v.cliente }}</span>
+                              <span class="adm-sugerencia__detalle">
+                                {{ fechaGuia(v.fecha) }} · S/ {{ v.total | number: '1.2-2' }}{{ v.comprobante ? ' · ' + v.comprobante : '' }}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                  @if (error('venta'); as e) {
+                    <p class="adm-ayuda adm-ayuda--error" id="gre-venta-ayuda"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                  } @else if (errorVentas) {
+                    <p class="adm-ayuda adm-ayuda--error" id="gre-venta-ayuda" role="alert"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ errorVentas }}</p>
+                  } @else if (buscandoVentas || cargandoVenta) {
+                    <p class="adm-ayuda" id="gre-venta-ayuda" role="status">{{ cargandoVenta ? 'Cargando la venta…' : 'Buscando ventas…' }}</p>
+                  } @else if (busquedaVenta.trim().length >= 2 && !ventasEncontradas.length) {
+                    <p class="adm-ayuda" id="gre-venta-ayuda">Ninguna venta coincide con «{{ busquedaVenta.trim() }}».</p>
+                  } @else {
+                    <p class="adm-ayuda" id="gre-venta-ayuda">Busque la venta por su número, el cliente o su RUC.</p>
+                  }
+                </div>
+              }
+            }
+
+            <fieldset class="gre-form__grupo">
+              <legend class="adm-etiqueta adm-etiqueta--requerida">Motivo del traslado</legend>
+              <div class="gre-form__opciones">
+                @for (m of motivos; track m.codigo) {
+                  <label class="gre-opcion" [class.gre-opcion--activa]="f.motivo_traslado === m.codigo">
+                    <input type="radio" name="gre-motivo" [value]="m.codigo" [(ngModel)]="f.motivo_traslado">
+                    <span class="gre-opcion__texto"><strong>{{ m.codigo }} · {{ m.nombre }}</strong><small>{{ m.descripcion }}</small></span>
+                  </label>
+                }
+              </div>
+              @if (error('motivo_traslado'); as e) {
+                <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+              }
+            </fieldset>
+            @if (f.motivo_traslado === '13') {
+              <div class="adm-campo">
+                <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-desc-motivo">Descripción del motivo</label>
+                <input id="gre-desc-motivo" class="adm-input" maxlength="100" placeholder="Ej.: traslado a reparación"
+                       [(ngModel)]="f.descripcion_motivo" [class.adm-input--error]="!!error('descripcion_motivo')">
+                @if (error('descripcion_motivo'); as e) {
+                  <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                }
+              </div>
+            }
+            @if (f.motivo_traslado === '04') {
+              <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                <span>El destinatario es la propia empresa. En «Fechas y trayecto» indique el código de establecimiento de la partida y de la llegada.</span>
+              </div>
+            }
+          }
+
+          @case ('transporte') {
+            <div class="adm-bloque">
+              <h3 class="adm-bloque__titulo"><i class="bi bi-person-vcard" aria-hidden="true"></i> Destinatario</h3>
+              @if (f.motivo_traslado === '04') {
+                <p class="adm-ayuda">Con el motivo 04 el destinatario es la propia empresa (su RUC): no hay que llenarlo.</p>
+              } @else {
+                <div class="adm-fila">
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-dest-tipo">Tipo de documento</label>
+                    <select id="gre-dest-tipo" class="adm-select" [(ngModel)]="f.destinatario.tipo_documento"
+                            [class.adm-select--error]="!!error('destinatario.tipo_documento')">
+                      <option value="">Elija…</option>
+                      @for (t of cat.tipos_documento_destinatario; track t.codigo) {
+                        <option [value]="t.codigo">{{ t.nombre }}</option>
+                      }
+                    </select>
+                    @if (error('destinatario.tipo_documento'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-dest-num">Número de documento</label>
+                    <div class="adm-input-grupo">
+                      <input id="gre-dest-num" class="adm-input" maxlength="15" autocomplete="off" [(ngModel)]="f.destinatario.numero_documento"
+                             [class.adm-input--error]="!!error('destinatario.numero_documento')">
+                      @if (f.destinatario.tipo_documento === '6') {
+                        <button type="button" class="adm-btn adm-btn--suave" (click)="consultarRuc('destinatario')" [disabled]="!!consultandoRuc"
+                                aria-label="Buscar la razón social del destinatario por su RUC">
+                          <i class="bi" [ngClass]="consultandoRuc === 'destinatario' ? 'bi-arrow-repeat adm-girando' : 'bi-search'" aria-hidden="true"></i>
+                        </button>
+                      }
+                    </div>
+                    @if (error('destinatario.numero_documento'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                    @if (avisosRuc.destinatario) {
+                      <p class="adm-ayuda adm-texto-aviso" role="status">{{ avisosRuc.destinatario }}</p>
+                    }
+                  </div>
+                  <div class="adm-campo adm-campo--grande">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-dest-nombre">Nombre o razón social</label>
+                    <input id="gre-dest-nombre" class="adm-input" maxlength="250" [(ngModel)]="f.destinatario.denominacion"
+                           [class.adm-input--error]="!!error('destinatario.denominacion')">
+                    @if (error('destinatario.denominacion'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                </div>
+                <div class="adm-campo">
+                  <label class="adm-etiqueta" for="gre-dest-direccion">Dirección del destinatario <span class="adm-etiqueta__opcional">opcional</span></label>
+                  <input id="gre-dest-direccion" class="adm-input" maxlength="500" [(ngModel)]="f.destinatario.direccion">
+                </div>
+              }
+            </div>
+
+            <div class="adm-bloque">
+              <h3 class="adm-bloque__titulo"><i class="bi bi-truck" aria-hidden="true"></i> Modalidad de transporte</h3>
+              <div class="adm-segmentado adm-segmentado--bloque" role="radiogroup" aria-label="Modalidad de transporte">
+                @for (m of cat.modalidades; track m.codigo) {
+                  <button type="button" role="radio" class="adm-segmento" [class.adm-segmento--activo]="f.modalidad_traslado === m.codigo"
+                          [attr.aria-checked]="f.modalidad_traslado === m.codigo" (click)="f.modalidad_traslado = m.codigo">
+                    {{ m.nombre }}
+                  </button>
+                }
+              </div>
+              @if (error('modalidad_traslado'); as e) {
+                <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+              } @else {
+                <p class="adm-ayuda">{{ modalidadElegida?.descripcion || 'Elija cómo se trasladan los bienes.' }}</p>
+              }
+
+              @if (f.modalidad_traslado === '01') {
+                <div class="adm-fila gre-form__fila">
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-tr-ruc">RUC del transportista</label>
+                    <div class="adm-input-grupo">
+                      <input id="gre-tr-ruc" class="adm-input" maxlength="11" inputmode="numeric" autocomplete="off" [(ngModel)]="f.transportista.ruc"
+                             [class.adm-input--error]="!!error('transportista.ruc')">
+                      <button type="button" class="adm-btn adm-btn--suave" (click)="consultarRuc('transportista')" [disabled]="!!consultandoRuc"
+                              aria-label="Buscar la razón social del transportista por su RUC">
+                        <i class="bi" [ngClass]="consultandoRuc === 'transportista' ? 'bi-arrow-repeat adm-girando' : 'bi-search'" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                    @if (error('transportista.ruc'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                    @if (avisosRuc.transportista) {
+                      <p class="adm-ayuda adm-texto-aviso" role="status">{{ avisosRuc.transportista }}</p>
+                    }
+                  </div>
+                  <div class="adm-campo adm-campo--grande">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-tr-razon">Razón social del transportista</label>
+                    <input id="gre-tr-razon" class="adm-input" maxlength="250" [(ngModel)]="f.transportista.razon_social"
+                           [class.adm-input--error]="!!error('transportista.razon_social')">
+                    @if (error('transportista.razon_social'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta" for="gre-tr-mtc">Registro MTC <span class="adm-etiqueta__opcional">opcional</span></label>
+                    <input id="gre-tr-mtc" class="adm-input" maxlength="20" [(ngModel)]="f.transportista.registro_mtc"
+                           [class.adm-input--error]="!!error('transportista.registro_mtc')">
+                    @if (error('transportista.registro_mtc'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (f.modalidad_traslado === '02') {
+                <div class="adm-fila gre-form__fila">
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-placa">Placa del vehículo</label>
+                    <input id="gre-placa" class="adm-input adm-mono" maxlength="12" autocomplete="off" placeholder="ABC123" [(ngModel)]="f.vehiculo.placa"
+                           [class.adm-input--error]="!!error('vehiculo.placa') || !!error('vehiculo')">
+                    @if (error('vehiculo.placa') || error('vehiculo'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta" for="gre-marca">Marca <span class="adm-etiqueta__opcional">opcional</span></label>
+                    <input id="gre-marca" class="adm-input" maxlength="120" [(ngModel)]="f.vehiculo.marca">
+                  </div>
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta" for="gre-tuc">Tarjeta de circulación <span class="adm-etiqueta__opcional">opcional</span></label>
+                    <input id="gre-tuc" class="adm-input" maxlength="15" [(ngModel)]="f.vehiculo.tarjeta_circulacion"
+                           [class.adm-input--error]="!!error('vehiculo.tarjeta_circulacion')">
+                    @if (error('vehiculo.tarjeta_circulacion'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                </div>
+
+                <h4 class="adm-bloque__titulo gre-form__subtitulo"><i class="bi bi-person-badge" aria-hidden="true"></i> Conductor</h4>
+                @if (error('conductor'); as e) {
+                  <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                }
+                <div class="adm-fila">
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-cond-tipo">Documento</label>
+                    <select id="gre-cond-tipo" class="adm-select" [(ngModel)]="f.conductor.tipo_documento"
+                            [class.adm-select--error]="!!error('conductor.tipo_documento')">
+                      @for (t of cat.tipos_documento_conductor; track t.codigo) {
+                        <option [value]="t.codigo">{{ t.nombre }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-cond-num">Número</label>
+                    <input id="gre-cond-num" class="adm-input" maxlength="15" autocomplete="off" [(ngModel)]="f.conductor.numero_documento"
+                           [class.adm-input--error]="!!error('conductor.numero_documento')">
+                    @if (error('conductor.numero_documento'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-cond-licencia">Licencia de conducir</label>
+                    <input id="gre-cond-licencia" class="adm-input adm-mono" maxlength="10" autocomplete="off" [(ngModel)]="f.conductor.licencia"
+                           [class.adm-input--error]="!!error('conductor.licencia')">
+                    @if (error('conductor.licencia'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                </div>
+                <div class="adm-fila">
+                  <div class="adm-campo adm-campo--grande">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-cond-nombres">Nombres</label>
+                    <input id="gre-cond-nombres" class="adm-input" maxlength="250" [(ngModel)]="f.conductor.nombres"
+                           [class.adm-input--error]="!!error('conductor.nombres')">
+                    @if (error('conductor.nombres'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                  <div class="adm-campo adm-campo--grande">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-cond-apellidos">Apellidos</label>
+                    <input id="gre-cond-apellidos" class="adm-input" maxlength="250" [(ngModel)]="f.conductor.apellidos"
+                           [class.adm-input--error]="!!error('conductor.apellidos')">
+                    @if (error('conductor.apellidos'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          @case ('trayecto') {
+            <div class="adm-fila">
+              <div class="adm-campo adm-campo--medio">
+                <span class="adm-etiqueta">Fecha de emisión</span>
+                <span class="adm-dato__valor">
+                  {{ guia?.fecha_emision ? fechaGuia(guia?.fecha_emision) : 'Hoy, ' + fechaGuia(cat.hoy) }}
+                </span>
+                <span class="adm-ayuda">Se asigna al emitir (hora de Lima).</span>
+              </div>
+              <div class="adm-campo adm-campo--medio">
+                <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-inicio">Inicio del traslado</label>
+                <input id="gre-inicio" class="adm-input" type="date" [attr.min]="cat.hoy" [(ngModel)]="f.fecha_inicio_traslado"
+                       [class.adm-input--error]="!!error('fecha_inicio_traslado')">
+                @if (error('fecha_inicio_traslado'); as e) {
+                  <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                } @else {
+                  <span class="adm-ayuda">Hoy o un día posterior.</span>
+                }
+              </div>
+              @if (f.modalidad_traslado === '01') {
+                <div class="adm-campo adm-campo--medio">
+                  <label class="adm-etiqueta" for="gre-entrega">Entrega al transportista <span class="adm-etiqueta__opcional">opcional</span></label>
+                  <input id="gre-entrega" class="adm-input" type="date" [attr.min]="cat.hoy" [(ngModel)]="f.fecha_entrega_transportista"
+                         [class.adm-input--error]="!!error('fecha_entrega_transportista')">
+                  @if (error('fecha_entrega_transportista'); as e) {
+                    <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                  } @else {
+                    <span class="adm-ayuda">Vacía = la fecha de inicio del traslado.</span>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="adm-grid adm-grid--2 gre-form__puntos">
+              <div class="adm-bloque">
+                <h3 class="adm-bloque__titulo"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Punto de partida</h3>
+                <app-ubigeo-buscador idCampo="gre-partida-ubigeo" etiqueta="Distrito de partida" [minimo]="minimoUbigeo"
+                                     [codigo]="f.partida.ubigeo" [texto]="f.partida.ubigeo_texto"
+                                     [error]="error('partida.ubigeo') || error('partida')" (cambio)="alElegirUbigeo('partida', $event)" />
+                <div class="adm-campo">
+                  <label class="adm-etiqueta" for="gre-partida-direccion">Dirección de partida</label>
+                  <input id="gre-partida-direccion" class="adm-input" maxlength="500" [(ngModel)]="f.partida.direccion"
+                         [class.adm-input--error]="!!error('partida.direccion')">
+                  @if (error('partida.direccion'); as e) {
+                    <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                  } @else if (!f.partida.ubigeo && !f.partida.direccion) {
+                    <span class="adm-ayuda">Vacía = la partida configurada en Facturación SUNAT.</span>
+                  }
+                </div>
+                @if (f.motivo_traslado === '04') {
+                  <div class="adm-campo">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-partida-establecimiento">Código de establecimiento</label>
+                    <input id="gre-partida-establecimiento" class="adm-input adm-mono" maxlength="4" inputmode="numeric" placeholder="0000"
+                           [(ngModel)]="f.partida.codigo_establecimiento" [class.adm-input--error]="!!error('partida.codigo_establecimiento')">
+                    @if (error('partida.codigo_establecimiento'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    } @else {
+                      <span class="adm-ayuda">Anexo registrado en SUNAT (0000 = domicilio fiscal).</span>
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="adm-bloque">
+                <h3 class="adm-bloque__titulo"><i class="bi bi-geo-alt" aria-hidden="true"></i> Punto de llegada</h3>
+                <app-ubigeo-buscador idCampo="gre-llegada-ubigeo" etiqueta="Distrito de llegada" [minimo]="minimoUbigeo"
+                                     [codigo]="f.llegada.ubigeo" [texto]="f.llegada.ubigeo_texto"
+                                     [error]="error('llegada.ubigeo') || error('llegada')" (cambio)="alElegirUbigeo('llegada', $event)" />
+                <div class="adm-campo">
+                  <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-llegada-direccion">Dirección de llegada</label>
+                  <input id="gre-llegada-direccion" class="adm-input" maxlength="500" [(ngModel)]="f.llegada.direccion"
+                         [class.adm-input--error]="!!error('llegada.direccion')">
+                  @if (error('llegada.direccion'); as e) {
+                    <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                  }
+                </div>
+                @if (f.motivo_traslado === '04') {
+                  <div class="adm-campo">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-llegada-establecimiento">Código de establecimiento</label>
+                    <input id="gre-llegada-establecimiento" class="adm-input adm-mono" maxlength="4" inputmode="numeric" placeholder="0001"
+                           [(ngModel)]="f.llegada.codigo_establecimiento" [class.adm-input--error]="!!error('llegada.codigo_establecimiento')">
+                    @if (error('llegada.codigo_establecimiento'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    } @else {
+                      <span class="adm-ayuda">El local de destino, como figura en SUNAT.</span>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @case ('bienes') {
+            @if (f.origen === 'sin_venta') {
+              <div class="adm-campo adm-autocompletar">
+                <label class="adm-etiqueta" for="gre-buscar-producto">Agregar un producto</label>
+                <input id="gre-buscar-producto" class="adm-input" type="text" autocomplete="off" placeholder="Nombre, código o código de barras"
+                       [ngModel]="busquedaProducto" (ngModelChange)="buscarProducto($event)" aria-describedby="gre-producto-ayuda">
+                @if (productosEncontrados.length) {
+                  <ul class="adm-sugerencias" aria-label="Productos encontrados">
+                    @for (p of productosEncontrados; track p.id_producto) {
+                      <li>
+                        <button type="button" class="adm-sugerencia gre-form__sugerencia" (click)="agregarProducto(p)">
+                          <span class="adm-sugerencia__texto">
+                            <span class="adm-sugerencia__titulo">{{ p.nombre }}</span>
+                            <span class="adm-sugerencia__detalle">{{ p.sku || p.codigo_barras || 'Sin código' }} · {{ p.unidad_medida || 'Sin unidad' }}</span>
+                          </span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+                @if (errorProductos) {
+                  <p class="adm-ayuda adm-ayuda--error" id="gre-producto-ayuda" role="alert"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ errorProductos }}</p>
+                } @else if (buscandoProductos) {
+                  <p class="adm-ayuda" id="gre-producto-ayuda" role="status">Buscando productos…</p>
+                } @else if (busquedaProducto.trim().length >= 2 && !productosEncontrados.length) {
+                  <p class="adm-ayuda" id="gre-producto-ayuda">Ningún producto coincide con «{{ busquedaProducto.trim() }}».</p>
+                } @else {
+                  <p class="adm-ayuda" id="gre-producto-ayuda">Sin venta se puede trasladar cualquier producto del catálogo.</p>
+                }
+              </div>
+            }
+            @if (error('items'); as e) {
+              <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+            }
+            @if (f.items.length) {
+              <div class="adm-tabla-envoltorio">
+                <table class="adm-tabla adm-tabla--adaptable gre-form__items">
+                  <thead>
+                    <tr>
+                      @if (f.origen === 'venta') {
+                        <th scope="col"><span class="visually-hidden">Incluir</span></th>
+                      }
+                      <th scope="col">Bien</th>
+                      <th scope="col">Unidad</th>
+                      @if (f.origen === 'venta') {
+                        <th scope="col" class="adm-num">Vendido</th>
+                        <th scope="col" class="adm-num">En otras guías</th>
+                      }
+                      <th scope="col" class="adm-num">Cantidad</th>
+                      @if (f.origen === 'sin_venta') {
+                        <th scope="col"><span class="visually-hidden">Quitar</span></th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of f.items; track item.id_producto; let i = $index) {
+                      <tr [class.adm-fila--atenuada]="!item.incluir">
+                        @if (f.origen === 'venta') {
+                          <td data-etiqueta="Incluir">
+                            <label class="adm-check">
+                              <input type="checkbox" [(ngModel)]="item.incluir" [disabled]="!item.incluir && (item.tope ?? 0) <= 0"
+                                     [attr.aria-label]="'Incluir ' + item.descripcion + ' en la guía'">
+                            </label>
+                          </td>
+                        }
+                        <td data-etiqueta="Bien">
+                          <input class="adm-input adm-input--chico" maxlength="500" [(ngModel)]="item.descripcion" [disabled]="!item.incluir"
+                                 [attr.aria-label]="'Descripción del bien ' + (i + 1)" [class.adm-input--error]="!!errorItem(item, 'descripcion')">
+                          <div class="adm-tabla__secundario">{{ item.codigo || 'Sin código' }}</div>
+                          @if (errorItem(item, 'descripcion'); as e) {
+                            <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                          }
+                        </td>
+                        <td data-etiqueta="Unidad">
+                          @if (f.origen === 'sin_venta') {
+                            <select class="adm-select adm-input--chico" [(ngModel)]="item.unidad" [attr.aria-label]="'Unidad del bien ' + (i + 1)"
+                                    [class.adm-select--error]="!!errorItem(item, 'unidad')">
+                              <option value="">{{ item.unidad_producto ? 'Del producto (' + item.unidad_producto + ')' : 'Del producto' }}</option>
+                              @for (u of cat.unidades_medida; track u.codigo) {
+                                <option [value]="u.codigo">{{ u.codigo }} · {{ u.nombre }}</option>
+                              }
+                            </select>
+                            @if (errorItem(item, 'unidad'); as e) {
+                              <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                            }
+                          } @else {
+                            <span class="adm-mono">{{ item.unidad_producto || '—' }}</span>
+                          }
+                        </td>
+                        @if (f.origen === 'venta') {
+                          <td data-etiqueta="Vendido" class="adm-num adm-tabular">{{ item.vendida }}</td>
+                          <td data-etiqueta="En otras guías" class="adm-num adm-tabular">{{ item.en_otras_guias }}</td>
+                        }
+                        <td data-etiqueta="Cantidad" class="adm-num">
+                          <input class="adm-input adm-input--num gre-form__cantidad" type="number" min="0" step="0.001" [attr.max]="item.tope"
+                                 [(ngModel)]="item.cantidad" [disabled]="!item.incluir" [class.adm-input--error]="!!errorItem(item, 'cantidad')"
+                                 [attr.aria-label]="'Cantidad a trasladar de ' + item.descripcion">
+                          @if (item.tope !== null) {
+                            <div class="adm-tabla__secundario">Pendiente: {{ item.tope }}</div>
+                          }
+                          @if (errorItem(item, 'cantidad'); as e) {
+                            <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                          }
+                        </td>
+                        @if (f.origen === 'sin_venta') {
+                          <td data-etiqueta="Quitar">
+                            <button type="button" class="adm-btn-icono adm-btn-icono--peligro adm-btn-icono--sm" (click)="quitarItem(item)"
+                                    [attr.aria-label]="'Quitar ' + item.descripcion + ' de la guía'">
+                              <i class="bi bi-trash" aria-hidden="true"></i>
+                            </button>
+                          </td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else if (f.origen === 'venta') {
+              <p class="adm-ayuda">Elija primero la venta en «Origen y motivo»: sus productos aparecen aquí con lo que falta trasladar.</p>
+            } @else {
+              <div class="adm-vacio adm-vacio--compacto">
+                <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-box-seam" aria-hidden="true"></i></div>
+                <div class="adm-vacio__titulo">Busque y agregue los productos a trasladar</div>
+              </div>
+            }
+
+            <div class="adm-fila gre-form__fila">
+              <div class="adm-campo adm-campo--medio">
+                <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-peso">Peso bruto total</label>
+                <div class="adm-input-grupo">
+                  <input id="gre-peso" class="adm-input adm-input--num" type="number" min="0" step="0.001" [(ngModel)]="f.peso_bruto_total"
+                         [class.adm-input--error]="!!error('peso_bruto_total')">
+                  <select class="adm-select gre-form__unidad-peso" [(ngModel)]="f.unidad_peso" aria-label="Unidad del peso"
+                          [class.adm-select--error]="!!error('unidad_peso')">
+                    @for (u of cat.unidades_peso; track u.codigo) {
+                      <option [value]="u.codigo">{{ u.nombre }}</option>
+                    }
+                  </select>
+                </div>
+                @if (error('peso_bruto_total') || error('unidad_peso'); as e) {
+                  <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                }
+              </div>
+              <div class="adm-campo adm-campo--chico">
+                <label class="adm-etiqueta" for="gre-bultos">Bultos <span class="adm-etiqueta__opcional">opcional</span></label>
+                <input id="gre-bultos" class="adm-input adm-input--num" type="number" min="1" step="1" [(ngModel)]="f.numero_bultos"
+                       [class.adm-input--error]="!!error('numero_bultos')">
+                @if (error('numero_bultos'); as e) {
+                  <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                }
+              </div>
+            </div>
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="gre-observaciones">Observaciones <span class="adm-etiqueta__opcional">opcional</span></label>
+              <textarea id="gre-observaciones" class="adm-textarea" rows="2" maxlength="250" [(ngModel)]="f.observaciones"></textarea>
+            </div>
+          }
+
+          @case ('revision') {
+            <div class="adm-datos">
+              <div class="adm-dato">
+                <span class="adm-dato__etiqueta">Origen</span>
+                <span class="adm-dato__valor">{{ f.origen === 'venta' ? (f.id_venta ? 'Venta #' + f.id_venta : 'Venta sin elegir') : 'Sin venta' }}</span>
+              </div>
+              <div class="adm-dato">
+                <span class="adm-dato__etiqueta">Motivo</span>
+                <span class="adm-dato__valor">{{ motivoElegido ? motivoElegido.codigo + ' · ' + motivoElegido.nombre : 'Sin elegir' }}</span>
+              </div>
+              <div class="adm-dato">
+                <span class="adm-dato__etiqueta">Modalidad</span>
+                <span class="adm-dato__valor">{{ modalidadElegida?.nombre || 'Sin elegir' }}</span>
+              </div>
+              <div class="adm-dato">
+                <span class="adm-dato__etiqueta">Inicio del traslado</span>
+                <span class="adm-dato__valor">{{ fechaGuia(f.fecha_inicio_traslado) }}</span>
+              </div>
+              <div class="adm-dato">
+                <span class="adm-dato__etiqueta">Destinatario</span>
+                <span class="adm-dato__valor">{{ f.motivo_traslado === '04' ? 'La propia empresa' : f.destinatario.denominacion || 'Sin indicar' }}</span>
+              </div>
+              <div class="adm-dato">
+                <span class="adm-dato__etiqueta">Partida</span>
+                <span class="adm-dato__valor">{{ f.partida.ubigeo_texto || (f.partida.direccion ? f.partida.direccion : 'La configurada en Facturación SUNAT') }}</span>
+              </div>
+              <div class="adm-dato">
+                <span class="adm-dato__etiqueta">Llegada</span>
+                <span class="adm-dato__valor">{{ f.llegada.ubigeo_texto || 'Sin distrito' }}</span>
+              </div>
+              <div class="adm-dato">
+                <span class="adm-dato__etiqueta">Bienes</span>
+                <span class="adm-dato__valor">{{ itemsIncluidos.length }} línea(s)</span>
+              </div>
+              <div class="adm-dato">
+                <span class="adm-dato__etiqueta">Peso bruto</span>
+                <span class="adm-dato__valor">{{ f.peso_bruto_total !== null ? f.peso_bruto_total + ' ' + f.unidad_peso : 'Sin indicar' }}</span>
+              </div>
+            </div>
+            <div class="adm-aviso adm-aviso--info">
+              <i class="bi bi-send-check" aria-hidden="true"></i>
+              <div>
+                <span class="adm-aviso__titulo">Directo a SUNAT</span>
+                «Emitir a SUNAT» guarda la guía, le asigna el número y la envía en el acto: verá enseguida si SUNAT la aceptó,
+                si la rechazó (con el motivo) o si la sigue procesando. «Validar sin enviar» la revisa con las reglas de SUNAT sin enviar nada.
+              </div>
+            </div>
+          }
+        }
+      </section>
+    }
+  </div>
+
+  @if (catalogos && !errorCarga) {
+    <div class="adm-panel__pie gre-form__pie">
+      @if (ocupado === 'emitir') {
+        <p class="adm-ayuda gre-form__sin-emitir" role="status">
+          <i class="bi bi-hourglass-split" aria-hidden="true"></i> Enviando a SUNAT y esperando su respuesta: suele tardar unos segundos.
+        </p>
+      } @else if (motivoSinEmitir && !ocupado && !cargando) {
+        <p class="adm-ayuda gre-form__sin-emitir" id="gre-sin-emitir"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ motivoSinEmitir }}</p>
+      }
+      <div class="gre-form__navegacion">
+        <button type="button" class="adm-btn adm-btn--fantasma" (click)="anterior()" [disabled]="esPrimerPaso">
+          <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
+        </button>
+        <button type="button" class="adm-btn adm-btn--suave" (click)="siguiente()" [disabled]="esUltimoPaso">
+          Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="gre-form__acciones">
+        <button type="button" class="adm-btn adm-btn--suave" (click)="guardarBorrador()" [disabled]="!!ocupado || cargando">
+          <i class="bi" [ngClass]="ocupado === 'guardar' ? 'bi-arrow-repeat adm-girando' : 'bi-save'" aria-hidden="true"></i>
+          {{ ocupado === 'guardar' ? 'Guardando…' : 'Guardar borrador' }}
+        </button>
+        <button type="button" class="adm-btn adm-btn--suave" (click)="validarSinEnviar()" [disabled]="!!ocupado || cargando">
+          <i class="bi" [ngClass]="ocupado === 'validar' ? 'bi-arrow-repeat adm-girando' : 'bi-clipboard-check'" aria-hidden="true"></i>
+          {{ ocupado === 'validar' ? 'Validando…' : 'Validar sin enviar' }}
+        </button>
+        <button type="button" class="adm-btn adm-btn--primario" (click)="emitirASunat()" [disabled]="!puedeEmitir"
+                [attr.aria-describedby]="motivoSinEmitir ? 'gre-sin-emitir' : null">
+          <i class="bi" [ngClass]="ocupado === 'emitir' ? 'bi-arrow-repeat adm-girando' : 'bi-send'" aria-hidden="true"></i>
+          {{ ocupado === 'emitir' ? 'Enviando a SUNAT…' : rechazada ? 'Reenviar a SUNAT' : 'Emitir a SUNAT' }}
+        </button>
+      </div>
+    </div>
+  }
+</aside>

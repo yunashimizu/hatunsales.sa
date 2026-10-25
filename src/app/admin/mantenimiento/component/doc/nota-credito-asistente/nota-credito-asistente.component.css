@@ -1,0 +1,184 @@
+:host { display: contents; }
+
+/* Puede abrirse sobre el detalle (panel lateral): el velo va por encima del panel y debajo del modal. */
+.nca-velo { z-index: var(--z-modal, 1070); }
+
+.nca-marco:focus { outline: none; }
+
+.nca-encabezado { min-width: 0; }
+
+.nca-subtitulo {
+  margin: 0;
+  font-size: var(--adm-fs-etiqueta);
+  font-weight: var(--fw-negrita, 700);
+  color: var(--adm-texto);
+}
+
+/* El catálogo 09 llega en mayúsculas ("DEVOLUCION POR ITEM"): se muestra en tipo oración */
+.nca-oracion { display: inline-block; text-transform: lowercase; }
+.nca-oracion::first-letter { text-transform: uppercase; }
+
+.nca-origen { padding-bottom: 4px; }
+
+.nca-esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nca-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 16px;
+}
+
+/* ── Paso 1: motivos ─────────────────────────────────────────── */
+
+.nca-motivos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.nca-motivos > legend { margin-bottom: 6px; padding: 0; }
+
+.nca-motivo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  background: var(--adm-superficie);
+  cursor: pointer;
+  transition: border-color var(--adm-transicion), background var(--adm-transicion), box-shadow var(--adm-transicion);
+}
+
+.nca-motivo:hover { border-color: var(--adm-borde-fuerte); }
+
+.nca-motivo:focus-within { box-shadow: 0 0 0 3px var(--adm-primario-suave); }
+
+.nca-motivo--activo {
+  border-color: var(--adm-primario-borde);
+  background: var(--adm-primario-claro);
+}
+
+.nca-motivo > input {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin: 2px 0 0;
+  accent-color: var(--adm-primario);
+}
+
+.nca-motivo__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.nca-motivo__nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-weight: var(--fw-semi, 600);
+  color: var(--adm-texto);
+}
+
+/* ── Paso 2: detalle ─────────────────────────────────────────── */
+
+.nca-detalle {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.nca-paso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nca-input { width: 96px; margin-left: auto; }
+
+.nca-error-linea { margin-top: 4px; text-align: right; }
+
+.nca-monto { max-width: 260px; }
+
+.nca-reingreso {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nca-contador {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.nca-contador > :last-child { flex-shrink: 0; }
+
+.nca-total { margin-top: 2px; }
+
+.nca-error {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.nca-error__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Resultado y notas anteriores ────────────────────────────── */
+
+.nca-efectos {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-weight: var(--fw-medio, 500);
+}
+
+.nca-previas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nca-previa {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+/* ── Pie ─────────────────────────────────────────────────────── */
+
+.nca-pie { align-items: center; }
+
+.nca-pie__pendiente { margin-right: auto; }
+
+@media (max-width: 640px) {
+  .nca-input { width: 100%; max-width: 140px; }
+  .nca-monto { max-width: none; }
+  .nca-pie__pendiente { flex: 1 1 100%; }
+}

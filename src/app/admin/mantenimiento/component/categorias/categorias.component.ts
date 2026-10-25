@@ -11,18 +11,23 @@ import { AuthService } from '../../../../auth/service/auth.service';
 import { GestionService } from '../../service/gestion.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { CatalogoService } from '../../../../store/service/catalogo.service';
+import { urlMedia } from '../../../../shared/utils/media-url.util';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
 @Component({
   selector: 'app-categorias',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CountUpDirective, RevealDirective],
   templateUrl: './categorias.component.html',
   styleUrl: './categorias.component.css',
 })
 export class CategoriasComponent implements OnInit {
   categorias: any[] = [];
   cargando = false;
+  /** La última carga de la lista falló (solo para mostrar el estado de error en pantalla). */
+  errorCarga = false;
   guardando = false;
   idDestacado: number | null = null;
 
@@ -50,8 +55,28 @@ export class CategoriasComponent implements OnInit {
     return c.id_categoria;
   }
 
+  /** Categorías que no están marcadas como inactivas. */
+  get totalActivas(): number {
+    return this.categorias.filter((c) => c.activo !== false).length;
+  }
+
+  get totalSinDescripcion(): number {
+    return this.categorias.filter((c) => !String(c.descripcion ?? '').trim()).length;
+  }
+
+  /** Icono de la categoría que se edita (para la vista previa del formulario). */
+  get iconoVista(): string {
+    const c = this.categorias.find((x) => x.id_categoria === this.editandoId);
+    return c?.icono || 'bi-tag';
+  }
+
+  urlDe(ruta?: string | null): string {
+    return urlMedia(ruta);
+  }
+
   cargar(): void {
     this.cargando = true;
+    this.errorCarga = false;
     this.cdr.markForCheck();
     this.gestion.getCategorias().subscribe({
       next: (r) => {
@@ -61,6 +86,7 @@ export class CategoriasComponent implements OnInit {
       },
       error: () => {
         this.cargando = false;
+        this.errorCarga = true;
         this.cdr.markForCheck();
         this.ns.error('No se pudieron cargar las categorías');
       },

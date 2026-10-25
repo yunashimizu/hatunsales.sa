@@ -11,6 +11,8 @@ import { Subject, takeUntil } from 'rxjs';
 import { GestionService } from '../../service/gestion.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { errorOperativo, normalizarErrorBlob } from '../../../service/api-base.service';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
 type PeriodoReporte = 'diario' | 'quincenal' | 'mensual' | 'anual';
 
@@ -25,7 +27,7 @@ interface PeriodoInfo {
   selector: 'app-reportes',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
+  imports: [CommonModule, CountUpDirective, RevealDirective],
   templateUrl: './reportes.component.html',
   styleUrl: './reportes.component.css',
 })
@@ -59,6 +61,8 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   periodo: PeriodoReporte = 'diario';
   cargando = false;
+  /** La última consulta falló (solo para mostrar el estado de error en pantalla; el aviso modal sigue igual). */
+  errorCarga = false;
   exportando: 'excel' | 'pdf' | null = null;
 
   totalVendido = 0;
@@ -117,6 +121,29 @@ export class ReportesComponent implements OnInit, OnDestroy {
     return Math.max(...this.serie.map((s) => s.total), 1);
   }
 
+  /** Mayor importe del ranking de clientes: la barra de cada uno se mide contra él. */
+  get maxTopCliente(): number {
+    return Math.max(...this.topClientes.map((c) => Math.abs(Number(c.total) || 0)), 1);
+  }
+
+  /** Qué parte (0–100) del total vendido concentran los clientes del ranking. */
+  get participacionTop(): number {
+    const suma = this.topClientes.reduce((acc, c) => acc + (Number(c.total) || 0), 0);
+    return this.totalVendido > 0 ? Math.max(0, Math.min(100, Math.round((suma / this.totalVendido) * 100))) : 0;
+  }
+
+  /** Cifra corta para el eje del gráfico: «S/ 850», «S/ 2.4 mil», «S/ 1.2 M». */
+  monedaCorta(valor: number | string | null | undefined): string {
+    const n = Number(valor ?? 0);
+    const a = Math.abs(Number.isFinite(n) ? n : 0);
+    const signo = n < 0 ? '−' : '';
+    const sinCeroFinal = (x: number) => x.toFixed(1).replace(/\.0$/, '');
+    if (a >= 1_000_000) return `${signo}S/ ${sinCeroFinal(a / 1_000_000)} M`;
+    if (a >= 10_000) return `${signo}S/ ${Math.round(a / 1000)} mil`;
+    if (a >= 1_000) return `${signo}S/ ${sinCeroFinal(a / 1000)} mil`;
+    return `${signo}S/ ${Math.round(a)}`;
+  }
+
   elegirPeriodo(periodo: PeriodoReporte): void {
     if (this.periodo === periodo && !this.cargando) return;
     this.periodo = periodo;
@@ -125,6 +152,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   cargar(): void {
     this.cargando = true;
+    this.errorCarga = false;
     this.cdr.markForCheck();
     this.gestion.getReportesVentas(this.periodo)
       .pipe(takeUntil(this.destruir$))
@@ -136,6 +164,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.cargando = false;
+          this.errorCarga = true;
           this.limpiar();
           this.cdr.markForCheck();
           this.alerta.error(errorOperativo(error, 'No se pudo cargar el reporte'));

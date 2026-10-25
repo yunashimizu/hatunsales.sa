@@ -109,7 +109,25 @@
 
 .alm-sin-dato { font-size: 13px; color: var(--adm-texto-suave); }
 
+/* La insignia de sucursal cabe en una línea cuando la tabla tiene sitio */
+@media (min-width: 641px) { .alm-td-sucursal { min-width: 170px; } }
+
 .alm-cifra { font-weight: 600; color: var(--adm-texto); }
+
+/* Unidades con su parte del stock total: barra frente al almacén más grande (solo anima `scale`) */
+.alm-unidades { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.alm-reparto { display: inline-flex; align-items: center; gap: 8px; }
+.alm-reparto__pct { min-width: 30px; font-size: 11px; font-weight: 500; color: var(--adm-texto-suave); text-align: right; font-variant-numeric: tabular-nums; }
+
+.alm-barra {
+  display: block; width: 96px; height: 6px; overflow: hidden; border-radius: 999px;
+  background: var(--adm-superficie-3); box-shadow: inset 0 0 0 1px var(--adm-borde);
+}
+
+.alm-barra > i {
+  display: block; height: 100%; border-radius: inherit; background: var(--adm-gradiente-vivo);
+  transform-origin: left center; scale: calc(var(--n, 0) / 100) 1; transition: scale 420ms var(--x-ease, ease);
+}
 
 /* ── Móvil ───────────────────────────────────────────────────── */
 
@@ -134,3 +152,5 @@
 
   .adm-tabla--adaptable tbody tr.adm-fila--seleccionada { border-color: var(--adm-primario-borde); }
 }
+
+@media (prefers-reduced-motion: reduce) { .alm-barra > i { transition: none; } }

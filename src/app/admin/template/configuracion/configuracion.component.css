@@ -21,6 +21,8 @@
   list-style: none;
 }
 
+.cfg-caja-modo { text-transform: capitalize; }
+
 /* ── Formulario fiscal agrupado en bloques ───────────────────── */
 .cfg-form {
   display: flex;
@@ -55,11 +57,36 @@
 
 .cfg-sin-margen { margin: 0; }
 
-/* Series y RUC: códigos cortos, más legibles en monoespaciada */
+/* Series y RUC: códigos cortos, más legibles en la mono de la casa */
 .cfg-codigo {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--x-mono, var(--adm-fuente-mono));
   letter-spacing: 0.06em;
 }
+
+/* Series vigentes: fichas con el código grande (se leen de un vistazo) */
+.cfg-bloque .cfg-datos {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.cfg-bloque .cfg-datos .adm-dato {
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  box-shadow: var(--adm-sombra-sm);
+}
+
+.cfg-bloque .cfg-datos .cfg-codigo {
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  color: var(--adm-primario);
+}
+
+.cfg-bloque .cfg-datos .cfg-rol { font-size: var(--adm-fs-etiqueta); font-weight: var(--fw-semi); }
 
 .cfg-ayuda-fila {
   display: flex;
@@ -71,8 +98,15 @@
 
 .cfg-contador {
   margin-left: auto;
+  font-family: var(--x-mono, var(--adm-fuente-mono));
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* Cerca del máximo (1 500): el contador pasa a ámbar */
+.cfg-contador--limite {
+  color: var(--adm-aviso-texto);
+  font-weight: var(--fw-semi);
 }
 
 /* En tarjetas anchas: descripción a la izquierda, campos a la derecha */
@@ -125,10 +159,41 @@
   gap: 6px;
 }
 
+/* Avatar con las iniciales a la izquierda de los datos de la cuenta */
+.cfg-identidad {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.cfg-identidad .adm-datos { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+
+/* Nombre y correo ocupan toda la fila: un correo largo no se parte a media palabra */
+.cfg-identidad .adm-datos > .adm-dato:nth-child(-n + 2) { grid-column: 1 / -1; }
+
 /* ── Permisos ────────────────────────────────────────────────── */
 .cfg-col-num { width: 64px; }
 
-.cfg-permiso { overflow-wrap: anywhere; }
+.cfg-permiso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  overflow-wrap: anywhere;
+}
+
+.cfg-permiso__codigo {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: var(--adm-fs-ayuda);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.cfg-permiso__modulo { text-transform: capitalize; }
+
+/* Atajos: el foco de luz que sigue al cursor toma el tono de marca del panel */
+.cfg-atajos .adm-atajo { --x-brillo-color: color-mix(in srgb, var(--adm-primario) 14%, transparent); --x-brillo-radio: 220px; }
 
 @media (max-width: 640px) {
   /* En columna, el texto ocupa todo el ancho para que el "…" funcione */
@@ -144,6 +209,8 @@
   .cfg-estados { margin-left: 0; }
 
   .cfg-atajos { grid-template-columns: minmax(0, 1fr); }
+
+  .cfg-identidad { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 
   .cfg-pie__nota { flex-basis: 100%; }
 }

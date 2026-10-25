@@ -1,1 +1,245 @@
-:host { display: block; }
+/* Caja · usa el sistema compartido (admin-ui.css, clases adm-*). Aquí solo lo propio, con prefijo caja-. */
+:host {
+  display: block;
+}
+
+/* ── Estado del turno: la pieza principal (ocupa dos columnas) ───────────── */
+.caja-resumen > .caja-turno {
+  grid-column: span 2;
+}
+
+.caja-turno {
+  /* Color del estado: gris (cargando), verde (abierta), ámbar (cerrada), rojo (sin verificar) */
+  --caja-estado: var(--adm-texto-tenue);
+  --caja-estado-fondo: var(--adm-superficie-3);
+  --caja-estado-texto: var(--adm-texto);
+  --adm-metrica-color: var(--caja-estado);
+  --adm-metrica-fondo: var(--caja-estado-fondo);
+  gap: 8px 20px;
+  padding: 20px 24px 20px 28px;
+  border-color: color-mix(in srgb, var(--caja-estado) 38%, var(--adm-borde));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--caja-estado) 14%, var(--adm-superficie)) 0%, var(--adm-superficie) 72%);
+}
+
+.caja-turno.caja-turno--abierta {
+  --caja-estado: var(--adm-exito);
+  --caja-estado-fondo: var(--adm-exito-claro);
+  --caja-estado-texto: var(--adm-exito-texto);
+}
+
+.caja-turno.caja-turno--cerrada {
+  --caja-estado: var(--adm-aviso);
+  --caja-estado-fondo: var(--adm-aviso-claro);
+  --caja-estado-texto: var(--adm-aviso-texto);
+}
+
+.caja-turno.caja-turno--error {
+  --caja-estado: var(--adm-peligro);
+  --caja-estado-fondo: var(--adm-peligro-claro);
+  --caja-estado-texto: var(--adm-peligro-texto);
+}
+
+.caja-turno .adm-metrica__icono {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  font-size: 26px;
+}
+
+.caja-turno__estado.adm-metrica__valor {
+  font-size: clamp(1.75rem, 1.1rem + 1.8vw, 2.5rem);
+  color: var(--caja-estado-texto);
+}
+
+.caja-turno__detalle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 8px;
+  font-size: var(--adm-fs-etiqueta);
+  line-height: 1.4;
+  color: var(--adm-texto-suave);
+}
+
+/* Total cobrado del turno, a la derecha de la pieza */
+.adm-metrica > .caja-turno__total {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 20px;
+  border-left: 1px solid color-mix(in srgb, var(--caja-estado) 30%, var(--adm-borde));
+  text-align: right;
+  container-type: normal;
+}
+
+.caja-turno__total-valor {
+  font-family: var(--adm-fuente-titulos);
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--adm-texto);
+}
+
+.caja-turno__total-etiqueta {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: var(--adm-fs-rotulo);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--adm-texto-suave);
+}
+
+/* Turno abierto: un anillo respira alrededor del icono (solo opacidad y escala) */
+@media (prefers-reduced-motion: no-preference) {
+  .caja-turno--abierta .adm-metrica__icono::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border: 2px solid var(--adm-exito);
+    border-radius: 22px;
+    opacity: 0;
+    pointer-events: none;
+    animation: caja-respira 2.6s var(--x-ease-in-out, ease-in-out) infinite;
+  }
+}
+
+@keyframes caja-respira {
+  0% { opacity: 0.6; scale: 0.94; }
+  70%, 100% { opacity: 0; scale: 1.22; }
+}
+
+/* Las dos tarjetas conservan su altura propia (con el turno abierto, «Abrir caja» es corta) */
+.caja-columnas {
+  align-items: start;
+}
+
+/* ── Estado del turno (tarjeta) ──────────────────────────────────────────── */
+.caja-intro {
+  margin: 0 0 14px;
+}
+
+.caja-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.caja-cifra {
+  min-width: 0;
+  padding: 14px 16px;
+  background: var(--adm-superficie-2);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+}
+
+.caja-cifra--destacada {
+  background: var(--adm-exito-claro);
+  border-color: var(--adm-exito-borde);
+}
+
+.caja-cifra .adm-etiqueta,
+.caja-datos .adm-etiqueta {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: var(--adm-fs-rotulo);
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--adm-texto-suave);
+}
+
+.caja-cifra__valor {
+  margin-top: 4px;
+  font-family: var(--adm-fuente-titulos);
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.caja-cifra--destacada .caja-cifra__valor {
+  color: var(--adm-exito-texto);
+}
+
+/* Cobros por método de pago como píldoras */
+.caja-metodos {
+  margin: 0 0 16px;
+}
+
+.caja-metodos .adm-leyenda__item {
+  padding: 4px 11px;
+  background: var(--adm-superficie-2);
+  border: 1px solid var(--adm-borde);
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.caja-datos {
+  margin-top: 12px;
+}
+
+.caja-datos .adm-campo {
+  gap: 3px;
+}
+
+.caja-cierre {
+  margin-top: 16px;
+}
+
+.caja-cierre .adm-fila {
+  margin-bottom: 14px;
+}
+
+.caja-aviso-cierre {
+  margin: 16px 0 0;
+}
+
+.caja-vacio {
+  padding: 1.5rem 0;
+}
+
+/* ── Abrir caja ──────────────────────────────────────────────────────────── */
+.caja-ayuda {
+  margin: 6px 0 0;
+}
+
+.caja-campo-monto {
+  margin-top: 16px;
+}
+
+.caja-acciones {
+  margin-top: 18px;
+}
+
+.caja-aviso {
+  margin: 14px 0 0;
+}
+
+.caja-ya-abierta {
+  margin: 0;
+}
+
+@media (max-width: 1200px) {
+  /* La rejilla de 4 pasa a 2 columnas: la pieza principal ocupa toda la fila */
+  .caja-resumen > .caja-turno { grid-column: 1 / -1; }
+}
+
+@media (max-width: 640px) {
+  .caja-resumen > .caja-turno { grid-column: 1 / -1; padding: 16px 16px 16px 20px; }
+
+  .adm-metrica > .caja-turno__total {
+    align-self: stretch;
+    padding: 12px 0 0;
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--caja-estado) 30%, var(--adm-borde));
+    text-align: left;
+  }
+
+  .caja-cifras { grid-template-columns: minmax(0, 1fr); }
+}

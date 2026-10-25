@@ -6,20 +6,61 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="HatunSales S.A.C — Ferretería: tienda online y sistema de ventas.">
-  <!-- Solo tema claro: evita el oscurecido forzado de Chrome en Android. -->
-  <meta name="color-scheme" content="only light">
+  <!-- Claro y oscuro: la página declara que sabe ser oscura, así Chrome en Android no
+       aplica su oscurecido forzado. El tema real lo decide el script de abajo. -->
+  <meta name="color-scheme" content="light dark">
   <!-- Color de la barra del navegador: el mismo de la franja superior de la tienda. -->
   <meta name="theme-color" content="#0d1220">
   <meta name="application-name" content="HatunSales S.A.C">
   <meta name="apple-mobile-web-app-title" content="HatunSales S.A.C">
+  <!-- Tema (claro/oscuro) y marca de «hay JS» antes del primer pintado: evita el
+       parpadeo y permite que el movimiento de entrada solo oculte contenido si el
+       script de la aplicación va a poder mostrarlo. Misma clave que TemaService. -->
+  <script>
+    (function () {
+      try {
+        var raiz = document.documentElement;
+        raiz.classList.add('hs-js');
+        var guardado = null;
+        try { guardado = localStorage.getItem('hs.tema'); } catch (e) {}
+        var oscuro = guardado === 'oscuro' ||
+          (guardado !== 'claro' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        raiz.setAttribute('data-tema', oscuro ? 'oscuro' : 'claro');
+      } catch (e) {}
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <!-- Fuentes autoalojadas (Fontsource): se precargan las de alfabeto latino;
        latin-ext solo se descarga si aparece un carácter de ese rango. -->
   <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- Pantalla de arranque: se pinta con el HTML y se reemplaza sola cuando Angular monta la app.
+       Estilos en línea (no dependen de ninguna hoja externa) y con los dos temas. -->
+  <style>
+    .hs-arranque { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; align-content: center; gap: 22px; background: #f6f4ef; color: #14120f; font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .16em; text-transform: uppercase; }
+    html[data-tema='oscuro'] .hs-arranque { background: #121110; color: #b9b3a8; }
+    .hs-arranque__marca { position: relative; display: grid; place-items: center; width: 60px; height: 60px; border-radius: 19px; background: linear-gradient(135deg, #6366f1, #4f46e5 45%, #7c3aed); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 18px 40px -12px rgba(79,70,229,.65); animation: hs-arranque-pulso 1.1s ease-in-out infinite alternate; }
+    .hs-arranque__marca svg { width: 30px; height: 30px; }
+    .hs-arranque__marca::after { content: ''; position: absolute; top: -4px; right: -4px; width: 13px; height: 13px; border-radius: 50%; background: #ff7d36; box-shadow: 0 0 0 3px #f6f4ef, 0 0 14px rgba(255,125,54,.7); }
+    html[data-tema='oscuro'] .hs-arranque__marca::after { box-shadow: 0 0 0 3px #121110, 0 0 14px rgba(255,125,54,.7); }
+    .hs-arranque__barra { width: 120px; height: 3px; border-radius: 3px; background: rgba(127,127,127,.25); overflow: hidden; }
+    .hs-arranque__barra::after { content: ''; display: block; width: 45%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff7d36, #ffcc2a); animation: hs-arranque-barra 1.2s cubic-bezier(.65,0,.35,1) infinite; }
+    .hs-arranque--sale { opacity: 0; pointer-events: none; transition: opacity .38s ease; }
+    @keyframes hs-arranque-pulso { to { transform: translateY(-4px) rotate(-3deg); } }
+    @keyframes hs-arranque-barra { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+    @media (prefers-reduced-motion: reduce) { .hs-arranque__marca, .hs-arranque__barra::after { animation: none; } }
+  </style>
 </head>
 <body>
+  <!-- La app la quita al terminar la primera navegación (app.ts); si algo falla, se va sola a los 8 s. -->
+  <div id="hs-arranque" class="hs-arranque" role="status" aria-label="Cargando HatunSales">
+    <div class="hs-arranque__marca">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M12 2.5l8 4.6v9.8l-8 4.6-8-4.6V7.1z"/><circle cx="12" cy="12" r="3.6"/></svg>
+    </div>
+    <div class="hs-arranque__barra"></div>
+    <span>HatunSales</span>
+  </div>
   <app-root></app-root>
 </body>
 </html>

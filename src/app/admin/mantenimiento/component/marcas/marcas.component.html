@@ -1,14 +1,20 @@
 <div class="adm-pagina">
 
+  <!-- Cabecera de página -->
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Marcas</h1>
-      <p class="adm-cabecera__sub">
-        Catálogo de marcas para organizar productos (Truper, Stanley, etc.).
-      </p>
-      <p class="adm-ayuda" *ngIf="!puedeEditar" style="margin-top:0.35rem">
-        Solo lectura: puede ver las marcas, sin crear ni editar.
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-award"></i></span>
+      <div class="mar-cabecera__texto">
+        <span class="adm-cabecera__eyebrow">Catálogo</span>
+        <h1 class="adm-cabecera__titulo">Marcas</h1>
+        <p class="adm-cabecera__sub">
+          Catálogo de marcas para organizar productos (Truper, Stanley, etc.).
+        </p>
+        <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto mar-solo-lectura" *ngIf="!puedeEditar" role="status">
+          <i class="bi bi-lock" aria-hidden="true"></i>
+          <span>Solo lectura: puede ver las marcas, sin crear ni editar.</span>
+        </div>
+      </div>
     </div>
     <div class="adm-acciones">
       <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
@@ -21,121 +27,198 @@
     </div>
   </header>
 
-  <section class="adm-grid adm-grid--3">
+  <!-- Indicadores -->
+  <section class="adm-grid adm-grid--3" aria-label="Resumen de marcas" hsReveal="lista">
     <div class="adm-metrica">
       <div class="adm-metrica__icono"><i class="bi bi-award"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ marcas.length }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !marcas.length); else marEsqCifra"><span [hsCountUp]="marcas.length"></span></ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">Marcas</div>
+        <div class="adm-metrica__delta">Registradas en el catálogo</div>
       </div>
     </div>
     <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-check2-circle"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ totalActivas }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !marcas.length); else marEsqCifra"><span [hsCountUp]="totalActivas"></span></ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">Activas</div>
+        <div class="adm-metrica__delta">{{ marcas.length - totalActivas }} inactivas</div>
       </div>
     </div>
     <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-box"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ totalProductos }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !marcas.length); else marEsqCifra"><span [hsCountUp]="totalProductos"></span></ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">Productos asociados</div>
+        <div class="adm-metrica__delta">Suma de todas las marcas</div>
       </div>
     </div>
   </section>
+  <ng-template #marEsqCifra><span class="adm-esqueleto mar-esqueleto-cifra" aria-hidden="true"></span></ng-template>
 
-  <section class="adm-tarjeta" *ngIf="puedeEditar">
-    <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo">
-        <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
-        {{ editandoId ? 'Editar marca' : 'Crear marca' }}
-      </h2>
-    </div>
-    <div class="adm-tarjeta__cuerpo">
-      <div class="adm-fila">
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="marca-nombre">Nombre</label>
-          <input id="marca-nombre" class="adm-input" type="text" [(ngModel)]="modelo.nombre"
-                 placeholder="ej. Truper">
+  <!-- Formulario + listado (lado a lado cuando hay espacio) -->
+  <div class="mar-area">
+    <div class="mar-disposicion" [class.mar-disposicion--sola]="!puedeEditar">
+
+      <!-- Alta y edición -->
+      <section class="adm-tarjeta mar-form" *ngIf="puedeEditar" [class.mar-form--editando]="editandoId" aria-labelledby="mar-form-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="mar-form-titulo">
+              <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+              {{ editandoId ? 'Editar marca' : 'Crear marca' }}
+            </h2>
+            <p class="adm-tarjeta__sub">
+              {{ editandoId ? 'Modifique los datos y guarde los cambios.' : 'Aparece al elegir la marca de un producto.' }}
+            </p>
+          </div>
+          <span class="adm-insignia adm-insignia--primaria adm-insignia--punto" *ngIf="editandoId">Editando</span>
         </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="marca-logo">Logo URL</label>
-          <input id="marca-logo" class="adm-input" type="url" [(ngModel)]="modelo.logo_url"
-                 placeholder="Opcional">
+
+        <div class="adm-tarjeta__cuerpo mar-form__cuerpo">
+          <!-- Vista previa del logo, en vivo -->
+          <div class="mar-previa" aria-hidden="true">
+            <span class="mar-logo mar-logo--previa">
+              <img *ngIf="logoVista" class="mar-logo__img" [src]="logoVista" alt="" (error)="$any($event.target).hidden = true">
+              <span class="mar-logo__letras" *ngIf="!logoVista">{{ (modelo.nombre || '?') | slice:0:2 }}</span>
+            </span>
+            <span class="mar-previa__texto">
+              <strong>{{ (modelo.nombre || '').trim() || 'Nombre de la marca' }}</strong>
+              <small>{{ logoVista ? 'Así se verá el logo' : 'Pegue la URL de un logo para previsualizarlo' }}</small>
+            </span>
+          </div>
+
+          <div class="adm-campo">
+            <label class="adm-etiqueta adm-etiqueta--requerida" for="marca-nombre">Nombre</label>
+            <input id="marca-nombre" class="adm-input" type="text" [(ngModel)]="modelo.nombre"
+                   autocomplete="off" placeholder="ej. Truper">
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="marca-logo">Logo URL <span class="adm-etiqueta__opcional">opcional</span></label>
+            <input id="marca-logo" class="adm-input" type="url" [(ngModel)]="modelo.logo_url"
+                   autocomplete="off" placeholder="https://…/logo.png">
+            <p class="adm-ayuda">Mejor con fondo transparente. Sin logo se muestran las iniciales.</p>
+          </div>
+          <div class="adm-campo" *ngIf="editandoId">
+            <label class="adm-etiqueta" for="marca-activo">Estado</label>
+            <select id="marca-activo" class="adm-select" [(ngModel)]="modelo.activo">
+              <option [ngValue]="true">Activa</option>
+              <option [ngValue]="false">Inactiva</option>
+            </select>
+            <p class="adm-ayuda">Una marca inactiva deja de ofrecerse al crear productos.</p>
+          </div>
         </div>
-        <div class="adm-campo" *ngIf="editandoId">
-          <label class="adm-etiqueta" for="marca-activo">Estado</label>
-          <select id="marca-activo" class="adm-select" [(ngModel)]="modelo.activo">
-            <option [ngValue]="true">Activa</option>
-            <option [ngValue]="false">Inactiva</option>
-          </select>
-        </div>
-        <div class="adm-acciones" style="align-self:end">
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
-            {{ guardando ? 'Guardando…' : (editandoId ? 'Actualizar' : 'Crear') }}
-          </button>
+
+        <div class="adm-tarjeta__pie">
           <button type="button" class="adm-btn adm-btn--suave" *ngIf="editandoId" (click)="cancelar()">
             Cancelar
           </button>
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
+            {{ guardando ? 'Guardando…' : (editandoId ? 'Actualizar' : 'Crear') }}
+          </button>
         </div>
-      </div>
-    </div>
-  </section>
+      </section>
 
-  <section class="adm-tarjeta">
-    <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Lista de marcas</h2>
-      <span class="adm-insignia adm-insignia--neutra">{{ marcas.length }}</span>
-    </div>
+      <!-- Listado -->
+      <section class="adm-tarjeta adm-tarjeta--acento" aria-labelledby="mar-lista-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="mar-lista-titulo">
+              <i class="bi bi-table"></i> Lista de marcas
+              <span class="adm-insignia adm-insignia--neutra">{{ marcasFiltradas.length }}</span>
+            </h2>
+            <p class="adm-tarjeta__sub">La barra compara cuántos productos tiene cada marca.</p>
+          </div>
+          <div class="adm-tarjeta__extra mar-buscar" *ngIf="marcas.length > 1">
+            <label class="visually-hidden" for="mar-filtro">Buscar marca</label>
+            <div class="adm-input-icono">
+              <i class="bi bi-search" aria-hidden="true"></i>
+              <input id="mar-filtro" class="adm-input adm-input--chico" type="search" autocomplete="off"
+                     placeholder="Buscar marca…" [(ngModel)]="filtro">
+            </div>
+          </div>
+        </div>
 
-    <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !marcas.length">
-      <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4]"></div>
-    </div>
+        <div class="mar-lista" *ngIf="cargando && !marcas.length" aria-busy="true" aria-label="Cargando marcas">
+          <div class="mar-tarjeta mar-tarjeta--esqueleto" *ngFor="let n of [1,2,3,4,5,6]">
+            <span class="adm-esqueleto mar-esqueleto-logo"></span>
+            <span class="adm-esqueleto adm-esqueleto--titulo"></span>
+            <span class="adm-esqueleto adm-esqueleto--linea"></span>
+          </div>
+        </div>
 
-    <div class="adm-vacio" *ngIf="!cargando && !marcas.length">
-      <div class="adm-vacio__icono"><i class="bi bi-award"></i></div>
-      <div class="adm-vacio__titulo">No hay marcas</div>
-      <p>Crea la primera para asignarla a tus productos.</p>
-    </div>
+        <div class="adm-vacio adm-vacio--error" *ngIf="errorCarga && !cargando && !marcas.length" role="alert">
+          <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+          <div class="adm-vacio__titulo">No se pudieron cargar las marcas</div>
+          <p>Revise la conexión e intente de nuevo.</p>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+          </button>
+        </div>
 
-    <div class="adm-tabla-envoltorio" *ngIf="marcas.length">
-      <table class="adm-tabla adm-tabla--adaptable">
-        <thead>
-          <tr>
-            <th>Marca</th>
-            <th class="adm-num">Productos</th>
-            <th>Estado</th>
-            <th *ngIf="puedeEditar"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let m of marcas; trackBy: identificarMarca" [class.adm-recien-creado]="idDestacado === m.id_marca">
-            <td data-etiqueta="Marca">
-              <div class="adm-tabla__principal">{{ m.nombre }}</div>
-              <div class="adm-ayuda" *ngIf="m.slug">{{ m.slug }}</div>
-            </td>
-            <td data-etiqueta="Productos" class="adm-num">{{ m.productos ?? 0 }}</td>
-            <td data-etiqueta="Estado">
-              <span class="adm-insignia"
-                    [ngClass]="m.activo === false ? 'adm-insignia--peligro' : 'adm-insignia--exito'">
-                {{ m.activo === false ? 'Inactiva' : 'Activa' }}
-              </span>
-            </td>
-            <td data-etiqueta="Acciones" *ngIf="puedeEditar">
-              <div class="adm-acciones">
-                <button type="button" class="adm-btn adm-btn--suave" (click)="editar(m)">
-                  <i class="bi bi-pencil"></i> Editar
-                </button>
-                <button type="button" class="adm-btn adm-btn--suave" (click)="eliminar(m)">
-                  <i class="bi bi-trash"></i> Eliminar
-                </button>
+        <div class="adm-vacio" *ngIf="!cargando && !errorCarga && !marcas.length">
+          <div class="adm-vacio__icono"><i class="bi bi-award"></i></div>
+          <div class="adm-vacio__titulo">No hay marcas</div>
+          <p>Crea la primera para asignarla a tus productos.</p>
+        </div>
+
+        <div class="adm-vacio adm-vacio--compacto" *ngIf="marcas.length && !marcasFiltradas.length">
+          <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-search"></i></div>
+          <div class="adm-vacio__titulo">Ninguna marca coincide con «{{ filtro }}»</div>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="filtro = ''">
+            <i class="bi bi-x-lg" aria-hidden="true"></i> Limpiar búsqueda
+          </button>
+        </div>
+
+        <ul class="mar-lista" *ngIf="marcasFiltradas.length" hsReveal="lista">
+          <li class="mar-tarjeta" *ngFor="let m of marcasFiltradas; trackBy: identificarMarca"
+              [class.adm-recien-creado]="idDestacado === m.id_marca"
+              [class.mar-tarjeta--editando]="editandoId === m.id_marca"
+              [class.mar-tarjeta--inactiva]="m.activo === false">
+            <span class="mar-logo">
+              <img *ngIf="m.logo_url" class="mar-logo__img" [src]="urlDe(m.logo_url)" [alt]="'Logo de ' + m.nombre"
+                   loading="lazy" (error)="$any($event.target).hidden = true">
+              <span class="mar-logo__letras" [class.mar-logo__letras--respaldo]="m.logo_url" aria-hidden="true">{{ m.nombre | slice:0:2 }}</span>
+            </span>
+
+            <div class="mar-tarjeta__info">
+              <div class="mar-tarjeta__fila">
+                <h3 class="mar-nombre">{{ m.nombre }}</h3>
+                <span class="adm-insignia adm-insignia--punto adm-insignia--sm"
+                      [ngClass]="m.activo === false ? 'adm-insignia--peligro' : 'adm-insignia--exito'">
+                  {{ m.activo === false ? 'Inactiva' : 'Activa' }}
+                </span>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <p class="mar-slug" *ngIf="m.slug">/{{ m.slug }}</p>
+            </div>
+
+            <div class="mar-uso" [attr.aria-label]="(m.productos ?? 0) + ' productos'">
+              <span class="mar-uso__cifra"><strong>{{ m.productos ?? 0 }}</strong> {{ (m.productos ?? 0) === 1 ? 'producto' : 'productos' }}</span>
+              <span class="mar-barra" aria-hidden="true"><i [style.--n]="((m.productos ?? 0) / maxProductos) * 100"></i></span>
+            </div>
+
+            <div class="mar-acciones" *ngIf="puedeEditar">
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="editar(m)"
+                      [attr.aria-label]="'Editar ' + m.nombre">
+                <i class="bi bi-pencil" aria-hidden="true"></i> Editar
+              </button>
+              <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="eliminar(m)"
+                      title="Eliminar" [attr.aria-label]="'Eliminar ' + m.nombre">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </li>
+        </ul>
+      </section>
+
     </div>
-  </section>
+  </div>
 
 </div>

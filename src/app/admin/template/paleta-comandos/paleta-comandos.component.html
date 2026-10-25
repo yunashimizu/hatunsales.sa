@@ -1,0 +1,69 @@
+@if (paleta.abierta()) {
+  <div class="pc-velo" (click)="cerrar()" animate.enter="mov-entra-fundido" animate.leave="mov-sale-fundido"></div>
+
+  <div
+    class="pc"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Buscar o ir a una pantalla"
+    (keydown)="alTeclear($event)"
+    animate.enter="pc-entra"
+    animate.leave="pc-sale">
+
+    <div class="pc__campo">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <input
+        #entrada
+        type="text"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded="true"
+        aria-controls="pc-lista"
+        [attr.aria-activedescendant]="plano().length ? 'pc-op-' + activo() : null"
+        placeholder="Buscar pantallas y acciones…"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        [value]="consulta()"
+        (input)="alEscribir($any($event.target).value)" />
+      <kbd class="pc__esc" aria-hidden="true">Esc</kbd>
+    </div>
+
+    <ul class="pc__lista" id="pc-lista" role="listbox" aria-label="Resultados">
+      @for (grupo of grupos(); track grupo.titulo) {
+        <li class="pc__grupo" role="presentation">{{ grupo.titulo }}</li>
+        @for (comando of grupo.items; track comando.id + comando.indice) {
+          <li
+            class="pc__op"
+            role="option"
+            [id]="'pc-op-' + comando.indice"
+            [class.activo]="comando.indice === activo()"
+            [attr.aria-selected]="comando.indice === activo()"
+            (mouseenter)="activo.set(comando.indice)"
+            (click)="ejecutar(comando)">
+            <span class="pc__icono" aria-hidden="true"><i class="bi" [class]="comando.icono"></i></span>
+            <span class="pc__etiqueta">{{ comando.etiqueta }}</span>
+            @if (consulta().trim()) {
+              <span class="pc__grupo-meta">{{ comando.grupo }}</span>
+            }
+            <kbd class="pc__enter" aria-hidden="true">↵</kbd>
+          </li>
+        }
+      }
+
+      @if (plano().length === 0) {
+        <li class="pc__vacio" role="presentation">
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <strong>Sin coincidencias</strong>
+          <span>Prueba con otra palabra: «boleta», «stock», «clientes»…</span>
+        </li>
+      }
+    </ul>
+
+    <div class="pc__pie" aria-hidden="true">
+      <span><kbd>↑</kbd><kbd>↓</kbd>navegar</span>
+      <span><kbd>↵</kbd>abrir</span>
+      <span><kbd>Esc</kbd>cerrar</span>
+    </div>
+  </div>
+}

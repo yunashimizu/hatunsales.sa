@@ -1,5 +1,7 @@
 :host { display: block; }
 
+/* Productos · «Taller» v3. Todo color sale de tokens (--adm-*, --t-imagen-fondo); lo compartido vive en admin-ui.css. */
+
 /* ── Cabecera ────────────────────────────────────────────────── */
 
 .prod-cabecera__texto { min-width: 0; }
@@ -9,7 +11,21 @@
   max-width: 560px;
 }
 
+/* ── Indicadores ─────────────────────────────────────────────── */
+
+.prod-esqueleto-cifra {
+  display: block;
+  width: 56px;
+  height: 24px;
+  margin: 3px 0 2px;
+  border-radius: var(--adm-r-xs);
+}
+
+.prod-esqueleto-cifra--ancha { width: 88px; flex: none; }
+
 /* ── Filtros ─────────────────────────────────────────────────── */
+
+.prod-limpiar { align-self: flex-end; margin-bottom: 3px; }
 
 .prod-filtros__resumen {
   display: inline-flex;
@@ -25,37 +41,190 @@
 .prod-filtros__resumen > i { color: var(--adm-primario); font-size: 13px; }
 .prod-filtros__resumen > strong { color: var(--adm-texto); font-weight: 700; }
 
+/* Atajos por estado con su conteo */
+.prod-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--adm-superficie-2);
+  border-bottom: 1px solid var(--adm-borde);
+}
+
+.prod-chips .adm-chip { gap: 7px; }
+
+.prod-chip__n {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--adm-superficie-3);
+  color: var(--adm-texto-suave);
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-chip--activo .prod-chip__n {
+  background: color-mix(in srgb, var(--adm-primario) 16%, transparent);
+  color: var(--adm-primario);
+}
+
+/* ── Carga ───────────────────────────────────────────────────── */
+
+.prod-esqueleto-fila {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 0;
+}
+
+.prod-esqueleto-foto { width: 46px; height: 46px; flex: none; border-radius: var(--adm-r-sm); }
+
+.prod-esqueleto-texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
 /* ── Tabla ───────────────────────────────────────────────────── */
 
-.prod-td-producto { min-width: 260px; }
+.prod-td-producto { min-width: 280px; }
+
+.prod-celda {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
 
 .prod-producto__texto { min-width: 0; }
 
-/* Marcador cuando el producto aún no tiene foto (mismo tamaño que la miniatura) */
-.prod-miniatura--vacia {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border: 1px dashed var(--adm-borde-fuerte);
-  border-radius: var(--adm-r-sm);
-  background: var(--adm-superficie-3);
-  color: var(--adm-texto-tenue);
-  font-size: 16px;
+.prod-nombre {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
 }
 
-.adm-tabla__miniatura.adm-img-clic {
+.prod-meta { overflow-wrap: anywhere; }
+
+/* Foto: baldosa clara (como el fondo de las fotos de la tienda) donde el blanco de la imagen se funde */
+.prod-foto {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-sm);
+  background: var(--t-imagen-fondo, var(--adm-superficie-3));
+  color: var(--adm-texto-tenue);
+  font-size: 17px;
+}
+
+.prod-foto img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+  mix-blend-mode: multiply;
+}
+
+.prod-foto--clic {
+  cursor: zoom-in;
   transition: transform var(--adm-transicion), box-shadow var(--adm-transicion), border-color var(--adm-transicion);
 }
 
-.adm-tabla__miniatura.adm-img-clic:hover {
+.prod-foto--clic:hover {
   transform: scale(1.06);
   border-color: var(--adm-primario-borde);
   box-shadow: var(--adm-sombra-md);
 }
 
-.prod-precio-antes { text-decoration: line-through; }
+.prod-foto--clic:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; }
+
+.prod-foto--vacia {
+  border-style: dashed;
+  border-color: var(--adm-borde-fuerte);
+  background: var(--adm-superficie-3);
+}
+
+.prod-foto--grande { width: 64px; height: 64px; border-radius: var(--adm-r-md); font-size: 22px; }
+
+/* Cuántas fotos tiene (si es más de una) */
+.prod-foto__n {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 4px;
+  border: 2px solid var(--adm-superficie);
+  border-radius: 999px;
+  background: var(--adm-oscuro-fondo);
+  color: var(--adm-oscuro-texto);
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.prod-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--adm-texto-2);
+}
+
+.prod-cat > i { color: var(--adm-texto-tenue); font-size: 12px; }
+.prod-sin-dato { color: var(--adm-texto-tenue); }
+
+.prod-precio-celda { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.prod-precio { font-variant-numeric: tabular-nums; }
+.prod-precio__extra { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.prod-precio-antes { font-size: var(--adm-fs-ayuda); color: var(--adm-texto-tenue); }
+
+/* Margen sobre el precio final: verde si deja ganancia, rojo si se vende bajo el costo */
+.prod-margen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--adm-exito-texto);
+}
+
+.prod-margen__punto { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.prod-margen--neg { color: var(--adm-peligro-texto); }
+
+.prod-stock-celda { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+
+.prod-unidad {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--adm-texto-tenue);
+}
+
+.prod-unidad--agotado { color: var(--adm-peligro-texto); font-weight: 600; }
 
 .prod-estado {
   display: inline-flex;
@@ -64,7 +233,20 @@
   gap: 6px;
 }
 
-/* ── Panel: formulario ───────────────────────────────────────── */
+/* ── Panel: ficha y formulario ───────────────────────────────── */
+
+.prod-ficha {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-lg);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--adm-primario) 7%, var(--adm-superficie)) 0%, var(--adm-superficie) 62%);
+}
+
+.prod-ficha__texto { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.prod-ficha__insignias { margin-top: 8px; }
 
 /* fieldset sin borde: solo sirve para deshabilitar el formulario en modo consulta */
 .prod-fieldset {
@@ -104,6 +286,50 @@
 
 .prod-enlace-marca:hover { color: var(--adm-primario-osc); }
 
+/* Precio final, ganancia y margen en vivo */
+.prod-calculo {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  background: var(--adm-borde);
+  overflow: hidden;
+}
+
+.prod-calculo__celda {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 11px 14px;
+  background: var(--adm-superficie);
+}
+
+.prod-calculo dt {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--adm-texto-tenue);
+}
+
+.prod-calculo dd {
+  margin: 0;
+  font-family: var(--adm-fuente-titulos);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--adm-texto);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.prod-calculo__celda--neg dd { color: var(--adm-peligro-texto); }
+
 /* Interruptores con título y descripción */
 .prod-opciones {
   display: grid;
@@ -117,7 +343,7 @@
   background: var(--adm-superficie);
   border: 1px solid var(--adm-borde);
   border-radius: var(--adm-r-md);
-  transition: border-color var(--adm-transicion), box-shadow var(--adm-transicion);
+  transition: border-color var(--adm-transicion), box-shadow var(--adm-transicion), background var(--adm-transicion);
 }
 
 .prod-opciones .adm-switch:hover { border-color: var(--adm-borde-fuerte); }
@@ -138,10 +364,49 @@
 /* ── Panel: galería ──────────────────────────────────────────── */
 
 .prod-soltar__texto { font-weight: 600; color: inherit; }
+.prod-soltar:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; }
+
+.prod-soltar--subiendo {
+  border-style: solid;
+  border-color: var(--adm-primario);
+  background: var(--adm-primario-claro);
+  color: var(--adm-primario);
+  cursor: progress;
+}
+
+.prod-galeria { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }
+
+.prod-galeria .adm-galeria__pieza { background: var(--t-imagen-fondo, var(--adm-superficie-3)); isolation: isolate; }
+
+.prod-galeria .adm-galeria__pieza img {
+  padding: 6px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.prod-galeria__orden {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--adm-oscuro-fondo);
+  color: var(--adm-oscuro-texto);
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.prod-galeria__ayuda { display: flex; align-items: center; gap: 6px; }
+.prod-galeria__ayuda > i { color: var(--adm-primario); }
 
 .prod-galeria-esqueleto {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   gap: 12px;
 }
 
@@ -162,6 +427,18 @@
     flex: 1 1 100%;
   }
 
+  .prod-limpiar { align-self: stretch; margin: 0; min-height: 44px; flex: 1 1 100%; }
+
+  /* Los atajos corren en una sola línea con scroll propio (la página no se desborda) */
+  .prod-chips {
+    flex-wrap: nowrap;
+    padding: 10px 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .prod-chips .adm-chip { flex: none; }
+
   .prod-td-producto { min-width: 0; }
 
   /* La celda del producto encabeza la ficha: foto y nombre a la izquierda, sin etiqueta */
@@ -174,14 +451,19 @@
   }
 
   .adm-tabla--adaptable tbody td.prod-td-producto::before { content: none; }
-  .prod-td-producto .adm-tabla__con-miniatura { justify-content: flex-start; }
+  .prod-td-producto .adm-tabla__con-miniatura,
+  .prod-celda { justify-content: flex-start; }
   .prod-td-producto .adm-tabla__principal { text-align: left; }
 
   .prod-estado { justify-content: flex-end; }
   .prod-opciones { grid-template-columns: minmax(0, 1fr); }
+  .prod-ficha { align-items: flex-start; }
+  .prod-calculo { grid-template-columns: minmax(0, 1fr); }
+  .prod-calculo__celda { flex-direction: row; align-items: baseline; justify-content: space-between; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .adm-tabla__miniatura.adm-img-clic { transition: none; }
-  .adm-tabla__miniatura.adm-img-clic:hover { transform: none; }
+  .prod-foto--clic,
+  .prod-opciones .adm-switch { transition: none; }
+  .prod-foto--clic:hover { transform: none; }
 }

@@ -1,4 +1,51 @@
+/* Roles · usa el sistema compartido (admin-ui.css, clases adm-*). Aquí solo lo propio, con prefijo rol-. */
+:host {
+  display: block;
+  width: 100%;
+}
+
 .rol-campo--nombre {
   flex: 1.4;
   min-width: 220px;
+}
+
+.rol-nota {
+  margin: 6px 0 0;
+}
+
+/* ID en la mono de la casa */
+.rol-id {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: var(--adm-fs-etiqueta);
+  font-weight: 500;
+}
+
+/* Nombre con un chip de icono: panel (azul) o tienda (verde) */
+.rol-nombre {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-transform: capitalize;
+}
+
+.rol-icono {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--adm-exito-claro);
+  color: var(--adm-exito);
+  font-size: 14px;
+}
+
+.rol-icono--panel {
+  background: var(--adm-info-claro);
+  color: var(--adm-info);
+}
+
+@media (max-width: 640px) {
+  /* Ficha apilada: el valor va a la derecha, junto a su etiqueta */
+  .rol-nombre { justify-content: flex-end; }
 }

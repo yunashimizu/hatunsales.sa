@@ -10,11 +10,24 @@ import { CuentaTiendaService } from '../../service/cuenta.service';
 import { AccionesTiendaService } from '../../service/acciones.service';
 import { AlertService } from '../../../shared/services/alert.service';
 import { ImagenProducto, ProductoDetalle, ProductoTienda, ResenaTienda } from '../../models/tienda.models';
+import { urlWhatsapp } from '../../config/empresa-tienda.config';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
+import { SpotlightDirective } from '../../../shared/ui/spotlight.directive';
+import { ConfianzaProductoComponent } from './confianza-producto.component';
+import { FichaEsqueletoComponent } from './ficha-esqueleto.component';
+import { FormularioResenaComponent } from './formulario-resena.component';
+import { NivelStockComponent } from './nivel-stock.component';
+import { OpinionesProductoComponent } from './opiniones-producto.component';
+import { StockSucursalesComponent } from './stock-sucursales.component';
 
 @Component({
   selector: 'app-producto-detalle',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, EstrellasComponent, ProductoCardComponent],
+  imports: [
+    CommonModule, FormsModule, RouterLink, EstrellasComponent, ProductoCardComponent,
+    RevealDirective, SpotlightDirective, ConfianzaProductoComponent, FichaEsqueletoComponent, FormularioResenaComponent,
+    NivelStockComponent, OpinionesProductoComponent, StockSucursalesComponent,
+  ],
   templateUrl: './producto-detalle.component.html',
   styleUrl: './producto-detalle.component.css',
 })
@@ -95,6 +108,41 @@ export class ProductoDetalleComponent implements OnInit, OnDestroy {
 
   get maximo(): number {
     return Math.max(1, this.stockTotal);
+  }
+
+  // ------------------------------------------- getters de presentación (sin lógica de negocio)
+
+  /** Porcentaje de rebaja calculado con los mismos precios que se muestran (igual que la tarjeta). */
+  get porcentaje(): number {
+    const p = this.producto;
+    if (!p || !(p.precio > 0) || p.precio_final >= p.precio) return 0;
+    return Math.round((1 - p.precio_final / p.precio) * 100);
+  }
+
+  /** Posición (1, 2, 3…) de la foto mostrada, para el contador del visor. */
+  get indiceImagen(): number {
+    const fotos = this.producto?.imagenes ?? [];
+    const i = fotos.findIndex((f) => f.id_imagen === this.imagenActiva?.id_imagen);
+    return i >= 0 ? i + 1 : 1;
+  }
+
+  /** Subtotal de la selección actual (la cantidad puede estar vacía mientras se escribe). */
+  get subtotal(): number {
+    return (Number(this.cantidad) || 0) * (this.producto?.precio_final ?? 0);
+  }
+
+  /** Enlace de WhatsApp para consultar este producto. */
+  get urlConsulta(): string {
+    const p = this.producto;
+    if (!p) return urlWhatsapp();
+    const sku = p.sku ? ` (SKU ${p.sku})` : '';
+    return urlWhatsapp(`Hola, quisiera información de ${p.nombre}${sku}`);
+  }
+
+  /** Mismos umbrales que el resto de la ficha: más de 5 = bien, de 1 a 5 = bajo, 0 = agotado. */
+  claseStock(unidades: number): 'ok' | 'bajo' | 'agotado' {
+    if (unidades > 5) return 'ok';
+    return unidades > 0 ? 'bajo' : 'agotado';
   }
 
   imagenUrl(imagen: ImagenProducto): string {

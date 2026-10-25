@@ -19,12 +19,14 @@ import { filter } from 'rxjs';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
 import { EstadoFiscalGlobal } from '../../models/fiscal.models';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
+import { BotonTemaComponent } from '../../../shared/ui/boton-tema.component';
+import { PaletaComandosService } from '../paleta-comandos/paleta-comandos.service';
 
 @Component({
   selector: 'app-header',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, BotonTemaComponent],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
 })
@@ -61,6 +63,9 @@ export class HeaderComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly titleDoc = inject(Title);
   private readonly fiscal = inject(FiscalEstadoService);
+  private readonly paleta = inject(PaletaComandosService);
+  /** Atajo de teclado que abre la paleta de comandos (⌘ K en Mac, Ctrl K en el resto). */
+  readonly atajoPaleta = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ K' : 'Ctrl K';
   /** Oculto mientras el estado no se pudo leer: el servicio reintenta solo. */
   readonly chipFiscal = computed(() => chipDeEstadoFiscal(this.fiscal.estado()));
 
@@ -93,6 +98,10 @@ export class HeaderComponent implements OnInit {
 
   get etiquetaRol(): string {
     return this.auth.etiquetaRol(this.sesion.rolNombre);
+  }
+
+  abrirPaleta(): void {
+    this.paleta.abrir();
   }
 
   toggleUser(): void {
@@ -207,6 +216,7 @@ interface PaginaPanel {
 
 /** Mismas rutas e iconos que el menú lateral. El orden importa: la más específica primero. */
 const PAGINAS: Array<{ fragmento: string; pagina: PaginaPanel }> = [
+  { fragmento: '/mantenimiento/ventas-historial', pagina: { titulo: 'Historial de ventas', icono: 'bi-clock-history', grupo: 'Ventas' } },
   { fragmento: '/mantenimiento/ventas', pagina: { titulo: 'Ventas', icono: 'bi-receipt', grupo: 'Ventas' } },
   { fragmento: '/mantenimiento/caja-sesion', pagina: { titulo: 'Caja', icono: 'bi-cash-stack', grupo: 'Ventas' } },
   { fragmento: '/mantenimiento/cotizaciones', pagina: { titulo: 'Cotizaciones', icono: 'bi-file-earmark-ruled', grupo: 'Ventas' } },

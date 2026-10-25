@@ -12,12 +12,14 @@ import { GestionService } from '../../service/gestion.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { mensajeDeError } from '../../../service/api-base.service';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
 @Component({
   selector: 'app-almacen',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, CountUpDirective, RevealDirective],
   templateUrl: './almacen.component.html',
   styleUrl: './almacen.component.css',
 })
@@ -25,6 +27,8 @@ export class AlmacenComponent implements OnInit {
   almacenes: any[] = [];
   sucursales: any[] = [];
   cargando = false;
+  /** La última carga de la lista falló (solo para mostrar el estado de error en pantalla). */
+  errorCarga = false;
   guardando = false;
   idDestacado: number | null = null;
   editandoId: number | null = null;
@@ -39,6 +43,16 @@ export class AlmacenComponent implements OnInit {
 
   get totalUnidades(): number {
     return this.almacenes.reduce((sum, a) => sum + Number(a.unidades ?? 0), 0);
+  }
+
+  /** Almacenes sin ningún producto registrado (para el indicador «Vacíos»). */
+  get sinExistencias(): number {
+    return this.almacenes.filter((a) => !Number(a.productos ?? 0)).length;
+  }
+
+  /** El almacén con más unidades: fondo de escala de las barras de la lista. */
+  get maxUnidades(): number {
+    return Math.max(1, ...this.almacenes.map((a) => Number(a.unidades ?? 0)));
   }
 
   constructor(
@@ -58,6 +72,7 @@ export class AlmacenComponent implements OnInit {
 
   cargar(): void {
     this.cargando = true;
+    this.errorCarga = false;
     this.cdr.markForCheck();
     this.gestion.getAlmacenesAdmin().subscribe({
       next: (lista) => {
@@ -67,6 +82,7 @@ export class AlmacenComponent implements OnInit {
       },
       error: (error) => {
         this.cargando = false;
+        this.errorCarga = true;
         this.cdr.markForCheck();
         this.ns.error(mensajeDeError(error, 'No se pudieron cargar los almacenes'));
       },

@@ -15,6 +15,7 @@ import { VisorImagenComponent } from '../../../../shared/components/visor-imagen
 import { AlertService } from '../../../../shared/services/alert.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
 import { esErrorDeRed } from '../../../../shared/utils/errores-http.util';
 import { mensajeDeError, escapeHtmlAlerta } from '../../../service/api-base.service';
 import { PuntoVentaService } from '../../../service/punto-venta.service';
@@ -39,7 +40,7 @@ interface LineaRecepcion {
   selector: 'app-recepcion',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, VisorImagenComponent],
+  imports: [CommonModule, FormsModule, RouterLink, VisorImagenComponent, CountUpDirective],
   templateUrl: './recepcion.component.html',
   styleUrl: './recepcion.component.css',
 })
@@ -63,6 +64,12 @@ export class RecepcionComponent implements OnInit {
   lineas: LineaRecepcion[] = [];
   escaneando = false;
   confirmando = false;
+
+  /** Estados de carga y error de las listas (solo para mostrarlos en pantalla). */
+  cargandoHistorial = false;
+  errorHistorial = false;
+  cargandoObs = false;
+  errorObs = false;
 
   filtroObs: 'pendiente' | 'todas' = 'pendiente';
   vistaImagen: string | null = null;
@@ -89,6 +96,57 @@ export class RecepcionComponent implements OnInit {
 
   get totalObs(): number {
     return this.lineas.reduce((s, l) => s + (Number(l.cantidad_observada) || 0), 0);
+  }
+
+  /** Proveedor, almacén y guía completos: marca el primer paso de la pantalla. */
+  get cabeceraLista(): boolean {
+    return !!this.idProveedor && !!this.idAlmacen && !!this.nroGuia.trim();
+  }
+
+  /** Lo que falta de la cabecera, en palabras («proveedor, almacén y guía»). */
+  get textoFaltantes(): string {
+    const falta: string[] = [];
+    if (!this.idProveedor) falta.push('proveedor');
+    if (!this.idAlmacen) falta.push('almacén');
+    if (!this.nroGuia.trim()) falta.push('guía');
+    return falta.length > 1 ? `${falta.slice(0, -1).join(', ')} y ${falta[falta.length - 1]}` : falta.join('');
+  }
+
+  /** Parte de lo recibido que queda en observación (0–100): barra del resumen. */
+  get pctObservado(): number {
+    const total = this.totalOk + this.totalObs;
+    return total > 0 ? (this.totalObs / total) * 100 : 0;
+  }
+
+  /** Líneas con unidades observadas. */
+  get lineasObservadas(): number {
+    return this.lineas.filter((l) => Number(l.cantidad_observada) > 0).length;
+  }
+
+  /** Totales del historial y de las observaciones (chips de resumen). */
+  get historialOk(): number {
+    return this.historial.reduce((s, r) => s + (Number(r.unidades_ok) || 0), 0);
+  }
+
+  get historialObs(): number {
+    return this.historial.reduce((s, r) => s + (Number(r.unidades_obs) || 0), 0);
+  }
+
+  get aprobadasObs(): number {
+    return this.observaciones.filter((o) => o.estado === 'aprobado').length;
+  }
+
+  get rechazadasObs(): number {
+    return this.observaciones.filter((o) => o.estado === 'rechazado').length;
+  }
+
+  /** Totales del detalle abierto. */
+  get detalleOk(): number {
+    return (this.detalleAbierto?.items ?? []).reduce((s: number, it: any) => s + (Number(it.cantidad_ok) || 0), 0);
+  }
+
+  get detalleObs(): number {
+    return (this.detalleAbierto?.items ?? []).reduce((s: number, it: any) => s + (Number(it.cantidad_observada) || 0), 0);
   }
 
   private readonly cdr = inject(ChangeDetectorRef);
@@ -203,12 +261,18 @@ export class RecepcionComponent implements OnInit {
   }
 
   cargarHistorial(): void {
+    this.cargandoHistorial = true;
+    this.errorHistorial = false;
+    this.cdr.markForCheck();
     this.api.listarRecepciones().subscribe({
       next: (lista) => {
         this.historial = Array.isArray(lista) ? lista : [];
+        this.cargandoHistorial = false;
         this.cdr.markForCheck();
       },
       error: (e) => {
+        this.cargandoHistorial = false;
+        this.errorHistorial = true;
         this.cdr.markForCheck();
         this.ns.error(mensajeDeError(e));
       },
@@ -217,15 +281,21 @@ export class RecepcionComponent implements OnInit {
 
   cargarObservaciones(): void {
     const estado = this.filtroObs === 'pendiente' ? 'pendiente' : undefined;
+    this.cargandoObs = true;
+    this.errorObs = false;
+    this.cdr.markForCheck();
     this.api.observaciones(estado).subscribe({
       next: (lista) => {
         this.observaciones = (Array.isArray(lista) ? lista : []).map((o) => ({
           ...o,
           adjuntos: typeof o.adjuntos === 'string' ? JSON.parse(o.adjuntos) : (o.adjuntos || []),
         }));
+        this.cargandoObs = false;
         this.cdr.markForCheck();
       },
       error: (e) => {
+        this.cargandoObs = false;
+        this.errorObs = true;
         this.cdr.markForCheck();
         this.ns.error(mensajeDeError(e));
       },

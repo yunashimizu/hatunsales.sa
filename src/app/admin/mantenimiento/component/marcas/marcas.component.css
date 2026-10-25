@@ -1,1 +1,244 @@
-/* Estilos compartidos en admin-ui.css */
+:host { display: block; }
+
+/* Marcas · «Taller» v3. Todo color sale de tokens; lo compartido vive en admin-ui.css. */
+
+.mar-cabecera__texto { min-width: 0; }
+.mar-solo-lectura { margin-top: 10px; max-width: 560px; }
+
+.mar-esqueleto-cifra {
+  display: block;
+  width: 56px;
+  height: 24px;
+  margin: 3px 0 2px;
+  border-radius: var(--adm-r-xs);
+}
+
+/* ── Disposición: formulario + listado ───────────────────────── */
+
+/* El ancho útil (no la ventana) decide si el formulario va al costado */
+.mar-area { container-type: inline-size; }
+
+.mar-disposicion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@container (min-width: 900px) {
+  .mar-disposicion { grid-template-columns: minmax(300px, 340px) minmax(0, 1fr); }
+  .mar-disposicion--sola { grid-template-columns: minmax(0, 1fr); }
+  .mar-form { position: sticky; top: 16px; }
+}
+
+/* ── Formulario ──────────────────────────────────────────────── */
+
+.mar-form { transition: border-color var(--adm-transicion), box-shadow var(--adm-transicion); }
+
+.mar-form--editando {
+  border-color: var(--adm-primario-borde);
+  box-shadow: var(--adm-anillo), var(--adm-sombra);
+}
+
+.mar-form--editando .adm-tarjeta__cabecera {
+  background: linear-gradient(180deg, var(--adm-superficie) 0%, var(--adm-primario-claro) 100%);
+  border-bottom-color: var(--adm-primario-borde);
+}
+
+.mar-form__cuerpo { display: flex; flex-direction: column; gap: 14px; }
+
+/* Vista previa del logo mientras se escribe */
+.mar-previa {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px dashed var(--adm-borde-fuerte);
+  border-radius: var(--adm-r-md);
+  background: var(--adm-superficie-2);
+}
+
+.mar-previa__texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+
+.mar-previa__texto strong {
+  font-family: var(--adm-fuente-titulos);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--adm-texto);
+}
+
+.mar-previa__texto small { font-size: 12px; line-height: 1.4; color: var(--adm-texto-suave); }
+
+/* ── Logo: baldosa clara (el logo puede traer letras oscuras) con las iniciales de respaldo ── */
+
+.mar-logo {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  background: var(--t-imagen-fondo, var(--adm-superficie-3));
+  overflow: hidden;
+}
+
+.mar-logo--previa { width: 76px; flex: none; aspect-ratio: 1; }
+
+.mar-logo__img {
+  width: 100%;
+  height: 100%;
+  padding: 12px 20px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.mar-logo--previa .mar-logo__img { padding: 8px; }
+
+/* Tinta oscura fija: la baldosa es clara en los dos temas */
+.mar-logo__letras {
+  font-family: var(--adm-fuente-titulos);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: var(--x-tinta);
+}
+
+.mar-logo--previa .mar-logo__letras { font-size: 24px; }
+
+/* Con logo, las iniciales solo aparecen si la imagen no cargó */
+.mar-logo__letras--respaldo { display: none; }
+.mar-logo:has(.mar-logo__img[hidden]) .mar-logo__letras--respaldo { display: block; }
+
+/* ── Listado ─────────────────────────────────────────────────── */
+
+.mar-buscar { flex: 0 1 240px; min-width: 190px; }
+
+.mar-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 18px 20px 20px;
+  list-style: none;
+}
+
+.mar-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-lg);
+  background: var(--adm-superficie);
+  box-shadow: var(--adm-sombra-sm);
+  transition: transform 360ms var(--x-resorte-suave, ease), box-shadow var(--adm-transicion), border-color var(--adm-transicion);
+}
+
+@media (hover: hover) {
+  .mar-tarjeta:hover {
+    transform: translateY(-3px);
+    border-color: var(--adm-borde-hover);
+    box-shadow: var(--adm-sombra-md);
+  }
+}
+
+.mar-tarjeta--editando,
+.mar-tarjeta--editando:hover {
+  border-color: var(--adm-primario);
+  box-shadow: var(--adm-anillo), var(--adm-sombra-sm);
+}
+
+/* Inactiva: el logo se apaga; el nombre baja a gris suave (con opacidad el texto no llega a 4,5:1) */
+.mar-tarjeta--inactiva .mar-logo { opacity: 0.6; }
+.mar-tarjeta--inactiva .mar-nombre { color: var(--adm-texto-suave); }
+
+.mar-tarjeta__info { min-width: 0; }
+
+.mar-tarjeta__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+}
+
+.mar-nombre {
+  margin: 0;
+  font-family: var(--adm-fuente-titulos);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--adm-texto);
+  overflow-wrap: anywhere;
+}
+
+.mar-slug {
+  margin: 3px 0 0;
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--adm-texto-tenue);
+  overflow-wrap: anywhere;
+}
+
+/* Cuántos productos tiene, comparado con la marca que más tiene */
+.mar-uso { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+.mar-uso__cifra { font-size: 12px; color: var(--adm-texto-suave); }
+.mar-uso__cifra strong { color: var(--adm-texto); font-variant-numeric: tabular-nums; }
+
+.mar-barra {
+  display: block;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--adm-superficie-3);
+  overflow: hidden;
+}
+
+.mar-barra > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--adm-gradiente-vivo);
+  transform-origin: left center;
+  scale: calc(var(--n, 0) / 100) 1;
+  animation: mar-barra-entra 700ms var(--x-ease, ease) both;
+}
+
+@keyframes mar-barra-entra { from { scale: 0 1; } }
+
+.mar-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--adm-borde);
+}
+
+.mar-acciones .adm-btn { flex: 1; }
+
+/* Carga */
+.mar-tarjeta--esqueleto { box-shadow: none; }
+.mar-esqueleto-logo { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: var(--adm-r-md); }
+
+/* ── Móvil ───────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .mar-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; }
+  .mar-buscar { flex: 1 1 100%; }
+}
+
+@media (max-width: 380px) {
+  .mar-lista { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mar-tarjeta,
+  .mar-form { transition: none; }
+  .mar-tarjeta:hover { transform: none; }
+  .mar-barra > i { animation: none; }
+}

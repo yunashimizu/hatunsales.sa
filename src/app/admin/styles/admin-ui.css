@@ -76,11 +76,37 @@
   --adm-info-claro: #f0f9ff;
   --adm-info-borde: #bae6fd;
 
+  /* Tokens que antes eran colores sueltos en este archivo: en claro valen lo mismo
+     que antes; tema-oscuro.css los redefine. */
+  --adm-borde-hover: #d6dce8;
+  --adm-borde-campo-hover: #a9b4c6;
+  --adm-borde-boton-hover: #b3bdcc;
+  --adm-interruptor-off: #cbd5e1;
+  --adm-hover-fila: #f6f7fd;
+  --adm-zebra: #fafbfe;
+  --adm-hover-fila-zebra: #f3f5fd;
+  --adm-esqueleto-fondo: #eceff5;
+  --adm-esqueleto-brillo: rgba(255, 255, 255, 0.72);
+  --adm-velo-carga: rgba(255, 255, 255, 0.72);
+  --adm-oscuro-fondo: #0f172a;
+  --adm-oscuro-fondo-hover: #1e293b;
+  --adm-oscuro-texto: #ffffff;
+  --adm-aviso-info-texto: #075985;
+  --adm-aviso-exito-texto: #065f46;
+  --adm-aviso-aviso-texto: #92400e;
+  --adm-aviso-peligro-texto: #991b1b;
+  --adm-peligro-suave-hover: #fee2e2;
+  /* Rellenos con letra blanca (botones de estado): el mismo tono en claro y oscuro, ≥ 4,5:1 con blanco */
+  --adm-exito-solido: #047857;
+  --adm-peligro-solido: #dc2626;
+  --adm-aviso-solido: #b45309;
+  --adm-punteado: rgba(15, 23, 42, 0.07);   /* puntos de la cuadrícula de fondo */
+
   --adm-r-xs: 6px;
   --adm-r-sm: 9px;
   --adm-r-md: 12px;
-  --adm-r-lg: 16px;
-  --adm-r-xl: 22px;
+  --adm-r-lg: 18px;
+  --adm-r-xl: 24px;
 
   --adm-sombra-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 1px rgba(15, 23, 42, 0.03);
   --adm-sombra: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px -3px rgba(15, 23, 42, 0.07);
@@ -281,11 +307,11 @@
 
 /* Tarjeta de resumen con tinte de marca (totales, estado destacado) */
 .adm-tarjeta--destacada {
-  background: linear-gradient(160deg, #ffffff 0%, var(--adm-primario-claro) 100%);
+  background: linear-gradient(160deg, var(--adm-superficie) 0%, var(--adm-primario-claro) 100%);
   border-color: var(--adm-primario-borde);
 }
 
-.adm-tarjeta--exito-suave { background: linear-gradient(160deg, #ffffff 0%, var(--adm-exito-claro) 100%); border-color: var(--adm-exito-borde); }
+.adm-tarjeta--exito-suave { background: linear-gradient(160deg, var(--adm-superficie) 0%, var(--adm-exito-claro) 100%); border-color: var(--adm-exito-borde); }
 
 .adm-tarjeta__cabecera {
   display: flex;
@@ -447,7 +473,7 @@
   .adm-metrica:hover {
     box-shadow: var(--adm-sombra-md);
     transform: translateY(var(--mov-elevar, -1px));
-    border-color: #d6dce8;
+    border-color: var(--adm-borde-hover);
   }
 }
 
@@ -524,7 +550,7 @@
 .adm-metrica--boton { cursor: pointer; text-align: left; font: inherit; }
 .adm-metrica--boton:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; }
 .adm-metrica--boton:active { transform: scale(var(--mov-pulsar, 0.98)); transition-duration: var(--mov-pulsacion, 90ms); }
-.adm-metrica--activa { border-color: var(--adm-primario-borde); box-shadow: var(--adm-anillo), var(--adm-sombra-sm); background: linear-gradient(160deg, #ffffff, var(--adm-primario-claro)); }
+.adm-metrica--activa { border-color: var(--adm-primario-borde); box-shadow: var(--adm-anillo), var(--adm-sombra-sm); background: linear-gradient(160deg, var(--adm-superficie), var(--adm-primario-claro)); }
 
 /* ── Formularios ─────────────────────────────────────────────── */
 
@@ -603,7 +629,7 @@
 
 .adm-input:hover:not(:disabled):not(:focus),
 .adm-select:hover:not(:disabled):not(:focus),
-.adm-textarea:hover:not(:disabled):not(:focus) { border-color: #a9b4c6; }
+.adm-textarea:hover:not(:disabled):not(:focus) { border-color: var(--adm-borde-campo-hover); }
 
 .adm-input:focus,
 .adm-select:focus,
@@ -778,7 +804,7 @@
   margin: 0;
   flex-shrink: 0;
   border-radius: 999px;
-  background: #cbd5e1;
+  background: var(--adm-interruptor-off);
   cursor: pointer;
   transition: background var(--adm-transicion);
 }
@@ -841,7 +867,7 @@ a.adm-btn-icono:hover { text-decoration: none; }
 a.adm-btn--primario:hover,
 a.adm-btn--exito:hover,
 a.adm-btn--peligro:hover,
-a.adm-btn--oscuro:hover { color: #fff; }
+a.adm-btn--oscuro:hover { color: var(--adm-oscuro-texto); }
 
 a.adm-btn--suave:hover,
 a.adm-btn--fantasma:hover { color: var(--adm-texto); }
@@ -873,7 +899,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 }
 .adm-btn--suave:hover:not(:disabled) {
   background: var(--adm-superficie-2);
-  border-color: #b3bdcc;
+  border-color: var(--adm-borde-boton-hover);
   transform: translateY(-1px);
   box-shadow: var(--adm-sombra);
 }
@@ -892,20 +918,20 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 /* Éxito y aviso usan el tono «-texto» de fondo: con letra blanca, el verde
    #059669 (3,8:1) y el ámbar #d97706 (3,2:1) no llegaban a AA; #047857 da
    5,5:1 y #b45309, 5,0:1. */
-.adm-btn--exito  { background: var(--adm-exito-texto); color: #fff; box-shadow: 0 1px 2px rgba(4, 120, 87, 0.35); }
+.adm-btn--exito  { background: var(--adm-exito-solido); color: #fff; box-shadow: 0 1px 2px rgba(4, 120, 87, 0.35); }
 .adm-btn--exito:hover:not(:disabled) { filter: brightness(0.94); transform: translateY(-1px); box-shadow: 0 6px 16px -4px rgba(4, 120, 87, 0.45); }
 
-.adm-btn--peligro { background: var(--adm-peligro); color: #fff; box-shadow: 0 1px 2px rgba(220, 38, 38, 0.35); }
+.adm-btn--peligro { background: var(--adm-peligro-solido); color: #fff; box-shadow: 0 1px 2px rgba(220, 38, 38, 0.35); }
 .adm-btn--peligro:hover:not(:disabled) { filter: brightness(0.94); transform: translateY(-1px); box-shadow: 0 6px 16px -4px rgba(220, 38, 38, 0.45); }
 
 .adm-btn--peligro-suave { background: var(--adm-peligro-claro); color: var(--adm-peligro-texto); border-color: var(--adm-peligro-borde); }
-.adm-btn--peligro-suave:hover:not(:disabled) { background: #fee2e2; }
+.adm-btn--peligro-suave:hover:not(:disabled) { background: var(--adm-peligro-suave-hover); }
 
-.adm-btn--aviso { background: var(--adm-aviso-texto); color: #fff; }
+.adm-btn--aviso { background: var(--adm-aviso-solido); color: #fff; }
 .adm-btn--aviso:hover:not(:disabled) { filter: brightness(0.94); }
 
-.adm-btn--oscuro { background: #0f172a; color: #fff; }
-.adm-btn--oscuro:hover:not(:disabled) { background: #1e293b; transform: translateY(-1px); }
+.adm-btn--oscuro { background: var(--adm-oscuro-fondo); color: var(--adm-oscuro-texto); }
+.adm-btn--oscuro:hover:not(:disabled) { background: var(--adm-oscuro-fondo-hover); transform: translateY(-1px); }
 
 .adm-btn--fantasma { background: transparent; color: var(--adm-texto-suave); }
 .adm-btn--fantasma:hover:not(:disabled) { background: var(--adm-superficie-3); color: var(--adm-texto); }
@@ -1001,7 +1027,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   transition: background var(--adm-transicion), color var(--adm-transicion), box-shadow var(--adm-transicion);
 }
 
-.adm-pestania:hover:not(.adm-pestania--activa) { color: var(--adm-texto); background: rgba(255, 255, 255, 0.6); }
+.adm-pestania:hover:not(.adm-pestania--activa) { color: var(--adm-texto); background: color-mix(in srgb, var(--adm-superficie) 60%, transparent); }
 
 .adm-pestania--activa {
   color: var(--adm-primario);
@@ -1107,7 +1133,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: var(--adm-interruptor-off) transparent;
 }
 
 .adm-tabla {
@@ -1151,14 +1177,14 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-tabla tbody td:last-child  { padding-right: 20px; }
 
 .adm-tabla tbody tr { transition: background var(--adm-transicion); }
-.adm-tabla tbody tr:hover { background: #f6f7fd; }
+.adm-tabla tbody tr:hover { background: var(--adm-hover-fila); }
 .adm-tabla tbody tr:last-child td { border-bottom: none; }
 
 .adm-tabla--compacta thead th { padding: 8px 12px; }
 .adm-tabla--compacta tbody td { padding: 8px 12px; font-size: var(--adm-fs-etiqueta); }
 
-.adm-tabla--zebra tbody tr:nth-child(even) { background: #fafbfe; }
-.adm-tabla--zebra tbody tr:hover { background: #f3f5fd; }
+.adm-tabla--zebra tbody tr:nth-child(even) { background: var(--adm-zebra); }
+.adm-tabla--zebra tbody tr:hover { background: var(--adm-hover-fila-zebra); }
 
 /* Columnas numéricas: a la derecha, tabulares y sin partirse (la tabla hace
    scroll lateral dentro de .adm-tabla-envoltorio antes que cortar una cifra). */
@@ -1220,7 +1246,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-insignia--peligro { background: var(--adm-peligro-claro);  color: var(--adm-peligro-texto); }
 .adm-insignia--info    { background: var(--adm-info-claro);     color: var(--adm-info-texto); }
 .adm-insignia--primaria{ background: var(--adm-primario-claro); color: var(--adm-primario); }
-.adm-insignia--oscura  { background: #0f172a; color: #fff; }
+.adm-insignia--oscura  { background: var(--adm-oscuro-fondo); color: var(--adm-oscuro-texto); }
 
 .adm-insignia--contorno { background: transparent; border-color: currentColor; opacity: 0.9; }
 
@@ -1357,15 +1383,15 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   height: 64px;
   margin-bottom: 6px;
   border-radius: 50%;
-  background: linear-gradient(160deg, var(--adm-primario-claro), #ffffff);
+  background: linear-gradient(160deg, var(--adm-primario-claro), var(--adm-superficie));
   color: var(--adm-primario);
   font-size: 26px;
   box-shadow: inset 0 0 0 1px var(--adm-primario-borde), 0 0 0 8px rgba(79, 70, 229, 0.05);
 }
 
-.adm-vacio__icono--neutro { background: linear-gradient(160deg, var(--adm-superficie-3), #fff); color: var(--adm-texto-tenue); box-shadow: inset 0 0 0 1px var(--adm-borde), 0 0 0 8px rgba(15, 23, 42, 0.03); }
-.adm-vacio__icono--aviso  { background: linear-gradient(160deg, var(--adm-aviso-claro), #fff); color: var(--adm-aviso); box-shadow: inset 0 0 0 1px var(--adm-aviso-borde), 0 0 0 8px rgba(217, 119, 6, 0.06); }
-.adm-vacio__icono--exito  { background: linear-gradient(160deg, var(--adm-exito-claro), #fff); color: var(--adm-exito); box-shadow: inset 0 0 0 1px var(--adm-exito-borde), 0 0 0 8px rgba(5, 150, 105, 0.06); }
+.adm-vacio__icono--neutro { background: linear-gradient(160deg, var(--adm-superficie-3), var(--adm-superficie)); color: var(--adm-texto-tenue); box-shadow: inset 0 0 0 1px var(--adm-borde), 0 0 0 8px rgba(15, 23, 42, 0.03); }
+.adm-vacio__icono--aviso  { background: linear-gradient(160deg, var(--adm-aviso-claro), var(--adm-superficie)); color: var(--adm-aviso); box-shadow: inset 0 0 0 1px var(--adm-aviso-borde), 0 0 0 8px rgba(217, 119, 6, 0.06); }
+.adm-vacio__icono--exito  { background: linear-gradient(160deg, var(--adm-exito-claro), var(--adm-superficie)); color: var(--adm-exito); box-shadow: inset 0 0 0 1px var(--adm-exito-borde), 0 0 0 8px rgba(5, 150, 105, 0.06); }
 
 .adm-vacio__titulo {
   font-family: var(--adm-fuente-titulos);
@@ -1389,11 +1415,11 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar</button>
    </div> */
 .adm-vacio__icono--peligro {
-  background: linear-gradient(160deg, var(--adm-peligro-claro), #fff);
+  background: linear-gradient(160deg, var(--adm-peligro-claro), var(--adm-superficie));
   color: var(--adm-peligro);
   box-shadow: inset 0 0 0 1px var(--adm-peligro-borde), 0 0 0 8px rgba(220, 38, 38, 0.06);
 }
-.adm-vacio--error .adm-vacio__titulo { color: #991b1b; }
+.adm-vacio--error .adm-vacio__titulo { color: var(--adm-aviso-peligro-texto); }
 .adm-vacio--error p { color: var(--adm-texto-suave); }
 
 /* Los estados vacío/error aparecen con un fundido corto (no al cargar la página:
@@ -1409,14 +1435,14 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   overflow: hidden;
   height: 14px;
   border-radius: 6px;
-  background: #eceff5;
+  background: var(--adm-esqueleto-fondo);
 }
 
 .adm-esqueleto::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.72) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, var(--adm-esqueleto-brillo) 50%, transparent 100%);
   translate: -100% 0;
   animation: mov-shimmer var(--mov-esqueleto, 1400ms) var(--ease-estandar, cubic-bezier(0.4, 0, 0.2, 1)) infinite;
   pointer-events: none;
@@ -1437,7 +1463,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   z-index: 3;
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--adm-velo-carga);
   backdrop-filter: blur(2px);
   color: var(--adm-primario);
   font-size: 24px;
@@ -1470,6 +1496,14 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 /* ── Ticket del comprobante ──────────────────────────────────── */
 
 .adm-ticket {
+  /* Papel: siempre claro, también con el tema oscuro del panel */
+  color-scheme: light;
+  --adm-texto: #0f172a;
+  --adm-texto-2: #1e293b;
+  --adm-texto-suave: #5b6578;
+  --adm-borde: #e4e8f0;
+  --adm-borde-fuerte: #cfd6e2;
+  --adm-superficie-2: #f8fafc;
   background: #fff;
   border: 1px solid var(--adm-borde);
   border-radius: var(--adm-r-md);
@@ -1583,12 +1617,12 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 /* Acción dentro del aviso («Reintentar»): botón compacto alineado al texto.
    <button type="button" class="adm-btn adm-btn--suave adm-aviso__accion" (click)="cargar()">Reintentar</button> */
 .adm-aviso__accion.adm-btn { min-height: 30px; margin-block: -3px; padding: 4px 10px; font-size: var(--adm-fs-ayuda); }
-.adm-aviso--peligro .adm-aviso__accion { color: #991b1b; }
+.adm-aviso--peligro .adm-aviso__accion { color: var(--adm-aviso-peligro-texto); }
 
-.adm-aviso--info    { background: var(--adm-info-claro);    border-color: var(--adm-info-borde);    color: #075985; }
-.adm-aviso--exito   { background: var(--adm-exito-claro);   border-color: var(--adm-exito-borde);   color: #065f46; }
-.adm-aviso--aviso   { background: var(--adm-aviso-claro);   border-color: var(--adm-aviso-borde);   color: #92400e; }
-.adm-aviso--peligro { background: var(--adm-peligro-claro); border-color: var(--adm-peligro-borde); color: #991b1b; }
+.adm-aviso--info    { background: var(--adm-info-claro);    border-color: var(--adm-info-borde);    color: var(--adm-aviso-info-texto); }
+.adm-aviso--exito   { background: var(--adm-exito-claro);   border-color: var(--adm-exito-borde);   color: var(--adm-aviso-exito-texto); }
+.adm-aviso--aviso   { background: var(--adm-aviso-claro);   border-color: var(--adm-aviso-borde);   color: var(--adm-aviso-aviso-texto); }
+.adm-aviso--peligro { background: var(--adm-peligro-claro); border-color: var(--adm-peligro-borde); color: var(--adm-aviso-peligro-texto); }
 .adm-aviso--neutro  { background: var(--adm-superficie-2);  border-color: var(--adm-borde);         color: var(--adm-texto-2); }
 
 .adm-aviso--compacto { padding: 8px 12px; font-size: var(--adm-fs-etiqueta); border-radius: var(--adm-r-sm); }
@@ -1670,7 +1704,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   transition: transform var(--adm-transicion), background var(--adm-transicion), color var(--adm-transicion);
 }
 .adm-galeria__accion:hover { transform: scale(1.12); }
-.adm-galeria__accion--peligro:hover { background: var(--adm-peligro); color: #fff; }
+.adm-galeria__accion--peligro:hover { background: var(--adm-peligro-solido); color: #fff; }
 
 .adm-galeria__cinta {
   position: absolute;
@@ -1985,7 +2019,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   gap: 12px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--adm-borde);
-  background: linear-gradient(180deg, #ffffff, var(--adm-superficie-2));
+  background: linear-gradient(180deg, var(--adm-superficie), var(--adm-superficie-2));
 }
 
 .adm-panel__cabecera .adm-tarjeta__titulo { font-size: var(--adm-fs-titulo-seccion); }
@@ -2000,7 +2034,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   flex-direction: column;
   gap: 14px;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: var(--adm-interruptor-off) transparent;
 }
 
 .adm-panel__pie {
@@ -2164,6 +2198,140 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 }
 
 .adm-recien-creado { animation: adm-destacar 2.4s ease-out; }
+
+/* ── v3 «Taller»: acabado expresivo ─────────────────────────────────────────
+   Se apoya en shared/styles/expresivo.css (fuente mono, rampa de acentos,
+   resortes). Va ANTES de los bloques por ancho, puntero, movimiento reducido e
+   impresión para que ellos sigan ganando donde corresponde. Solo se añaden
+   o refinan propiedades: ninguna clase v1/v2 cambia de nombre ni de función. */
+
+/* Rótulos en mono (la marca de la casa): eyebrows, cabeceras de tabla, etiquetas de métrica y de dato */
+.adm-cabecera__eyebrow,
+.adm-dato__etiqueta,
+.adm-metrica__etiqueta,
+.adm-bloque__titulo {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  font-feature-settings: normal;
+}
+
+.adm-cabecera__eyebrow { font-size: 10.5px; letter-spacing: 0.15em; }
+
+.adm-cabecera__titulo {
+  font-size: clamp(1.5rem, 1.05rem + 1.5vw, 2.15rem);
+  letter-spacing: -0.04em;
+  word-spacing: 0.06em;
+}
+
+.adm-cabecera__icono {
+  box-shadow: var(--adm-sombra-primario), inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 0 0 4px color-mix(in srgb, var(--adm-primario) 10%, transparent);
+}
+
+.adm-tarjeta__titulo,
+.adm-seccion__titulo,
+.adm-vacio__titulo { word-spacing: 0.05em; }
+
+/* Métricas: tinte del color del indicador en la esquina y cifra más firme */
+.adm-metrica {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--adm-metrica-color) 7%, var(--adm-superficie)) 0%, var(--adm-superficie) 62%);
+}
+
+.adm-metrica__valor { font-weight: 800; letter-spacing: -0.04em; }
+.adm-metrica__etiqueta { font-size: 10.5px; }
+
+/* Tablas: cabecera mono, fila con marca de color al pasar el cursor */
+.adm-tabla thead th {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  font-feature-settings: normal;
+}
+
+.adm-tabla tbody tr:hover > td:first-child { box-shadow: inset 3px 0 0 var(--adm-primario); }
+
+/* Insignias: filo interior del mismo color (más nítidas sobre cualquier fondo) */
+.adm-insignia { box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 16%, transparent); }
+.adm-insignia--oscura { box-shadow: none; }
+.adm-insignia--punto::before { box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent); }
+
+/* Botón primario: barrido de brillo y resorte al pulsar */
+.adm-btn--primario {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.adm-btn--primario::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, 0.26) 50%, transparent 68%);
+  translate: -130% 0;
+  transition: translate 700ms var(--x-ease, ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .adm-btn--primario:hover:not(:disabled)::before { translate: 130% 0; }
+}
+
+/* Campos: el anillo de foco ya existe; se suma una elevación suave */
+.adm-input:focus,
+.adm-select:focus,
+.adm-textarea:focus { box-shadow: var(--adm-anillo), 0 8px 20px -12px color-mix(in srgb, var(--adm-primario) 55%, transparent); }
+
+/* Pestañas y segmentado: la activa sube con un resorte corto */
+.adm-pestania--activa,
+.adm-segmento--activo { animation: adm-resorte-activo 420ms var(--x-resorte-suave, ease); }
+
+@keyframes adm-resorte-activo {
+  from { scale: 0.94; }
+}
+
+/* Atajos: la flecha se desliza y el icono gira con resorte */
+.adm-atajo__icono { transition: background var(--adm-transicion), color var(--adm-transicion), transform 420ms var(--x-resorte, ease); }
+.adm-atajo:hover .adm-atajo__icono { transform: scale(1.06) rotate(-6deg); }
+
+/* Velo de paneles y modales: más desenfoque */
+.adm-velo { backdrop-filter: blur(6px); }
+
+/* Estados vacíos: el icono flota despacio */
+@media (prefers-reduced-motion: no-preference) {
+  .adm-vacio__icono { animation: x-flota 6s var(--x-ease-in-out, ease-in-out) infinite alternate; --x-flota-dist: 8px; }
+}
+
+/* Escenario: cabecera oscura con aurora para pantallas «de resumen»
+   <header class="adm-escenario x-grano x-plano"> … </header> */
+.adm-escenario {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px 28px;
+  padding: clamp(20px, 3vw, 34px);
+  border: 1px solid var(--x-lienzo-linea, rgba(255, 252, 240, 0.12));
+  border-radius: var(--adm-r-xl);
+  background:
+    radial-gradient(60% 120% at 92% -10%, rgba(99, 102, 241, 0.46), transparent 62%),
+    radial-gradient(46% 90% at 0% 120%, rgba(255, 125, 54, 0.26), transparent 62%),
+    var(--x-lienzo, #151413);
+  color: var(--x-lienzo-texto, #f6f4ef);
+  overflow: hidden;
+}
+
+.adm-escenario .adm-cabecera__titulo,
+.adm-escenario .adm-escenario__titulo { color: var(--x-lienzo-texto, #f6f4ef); }
+.adm-escenario .adm-cabecera__sub { color: var(--x-lienzo-suave, #b9b3a8); }
+.adm-escenario .adm-cabecera__eyebrow { color: var(--x-lienzo-tenue, #8d877c); }
+
+/* Papel cuadriculado de fondo para zonas amplias de trabajo (opt-in) */
+.adm-punteado {
+  background: radial-gradient(circle at 1px 1px, var(--adm-punteado) 1px, transparent 0) 0 0 / 22px 22px;
+}
 
 /* ── Adaptación a pantallas chicas ───────────────────────────── */
 

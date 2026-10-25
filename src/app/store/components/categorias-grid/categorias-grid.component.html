@@ -1,20 +1,26 @@
-<div class="grilla">
+<div class="mosaico" hsReveal="lista">
   <a
-    class="categoria"
+    class="tarjeta x-brillo"
     *ngFor="let cat of visibles; let i = index"
+    hsSpotlight
+    [ngClass]="[clases(i), 'tono-' + tono(i)]"
     [routerLink]="['/store/catalogo']"
-    [queryParams]="{ categoria: cat.id_categoria }"
-    [style.animation-delay.ms]="i * 45">
+    [queryParams]="{ categoria: cat.id_categoria }">
+
+    <span class="indice x-numero" aria-hidden="true">{{ numero(i) }}</span>
 
     <span class="icono" [style.background-image]="cat.imagen_url ? 'url(' + cat.imagen_url + ')' : null">
       <i class="bi" [class]="icono(cat, i)" *ngIf="!cat.imagen_url"></i>
     </span>
 
+    <i class="bi marca-agua" [class]="icono(cat, i)" aria-hidden="true" *ngIf="clases(i) === 'es-grande'"></i>
+
     <span class="texto">
       <span class="nombre">{{ cat.nombre }}</span>
-      <span class="conteo">{{ cat.total_productos }} {{ cat.total_productos === 1 ? 'producto' : 'productos' }}</span>
+      <span class="descripcion" *ngIf="clases(i) === 'es-grande' && cat.descripcion">{{ cat.descripcion }}</span>
+      <span class="conteo x-etiqueta">{{ cat.total_productos }} {{ cat.total_productos === 1 ? 'producto' : 'productos' }}</span>
     </span>
 
-    <i class="bi bi-arrow-right flecha"></i>
+    <span class="flecha" aria-hidden="true"><i class="bi bi-arrow-up-right"></i></span>
   </a>
 </div>

@@ -12,13 +12,15 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
 import { AlertService } from '../../../shared/services/alert.service';
+import { CountUpDirective } from '../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
 import { mensajeDeError } from '../../service/api-base.service';
 
 @Component({
   selector: 'app-admin-perfil',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, CountUpDirective, RevealDirective],
   templateUrl: './perfil.component.html',
   styleUrl: './perfil.component.css',
 })

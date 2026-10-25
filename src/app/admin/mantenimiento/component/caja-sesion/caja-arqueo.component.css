@@ -1,42 +1,291 @@
+/* Arqueo del turno · usa el sistema compartido (admin-ui.css, clases adm-*). Prefijos propios: arq- y arqueo-. */
 :host {
   display: block;
   margin-top: 1.5rem;
 }
-fieldset {
-  border: 0;
-  padding: 0;
-  margin: 1.5rem 0;
+
+.arq-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.arq-cuerpo > p,
+.arq-cuerpo > .adm-aviso {
+  margin: 0;
+}
+
+/* ── Cifras principales: esperado, contado y diferencia ──────────────────── */
+.arq-cifra {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
+  background: var(--adm-superficie-2);
 }
-legend {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 0.75rem;
+
+.arq-cifra .adm-etiqueta {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: var(--adm-fs-rotulo);
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--adm-texto-suave);
 }
+
+.arq-cifra strong {
+  display: block;
+  font-family: var(--adm-fuente-titulos);
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.arq-cifra__estado {
+  font-size: var(--adm-fs-ayuda);
+  font-weight: var(--fw-semi);
+  color: var(--adm-texto-suave);
+}
+
+/* La diferencia se pinta según el signo: cuadra (verde), sobra (azul) y falta (rojo) */
+.arq-cifra--cuadra {
+  background: var(--adm-exito-claro);
+  border-color: var(--adm-exito-borde);
+}
+.arq-cifra--cuadra strong,
+.arq-cifra--cuadra .arq-cifra__estado { color: var(--adm-exito-texto); }
+
+.arq-cifra--sobra {
+  background: var(--adm-info-claro);
+  border-color: var(--adm-info-borde);
+}
+.arq-cifra--sobra strong,
+.arq-cifra--sobra .arq-cifra__estado { color: var(--adm-info-texto); }
+
+.arq-cifra--falta {
+  background: var(--adm-peligro-claro);
+  border-color: var(--adm-peligro-borde);
+}
+.arq-cifra--falta strong,
+.arq-cifra--falta .arq-cifra__estado { color: var(--adm-peligro-texto); }
+
+/* Cómo se calcula el efectivo esperado */
+.arq-desglose {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.arq-desglose li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 110px;
+  padding: 8px 14px;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+}
+
+.arq-desglose span {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: var(--adm-fs-rotulo);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--adm-texto-suave);
+}
+
+.arq-desglose strong {
+  font-size: var(--adm-fs-cuerpo);
+  font-variant-numeric: tabular-nums;
+}
+
+.arq-nota {
+  color: var(--adm-texto-tenue);
+}
+
+/* ── Conteo: cada bloque de formulario es una ficha ──────────────────────── */
+fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 fieldset:disabled {
   opacity: 0.65;
 }
-.arqueo-opcion {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  margin-bottom: 1rem;
+
+.arq-grupo {
+  padding: 20px;
+  background: var(--adm-superficie-2);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-lg);
 }
+
+/* El legend flotante se comporta como un título normal dentro del relleno */
+legend {
+  float: left;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 0;
+  font-family: var(--adm-fuente-titulos);
+  font-size: var(--adm-fs-titulo-tarjeta);
+  font-weight: var(--fw-negrita);
+  letter-spacing: var(--tracking-ajustado);
+  word-spacing: 0.05em;
+  color: var(--adm-texto);
+}
+
+legend + * {
+  clear: both;
+}
+
+legend > i {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--adm-primario-claro);
+  color: var(--adm-primario);
+  font-size: 14px;
+}
+
+.arqueo-opcion {
+  margin-bottom: 16px;
+}
+
+/* Billetes y monedas: 6 por fila para que los 11 valores queden 6 + 5 */
 .arqueo-denominaciones {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
 }
-.arqueo-tabla {
-  overflow-x: auto;
-  margin: 0.75rem 0 1.5rem;
+
+.arq-den {
+  gap: 4px;
+  padding: 10px 12px 8px;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-top: 3px solid var(--adm-info);
+  border-radius: var(--adm-r-md);
+  transition: border-color var(--adm-transicion), background var(--adm-transicion);
 }
-.adm-bloque strong {
-  display: block;
-  font-size: 1.2rem;
+
+.arq-den--moneda {
+  border-top-color: var(--adm-aviso);
+}
+
+.arq-den .adm-etiqueta {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: var(--adm-fs-etiqueta);
+  font-weight: 600;
+}
+
+.arq-den__subtotal {
   font-variant-numeric: tabular-nums;
+  text-align: right;
 }
-.adm-acciones {
-  margin-top: 0.75rem;
+
+/* Con cantidad contada la ficha se enciende y el subtotal gana peso */
+.arq-den--con-cantidad {
+  background: var(--adm-primario-claro);
+  border-color: var(--adm-primario-borde);
+  border-top-color: var(--adm-primario);
+}
+
+.arq-den--con-cantidad .arq-den__subtotal {
+  font-weight: var(--fw-negrita);
+  color: var(--adm-primario);
+}
+
+.arq-manual {
+  max-width: 320px;
+}
+
+.arq-subtitulo {
+  margin: 8px 0 0;
+}
+
+.arq-grupo .arq-subtitulo {
+  margin-top: 18px;
+}
+
+.arq-observacion {
+  margin-top: 16px;
+}
+
+.arq-observacion--obligatoria {
+  color: var(--adm-aviso-texto);
+}
+
+.arq-grupo .adm-acciones {
+  margin-top: 16px;
+}
+
+.arq-grupo .adm-fila + .adm-btn {
+  margin-top: 16px;
+}
+
+/* ── Tablas: arqueos y movimientos ───────────────────────────────────────── */
+.arqueo-tabla {
+  margin: 0;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+}
+
+.arqueo-tabla .adm-tabla {
+  border-radius: inherit;
+}
+
+.arq-codigo {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: var(--adm-fs-etiqueta);
+}
+
+.arq-dif--cuadra,
+.arq-mov--ingreso { color: var(--adm-exito-texto); }
+.arq-dif--sobra { color: var(--adm-info-texto); }
+.arq-dif--falta,
+.arq-mov--egreso { color: var(--adm-peligro-texto); }
+
+.arq-dif--cuadra,
+.arq-dif--sobra,
+.arq-dif--falta,
+.arq-mov--ingreso,
+.arq-mov--egreso { font-weight: var(--fw-semi); }
+
+.arq-dif--cuadra .adm-tabla__secundario,
+.arq-dif--sobra .adm-tabla__secundario,
+.arq-dif--falta .adm-tabla__secundario { font-weight: var(--fw-regular); color: var(--adm-texto-suave); }
+
+.arq-vacio {
+  padding: 22px 16px;
+  text-align: center;
+  color: var(--adm-texto-suave);
+}
+
+@media (max-width: 1200px) {
+  .arqueo-denominaciones { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .arq-grupo { padding: 16px; }
+  .arqueo-denominaciones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .arq-cifra strong { font-size: var(--fs-2xl); }
+  .arq-desglose li { flex: 1 1 calc(50% - 8px); min-width: 0; }
+  .arqueo-tabla { border: 0; background: transparent; }
+  .arq-vacio { justify-content: center; text-align: center; }
 }

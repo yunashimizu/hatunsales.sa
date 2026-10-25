@@ -10,12 +10,13 @@ import {
   urlTelefono,
   urlWhatsapp,
 } from '../../config/empresa-tienda.config';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
 
 @Component({
   selector: 'app-footer',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, RevealDirective],
   templateUrl: './footer.component.html',
   styleUrl: './footer.component.css',
 })
@@ -28,6 +29,7 @@ export class FooterComponent implements OnInit {
   readonly anio = new Date().getFullYear();
   readonly empresa = EMPRESA_TIENDA;
   readonly waHref = urlWhatsapp();
+  readonly waProyecto = urlWhatsapp('Hola, quisiera cotizar un proyecto.');
   readonly telHref = urlTelefono();
   readonly mailHref = urlMailto();
 

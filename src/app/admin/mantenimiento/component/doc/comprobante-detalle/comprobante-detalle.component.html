@@ -1,0 +1,458 @@
+<div class="adm-velo" (click)="cerrar()" aria-hidden="true"></div>
+
+<aside #panel class="adm-panel adm-panel--ancho det" role="dialog" aria-modal="true" aria-labelledby="det-titulo"
+       tabindex="-1" (keydown.escape)="cerrar()">
+  <div class="adm-panel__cabecera">
+    <div class="adm-tarjeta__encabezado det-encabezado">
+      <h2 class="adm-tarjeta__titulo" id="det-titulo">
+        <i class="bi bi-receipt"></i>
+        <span class="adm-tabular">{{ detalle?.numero_formateado || 'Comprobante' }}</span>
+      </h2>
+      @if (detalle; as d) {
+        <p class="adm-panel__sub det-sub">
+          <span class="det-tipo">{{ d.tipo_nombre }}</span>
+          <span class="adm-insignia adm-insignia--punto adm-insignia--sm" [ngClass]="claseInsignia(estado.tono)">
+            {{ estado.texto }}
+          </span>
+          @if (ambiente; as chip) {
+            <span class="adm-insignia adm-insignia--sm" [ngClass]="chip.clase" [attr.title]="chip.titulo">{{ chip.texto }}</span>
+          }
+          @if (cargando) {
+            <span class="adm-insignia adm-insignia--primaria adm-insignia--sm" role="status">
+              <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Actualizando…
+            </span>
+          }
+        </p>
+      } @else {
+        <p class="adm-panel__sub">{{ error ? 'No se pudo cargar' : 'Consultando el comprobante…' }}</p>
+      }
+    </div>
+    <button type="button" class="adm-btn-icono" (click)="cerrar()" aria-label="Cerrar el detalle" title="Cerrar">
+      <i class="bi bi-x-lg" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="adm-panel__cuerpo">
+    @if (detalle; as d) {
+      @if (error) {
+        <div class="adm-aviso adm-aviso--peligro" role="alert">
+          <i class="bi bi-cloud-slash" aria-hidden="true"></i>
+          <span>No se pudo actualizar el comprobante: {{ error }}</span>
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargar()">
+            Reintentar
+          </button>
+        </div>
+      }
+
+      <!-- Respuesta de SUNAT a la última acción, en el acto -->
+      @if (resultado) {
+        <app-resultado-sunat [resultado]="resultado"></app-resultado-sunat>
+      }
+
+      @if (anulacion; as a) {
+        <div class="adm-aviso" [ngClass]="claseAviso(textoAnulacion(a.estado).tono)" role="status">
+          <i class="bi" [ngClass]="textoAnulacion(a.estado).icono" aria-hidden="true"></i>
+          <div class="det-aviso__cuerpo">
+            <strong class="adm-aviso__titulo">{{ textoAnulacion(a.estado).titulo }}</strong>
+            @for (aviso of a.avisos; track $index) {
+              <p class="det-parrafo">{{ aviso }}</p>
+            }
+          </div>
+        </div>
+        @if (resultadoNotaAnulacion; as nota) {
+          <app-resultado-sunat [resultado]="nota">
+            <div>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="abrirOtro(nota.id_comprobante)">
+                <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Ver la nota {{ nota.numero_formateado }}
+              </button>
+            </div>
+          </app-resultado-sunat>
+        }
+      }
+
+      @if (d.aviso) {
+        <div class="adm-aviso adm-aviso--aviso">
+          <i class="bi bi-cone-striped" aria-hidden="true"></i>
+          <span><strong class="adm-aviso__titulo">Emitido en SUNAT BETA</strong>{{ d.aviso }}</span>
+        </div>
+      }
+
+      @if (d.anulado) {
+        <div class="adm-aviso adm-aviso--peligro">
+          <i class="bi bi-x-octagon" aria-hidden="true"></i>
+          <span><strong class="adm-aviso__titulo">Documento anulado</strong>Motivo: {{ d.motivo_anulacion || 'sin especificar' }}</span>
+        </div>
+      }
+
+      @if (d.vencido) {
+        <div class="adm-aviso adm-aviso--peligro">
+          <i class="bi bi-calendar-x" aria-hidden="true"></i>
+          <span><strong class="adm-aviso__titulo">Fuera de plazo</strong>{{ textoVencido(d) }}</span>
+        </div>
+      }
+
+      <!-- Estado en SUNAT y último envío -->
+      <section class="det-seccion" aria-labelledby="det-sunat">
+        <h3 class="det-seccion__titulo" id="det-sunat"><i class="bi bi-send-check" aria-hidden="true"></i> Estado en SUNAT</h3>
+        @if (d.proveedor_fiscal === 'sunat_directo') {
+          <dl class="adm-datos">
+            <div class="adm-dato">
+              <dt class="adm-dato__etiqueta">Estado</dt>
+              <dd class="adm-dato__valor">
+                <span class="adm-insignia adm-insignia--punto" [ngClass]="claseInsignia(estado.tono)">{{ estado.texto }}</span>
+              </dd>
+            </div>
+            @if (d.envio; as envio) {
+              <div class="adm-dato">
+                <dt class="adm-dato__etiqueta">Último envío</dt>
+                <dd class="adm-dato__valor adm-tabular">
+                  #{{ envio.id_envio }} · {{ textoEstadoEnvio(envio.estado) }}
+                  @if ((envio.intento ?? 0) > 1) {
+                    · intento {{ envio.intento }}
+                  }
+                </dd>
+              </div>
+              @if (textoAccion(envio.accion); as accion) {
+                <div class="adm-dato">
+                  <dt class="adm-dato__etiqueta">Siguiente paso</dt>
+                  <dd class="adm-dato__valor">{{ accion }}</dd>
+                </div>
+              }
+            }
+            @if (d.fecha_limite_envio && !d.aceptada_sunat && !d.anulado) {
+              <div class="adm-dato">
+                <dt class="adm-dato__etiqueta">Plazo de envío</dt>
+                <dd class="adm-dato__valor adm-tabular">Hasta el {{ fechaLegible(d.fecha_limite_envio) }}</dd>
+              </div>
+            }
+            @if (d.sunat_description || d.sunat_responsecode || d.envio?.mensaje) {
+              <div class="adm-dato det-dato--ancho">
+                <dt class="adm-dato__etiqueta">Respuesta de SUNAT</dt>
+                <dd class="adm-dato__valor">
+                  @if (d.sunat_responsecode || d.envio?.codigo) {
+                    <span class="adm-mono">{{ d.sunat_responsecode || d.envio?.codigo }}</span>
+                  }
+                  {{ d.sunat_description || d.envio?.mensaje }}
+                </dd>
+              </div>
+            }
+          </dl>
+        } @else {
+          <p class="det-parrafo adm-texto-suave">
+            Emitido con el sistema anterior: no tiene envío directo a SUNAT ni archivos electrónicos guardados.
+          </p>
+        }
+
+        @if (d.sunat_observaciones.length) {
+          <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto">
+            <i class="bi bi-chat-square-text" aria-hidden="true"></i>
+            <div>
+              <strong class="adm-aviso__titulo">Observaciones de SUNAT</strong>
+              <ul class="det-lista">
+                @for (observacion of d.sunat_observaciones; track $index) {
+                  <li><span class="adm-mono">{{ observacion.codigo }}</span> {{ observacion.descripcion }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+        }
+
+        @if (d.error_mensaje && d.estado === 'error') {
+          <div class="adm-aviso adm-aviso--peligro adm-aviso--compacto">
+            <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+            <span class="det-texto-largo">{{ d.error_mensaje }}</span>
+          </div>
+        }
+      </section>
+
+      <!-- Comprobante que modifica (solo notas) -->
+      @if (d.referencia; as referencia) {
+        <section class="det-seccion" aria-labelledby="det-referencia">
+          <h3 class="det-seccion__titulo" id="det-referencia"><i class="bi bi-link-45deg" aria-hidden="true"></i> Comprobante que modifica</h3>
+          <dl class="adm-datos">
+            <div class="adm-dato">
+              <dt class="adm-dato__etiqueta">Documento</dt>
+              <dd class="adm-dato__valor">
+                @if (referencia.id_comprobante) {
+                  <button type="button" class="det-enlace adm-tabular" (click)="abrirOtro(referencia.id_comprobante)">
+                    {{ referencia.numero_formateado }}
+                  </button>
+                } @else {
+                  <span class="adm-tabular">{{ referencia.numero_formateado }}</span>
+                }
+              </dd>
+            </div>
+            @if (referencia.motivo) {
+              <div class="adm-dato">
+                <dt class="adm-dato__etiqueta">Motivo</dt>
+                <dd class="adm-dato__valor">
+                  {{ referencia.motivo }}@if (referencia.motivo_descripcion) {
+                    · <span class="det-tipo">{{ referencia.motivo_descripcion }}</span>
+                  }
+                </dd>
+              </div>
+            }
+            @if (referencia.sustento) {
+              <div class="adm-dato det-dato--ancho">
+                <dt class="adm-dato__etiqueta">Sustento</dt>
+                <dd class="adm-dato__valor">{{ referencia.sustento }}</dd>
+              </div>
+            }
+          </dl>
+        </section>
+      }
+
+      <!-- Representación del comprobante -->
+      <div class="adm-ticket det-ticket">
+        <div class="adm-ticket__cabecera">
+          <div class="adm-ticket__emisor">
+            <strong>{{ d.emisor.razon_social }}</strong>
+            @if (d.emisor.nombre_comercial) {
+              <div>{{ d.emisor.nombre_comercial }}</div>
+            }
+            <div>{{ d.emisor.direccion }}</div>
+            <div>{{ d.emisor.ubicacion }}</div>
+          </div>
+          <div class="adm-ticket__recuadro">
+            <small>RUC {{ d.emisor.ruc }}</small>
+            <small class="det-tipo">{{ d.tipo_nombre }}</small>
+            <div class="adm-ticket__numero">{{ d.numero_formateado }}</div>
+          </div>
+        </div>
+
+        <div class="adm-ticket__seccion">
+          <div class="adm-ticket__dato"><span>Cliente</span><span>{{ d.receptor.denominacion }}</span></div>
+          <div class="adm-ticket__dato">
+            <span>{{ tipoDocumento(d.receptor.tipo_documento) }}</span><span>{{ d.receptor.numero_documento }}</span>
+          </div>
+          @if (d.receptor.direccion) {
+            <div class="adm-ticket__dato"><span>Dirección</span><span>{{ d.receptor.direccion }}</span></div>
+          }
+          <div class="adm-ticket__dato">
+            <span>Emisión</span><span class="adm-tabular">{{ d.fecha_de_emision }}@if (d.hora_emision) { {{ ' ' + d.hora_emision }} }</span>
+          </div>
+          <div class="adm-ticket__dato"><span>Moneda</span><span>{{ d.moneda.nombre }}</span></div>
+        </div>
+
+        <div class="adm-ticket__seccion">
+          <table class="adm-ticket__tabla">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th class="adm-num">Cant.</th>
+                <th class="adm-num">P. unit.</th>
+                <th class="adm-num">Importe</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of d.items; track $index) {
+                <tr>
+                  <td class="det-ticket__descripcion">{{ item.descripcion }}</td>
+                  <td class="adm-num">{{ item.cantidad }}</td>
+                  <td class="adm-num">{{ item.precio_unitario | number: '1.2-2' }}</td>
+                  <td class="adm-num">{{ item.total | number: '1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="adm-ticket__totales">
+          @if (d.totales.gravada) {
+            <div class="adm-ticket__total-fila">
+              <span>Op. gravada</span><span>{{ d.moneda.simbolo }} {{ d.totales.gravada | number: '1.2-2' }}</span>
+            </div>
+          }
+          @if (d.totales.exonerada) {
+            <div class="adm-ticket__total-fila">
+              <span>Op. exonerada</span><span>{{ d.moneda.simbolo }} {{ d.totales.exonerada | number: '1.2-2' }}</span>
+            </div>
+          }
+          @if (d.totales.inafecta) {
+            <div class="adm-ticket__total-fila">
+              <span>Op. inafecta</span><span>{{ d.moneda.simbolo }} {{ d.totales.inafecta | number: '1.2-2' }}</span>
+            </div>
+          }
+          <div class="adm-ticket__total-fila">
+            <span>IGV ({{ d.porcentaje_igv }}%)</span><span>{{ d.moneda.simbolo }} {{ d.totales.igv | number: '1.2-2' }}</span>
+          </div>
+          <div class="adm-ticket__total-fila adm-ticket__total-fila--destacada">
+            <span>Importe total</span><span>{{ d.moneda.simbolo }} {{ d.totales.total | number: '1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="adm-ticket__letras">Son: {{ d.importe_en_letras }}</div>
+      </div>
+
+      @if (d.forma_pago) {
+        <section class="det-seccion" aria-labelledby="det-pago">
+          <h3 class="det-seccion__titulo" id="det-pago"><i class="bi bi-wallet2" aria-hidden="true"></i> Forma de pago</h3>
+          <p class="det-parrafo">{{ d.forma_pago === 'Credito' ? 'Al crédito' : 'Al contado' }}</p>
+          @if (d.cuotas.length) {
+            <ul class="adm-resumen">
+              @for (cuota of d.cuotas; track cuota.numero) {
+                <li class="adm-resumen__fila">
+                  <span>Cuota {{ cuota.numero }} · vence el {{ fechaLegible(cuota.fecha_pago) }}</span>
+                  <span>{{ d.moneda.simbolo }} {{ cuota.monto | number: '1.2-2' }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+
+      @if (d.codigo_hash || d.cadena_qr) {
+        <section class="det-seccion" aria-labelledby="det-qr">
+          <h3 class="det-seccion__titulo" id="det-qr"><i class="bi bi-qr-code" aria-hidden="true"></i> Código hash y QR</h3>
+          <dl class="adm-datos adm-datos--columna">
+            @if (d.codigo_hash) {
+              <div class="adm-dato">
+                <dt class="adm-dato__etiqueta">Código hash</dt>
+                <dd class="adm-dato__valor adm-mono det-texto-largo">{{ d.codigo_hash }}</dd>
+              </div>
+            }
+            @if (d.cadena_qr) {
+              <div class="adm-dato">
+                <dt class="adm-dato__etiqueta">Contenido del QR</dt>
+                <dd class="adm-dato__valor adm-mono det-texto-largo">{{ d.cadena_qr }}</dd>
+              </div>
+            }
+          </dl>
+          <p class="adm-ayuda">El código QR impreso va en el PDF.</p>
+        </section>
+      }
+
+      @if (d.notas.length) {
+        <section class="det-seccion" aria-labelledby="det-notas">
+          <h3 class="det-seccion__titulo" id="det-notas">
+            <i class="bi bi-arrow-return-left" aria-hidden="true"></i> Notas de crédito
+            <span class="adm-insignia adm-insignia--neutra adm-insignia--sm">{{ d.notas.length }}</span>
+          </h3>
+          <ul class="det-enlaces">
+            @for (nota of d.notas; track nota.id_comprobante) {
+              <li class="det-enlaces__fila">
+                <button type="button" class="det-enlace adm-tabular" (click)="abrirOtro(nota.id_comprobante)"
+                        [attr.aria-label]="'Ver la nota ' + nota.numero_formateado">
+                  {{ nota.numero_formateado }}
+                </button>
+                <span class="adm-texto-suave">Motivo {{ nota.motivo || 'sin indicar' }}</span>
+                <span class="adm-tabular">{{ d.moneda.simbolo }} {{ nota.total | number: '1.2-2' }}</span>
+                <span class="adm-insignia adm-insignia--sm" [ngClass]="claseInsignia(estadoDe(nota).tono)">{{ estadoDe(nota).texto }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (d.guias.length) {
+        <section class="det-seccion" aria-labelledby="det-guias">
+          <h3 class="det-seccion__titulo" id="det-guias">
+            <i class="bi bi-truck" aria-hidden="true"></i> Guías de remisión
+            <span class="adm-insignia adm-insignia--neutra adm-insignia--sm">{{ d.guias.length }}</span>
+          </h3>
+          <ul class="det-enlaces">
+            @for (guia of d.guias; track guia.id_guia) {
+              <li class="det-enlaces__fila">
+                <a class="det-enlace adm-tabular" [routerLink]="rutaGuias" [queryParams]="{ guia: guia.id_guia }">
+                  {{ guia.numero_formateado || 'Guía #' + guia.id_guia }}
+                </a>
+                <span>{{ textoEstadoGuia(guia.estado) }}</span>
+                @if (guia.fecha_emision) {
+                  <span class="adm-tabular adm-texto-suave">{{ fechaLegible(guia.fecha_emision) }}</span>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (d.id_venta) {
+        <a class="adm-btn adm-btn--suave det-venta" [routerLink]="rutaVenta" [queryParams]="{ venta: d.id_venta }">
+          <i class="bi bi-bag-check" aria-hidden="true"></i> Ver los documentos de la venta #{{ d.id_venta }}
+        </a>
+      }
+
+      <section class="det-seccion" aria-labelledby="det-descargas">
+        <h3 class="det-seccion__titulo" id="det-descargas"><i class="bi bi-download" aria-hidden="true"></i> Descargas</h3>
+        <div class="det-botones">
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="descargarPdf('a4')"
+                  [disabled]="enProceso !== null" [attr.aria-label]="'Descargar el PDF A4 de ' + d.numero_formateado">
+            <i class="bi" [ngClass]="enProceso === 'pdf_a4' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-pdf'" aria-hidden="true"></i>
+            PDF A4
+          </button>
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="descargarPdf('ticket')"
+                  [disabled]="enProceso !== null" [attr.aria-label]="'Descargar el ticket de 80 mm de ' + d.numero_formateado">
+            <i class="bi" [ngClass]="enProceso === 'pdf_ticket' ? 'bi-arrow-repeat adm-girando' : 'bi-receipt-cutoff'" aria-hidden="true"></i>
+            Ticket 80 mm
+          </button>
+          @for (tipo of archivos; track tipo) {
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="descargarArchivoEnvio(tipo)"
+                    [disabled]="enProceso !== null"
+                    [attr.aria-label]="'Descargar ' + nombresArchivo[tipo] + ' de ' + d.numero_formateado">
+              <i class="bi" [ngClass]="enProceso === tipo ? 'bi-arrow-repeat adm-girando' : 'bi-filetype-xml'" aria-hidden="true"></i>
+              {{ nombresArchivo[tipo] }}
+            </button>
+          }
+        </div>
+        @if (d.proveedor_fiscal === 'sunat_directo' && !archivos.length) {
+          <p class="adm-ayuda">Todavía no hay archivos guardados del envío a SUNAT.</p>
+        }
+      </section>
+    } @else if (error) {
+      <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+        <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">No se pudo cargar el comprobante</div>
+        <p>{{ error }}</p>
+        <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+          <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+        </button>
+      </div>
+    } @else {
+      <div class="det-esqueleto" aria-busy="true" aria-label="Cargando el comprobante">
+        <div class="adm-esqueleto adm-esqueleto--titulo"></div>
+        <div class="adm-esqueleto adm-esqueleto--linea"></div>
+        @for (n of [1, 2, 3, 4, 5]; track n) {
+          <div class="adm-esqueleto adm-esqueleto--fila"></div>
+        }
+      </div>
+    }
+  </div>
+
+  @if (detalle; as d) {
+    <div class="adm-panel__pie det-pie">
+      @if (d.puede_reintentar) {
+        <button type="button" class="adm-btn adm-btn--primario" (click)="reintentar()" [disabled]="enProceso !== null">
+          <i class="bi" [ngClass]="enProceso === 'reintentar' ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-repeat'" aria-hidden="true"></i>
+          Reintentar envío
+        </button>
+      }
+      @if (d.puede_recuperar_cdr) {
+        <button type="button" class="adm-btn adm-btn--suave" (click)="recuperarCdr()" [disabled]="enProceso !== null">
+          <i class="bi" [ngClass]="enProceso === 'recuperar_cdr' ? 'bi-arrow-repeat adm-girando' : 'bi-cloud-download'" aria-hidden="true"></i>
+          Recuperar CDR
+        </button>
+      }
+      @if (d.puede_confirmar_manual && esAdmin) {
+        <button type="button" class="adm-btn adm-btn--suave" (click)="confirmarAceptado()" [disabled]="enProceso !== null">
+          <i class="bi" [ngClass]="enProceso === 'confirmar' ? 'bi-arrow-repeat adm-girando' : 'bi-patch-check'" aria-hidden="true"></i>
+          Confirmar aceptado
+        </button>
+      }
+      @if (d.puede_nota_credito && puedeEmitirNota) {
+        <button type="button" class="adm-btn adm-btn--suave" (click)="pedirNotaCredito()" [disabled]="enProceso !== null">
+          <i class="bi bi-arrow-return-left" aria-hidden="true"></i> Nota de crédito
+        </button>
+      }
+      @if (d.puede_anular && esAdmin) {
+        <button type="button" class="adm-btn adm-btn--peligro-suave" (click)="anular()" [disabled]="enProceso !== null">
+          <i class="bi" [ngClass]="enProceso === 'anular' ? 'bi-arrow-repeat adm-girando' : 'bi-x-octagon'" aria-hidden="true"></i>
+          Anular
+        </button>
+      }
+      @if (!tieneAcciones) {
+        <span class="adm-ayuda det-pie__ayuda">Sin acciones pendientes con SUNAT.</span>
+      }
+      <button type="button" class="adm-btn adm-btn--fantasma" (click)="cerrar()">Cerrar</button>
+    </div>
+  }
+</aside>

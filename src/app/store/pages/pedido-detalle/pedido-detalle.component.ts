@@ -8,11 +8,15 @@ import { CartService } from '../../service/cart.service';
 import { AlertService, escapeHtml } from '../../../shared/services/alert.service';
 import { mensajeDeError } from '../../../shared/utils/errores-http.util';
 import { EstadoPedido, Pedido, PedidoItem } from '../../models/tienda.models';
+import { EMPRESA_TIENDA, urlWhatsapp } from '../../config/empresa-tienda.config';
+import { CountUpDirective } from '../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
+import { FechaEsPipe } from '../pedidos/fecha-es.pipe';
 
 @Component({
   selector: 'app-pedido-detalle',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CountUpDirective, RevealDirective, FechaEsPipe],
   templateUrl: './pedido-detalle.component.html',
   styleUrl: './pedido-detalle.component.css',
 })
@@ -77,6 +81,24 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
 
   get pagoConfirmado(): boolean {
     return this.pedido?.estado === 'pagado';
+  }
+
+  // ---------------------------------------------------- presentación (solo vista)
+
+  /** Enlace de WhatsApp con el código del pedido ya escrito en el mensaje. */
+  get waAyuda(): string {
+    const codigo = this.pedido?.codigo;
+    return urlWhatsapp(`Hola ${EMPRESA_TIENDA.nombreCorto}, necesito ayuda con mi pedido ${codigo ?? ''}`.trim());
+  }
+
+  /** Paso del seguimiento en el que está el pedido (undefined si su estado no es del flujo normal). */
+  get etapaActual(): (typeof PASOS_PEDIDO)[number] | undefined {
+    return this.pasos[this.pasoActual];
+  }
+
+  /** Fecha del estado actual en el historial (el «último movimiento» del seguimiento). */
+  get ultimoMovimiento(): string | undefined {
+    return this.pedido ? this.fechaDe(this.pedido.estado) : undefined;
   }
 
   imagen(item: PedidoItem): string {

@@ -1,18 +1,23 @@
 <div class="adm-pagina">
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Arqueo de caja</h1>
-      <p class="adm-cabecera__sub">Conteo, conciliación, movimientos e historial por turno.</p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-calculator"></i></span>
+      <div>
+        <span class="adm-cabecera__eyebrow">Ventas</span>
+        <h1 class="adm-cabecera__titulo">Arqueo de caja</h1>
+        <p class="adm-cabecera__sub">Conteo, conciliación, movimientos e historial por turno.</p>
+      </div>
     </div>
     <div class="adm-acciones">
       <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/caja-sesion"
-        >Apertura y cierre de caja</a
+        ><i class="bi bi-cash-stack" aria-hidden="true"></i> Apertura y cierre de caja</a
       ><button
         type="button"
         class="adm-btn adm-btn--suave"
         (click)="actualizar()"
         [disabled]="cargando || ocupado"
       >
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
         Actualizar
       </button>
     </div>
@@ -20,11 +25,11 @@
   <section class="adm-tarjeta">
     <div class="adm-tarjeta__cuerpo">
       <form #consultaForm="ngForm" (ngSubmit)="consultaForm.valid && consultar()" class="adm-fila">
-        <div class="adm-campo">
+        <div class="adm-campo adm-campo--medio">
           <label class="adm-etiqueta" for="turno-arqueo">Número de turno / apertura</label
           ><input
             id="turno-arqueo"
-            class="adm-input"
+            class="adm-input adm-input--num"
             name="turno"
             type="number"
             required
@@ -41,6 +46,7 @@
             class="adm-btn adm-btn--primario"
             [disabled]="consultaForm.invalid || cargando || ocupado"
           >
+            <i class="bi bi-search" aria-hidden="true"></i>
             Consultar turno</button
           ><button
             type="button"
@@ -48,6 +54,7 @@
             (click)="usarTurnoActual()"
             [disabled]="cargando || ocupado"
           >
+            <i class="bi bi-person-check" aria-hidden="true"></i>
             Mi turno actual
           </button>
         </div>
@@ -57,15 +64,22 @@
         servidor verifica el acceso.
       </p>
       @if (cargando) {
-        <p role="status">Consultando turno…</p>
+        <p class="adm-aviso adm-aviso--info adm-aviso--compacto" role="status">
+          <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i>
+          <span>Consultando turno…</span>
+        </p>
       }
       @if (error) {
-        <p class="adm-aviso adm-aviso--aviso" role="alert">{{ error }}</p>
+        <p class="adm-aviso adm-aviso--aviso" role="alert">
+          <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+          <span>{{ error }}</span>
+        </p>
       }
       @if (!cargando && !error && !idApertura) {
-        <p role="status">
-          No tiene un turno abierto. Puede abrir una caja o indicar el número de una apertura
-          anterior para consultar su historial y descargar los arqueos.
+        <p class="adm-aviso adm-aviso--neutro" role="status">
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+          <span>No tiene un turno abierto. Puede abrir una caja o indicar el número de una apertura
+          anterior para consultar su historial y descargar los arqueos.</span>
         </p>
       }
     </div>

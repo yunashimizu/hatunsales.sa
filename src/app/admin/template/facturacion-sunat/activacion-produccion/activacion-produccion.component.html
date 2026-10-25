@@ -3,7 +3,7 @@
   <div class="adm-tarjeta__cabecera">
     <div class="adm-tarjeta__encabezado">
       <h2 class="adm-tarjeta__titulo" id="activacion-titulo" [class.adm-tarjeta__titulo--exito]="emisionActiva">
-        <i class="bi bi-rocket-takeoff"></i> Activación en producción
+        <i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Activación en producción
         <span class="adm-insignia"
               [ngClass]="emisionActiva ? 'adm-insignia--exito' : config.estado.listo_para_produccion ? 'adm-insignia--info' : 'adm-insignia--aviso'">
           {{ emisionActiva ? 'Activa' : config.estado.listo_para_produccion ? 'Lista para activar' : pendientes.length + ' pendiente(s)' }}
@@ -33,7 +33,7 @@
     }
 
     <!-- 1. Requisitos -->
-    <div class="adm-bloque" id="activacion-requisitos">
+    <div class="adm-bloque activacion__paso" id="activacion-requisitos" [class.activacion__paso--ok]="progreso === 100">
       <h3 class="adm-bloque__titulo"><i class="bi bi-list-check" aria-hidden="true"></i> 1. Requisitos</h3>
       <div class="activacion__progreso">
         <div class="adm-progreso" role="progressbar" aria-label="Requisitos cumplidos"
@@ -84,7 +84,8 @@
     </div>
 
     <!-- 2. Declaraciones -->
-    <form class="adm-bloque" id="activacion-declaraciones" (ngSubmit)="guardarDeclaraciones()">
+    <form class="adm-bloque activacion__paso" id="activacion-declaraciones" (ngSubmit)="guardarDeclaraciones()"
+          [class.activacion__paso--ok]="declaraciones.emisor_electronico_sol && declaraciones.certificado_en_sol && declaraciones.usuario_sol_secundario && declaraciones.ruc_habido && declaraciones.no_ose && !declaracionesSinGuardar">
       <h3 class="adm-bloque__titulo"><i class="bi bi-patch-check" aria-hidden="true"></i> 2. Declaraciones sobre SOL</h3>
       <p class="adm-ayuda">
         Lo que solo se ve en SUNAT Operaciones en Línea: márquelo después de revisarlo. Cada cambio queda en la
@@ -143,7 +144,8 @@
     </form>
 
     <!-- 3. Primer número de cada serie -->
-    <form class="adm-bloque" id="activacion-correlativos" (ngSubmit)="guardarCorrelativos()">
+    <form class="adm-bloque activacion__paso" id="activacion-correlativos" (ngSubmit)="guardarCorrelativos()"
+          [class.activacion__paso--ok]="config.correlativo_inicial_revisado && !correlativosSinGuardar">
       <h3 class="adm-bloque__titulo">
         <i class="bi bi-123" aria-hidden="true"></i> 3. Primer número de cada serie
         <span class="adm-insignia adm-insignia--sm"
@@ -185,7 +187,7 @@
     </form>
 
     <!-- 4. Credenciales SOL de producción -->
-    <div class="adm-bloque" id="activacion-credenciales">
+    <div class="adm-bloque activacion__paso" id="activacion-credenciales" [class.activacion__paso--ok]="resultadoPrueba?.ok === true">
       <h3 class="adm-bloque__titulo"><i class="bi bi-key" aria-hidden="true"></i> 4. Probar credenciales SOL de producción</h3>
       <p class="adm-ayuda">
         Consulta en SUNAT una factura que no existe ({{ config.series.factura }}-99999999) con el usuario secundario
@@ -228,7 +230,7 @@
     </div>
 
     <!-- 5. Activar -->
-    <div class="adm-bloque" id="activacion-activar">
+    <div class="adm-bloque activacion__paso" id="activacion-activar" [class.activacion__paso--ok]="emisionActiva">
       <h3 class="adm-bloque__titulo">
         <i class="bi bi-rocket-takeoff" aria-hidden="true"></i>
         5. {{ emisionActiva ? 'Emisión de producción' : 'Activar la emisión en producción' }}

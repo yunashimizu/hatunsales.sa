@@ -62,6 +62,11 @@
                 "glob": "plus-jakarta-sans-latin*-wght-normal.woff2",
                 "input": "node_modules/@fontsource-variable/plus-jakarta-sans/files",
                 "output": "fonts"
+              },
+              {
+                "glob": "jetbrains-mono-latin-wght-normal.woff2",
+                "input": "node_modules/@fontsource-variable/jetbrains-mono/files",
+                "output": "fonts"
               }
             ],
             "styles": [

@@ -1,7 +1,23 @@
-<footer class="pie">
+<footer class="pie x-grano">
   <div class="contenedor">
 
-    <div class="ventajas">
+    <!-- Cierre: invitación a hablar del proyecto -->
+    <section class="proyecto" hsReveal>
+      <div class="proyecto-texto">
+        <span class="x-etiqueta x-etiqueta--corchetes proyecto-etiqueta">Atención personalizada</span>
+        <h2 class="proyecto-titulo">¿Tienes un proyecto en mente? <span class="x-texto-degradado">Cotízalo con nosotros.</span></h2>
+      </div>
+      <div class="proyecto-acciones">
+        <a class="x-boton x-boton--vivo x-boton--lg" [href]="waProyecto" target="_blank" rel="noopener">
+          <i class="bi bi-whatsapp"></i>Escribir por WhatsApp
+        </a>
+        <a class="x-boton x-boton--mono x-boton--lg" [href]="telHref">
+          <i class="bi bi-telephone"></i>{{ empresa.telefonoMostrar }}
+        </a>
+      </div>
+    </section>
+
+    <div class="ventajas" hsReveal="lista">
       <div class="ventaja">
         <i class="bi bi-truck"></i>
         <span><strong>Envíos a todo el Perú</strong><small>Delivery en 24 a 72 horas</small></span>
@@ -81,4 +97,6 @@
     </div>
 
   </div>
+
+  <div class="marca-gigante" aria-hidden="true">{{ empresa.nombreCorto }}</div>
 </footer>

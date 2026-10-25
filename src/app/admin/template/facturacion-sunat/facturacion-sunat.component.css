@@ -1,3 +1,4 @@
+/* Facturación SUNAT · usa el sistema compartido (admin-ui.css, clases adm-*). Aquí solo lo propio, con prefijo fiscal-. */
 :host {
   display: block;
 }
@@ -11,7 +12,7 @@ fieldset:disabled {
   opacity: 0.65;
 }
 legend {
-  font-size: 1rem;
+  font-size: var(--adm-fs-titulo-tarjeta);
   font-weight: 700;
   margin: 1rem 0;
 }
@@ -44,8 +45,10 @@ legend {
 }
 .fiscal-lista li {
   padding: 0.65rem 0;
-  border-bottom: 1px solid var(--adm-borde, #e2e8f0);
+  border-bottom: 1px solid var(--adm-borde);
 }
+
+/* ── Estado de la emisión ────────────────────────────────────────────────── */
 .fiscal-estado {
   display: flex;
   flex-direction: column;
@@ -69,6 +72,111 @@ legend {
 .fiscal-estado__carga {
   padding: 0;
 }
+
+/* Semáforo fiscal: verde (todo en orden), ámbar (revisar) y rojo (atención). Los tonos salen de los tokens de estado. */
+.fiscal-semaforo {
+  --fiscal-sem: var(--adm-texto-tenue);
+  --fiscal-sem-claro: var(--adm-superficie-2);
+  --fiscal-sem-borde: var(--adm-borde);
+  --fiscal-sem-texto: var(--adm-texto-suave);
+  position: relative;
+  isolation: isolate;
+  flex-wrap: nowrap;
+  gap: 18px 22px;
+  padding: 16px 20px;
+  background-color: var(--adm-superficie);
+  border: 1px solid var(--fiscal-sem-borde);
+  border-radius: var(--adm-r-lg);
+}
+/* El tinte va en un pseudo-elemento: el texto conserva un fondo sólido medible */
+.fiscal-semaforo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(115deg, color-mix(in srgb, var(--fiscal-sem) 13%, transparent) 0%, transparent 72%);
+  pointer-events: none;
+}
+.fiscal-semaforo[data-semaforo='verde'] {
+  --fiscal-sem: var(--adm-exito);
+  --fiscal-sem-claro: var(--adm-exito-claro);
+  --fiscal-sem-borde: var(--adm-exito-borde);
+  --fiscal-sem-texto: var(--adm-exito-texto);
+}
+.fiscal-semaforo[data-semaforo='amarillo'] {
+  --fiscal-sem: var(--adm-aviso);
+  --fiscal-sem-claro: var(--adm-aviso-claro);
+  --fiscal-sem-borde: var(--adm-aviso-borde);
+  --fiscal-sem-texto: var(--adm-aviso-texto);
+}
+.fiscal-semaforo[data-semaforo='rojo'] {
+  --fiscal-sem: var(--adm-peligro);
+  --fiscal-sem-claro: var(--adm-peligro-claro);
+  --fiscal-sem-borde: var(--adm-peligro-borde);
+  --fiscal-sem-texto: var(--adm-peligro-texto);
+}
+/* Caja del semáforo: siempre oscura (--x-lienzo), así las luces se ven igual en los dos temas */
+.fiscal-semaforo__luces {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 7px;
+  padding: 9px;
+  background: var(--x-lienzo);
+  border: 1px solid var(--x-lienzo-linea-fuerte);
+  border-radius: 999px;
+  box-shadow: var(--adm-sombra-md);
+}
+.fiscal-semaforo__luz {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--x-lienzo-4);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.fiscal-semaforo__luz--rojo.is-encendida {
+  background: var(--adm-peligro);
+  box-shadow: 0 0 14px 2px color-mix(in srgb, var(--adm-peligro) 60%, transparent), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.fiscal-semaforo__luz--ambar.is-encendida {
+  background: var(--adm-aviso);
+  box-shadow: 0 0 14px 2px color-mix(in srgb, var(--adm-aviso) 60%, transparent), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.fiscal-semaforo__luz--verde.is-encendida {
+  background: var(--adm-exito);
+  box-shadow: 0 0 14px 2px color-mix(in srgb, var(--adm-exito) 60%, transparent), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fiscal-semaforo__luz.is-encendida {
+    animation: fiscal-luz 2.8s var(--x-ease-in-out, ease-in-out) infinite;
+  }
+}
+@keyframes fiscal-luz {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+.fiscal-semaforo__cuerpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.fiscal-semaforo__rotulo {
+  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-size: var(--adm-fs-rotulo);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--fiscal-sem-texto);
+}
+.fiscal-semaforo__cuerpo .fiscal-estado__texto {
+  flex: 0 1 auto;
+}
+
 .fiscal-metrica__ver {
   padding: 0;
   border: 0;
@@ -87,10 +195,48 @@ legend {
 .fiscal-tareas p {
   margin-top: 8px;
 }
+
+/* ── Certificados ────────────────────────────────────────────────────────── */
 .fiscal-certificado__titular {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
   margin: 0 0 4px;
   font-weight: 600;
 }
+.fiscal-certificado__vacio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--adm-texto-suave);
+}
+.fiscal-certificado__vacio > i {
+  color: var(--adm-texto-tenue);
+  font-size: 18px;
+}
+/* El selector de archivo toma el aspecto de un botón del sistema */
+.adm-input[type='file'] {
+  padding: 5px 8px;
+  line-height: 1.9;
+}
+.adm-input[type='file']::file-selector-button {
+  margin-right: 10px;
+  padding: 5px 12px;
+  font: inherit;
+  font-weight: var(--fw-semi);
+  color: var(--adm-texto);
+  background: var(--adm-superficie-3);
+  border: 1px solid var(--adm-borde-fuerte);
+  border-radius: var(--adm-r-xs);
+  cursor: pointer;
+}
+.adm-input[type='file']::file-selector-button:hover {
+  background: var(--adm-superficie-2);
+  border-color: var(--adm-borde-boton-hover);
+}
+
 .fiscal-gre-pendientes {
   margin-bottom: 1rem;
 }
@@ -98,9 +244,59 @@ legend {
   padding: 3px 0;
   border-bottom: 0;
 }
+
+/* ── Resultado de la prueba: un icono por paso ───────────────────────────── */
+.fiscal-pasos {
+  margin-top: 10px;
+}
+.fiscal-paso {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.fiscal-paso > i {
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 18px;
+  color: var(--adm-texto-tenue);
+}
+.fiscal-paso--ok > i {
+  color: var(--adm-exito);
+}
+.fiscal-paso--error > i {
+  color: var(--adm-peligro);
+}
+.fiscal-paso > div {
+  flex: 1;
+  min-width: 0;
+}
+.fiscal-paso p {
+  margin: 2px 0 0;
+}
+
 .adm-campo {
   margin-bottom: 0.75rem;
 }
 .adm-tarjeta .adm-acciones {
   margin: 0.75rem 0;
+}
+
+@media (max-width: 640px) {
+  /* Cinco pestañas no caben en una fila: se desplazan de lado en vez de partirse en varias */
+  .fiscal-pestanias {
+    flex-wrap: nowrap;
+    align-self: stretch;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .fiscal-pestanias::-webkit-scrollbar {
+    display: none;
+  }
+  .fiscal-pestanias .adm-pestania {
+    flex: 0 0 auto;
+  }
+  .fiscal-semaforo {
+    gap: 14px;
+    padding: 14px 16px;
+  }
 }

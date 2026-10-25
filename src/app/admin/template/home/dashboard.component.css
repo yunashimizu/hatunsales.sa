@@ -1,9 +1,119 @@
-/* La vista usa el sistema compartido (admin-ui.css, clases adm-*). Aquí solo
-   quedan detalles propios del inicio. */
+/* La vista usa el sistema compartido (admin-ui.css, clases adm-*). Aquí quedan el
+   escenario de bienvenida y los detalles propios del inicio. */
 :host {
   display: block;
   width: 100%;
 }
+
+/* ───────────────────────────────────────────────── escenario de bienvenida */
+
+.ini-escenario {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px 32px;
+  min-height: 188px;
+  padding: clamp(22px, 3.2vw, 38px);
+  border: 1px solid var(--x-lienzo-linea);
+  border-radius: var(--adm-r-xl);
+  background:
+    radial-gradient(60% 120% at 92% -10%, rgba(99, 102, 241, 0.5), transparent 62%),
+    radial-gradient(46% 90% at 0% 120%, rgba(255, 125, 54, 0.3), transparent 62%),
+    var(--x-lienzo);
+  color: var(--x-lienzo-texto);
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+.ini-escenario__texto {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  max-width: 640px;
+}
+
+.ini-eyebrow {
+  color: var(--x-lienzo-tenue);
+}
+
+.ini-eyebrow::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--x-menta);
+  box-shadow: 0 0 0 3px rgba(46, 230, 166, 0.2);
+}
+
+.ini-saludo {
+  margin: 14px 0 10px;
+  font-family: var(--adm-fuente-titulos);
+  font-size: clamp(1.9rem, 1.1rem + 2.8vw, 3.2rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  word-spacing: 0.08em;
+  color: var(--x-lienzo-texto);
+  text-wrap: balance;
+}
+
+.ini-sub {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--x-lienzo-suave);
+}
+
+.ini-sub strong {
+  color: var(--x-lienzo-texto);
+}
+
+.ini-escenario__acciones {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+/* Instrumento decorativo: anillo vivo con el día del mes en el centro */
+.ini-dial {
+  position: absolute;
+  top: 50%;
+  right: 400px;
+  z-index: 0;
+  translate: 0 -50%;
+  --x-dial: 190px;
+  opacity: 0.95;
+  pointer-events: none;
+}
+
+.ini-dial .x-dial__disco {
+  gap: 2px;
+  align-content: center;
+  justify-items: center;
+}
+
+.ini-dial__dia {
+  font-family: var(--x-mono);
+  font-size: 2.1rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.ini-dial__mes {
+  font-family: var(--x-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--x-lienzo-tenue);
+}
+
+/* ───────────────────────────────────────────────────────────────── métricas */
 
 .ini-esqueleto {
   display: inline-block;
@@ -26,18 +136,18 @@
 
 .ini-turno__monto {
   font-family: var(--adm-fuente-titulos);
-  font-size: 32px;
+  font-size: 34px;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   line-height: 1.1;
-  color: var(--adm-exito);
+  color: var(--adm-exito-texto);
   font-variant-numeric: tabular-nums;
 }
 
 .ini-turno__datos {
   padding: 12px 14px;
   border-radius: var(--adm-r-md);
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--adm-superficie) 70%, transparent);
   border: 1px solid var(--adm-borde);
 }
 
@@ -65,7 +175,17 @@
 .ini-pendientes__texto { flex: 1; min-width: 0; }
 .ini-pendientes__texto strong { color: var(--adm-texto); }
 
+/* El instrumento solo cabe cuando el escenario es ancho (el menú lateral abierto lo estrecha) */
+@container (max-width: 1000px) {
+  .ini-dial { display: none; }
+}
+
 @media (max-width: 640px) {
+  .ini-escenario { min-height: 0; align-items: flex-start; }
+  .ini-escenario__acciones { width: 100%; }
+  .ini-escenario__acciones .x-iman { flex: 1 1 140px; padding: 0; margin: 0; }
+  .ini-escenario__acciones .x-boton { width: 100%; }
+  .ini-escenario__acciones > .x-boton { flex: 1 1 120px; }
   .ini-pendientes li { flex-wrap: wrap; padding: 12px 14px; }
   .ini-pendientes li .adm-btn { flex: 1 1 100%; }
   .ini-turno__monto { font-size: 28px; }

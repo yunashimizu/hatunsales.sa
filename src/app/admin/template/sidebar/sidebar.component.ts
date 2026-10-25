@@ -16,7 +16,7 @@ import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
 import { ComprobanteService } from '../../service/comprobante.service';
 import { InventarioAdminService } from '../../service/inventario-admin.service';
 
-interface ItemMenu {
+export interface ItemMenu {
   etiqueta: string;
   ruta: string;
   icono: string;
@@ -26,10 +26,195 @@ interface ItemMenu {
   badgeKey?: string;
 }
 
-interface SeccionMenu {
+export interface SeccionMenu {
   titulo: string;
   items: ItemMenu[];
 }
+
+/** Mismas rutas/roles; iconos Bootstrap Icons (ya cargados en el admin). */
+export const SECCIONES_MENU: SeccionMenu[] = [
+  {
+    titulo: 'Navegación',
+    items: [
+      {
+        etiqueta: 'Dashboard',
+        ruta: '/dashboard/home',
+        icono: 'bi-house-door',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja', 'consulta'],
+      },
+    ],
+  },
+  {
+    titulo: 'Ventas',
+    items: [
+      {
+        etiqueta: 'Ventas',
+        ruta: '/dashboard/mantenimiento/ventas',
+        icono: 'bi-receipt',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      },
+      {
+        etiqueta: 'Historial de ventas',
+        ruta: '/dashboard/mantenimiento/ventas-historial',
+        icono: 'bi-clock-history',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      },
+      {
+        etiqueta: 'Caja',
+        ruta: '/dashboard/mantenimiento/caja-sesion',
+        icono: 'bi-cash-stack',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      },
+      {
+        etiqueta: 'Arqueo de caja',
+        ruta: '/dashboard/mantenimiento/arqueo-caja',
+        icono: 'bi-calculator',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      },
+      {
+        etiqueta: 'Cotizaciones',
+        ruta: '/dashboard/mantenimiento/cotizaciones',
+        icono: 'bi-file-earmark-ruled',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      },
+      {
+        etiqueta: 'Documentos',
+        ruta: '/dashboard/mantenimiento/doc',
+        icono: 'bi-file-earmark-text',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+        badgeKey: 'cpe_atencion',
+      },
+      {
+        etiqueta: 'Guías de remisión',
+        ruta: '/dashboard/mantenimiento/guias-remision',
+        icono: 'bi-truck',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      },
+      {
+        etiqueta: 'Clientes',
+        ruta: '/dashboard/mantenimiento/clientes',
+        icono: 'bi-people',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      },
+      {
+        etiqueta: 'Cuentas por cobrar',
+        ruta: '/dashboard/mantenimiento/cuentas-por-cobrar',
+        icono: 'bi-wallet2',
+        roles: ['admin', 'superadmin', 'caja', 'vendedor'],
+      },
+    ],
+  },
+  {
+    titulo: 'Catálogo',
+    items: [
+      {
+        etiqueta: 'Productos',
+        ruta: '/dashboard/mantenimiento/productos',
+        icono: 'bi-box-seam',
+        roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
+      },
+      {
+        etiqueta: 'Categorías',
+        ruta: '/dashboard/mantenimiento/categorias',
+        icono: 'bi-tags',
+        roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
+      },
+      {
+        etiqueta: 'Marcas',
+        ruta: '/dashboard/mantenimiento/marcas',
+        icono: 'bi-award',
+        roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
+      },
+    ],
+  },
+  {
+    titulo: 'Almacén',
+    items: [
+      {
+        etiqueta: 'Inventario',
+        ruta: '/dashboard/mantenimiento/inventario',
+        icono: 'bi-building',
+        roles: ['admin', 'superadmin', 'vendedor'],
+        badgeKey: 'stock_alerta',
+      },
+      {
+        etiqueta: 'Stock',
+        ruta: '/dashboard/mantenimiento/stock',
+        icono: 'bi-layers',
+        roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
+        badgeKey: 'stock_alerta',
+      },
+      {
+        etiqueta: 'Almacén',
+        ruta: '/dashboard/mantenimiento/almacen',
+        icono: 'bi-houses',
+        roles: ['admin', 'superadmin'],
+      },
+      {
+        etiqueta: 'Proveedores',
+        ruta: '/dashboard/mantenimiento/proveedores',
+        icono: 'bi-truck',
+        roles: ['admin', 'superadmin', 'vendedor'],
+      },
+      {
+        etiqueta: 'Recepción',
+        ruta: '/dashboard/mantenimiento/recepcion',
+        icono: 'bi-clipboard-check',
+        roles: ['admin', 'superadmin', 'vendedor'],
+      },
+    ],
+  },
+  {
+    titulo: 'Reportes',
+    items: [
+      {
+        etiqueta: 'Reportes',
+        ruta: '/dashboard/mantenimiento/reportes',
+        icono: 'bi-bar-chart',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      },
+    ],
+  },
+  {
+    titulo: 'Administración',
+    items: [
+      {
+        etiqueta: 'Facturación SUNAT',
+        ruta: '/dashboard/facturacion-sunat',
+        icono: 'bi-file-earmark-check',
+        roles: ['admin', 'superadmin'],
+      },
+      {
+        etiqueta: 'Usuarios',
+        ruta: '/dashboard/mantenimiento/usuarios',
+        icono: 'bi-person-gear',
+        roles: ['admin', 'superadmin'],
+      },
+      {
+        etiqueta: 'Roles',
+        ruta: '/dashboard/mantenimiento/roles',
+        icono: 'bi-shield-lock',
+        roles: ['admin', 'superadmin'],
+      },
+    ],
+  },
+];
+
+/** Sin cambios de rutas: siempre al final y siempre visible (no accordion). */
+export const CUENTA_MENU: ItemMenu[] = [
+  {
+    etiqueta: 'Mi perfil',
+    ruta: '/dashboard/perfil',
+    icono: 'bi-person',
+    roles: ['admin', 'superadmin', 'vendedor', 'caja', 'consulta'],
+  },
+  {
+    etiqueta: 'Configuración',
+    ruta: '/dashboard/configuracion',
+    icono: 'bi-gear',
+    roles: ['admin', 'superadmin'],
+  },
+];
 
 @Component({
   selector: 'app-sidebar',
@@ -66,183 +251,10 @@ export class SidebarComponent implements OnInit {
   abiertas: Record<string, boolean> = {};
 
   /** Mismas rutas/roles; iconos Bootstrap Icons (ya cargados en el admin). */
-  readonly secciones: SeccionMenu[] = [
-    {
-      titulo: 'Navegación',
-      items: [
-        {
-          etiqueta: 'Dashboard',
-          ruta: '/dashboard/home',
-          icono: 'bi-house-door',
-          roles: ['admin', 'superadmin', 'vendedor', 'caja', 'consulta'],
-        },
-      ],
-    },
-    {
-      titulo: 'Ventas',
-      items: [
-        {
-          etiqueta: 'Ventas',
-          ruta: '/dashboard/mantenimiento/ventas',
-          icono: 'bi-receipt',
-          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
-        },
-        {
-          etiqueta: 'Caja',
-          ruta: '/dashboard/mantenimiento/caja-sesion',
-          icono: 'bi-cash-stack',
-          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
-        },
-        {
-          etiqueta: 'Arqueo de caja',
-          ruta: '/dashboard/mantenimiento/arqueo-caja',
-          icono: 'bi-calculator',
-          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
-        },
-        {
-          etiqueta: 'Cotizaciones',
-          ruta: '/dashboard/mantenimiento/cotizaciones',
-          icono: 'bi-file-earmark-ruled',
-          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
-        },
-        {
-          etiqueta: 'Documentos',
-          ruta: '/dashboard/mantenimiento/doc',
-          icono: 'bi-file-earmark-text',
-          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
-          badgeKey: 'cpe_atencion',
-        },
-        {
-          etiqueta: 'Guías de remisión',
-          ruta: '/dashboard/mantenimiento/guias-remision',
-          icono: 'bi-truck',
-          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
-        },
-        {
-          etiqueta: 'Clientes',
-          ruta: '/dashboard/mantenimiento/clientes',
-          icono: 'bi-people',
-          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
-        },
-        {
-          etiqueta: 'Cuentas por cobrar',
-          ruta: '/dashboard/mantenimiento/cuentas-por-cobrar',
-          icono: 'bi-wallet2',
-          roles: ['admin', 'superadmin', 'caja', 'vendedor'],
-        },
-      ],
-    },
-    {
-      titulo: 'Catálogo',
-      items: [
-        {
-          etiqueta: 'Productos',
-          ruta: '/dashboard/mantenimiento/productos',
-          icono: 'bi-box-seam',
-          roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
-        },
-        {
-          etiqueta: 'Categorías',
-          ruta: '/dashboard/mantenimiento/categorias',
-          icono: 'bi-tags',
-          roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
-        },
-        {
-          etiqueta: 'Marcas',
-          ruta: '/dashboard/mantenimiento/marcas',
-          icono: 'bi-award',
-          roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
-        },
-      ],
-    },
-    {
-      titulo: 'Almacén',
-      items: [
-        {
-          etiqueta: 'Inventario',
-          ruta: '/dashboard/mantenimiento/inventario',
-          icono: 'bi-building',
-          roles: ['admin', 'superadmin', 'vendedor'],
-          badgeKey: 'stock_alerta',
-        },
-        {
-          etiqueta: 'Stock',
-          ruta: '/dashboard/mantenimiento/stock',
-          icono: 'bi-layers',
-          roles: ['admin', 'superadmin', 'vendedor', 'consulta'],
-          badgeKey: 'stock_alerta',
-        },
-        {
-          etiqueta: 'Almacén',
-          ruta: '/dashboard/mantenimiento/almacen',
-          icono: 'bi-houses',
-          roles: ['admin', 'superadmin'],
-        },
-        {
-          etiqueta: 'Proveedores',
-          ruta: '/dashboard/mantenimiento/proveedores',
-          icono: 'bi-truck',
-          roles: ['admin', 'superadmin', 'vendedor'],
-        },
-        {
-          etiqueta: 'Recepción',
-          ruta: '/dashboard/mantenimiento/recepcion',
-          icono: 'bi-clipboard-check',
-          roles: ['admin', 'superadmin', 'vendedor'],
-        },
-      ],
-    },
-    {
-      titulo: 'Reportes',
-      items: [
-        {
-          etiqueta: 'Reportes',
-          ruta: '/dashboard/mantenimiento/reportes',
-          icono: 'bi-bar-chart',
-          roles: ['admin', 'superadmin', 'vendedor', 'caja'],
-        },
-      ],
-    },
-    {
-      titulo: 'Administración',
-      items: [
-        {
-          etiqueta: 'Facturación SUNAT',
-          ruta: '/dashboard/facturacion-sunat',
-          icono: 'bi-file-earmark-check',
-          roles: ['admin', 'superadmin'],
-        },
-        {
-          etiqueta: 'Usuarios',
-          ruta: '/dashboard/mantenimiento/usuarios',
-          icono: 'bi-person-gear',
-          roles: ['admin', 'superadmin'],
-        },
-        {
-          etiqueta: 'Roles',
-          ruta: '/dashboard/mantenimiento/roles',
-          icono: 'bi-shield-lock',
-          roles: ['admin', 'superadmin'],
-        },
-      ],
-    },
-  ];
+  readonly secciones: SeccionMenu[] = SECCIONES_MENU;
 
   /** Sin cambios de rutas: siempre al final y siempre visible (no accordion). */
-  readonly cuenta: ItemMenu[] = [
-    {
-      etiqueta: 'Mi perfil',
-      ruta: '/dashboard/perfil',
-      icono: 'bi-person',
-      roles: ['admin', 'superadmin', 'vendedor', 'caja', 'consulta'],
-    },
-    {
-      etiqueta: 'Configuración',
-      ruta: '/dashboard/configuracion',
-      icono: 'bi-gear',
-      roles: ['admin', 'superadmin'],
-    },
-  ];
+  readonly cuenta: ItemMenu[] = CUENTA_MENU;
 
   ngOnInit(): void {
     this.refrescar();

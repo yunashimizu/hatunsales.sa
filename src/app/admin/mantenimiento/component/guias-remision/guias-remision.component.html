@@ -1,105 +1,256 @@
 <div class="adm-pagina">
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Guias de remision</h1>
-      <p class="adm-cabecera__sub">Prepara el traslado desde una venta sin modificar inventario ni comprobantes.</p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-truck"></i></span>
+      <div>
+        <span class="adm-cabecera__eyebrow">Ventas · SUNAT</span>
+        <h1 class="adm-cabecera__titulo">Guías de remisión</h1>
+        <p class="adm-cabecera__sub">
+          Guía de remisión electrónica del remitente: se arma desde una venta (o para un traslado entre locales) y se emite directo a SUNAT.
+        </p>
+      </div>
     </div>
-    <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
-      <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i> Actualizar
-    </button>
+    <div class="adm-acciones">
+      <button type="button" class="adm-btn adm-btn--suave" (click)="actualizarTodo()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i> Actualizar
+      </button>
+      @if (puedeEscribir) {
+        <button type="button" class="adm-btn adm-btn--primario" (click)="nuevaGuia()">
+          <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva guía
+        </button>
+      }
+    </div>
   </header>
 
-  <div class="adm-aviso adm-aviso--peligro" *ngIf="error">
-    <i class="bi bi-exclamation-triangle"></i><span>{{ error }}</span>
+  @if (modo && !modo.activo) {
+    <div class="adm-aviso adm-aviso--info" role="status">
+      <i class="bi bi-info-circle" aria-hidden="true"></i>
+      <div>
+        <span class="adm-aviso__titulo">La emisión de guías a SUNAT no está activa</span>
+        {{ modo.motivo }} Mientras tanto puede preparar borradores y validarlos sin enviar.
+      </div>
+      @if (esAdmin) {
+        <a class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" routerLink="/dashboard/facturacion-sunat">Facturación SUNAT</a>
+      }
+    </div>
+  } @else if (modo?.activo) {
+    <div class="adm-aviso adm-aviso--exito adm-aviso--compacto" role="status">
+      <i class="bi bi-send-check" aria-hidden="true"></i>
+      <span>Emisión directa a SUNAT activa: «Emitir» envía la guía en el acto y muestra la respuesta de SUNAT.</span>
+    </div>
+  }
+  @if (errorModo) {
+    <div class="adm-aviso adm-aviso--aviso" role="alert">
+      <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+      <span>{{ errorModo }}. Puede seguir preparando y validando guías.</span>
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargarModo(true)">Reintentar</button>
+    </div>
+  }
+
+  <div class="adm-filtros" role="search" aria-label="Filtros de guías">
+    <div class="adm-campo adm-campo--grande">
+      <label class="adm-etiqueta" for="gre-filtro-texto">Buscar</label>
+      <input id="gre-filtro-texto" class="adm-input" type="search" maxlength="80" autocomplete="off"
+             placeholder="Serie-número, destinatario, comprobante o N.° de venta"
+             [(ngModel)]="filtro.texto" (ngModelChange)="alEscribirTexto()">
+    </div>
+    <div class="adm-campo">
+      <label class="adm-etiqueta" for="gre-filtro-desde">Desde</label>
+      <input id="gre-filtro-desde" class="adm-input" type="date" [(ngModel)]="filtro.desde" (ngModelChange)="cargar(1)"
+             [class.adm-input--error]="!!errorFiltro">
+    </div>
+    <div class="adm-campo">
+      <label class="adm-etiqueta" for="gre-filtro-hasta">Hasta</label>
+      <input id="gre-filtro-hasta" class="adm-input" type="date" [(ngModel)]="filtro.hasta" (ngModelChange)="cargar(1)"
+             [class.adm-input--error]="!!errorFiltro">
+    </div>
+    @if (conFiltros) {
+      <div class="adm-campo adm-campo--accion">
+        <span class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</span>
+        <button type="button" class="adm-btn adm-btn--fantasma" (click)="limpiarFiltros()">
+          <i class="bi bi-eraser" aria-hidden="true"></i> Limpiar filtros
+        </button>
+      </div>
+    }
+  </div>
+  @if (errorFiltro) {
+    <p class="adm-ayuda adm-ayuda--error" role="alert"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ errorFiltro }}</p>
+  }
+  <div class="adm-chips" role="group" aria-label="Filtrar por estado">
+    @for (e of filtrosEstado; track e.valor) {
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtro.estado === e.valor"
+              [attr.aria-pressed]="filtro.estado === e.valor" (click)="elegirEstado(e.valor)">{{ e.texto }}</button>
+    }
   </div>
 
-  <section class="adm-tarjeta">
+  <section class="adm-tarjeta" aria-labelledby="gre-lista-titulo">
     <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-truck"></i> Preparar guia desde una venta</h2>
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo" id="gre-lista-titulo">
+          <i class="bi bi-list-check" aria-hidden="true"></i> Guías
+          @if (!cargando || guias.length) {
+            <span class="adm-insignia adm-insignia--neutra">{{ total }}</span>
+          }
+        </h2>
+        <p class="adm-tarjeta__sub">Estado de cada guía en SUNAT, con sus acciones y descargas.</p>
+      </div>
     </div>
-    <div class="adm-tarjeta__cuerpo">
-      <p class="adm-ayuda" *ngIf="!contexto">Abra esta pantalla con una venta para precargar sus productos y origen.</p>
-      <ng-container *ngIf="contexto as ctx">
-        <div class="guia-contexto">
-          <div><strong>Venta #{{ ctx.venta.id_venta }}</strong><span>Total S/ {{ ctx.venta.total | number:'1.2-2' }}</span></div>
-          <div><strong>{{ ctx.destinatario.denominacion }}</strong><span>{{ ctx.destinatario.numero_documento || 'Sin documento' }}</span></div>
-          <div><strong>{{ ctx.origen.nombre || 'Origen' }}</strong><span>{{ ctx.items.length }} producto(s)</span></div>
-        </div>
 
-        <div class="adm-fila guia-formulario">
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="gre-fecha">Inicio de traslado</label>
-            <input id="gre-fecha" class="adm-input" type="date" [(ngModel)]="formulario.fecha_inicio_traslado">
-          </div>
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="gre-peso">Peso bruto</label>
-            <input id="gre-peso" class="adm-input" type="number" min="0" step="0.001" [(ngModel)]="formulario.peso_bruto_total">
-          </div>
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="gre-bultos">Bultos</label>
-            <input id="gre-bultos" class="adm-input" type="number" min="0" step="1" [(ngModel)]="formulario.numero_bultos">
-          </div>
-        </div>
-
-        <div class="adm-fila guia-formulario">
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="gre-origen">Dirección de origen</label>
-            <input id="gre-origen" class="adm-input" type="text" [(ngModel)]="formulario.direccion_origen">
-          </div>
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="gre-destino">Dirección de destino</label>
-            <input id="gre-destino" class="adm-input" type="text" [(ngModel)]="formulario.direccion_destino">
-          </div>
-        </div>
-
-        <div class="adm-fila guia-formulario">
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="gre-placa">Placa</label>
-            <input id="gre-placa" class="adm-input" type="text" [(ngModel)]="formulario.placa_principal">
-          </div>
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="gre-conductor">Conductor</label>
-            <input id="gre-conductor" class="adm-input" type="text" [(ngModel)]="formulario.conductor_nombre">
-          </div>
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="gre-dni">Documento conductor</label>
-            <input id="gre-dni" class="adm-input" type="text" [(ngModel)]="formulario.conductor_numero_doc">
-          </div>
-        </div>
-
-        <div class="adm-campo guia-formulario">
-          <label class="adm-etiqueta" for="gre-obs">Observaciones</label>
-          <textarea id="gre-obs" class="adm-textarea" rows="2" [(ngModel)]="formulario.observaciones"></textarea>
-        </div>
-
-        <div class="adm-tabla-envoltorio guia-items">
-          <table class="adm-tabla">
-            <thead><tr><th>Código</th><th>Descripción</th><th class="adm-num">Cantidad</th><th>Unidad</th></tr></thead>
-            <tbody><tr *ngFor="let item of ctx.items"><td>{{ item.codigo }}</td><td>{{ item.descripcion }}</td><td class="adm-num">{{ item.cantidad }}</td><td>{{ item.unidad_medida }}</td></tr></tbody>
-          </table>
-        </div>
-        <div class="adm-acciones guia-acciones">
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardarBorrador()" [disabled]="guardando || cargando">
-            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-save'"></i>
-            {{ guardando ? 'Guardando…' : 'Guardar borrador' }}
+    @if (error) {
+      <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+        <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">No se pudieron cargar las guías</div>
+        <p>{{ error }}</p>
+        <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+          <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+        </button>
+      </div>
+    } @else if (cargando && !guias.length) {
+      <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando guías">
+        <div class="adm-esqueleto adm-esqueleto--fila"></div>
+        <div class="adm-esqueleto adm-esqueleto--fila"></div>
+        <div class="adm-esqueleto adm-esqueleto--fila"></div>
+      </div>
+    } @else if (!guias.length) {
+      <div class="adm-vacio adm-vacio--compacto" role="status">
+        <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-truck" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">{{ conFiltros ? 'Ninguna guía coincide con los filtros' : 'Todavía no hay guías de remisión' }}</div>
+        @if (conFiltros) {
+          <button type="button" class="adm-btn adm-btn--suave" (click)="limpiarFiltros()">
+            <i class="bi bi-eraser" aria-hidden="true"></i> Limpiar filtros
           </button>
-          <button type="button" class="adm-btn adm-btn--suave" disabled
-                  title="Disponible cuando se configuren certificado, serie y credenciales SUNAT">
-            <i class="bi bi-send"></i> Emitir a SUNAT
-          </button>
-          <span class="adm-ayuda">La emisión SUNAT se habilitará cuando estén configurados certificado, serie y credenciales.</span>
-        </div>
-      </ng-container>
-    </div>
-  </section>
+        } @else if (puedeEscribir) {
+          <p>Créela desde una venta (Ventas → documentos de la venta → Guía) o con «Nueva guía».</p>
+        }
+      </div>
+    } @else {
+      <div class="adm-tabla-envoltorio">
+        <table class="adm-tabla adm-tabla--adaptable-tablet gre-tabla">
+          <thead>
+            <tr>
+              <th scope="col">Guía</th>
+              <th scope="col">Fecha</th>
+              <th scope="col">Destinatario</th>
+              <th scope="col">Llegada</th>
+              <th scope="col">Venta</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (g of guias; track g.id_guia) {
+              <tr [class.adm-fila--atenuada]="g.estado === 'anulado'">
+                <td data-etiqueta="Guía">
+                  <button type="button" class="gre-tabla__enlace adm-tabla__principal adm-tabular" (click)="verDetalle(g.id_guia)"
+                          [attr.aria-label]="'Ver el detalle de la guía ' + numeroGuia(g)">{{ numeroGuia(g) }}</button>
+                  <div class="adm-tabla__secundario">
+                    {{ g.motivo_traslado_texto || 'Sin motivo' }}{{ g.modalidad_traslado_texto ? ' · ' + g.modalidad_traslado_texto : '' }}
+                  </div>
+                </td>
+                <td data-etiqueta="Fecha" class="adm-tabular">
+                  {{ fecha(g.fecha_emision || g.creado_en) }}
+                  <div class="adm-tabla__secundario">Traslado: {{ fecha(g.fecha_inicio_traslado) }}</div>
+                </td>
+                <td data-etiqueta="Destinatario">
+                  <div>{{ g.destinatario.denominacion || '—' }}</div>
+                  @if (g.destinatario.numero_documento) {
+                    <div class="adm-tabla__secundario adm-tabular">{{ g.destinatario.numero_documento }}</div>
+                  }
+                </td>
+                <td data-etiqueta="Llegada">
+                  <div class="gre-tabla__texto" [attr.title]="g.llegada.direccion">{{ g.llegada.direccion || '—' }}</div>
+                  @if (g.llegada.ubigeo_texto) {
+                    <div class="adm-tabla__secundario">{{ g.llegada.ubigeo_texto }}</div>
+                  }
+                </td>
+                <td data-etiqueta="Venta">
+                  {{ g.id_venta ? 'Venta #' + g.id_venta : 'Sin venta' }}
+                  @if (g.documento_relacionado; as d) {
+                    <div class="adm-tabla__secundario">{{ d.tipo_texto }} {{ d.numero_formateado }}</div>
+                  }
+                </td>
+                <td data-etiqueta="Estado">
+                  <span class="adm-insignia adm-insignia--punto" [ngClass]="claseEstado(g.estado)">{{ textoEstado(g) }}</span>
+                  @if (g.estado === 'rechazado' && g.error_mensaje) {
+                    <div class="adm-tabla__secundario adm-texto-peligro gre-tabla__texto" [attr.title]="g.error_mensaje">{{ g.error_mensaje }}</div>
+                  }
+                  @if (g.estado === 'enviado' && g.sunat_ticket) {
+                    <div class="adm-tabla__secundario">Ticket {{ g.sunat_ticket }}</div>
+                  }
+                </td>
+                <td data-etiqueta="Acciones">
+                  <div class="gre-tabla__acciones">
+                    @if (puedeEscribir && g.acciones.puede_emitir) {
+                      <button type="button" class="adm-btn adm-btn--primario adm-btn--sm" (click)="emitir(g)"
+                              [disabled]="!!enCurso || !modo?.activo"
+                              [attr.title]="modo?.activo ? null : modo?.motivo || 'La emisión de guías a SUNAT no está activa'"
+                              [attr.aria-label]="textoEmitir(g) + ' a SUNAT la guía ' + numeroGuia(g)">
+                        <i class="bi" [ngClass]="enCursoEn(g, 'emitir') ? 'bi-arrow-repeat adm-girando' : 'bi-send'" aria-hidden="true"></i>
+                        {{ textoEmitir(g) }}
+                      </button>
+                    }
+                    @if (puedeEscribir && g.acciones.puede_consultar) {
+                      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="consultar(g)" [disabled]="!!enCurso"
+                              [attr.aria-label]="'Consultar en SUNAT la guía ' + numeroGuia(g)">
+                        <i class="bi bi-arrow-repeat" [class.adm-girando]="enCursoEn(g, 'consultar')" aria-hidden="true"></i> Consultar
+                      </button>
+                    }
+                    @if (puedeEscribir && g.acciones.puede_editar) {
+                      <button type="button" class="adm-btn-icono adm-btn-icono--sm" (click)="editar(g)" [disabled]="!!enCurso"
+                              [attr.title]="g.estado === 'rechazado' ? 'Corregir' : 'Editar'"
+                              [attr.aria-label]="(g.estado === 'rechazado' ? 'Corregir la guía ' : 'Editar la guía ') + numeroGuia(g)">
+                        <i class="bi bi-pencil" aria-hidden="true"></i>
+                      </button>
+                    }
+                    <button type="button" class="adm-btn-icono adm-btn-icono--sm" (click)="verDetalle(g.id_guia)" title="Ver detalle"
+                            [attr.aria-label]="'Ver el detalle de la guía ' + numeroGuia(g)">
+                      <i class="bi bi-eye" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="adm-btn-icono adm-btn-icono--sm" (click)="descargar(g, 'pdf')" [disabled]="!!enCurso" title="PDF"
+                            [attr.aria-label]="'Descargar el PDF de la guía ' + numeroGuia(g)">
+                      <i class="bi" [ngClass]="enCursoEn(g, 'descargar') ? 'bi-arrow-repeat adm-girando' : 'bi-filetype-pdf'" aria-hidden="true"></i>
+                    </button>
+                    @if (puedeEscribir && g.acciones.puede_anular) {
+                      <button type="button" class="adm-btn-icono adm-btn-icono--peligro adm-btn-icono--sm" (click)="anular(g)" [disabled]="!!enCurso"
+                              title="Anular" [attr.aria-label]="'Anular la guía ' + numeroGuia(g)">
+                        <i class="bi bi-x-circle" aria-hidden="true"></i>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
 
-  <section class="adm-tarjeta">
-    <div class="adm-tarjeta__cabecera"><h2 class="adm-tarjeta__titulo"><i class="bi bi-list-check"></i> Guias guardadas</h2></div>
-    <div class="adm-vacio" *ngIf="!cargando && !guias.length"><div class="adm-vacio__titulo">No hay guias guardadas</div></div>
-    <div class="adm-tabla-envoltorio" *ngIf="guias.length">
-      <table class="adm-tabla adm-tabla--adaptable"><thead><tr><th>Guía</th><th>Venta</th><th>Destino</th><th>Estado</th><th></th></tr></thead>
-        <tbody><tr *ngFor="let guia of guias; trackBy: identificar"><td>{{ guia.serie || 'Borrador' }}<ng-container *ngIf="guia.numero">-{{ guia.numero }}</ng-container></td><td>#{{ guia.id_venta || '—' }}</td><td>{{ guia.direccion_destino || '—' }}</td><td><span class="adm-insignia adm-insignia--neutra">{{ guia.estado }}</span></td><td><button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="abrirPdf(guia)" [disabled]="!guia.id_guia" title="Abrir PDF del borrador"><i class="bi bi-filetype-pdf"></i> PDF</button></td></tr></tbody>
-      </table>
-    </div>
+      @if (total > porPagina) {
+        <nav class="adm-paginacion" aria-label="Paginación de guías">
+          <span><strong class="adm-tabular">{{ total }}</strong> guías · página {{ pagina }} de {{ totalPaginas }}</span>
+          <div class="adm-paginacion__botones">
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="pagina <= 1 || cargando" (click)="irA(pagina - 1)">
+              <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
+            </button>
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="pagina >= totalPaginas || cargando" (click)="irA(pagina + 1)">
+              Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </nav>
+      }
+    }
   </section>
 </div>
+
+@if (panel === 'formulario' && formulario) {
+  <app-guia-formulario [idGuia]="formulario.idGuia" [idVenta]="formulario.idVenta"
+                       (cerrar)="cerrarPanel()" (guardada)="alGuardarFormulario()" (emitida)="alEmitirFormulario($event)"
+                       (abrir)="alAbrirDesdeFormulario($event)" />
+}
+@if (panel === 'detalle') {
+  <app-guia-detalle [guia]="guiaAbierta" [cargando]="cargandoDetalle" [error]="errorDetalle" [resultado]="resultado"
+                    [validacion]="validacion" [modo]="modo" [accion]="accionAbierta" [consultaAutomatica]="consultaAutomatica"
+                    [puedeEscribir]="puedeEscribir"
+                    (cerrar)="cerrarPanel()" (recargar)="recargarDetalle()" (editar)="editar($event)" (emitir)="emitir($event)"
+                    (consultar)="consultar($event)" (validar)="validar($event)" (anular)="anular($event)"
+                    (descargar)="descargar($event.guia, $event.tipo)" />
+}

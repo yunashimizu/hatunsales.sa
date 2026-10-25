@@ -1,65 +1,174 @@
-<div class="contenedor">
+<div class="pagina x-contenedor">
 
   <nav class="migas" aria-label="Ruta de navegación">
     <a routerLink="/store">Inicio</a>
-    <i class="bi bi-chevron-right"></i>
-    <span>Contacto</span>
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    <span aria-current="page">Contacto</span>
   </nav>
 
-  <header class="hero-contacto">
-    <span class="etiqueta"><i class="bi bi-geo-alt-fill"></i>Centro de atención</span>
-    <h1>Contacto y ubicación</h1>
-    <p>
-      Pedidos, stock y asesoría técnica. Llama, escribe por WhatsApp
-      o ven a nuestra tienda — elige el canal que prefieras.
-    </p>
+  <!-- Escenario: titular, accesos rápidos y el instrumento con los canales en órbita -->
+  <header class="escena x-plano x-grano">
+    <div class="escena__aurora" aria-hidden="true"></div>
+
+    <div class="escena__texto">
+      <span class="x-etiqueta x-etiqueta--corchetes">Centro de atención</span>
+      <h1 class="x-display">Contacto y ubicación</h1>
+      <p class="escena__desc">
+        Pedidos, stock y asesoría técnica. Llama, escribe por WhatsApp
+        o ven a nuestra tienda — elige el canal que prefieras.
+      </p>
+
+      <p class="vivo" *ngIf="estado" [class.vivo--abierto]="estado.abierto">
+        <span class="vivo__punto" [class.mov-pulso]="estado.abierto" aria-hidden="true"></span>
+        <strong>{{ estado.texto }}</strong>
+        <span class="vivo__detalle" *ngIf="estado.detalle">{{ estado.detalle }}</span>
+      </p>
+
+      <div class="escena__acciones">
+        <span class="x-iman" hsMagnetic>
+          <a class="x-boton x-boton--vivo x-boton--lg" [href]="waHref" target="_blank" rel="noopener">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i>Escribir por WhatsApp
+          </a>
+        </span>
+        <a class="x-boton x-boton--mono x-boton--lg" [href]="telHref">
+          <i class="bi bi-telephone" aria-hidden="true"></i>Llamar
+        </a>
+      </div>
+    </div>
+
+    <div class="escena__arte" aria-hidden="true">
+      <div class="x-dial">
+        <i class="x-dial__anillo"></i>
+        <i class="x-dial__marcas"></i>
+        <i class="x-dial__aro"></i>
+        <div class="x-dial__disco">
+          <i class="bi bi-headset centro"></i>
+          <span class="x-etiqueta leyenda">Atención directa</span>
+        </div>
+        <div class="x-dial__orbita">
+          <span class="x-dial__chip" style="--i: 0; --x-chip-color: var(--x-menta)"><i class="bi bi-whatsapp"></i></span>
+          <span class="x-dial__chip" style="--i: 1; --x-chip-color: var(--x-ambar)"><i class="bi bi-telephone-fill"></i></span>
+          <span class="x-dial__chip" style="--i: 2; --x-chip-color: var(--x-azul)"><i class="bi bi-envelope-fill"></i></span>
+          <span class="x-dial__chip" style="--i: 3; --x-chip-color: var(--x-rosa)"><i class="bi bi-geo-alt-fill"></i></span>
+          <span class="x-dial__chip" style="--i: 4; --x-chip-color: var(--x-cian)"><i class="bi bi-clock-fill"></i></span>
+          <span class="x-dial__chip" style="--i: 5; --x-chip-color: var(--x-violeta)"><i class="bi bi-chat-dots-fill"></i></span>
+        </div>
+      </div>
+
+      <div class="flota flota--a x-cristal x-cristal--oscuro x-flota">
+        <i class="bi bi-chat-dots"></i>
+        <span><strong>WhatsApp</strong><small>Respuesta en minutos</small></span>
+      </div>
+      <div class="flota flota--b x-cristal x-cristal--oscuro x-flota">
+        <i class="bi bi-shop"></i>
+        <span><strong>Tienda en {{ empresa.distrito }}</strong><small>Ven a visitarnos</small></span>
+      </div>
+    </div>
   </header>
 
-  <div class="rejilla-canales">
-    <a class="canal" [href]="telHref">
-      <span class="canal-icono"><i class="bi bi-telephone-fill"></i></span>
-      <span class="canal-cuerpo">
-        <strong>Llamar ahora</strong>
-        <small>{{ empresa.telefonoMostrar }}</small>
-      </span>
-      <i class="bi bi-chevron-right flecha"></i>
-    </a>
+  <!-- Canales: cinco tarjetas con foco de luz; la de WhatsApp es la principal y trae los temas -->
+  <section class="canales" aria-label="Canales de atención" hsReveal="lista">
 
-    <a class="canal canal--wa" [href]="waHref" target="_blank" rel="noopener">
-      <span class="canal-icono"><i class="bi bi-whatsapp"></i></span>
-      <span class="canal-cuerpo">
-        <strong>WhatsApp</strong>
-        <small>Respuesta en minutos</small>
-      </span>
-      <i class="bi bi-chevron-right flecha"></i>
-    </a>
+    <article class="canal canal--wa x-brillo" hsSpotlight>
+      <div class="canal__cab">
+        <span class="canal__icono"><i class="bi bi-whatsapp" aria-hidden="true"></i></span>
+        <span class="canal__n x-numero" aria-hidden="true">01</span>
+      </div>
+      <div class="canal__cuerpo">
+        <h2>WhatsApp</h2>
+        <p>Respuesta en minutos</p>
+      </div>
+      <p class="canal__sub x-etiqueta">Elige un tema y el mensaje ya va escrito</p>
+      <ul class="temas">
+        <li *ngFor="let tema of temas">
+          <a class="x-chip tema" [href]="tema.href" target="_blank" rel="noopener">
+            <i class="bi" [ngClass]="tema.icono" aria-hidden="true"></i>{{ tema.etiqueta }}<i class="bi bi-arrow-up-right tema__flecha" aria-hidden="true"></i>
+          </a>
+        </li>
+      </ul>
+      <a class="canal__enlace" [href]="waHref" target="_blank" rel="noopener">
+        Abrir chat de WhatsApp<i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+      </a>
+    </article>
 
-    <a class="canal" [href]="mailHref">
-      <span class="canal-icono"><i class="bi bi-envelope-fill"></i></span>
-      <span class="canal-cuerpo">
-        <strong>Correo</strong>
-        <small>{{ empresa.email }}</small>
-      </span>
-      <i class="bi bi-chevron-right flecha"></i>
-    </a>
+    <article class="canal canal--tel x-brillo" hsSpotlight>
+      <div class="canal__cab">
+        <span class="canal__icono"><i class="bi bi-telephone-fill" aria-hidden="true"></i></span>
+        <span class="canal__n x-numero" aria-hidden="true">02</span>
+      </div>
+      <div class="canal__cuerpo">
+        <h2>Teléfono</h2>
+        <p class="canal__valor x-numero">{{ empresa.telefonoMostrar }}</p>
+      </div>
+      <div class="canal__pie">
+        <a class="canal__enlace" [href]="telHref">
+          Llamar ahora<i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+        </a>
+        <button type="button" class="copiar" (click)="copiar(empresa.telefonoMostrar, 'Teléfono')" aria-label="Copiar teléfono">
+          <i class="bi bi-clipboard" aria-hidden="true"></i>Copiar
+        </button>
+      </div>
+    </article>
 
-    <button type="button" class="canal" (click)="copiar(empresa.telefonoMostrar, 'Teléfono')">
-      <span class="canal-icono"><i class="bi bi-clipboard"></i></span>
-      <span class="canal-cuerpo">
-        <strong>Copiar teléfono</strong>
-        <small>Listo para pegar</small>
-      </span>
-      <i class="bi bi-chevron-right flecha"></i>
-    </button>
-  </div>
+    <article class="canal canal--mail x-brillo" hsSpotlight>
+      <div class="canal__cab">
+        <span class="canal__icono"><i class="bi bi-envelope-fill" aria-hidden="true"></i></span>
+        <span class="canal__n x-numero" aria-hidden="true">03</span>
+      </div>
+      <div class="canal__cuerpo">
+        <h2>Correo</h2>
+        <p class="canal__valor canal__valor--correo x-numero">{{ empresa.email }}</p>
+      </div>
+      <div class="canal__pie">
+        <a class="canal__enlace" [href]="mailHref">
+          Escribir correo<i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+        </a>
+        <button type="button" class="copiar" (click)="copiar(empresa.email, 'Correo')" aria-label="Copiar correo">
+          <i class="bi bi-clipboard" aria-hidden="true"></i>Copiar
+        </button>
+      </div>
+    </article>
 
-  <div class="disposicion">
-    <section class="panel">
-      <h2><i class="bi bi-shop"></i> Cómo llegar</h2>
-      <p class="ayuda">{{ empresa.direccion }}</p>
-      <p class="ayuda" *ngIf="empresa.referencia"><i class="bi bi-signpost-2"></i> {{ empresa.referencia }}</p>
+    <article class="canal canal--dir x-brillo" hsSpotlight>
+      <div class="canal__cab">
+        <span class="canal__icono"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i></span>
+        <span class="canal__n x-numero" aria-hidden="true">04</span>
+      </div>
+      <div class="canal__cuerpo">
+        <h2>Dirección</h2>
+        <p class="canal__valor canal__valor--texto">{{ empresa.direccion }}</p>
+        <p class="canal__nota" *ngIf="empresa.referencia"><i class="bi bi-signpost-2" aria-hidden="true"></i>{{ empresa.referencia }}</p>
+      </div>
+      <a class="canal__enlace" [href]="mapaAbrir" target="_blank" rel="noopener">
+        Abrir en Google Maps<i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+      </a>
+    </article>
 
+    <article class="canal canal--hor x-brillo" hsSpotlight>
+      <div class="canal__cab">
+        <span class="canal__icono"><i class="bi bi-clock-fill" aria-hidden="true"></i></span>
+        <span class="canal__n x-numero" aria-hidden="true">05</span>
+      </div>
+      <div class="canal__cuerpo">
+        <h2>Horario</h2>
+        <p class="estado" *ngIf="estado" [class.estado--abierto]="estado.abierto" role="status">
+          <span class="estado__punto" [class.mov-pulso]="estado.abierto" aria-hidden="true"></span>
+          <strong>{{ estado.texto }}</strong>
+          <span class="estado__detalle" *ngIf="estado.detalle">{{ estado.detalle }}</span>
+        </p>
+      </div>
+      <ul class="horas">
+        <li><span>Atención</span><strong>{{ empresa.horario }}</strong></li>
+        <li><span>Domingo</span><strong>{{ empresa.horarioDomingo }}</strong></li>
+      </ul>
+    </article>
+  </section>
+
+  <!-- Visita: mapa en tarjeta con «Cómo llegar» y la ficha de la empresa -->
+  <section class="visita" hsReveal>
+    <article class="mapa-tarjeta">
       <div class="mapa">
+        <i class="bi bi-geo-alt-fill mapa__pin" aria-hidden="true"></i>
         <iframe
           [src]="mapaEmbed"
           [attr.title]="'Mapa de ' + empresa.nombre"
@@ -69,40 +178,42 @@
         </iframe>
       </div>
 
-      <div class="acciones-mapa">
-        <a class="boton-primario" [href]="mapaAbrir" target="_blank" rel="noopener">
-          <i class="bi bi-map"></i>Abrir en Google Maps
+      <div class="mapa-tarjeta__pie">
+        <div class="mapa-tarjeta__texto">
+          <span class="x-etiqueta x-etiqueta--corchetes">Ubicación</span>
+          <h2>Visítanos en tienda</h2>
+          <p>{{ empresa.direccion }}</p>
+          <p class="mapa-tarjeta__ref" *ngIf="empresa.referencia"><i class="bi bi-signpost-2" aria-hidden="true"></i>{{ empresa.referencia }}</p>
+        </div>
+
+        <div class="acciones">
+          <a class="x-boton x-boton--cta" [href]="mapaAbrir" target="_blank" rel="noopener">
+            <i class="bi bi-sign-turn-right" aria-hidden="true"></i>Cómo llegar
+          </a>
+          <a class="x-boton x-boton--contorno" [href]="waHref" target="_blank" rel="noopener">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i>Escribir por WhatsApp
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <aside class="ficha">
+      <h2>Datos de la empresa</h2>
+      <ul class="datos">
+        <li><i class="bi bi-buildings" aria-hidden="true"></i><span><small>Razón social</small>{{ empresa.nombre }}</span></li>
+        <li><i class="bi bi-geo-alt" aria-hidden="true"></i><span><small>Dirección</small>{{ empresa.direccion }}</span></li>
+        <li><i class="bi bi-telephone" aria-hidden="true"></i><span><small>Teléfono</small>{{ empresa.telefonoMostrar }}</span></li>
+        <li><i class="bi bi-envelope" aria-hidden="true"></i><span><small>Correo</small>{{ empresa.email }}</span></li>
+      </ul>
+
+      <div class="ficha__acciones">
+        <a class="x-boton x-boton--contorno" routerLink="/store/catalogo">
+          <i class="bi bi-grid" aria-hidden="true"></i>Ver catálogo
         </a>
-        <a class="boton-secundario" [href]="waHref" target="_blank" rel="noopener">
-          <i class="bi bi-whatsapp"></i>Escribir por WhatsApp
+        <a class="x-boton x-boton--contorno" routerLink="/store/perfil">
+          <i class="bi bi-person" aria-hidden="true"></i>Mi cuenta
         </a>
       </div>
-    </section>
-
-    <aside class="panel panel-lateral">
-      <h2><i class="bi bi-clock"></i> Horario</h2>
-      <ul class="lista-horario">
-        <li><span>Atención</span><strong>{{ empresa.horario }}</strong></li>
-        <li><span>Domingo</span><strong>{{ empresa.horarioDomingo }}</strong></li>
-      </ul>
-
-      <h2 class="mt"><i class="bi bi-info-circle"></i> Datos de la empresa</h2>
-      <ul class="lista-datos">
-        <li><i class="bi bi-buildings"></i>{{ empresa.nombre }}</li>
-        <li><i class="bi bi-geo-alt"></i>{{ empresa.direccion }}</li>
-        <li><i class="bi bi-telephone"></i>{{ empresa.telefonoMostrar }}</li>
-        <li><i class="bi bi-envelope"></i>{{ empresa.email }}</li>
-      </ul>
-
-      <a class="boton-secundario ancho" routerLink="/store/catalogo">
-        <i class="bi bi-grid"></i>Ver catálogo
-      </a>
-      <a class="boton-secundario ancho" routerLink="/store/perfil">
-        <i class="bi bi-person"></i>Mi cuenta
-      </a>
-      <button type="button" class="boton-secundario ancho" (click)="copiar(empresa.email, 'Correo')">
-        <i class="bi bi-clipboard"></i>Copiar correo
-      </button>
     </aside>
-  </div>
+  </section>
 </div>

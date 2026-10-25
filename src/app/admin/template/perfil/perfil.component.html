@@ -1,38 +1,45 @@
 <div class="adm-pagina">
 
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Mi perfil</h1>
-      <p class="adm-cabecera__sub">
-        Datos de la cuenta con la que ingresaste. El rol y el ID no se editan aquí.
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-person-circle"></i></span>
+      <div>
+        <span class="adm-cabecera__eyebrow">Cuenta</span>
+        <h1 class="adm-cabecera__titulo">Mi perfil</h1>
+        <p class="adm-cabecera__sub">
+          Datos de la cuenta con la que ingresaste. El rol y el ID no se editan aquí.
+        </p>
+      </div>
     </div>
     <div class="adm-acciones">
       <a routerLink="/dashboard/configuracion" class="adm-btn adm-btn--suave">
-        <i class="bi bi-gear"></i> Configuración
+        <i class="bi bi-gear" aria-hidden="true"></i> Configuración
       </a>
     </div>
   </header>
 
-  <section class="adm-grid adm-grid--3">
+  <section class="adm-grid adm-grid--3" aria-label="Resumen de la cuenta" hsReveal="lista">
     <div class="adm-metrica">
-      <div class="adm-metrica__icono"><i class="bi bi-person-badge"></i></div>
+      <div class="adm-metrica__icono"><i class="bi bi-person-badge" aria-hidden="true"></i></div>
       <div>
         <div class="adm-metrica__valor">#{{ sesion.idUsuario || '—' }}</div>
         <div class="adm-metrica__etiqueta">ID de usuario</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-shield-check"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-shield-check" aria-hidden="true"></i></div>
       <div>
         <div class="adm-metrica__valor">{{ etiquetaRol }}</div>
         <div class="adm-metrica__etiqueta">Rol asignado</div>
       </div>
     </div>
     <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-key"></i></div>
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-key" aria-hidden="true"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ sesion.permisos.length || 'Por rol' }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="sesion.permisos.length; else porRol"><span [hsCountUp]="sesion.permisos.length"></span></ng-container>
+          <ng-template #porRol>Por rol</ng-template>
+        </div>
         <div class="adm-metrica__etiqueta">Permisos</div>
       </div>
     </div>
@@ -42,14 +49,17 @@
 
     <section class="adm-tarjeta">
       <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-person"></i> Datos personales</h2>
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-person" aria-hidden="true"></i> Datos personales</h2>
       </div>
       <div class="adm-tarjeta__cuerpo">
         <div class="adm-fila perfil-identidad">
-          <div class="perfil-avatar" aria-hidden="true">{{ sesion.iniciales }}</div>
-          <div>
-            <div class="adm-tabla__principal">{{ sesion.nombre || 'Usuario' }}</div>
+          <span class="adm-avatar adm-avatar--xl adm-avatar--gradiente" aria-hidden="true">{{ sesion.iniciales }}</span>
+          <div class="perfil-identidad__texto">
+            <div class="adm-tabla__principal perfil-identidad__nombre">{{ sesion.nombre || 'Usuario' }}</div>
             <div class="adm-tabla__secundario">{{ sesion.email || 'Sin correo' }}</div>
+            <div class="perfil-identidad__chips">
+              <span class="adm-insignia adm-insignia--primaria adm-insignia--punto">{{ etiquetaRol }}</span>
+            </div>
           </div>
         </div>
 
@@ -63,7 +73,7 @@
             <input id="perfil-rol" class="adm-input" type="text" [value]="etiquetaRol + ' (#' + sesion.rolId + ')'" disabled>
           </div>
         </div>
-        <p class="adm-ayuda" style="margin-top:6px">Solo un administrador puede cambiar el rol.</p>
+        <p class="adm-ayuda perfil-nota">Solo un administrador puede cambiar el rol.</p>
 
         <div class="adm-campo perfil-espaciado">
           <label class="adm-etiqueta" for="perfil-nombre">Nombre</label>
@@ -79,7 +89,7 @@
 
     <section class="adm-tarjeta">
       <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-lock"></i> Seguridad</h2>
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-lock" aria-hidden="true"></i> Seguridad</h2>
       </div>
       <div class="adm-tarjeta__cuerpo">
         <p class="adm-ayuda perfil-ayuda">Déjalo vacío si no quieres cambiar la contraseña.</p>
@@ -103,9 +113,20 @@
           </div>
         </div>
 
+        <ul class="perfil-requisitos" aria-live="polite" *ngIf="formulario.password_nueva || formulario.password_confirma">
+          <li [class.perfil-requisito--ok]="formulario.password_nueva.length >= 6">
+            <i class="bi" [ngClass]="formulario.password_nueva.length >= 6 ? 'bi-check-circle-fill' : 'bi-circle'" aria-hidden="true"></i>
+            La nueva contraseña tiene al menos 6 caracteres
+          </li>
+          <li [class.perfil-requisito--ok]="formulario.password_nueva !== '' && formulario.password_nueva === formulario.password_confirma">
+            <i class="bi" [ngClass]="formulario.password_nueva !== '' && formulario.password_nueva === formulario.password_confirma ? 'bi-check-circle-fill' : 'bi-circle'" aria-hidden="true"></i>
+            Las dos contraseñas coinciden
+          </li>
+        </ul>
+
         <div class="adm-acciones perfil-espaciado">
           <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
-            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
+            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
             {{ guardando ? 'Guardando…' : 'Guardar cambios' }}
           </button>
         </div>

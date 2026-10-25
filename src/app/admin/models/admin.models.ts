@@ -154,7 +154,21 @@ export interface ComprobanteFila {
   ambiente_fiscal?: 'beta' | 'produccion' | null;
   estado_sunat?: string | null;
   id_envio_ultimo?: number | null;
+  /** Qué hacer a continuación según SUNAT (REINTENTAR, RECUPERAR_CDR, EMITIR_NUEVO…). */
+  accion_sunat?: string | null;
+  id_venta?: number | null;
+  /** Solo notas: comprobante que modifican y su serie-número ('F001-12'). */
+  id_comprobante_modificado?: number | null;
+  doc_modificado?: string | null;
+  /** Último día (yyyy-mm-dd, Lima) para que SUNAT lo reciba por envío individual. */
+  fecha_limite_envio?: string | null;
+  /** Pasó la fecha límite de envío sin que SUNAT lo aceptara. */
+  vencido?: boolean;
   puede_reintentar?: boolean;
+  puede_recuperar_cdr?: boolean;
+  /** Solo lo ejecuta un administrador. */
+  puede_confirmar_manual?: boolean;
+  puede_nota_credito?: boolean;
   puede_anular: boolean;
 }
 
@@ -235,11 +249,6 @@ export interface ImagenProducto {
   size?: number;
   width?: number;
   height?: number;
-}
-
-export interface MotivoCatalogo {
-  codigo: string;
-  nombre: string;
 }
 
 export interface ProductoAdmin {

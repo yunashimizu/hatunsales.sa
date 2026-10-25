@@ -23,7 +23,7 @@
   </header>
 
   <!-- Indicadores de la sesión -->
-  <section class="adm-grid adm-grid--4" aria-label="Resumen de la cuenta">
+  <section class="adm-grid adm-grid--4" aria-label="Resumen de la cuenta" hsReveal="lista">
     <div class="adm-metrica">
       <div class="adm-metrica__icono"><i class="bi bi-person-circle" aria-hidden="true"></i></div>
       <div class="cfg-metrica__cuerpo">
@@ -51,7 +51,7 @@
     <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-key" aria-hidden="true"></i></div>
       <div class="cfg-metrica__cuerpo">
-        <div class="adm-metrica__valor">{{ sesion.permisos.length || 0 }}</div>
+        <div class="adm-metrica__valor"><span [hsCountUp]="sesion.permisos.length"></span></div>
         <div class="adm-metrica__etiqueta">Permisos listados</div>
         <div class="adm-metrica__delta cfg-metrica__detalle">
           {{ sesion.permisos.length ? 'Cargados en la sesión' : 'Acceso según el rol' }}
@@ -64,13 +64,13 @@
   <section class="adm-tarjeta adm-tarjeta--acento" *ngIf="esAdminPuro">
     <div class="adm-tarjeta__cabecera">
       <div class="adm-tarjeta__encabezado">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-receipt"></i> Emisor y series</h2>
+        <h2 class="adm-tarjeta__titulo"><i class="bi bi-receipt" aria-hidden="true"></i> Emisor y series</h2>
         <p class="adm-tarjeta__sub">Datos que salen en boletas, facturas y proformas.</p>
       </div>
       <ul class="adm-tarjeta__extra cfg-estados" *ngIf="fiscal" aria-label="Estado de la integración">
-        <li class="adm-insignia adm-insignia--info">
+        <li class="adm-insignia adm-insignia--info adm-insignia--punto">
           <i class="bi bi-cash-stack" aria-hidden="true"></i>
-          Caja: {{ fiscal.estados.caja_modo }}
+          Caja: <span class="cfg-caja-modo">{{ fiscal.estados.caja_modo }}</span>
         </li>
       </ul>
     </div>
@@ -155,7 +155,7 @@
                     <dt class="adm-dato__etiqueta">Ambiente de emisión</dt>
                     <dd class="adm-dato__valor cfg-rol">
                       {{ series.ambiente === 'produccion' ? 'Producción' : 'SUNAT BETA (pruebas)' }}
-                      <span class="adm-insignia adm-insignia--sm"
+                      <span class="adm-insignia adm-insignia--sm adm-insignia--punto"
                             [ngClass]="series.emision_activa ? 'adm-insignia--exito' : 'adm-insignia--neutra'">
                         {{ series.emision_activa ? 'Emisión activa' : 'Sin emisión' }}
                       </span>
@@ -213,9 +213,10 @@
               <div class="adm-input-icono">
                 <i class="bi bi-image" aria-hidden="true"></i>
                 <input id="cfg-logo" class="adm-input" type="text" autocomplete="off"
+                       aria-describedby="cfg-logo-ayuda"
                        [(ngModel)]="formEmisor.logo_url" placeholder="/uploads/hatunsales.png">
               </div>
-              <span class="adm-ayuda">Ruta o dirección web de la imagen que se imprime en la cabecera de la proforma.</span>
+              <span class="adm-ayuda" id="cfg-logo-ayuda">Ruta o dirección web de la imagen que se imprime en la cabecera de la proforma.</span>
             </div>
           </div>
         </div>
@@ -271,11 +272,12 @@
                 Condiciones adicionales <span class="adm-etiqueta__opcional">opcional</span>
               </label>
               <textarea id="cfg-condiciones" class="adm-textarea" rows="4" maxlength="1500"
+                        aria-describedby="cfg-condiciones-ayuda"
                         [(ngModel)]="formProforma.condiciones"
                         placeholder="Una condición por línea. Ej.: Entrega en 24 a 48 horas en Lima.&#10;Pago contra entrega o transferencia previa."></textarea>
               <div class="cfg-ayuda-fila">
-                <span class="adm-ayuda">Escriba una condición por línea.</span>
-                <span class="adm-ayuda cfg-contador">{{ (formProforma.condiciones || '').length }} / 1500</span>
+                <span class="adm-ayuda" id="cfg-condiciones-ayuda">Escriba una condición por línea.</span>
+                <span class="adm-ayuda cfg-contador" [class.cfg-contador--limite]="(formProforma.condiciones || '').length > 1350">{{ (formProforma.condiciones || '').length }} / 1500</span>
               </div>
             </div>
           </div>
@@ -303,11 +305,13 @@
     <section class="adm-tarjeta">
       <div class="adm-tarjeta__cabecera">
         <div class="adm-tarjeta__encabezado">
-          <h2 class="adm-tarjeta__titulo"><i class="bi bi-person-vcard"></i> Sesión actual</h2>
+          <h2 class="adm-tarjeta__titulo"><i class="bi bi-person-vcard" aria-hidden="true"></i> Sesión actual</h2>
           <p class="adm-tarjeta__sub">Cuenta con la que ingresó al panel.</p>
         </div>
       </div>
       <div class="adm-tarjeta__cuerpo">
+        <div class="cfg-identidad">
+        <span class="adm-avatar adm-avatar--xl adm-avatar--gradiente" aria-hidden="true">{{ sesion.iniciales }}</span>
         <dl class="adm-datos cfg-datos">
           <div class="adm-dato">
             <dt class="adm-dato__etiqueta">Nombre</dt>
@@ -325,12 +329,13 @@
             <dt class="adm-dato__etiqueta">Rol</dt>
             <dd class="adm-dato__valor">
               <data class="cfg-rol" [value]="etiquetaRol + ' · #' + sesion.rolId">
-                {{ etiquetaRol }}
+                <span class="adm-insignia adm-insignia--primaria adm-insignia--punto">{{ etiquetaRol }}</span>
                 <span class="adm-insignia adm-insignia--neutra adm-insignia--sm">ID {{ sesion.rolId }}</span>
               </data>
             </dd>
           </div>
         </dl>
+        </div>
         <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto adm-mt-4">
           <i class="bi bi-lock" aria-hidden="true"></i>
           <span>Datos de solo lectura. Para cambiar nombre, correo o contraseña use <strong>Mi perfil</strong>.</span>
@@ -342,13 +347,13 @@
     <section class="adm-tarjeta">
       <div class="adm-tarjeta__cabecera">
         <div class="adm-tarjeta__encabezado">
-          <h2 class="adm-tarjeta__titulo"><i class="bi bi-lightning-charge"></i> Atajos</h2>
+          <h2 class="adm-tarjeta__titulo"><i class="bi bi-lightning-charge" aria-hidden="true"></i> Atajos</h2>
           <p class="adm-tarjeta__sub">Accesos directos a su cuenta y al panel.</p>
         </div>
       </div>
       <div class="adm-tarjeta__cuerpo">
-        <nav class="adm-atajos cfg-atajos" aria-label="Atajos de configuración">
-          <a routerLink="/dashboard/perfil" class="adm-atajo">
+        <nav class="adm-atajos cfg-atajos" aria-label="Atajos de configuración" hsReveal="lista">
+          <a routerLink="/dashboard/perfil" class="adm-atajo x-brillo" hsSpotlight>
             <span class="adm-atajo__icono"><i class="bi bi-person-circle" aria-hidden="true"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Mi perfil</span>
@@ -356,7 +361,7 @@
             </span>
             <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a routerLink="/dashboard/mantenimiento/roles" class="adm-atajo adm-atajo--info" *ngIf="esAdminPuro">
+          <a routerLink="/dashboard/mantenimiento/roles" class="adm-atajo adm-atajo--info x-brillo" hsSpotlight *ngIf="esAdminPuro">
             <span class="adm-atajo__icono"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Roles</span>
@@ -364,7 +369,7 @@
             </span>
             <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a routerLink="/dashboard/mantenimiento/usuarios" class="adm-atajo adm-atajo--exito" *ngIf="esAdminPuro">
+          <a routerLink="/dashboard/mantenimiento/usuarios" class="adm-atajo adm-atajo--exito x-brillo" hsSpotlight *ngIf="esAdminPuro">
             <span class="adm-atajo__icono"><i class="bi bi-person-badge" aria-hidden="true"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Usuarios</span>
@@ -372,7 +377,7 @@
             </span>
             <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a routerLink="/dashboard/home" class="adm-atajo">
+          <a routerLink="/dashboard/home" class="adm-atajo x-brillo" hsSpotlight>
             <span class="adm-atajo__icono"><i class="bi bi-house-door" aria-hidden="true"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Inicio</span>
@@ -391,7 +396,7 @@
     <div class="adm-tarjeta__cabecera">
       <div class="adm-tarjeta__encabezado">
         <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--exito">
-          <i class="bi bi-list-check"></i> Permisos de la sesión
+          <i class="bi bi-list-check" aria-hidden="true"></i> Permisos de la sesión
           <span class="adm-insignia adm-insignia--neutra">{{ sesion.permisos.length }}</span>
         </h2>
         <p class="adm-tarjeta__sub">Permisos que el sistema cargó para su usuario.</p>
@@ -417,7 +422,10 @@
           <tr *ngFor="let p of sesion.permisos; let i = index">
             <td data-etiqueta="#" class="adm-texto-suave adm-tabular">{{ i + 1 }}</td>
             <td data-etiqueta="Permiso">
-              <div class="adm-tabla__principal cfg-permiso">{{ p }}</div>
+              <div class="adm-tabla__principal cfg-permiso">
+                <span class="adm-insignia adm-insignia--info adm-insignia--sm cfg-permiso__modulo">{{ p.split('.')[0] }}</span>
+                <span class="cfg-permiso__codigo">{{ p }}</span>
+              </div>
             </td>
             <td data-etiqueta="Estado">
               <span class="adm-insignia adm-insignia--exito adm-insignia--punto">Activo</span>

@@ -92,6 +92,9 @@ export const urlConstants = {
     preview: `${dominio}venta/preview`,
     anular: (id: string | number) => `${dominio}venta/${id}/anular`,
     contextoPos: `${dominio}venta/contexto-pos`,
+    emitirComprobante: (id: string | number) => `${dominio}venta/${id}/emitir-comprobante`,
+    documentos: (id: string | number) => `${dominio}venta/${id}/documentos`,
+    sinComprobante: `${dominio}venta/sin-comprobante`,
   },
 
   credito: {
@@ -135,6 +138,20 @@ export const urlConstants = {
     pdf: (id: string | number) => `${dominio}guia-remision/${id}/pdf`,
     byId: (id: string | number) => `${dominio}guia-remision/${id}`,
     contextoVenta: (id: string | number) => `${dominio}guia-remision/ventas/${id}/contexto`,
+    modo: `${dominio}guia-remision/modo`,
+    catalogos: `${dominio}guia-remision/catalogos`,
+    /** Crea la guía y la envía a SUNAT en una sola llamada (si falla, queda guardada como borrador). */
+    crearYEmitir: `${dominio}guia-remision/emitir`,
+    validar: (id: string | number) => `${dominio}guia-remision/${id}/validar`,
+    emitir: (id: string | number) => `${dominio}guia-remision/${id}/emitir`,
+    consultar: (id: string | number) => `${dominio}guia-remision/${id}/consultar`,
+    anular: (id: string | number) => `${dominio}guia-remision/${id}/anular`,
+    archivo: (id: string | number, tipo: string) => `${dominio}guia-remision/${id}/archivos/${tipo}`,
+  },
+
+  ubigeo: {
+    buscar: `${dominio}ubigeo`,
+    byCodigo: (codigo: string) => `${dominio}ubigeo/${codigo}`,
   },
 
   comprobante: {
@@ -149,6 +166,12 @@ export const urlConstants = {
     detalle: (id: string | number) => `${dominio}comprobante/${id}/detalle`,
     reintentar: (id: string | number) => `${dominio}comprobante/${id}/reintentar`,
     pdf: (id: string | number) => `${dominio}comprobante/${id}/pdf`,
+    consultarAnulacion: `${dominio}comprobante/consultar-anulacion`,
+    archivo: (id: string | number, tipo: string) => `${dominio}comprobante/${id}/archivos/${tipo}`,
+    recuperarCdr: (id: string | number) => `${dominio}comprobante/${id}/recuperar-cdr`,
+    confirmarAceptado: (id: string | number) => `${dominio}comprobante/${id}/confirmar-aceptado`,
+    contextoNotaCredito: (id: string | number) => `${dominio}comprobante/${id}/nota-credito/contexto`,
+    notaCredito: (id: string | number) => `${dominio}comprobante/${id}/nota-credito`,
   },
 
   reportes: {

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
@@ -9,20 +9,26 @@ import { CuentaTiendaService } from '../../service/cuenta.service';
 import { AlertService } from '../../../shared/services/alert.service';
 import { AuthService } from '../../../auth/service/auth.service';
 import { CategoriaTienda, ProductoTienda } from '../../models/tienda.models';
-import { EMPRESA_TIENDA } from '../../config/empresa-tienda.config';
+import { EMPRESA_TIENDA, urlTelefono, urlWhatsapp } from '../../config/empresa-tienda.config';
+import { BotonTemaComponent } from '../../../shared/ui/boton-tema.component';
 
 @Component({
   selector: 'app-header',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, BotonTemaComponent],
   templateUrl: './header.component.html',
   styleUrl: './header.component.css',
 })
-export class HeaderComponent implements OnInit, OnDestroy {
+export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Marca de la tienda (mismo origen que footer / contacto). */
   readonly empresa = EMPRESA_TIENDA;
+  readonly telHref = urlTelefono();
+  readonly waHref = urlWhatsapp('Hola, quisiera una asesoría para mi proyecto.');
+
+  @ViewChild('campoBusqueda') private campoBusqueda?: ElementRef<HTMLInputElement>;
+  @ViewChild('cabecera') private cabecera?: ElementRef<HTMLElement>;
 
   private readonly cart = inject(CartService);
   private readonly catalogo = inject(CatalogoService);
@@ -31,8 +37,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly zona = inject(NgZone);
 
   private readonly destruir$ = new Subject<void>();
+  private observadorAlto?: ResizeObserver;
+  private ultimoScroll = 0;
   private readonly termino$ = new Subject<string>();
 
   categorias: CategoriaTienda[] = [];
@@ -46,6 +55,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
   menuCuentaAbierto = false;
   megaMenuAbierto = false;
   compacto = false;
+  /** La barra se esconde al bajar por la página y vuelve al subir (solo presentación). */
+  oculto = false;
+  /** El campo de búsqueda tiene el foco: la barra no se esconde y se muestran atajos. */
+  buscadorActivo = false;
+  /** La última búsqueda terminó sin coincidencias (para el aviso del desplegable). */
+  sinResultados = false;
 
   nombreUsuario = '';
   autenticado = false;
@@ -81,6 +96,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       )
       .subscribe((resultados) => {
         this.sugerencias = resultados;
+        this.sinResultados = resultados.length === 0;
         this.buscando = false;
         this.cdr.markForCheck();
       });
@@ -89,16 +105,71 @@ export class HeaderComponent implements OnInit, OnDestroy {
     if (this.autenticado) this.cuenta.sincronizarFavoritos().pipe(takeUntil(this.destruir$)).subscribe();
   }
 
+  ngAfterViewInit(): void {
+    // Publica el alto real de la barra fija: los avisos (toasts) y los filtros fijos
+    // del catálogo se colocan debajo de ella (tokens.css: --t-cabecera-alto).
+    const el = this.cabecera?.nativeElement;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    this.zona.runOutsideAngular(() => {
+      this.observadorAlto = new ResizeObserver(() => {
+        document.documentElement.style.setProperty('--t-cabecera-alto', `${Math.round(el.getBoundingClientRect().height)}px`);
+      });
+      this.observadorAlto.observe(el);
+    });
+  }
+
   ngOnDestroy(): void {
+    this.observadorAlto?.disconnect();
     this.destruir$.next();
     this.destruir$.complete();
   }
 
   @HostListener('window:scroll')
   alDesplazar(): void {
-    const siguiente = window.scrollY > 24;
-    if (siguiente === this.compacto) return;
+    const y = window.scrollY;
+    const siguiente = y > 24;
+    // Baja de la página → se esconde; sube → vuelve. Nunca con un panel abierto o escribiendo.
+    const bloqueada = this.menuAbierto || this.menuCuentaAbierto || this.megaMenuAbierto || this.buscadorActivo;
+    const bajando = y > this.ultimoScroll + 6;
+    const subiendo = y < this.ultimoScroll - 6;
+    let oculto = this.oculto;
+    if (bloqueada || y < 240 || subiendo) oculto = false;
+    else if (bajando) oculto = true;
+    if (bajando || subiendo) this.ultimoScroll = y;
+    if (siguiente === this.compacto && oculto === this.oculto) return;
     this.compacto = siguiente;
+    this.oculto = oculto;
+    this.cdr.markForCheck();
+  }
+
+  /** «/» salta al buscador (como en las tiendas y documentaciones modernas). */
+  @HostListener('document:keydown', ['$event'])
+  alTeclear(evento: KeyboardEvent): void {
+    if (evento.key !== '/' || evento.ctrlKey || evento.metaKey || evento.altKey) return;
+    const destino = evento.target as HTMLElement | null;
+    if (destino && (destino.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(destino.tagName))) return;
+    evento.preventDefault();
+    this.campoBusqueda?.nativeElement.focus();
+  }
+
+  alEnfocarBuscador(): void {
+    this.buscadorActivo = true;
+    this.oculto = false;
+    // El buscador manda: los menús de categorías y de cuenta se cierran para no taparle las sugerencias.
+    this.megaMenuAbierto = false;
+    this.menuCuentaAbierto = false;
+    this.cdr.markForCheck();
+  }
+
+  alDesenfocarBuscador(): void {
+    this.buscadorActivo = false;
+    this.cdr.markForCheck();
+  }
+
+  /** Cualquier foco dentro de la barra (teclado) la hace visible. */
+  alEnfocarCabecera(): void {
+    if (!this.oculto) return;
+    this.oculto = false;
     this.cdr.markForCheck();
   }
 
@@ -106,8 +177,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
   alClicFuera(evento: MouseEvent): void {
     const objetivo = evento.target as HTMLElement;
     let cambio = false;
-    if (!objetivo.closest('.buscador') && this.sugerencias.length) {
+    if (!objetivo.closest('.buscador') && (this.sugerencias.length || this.sinResultados)) {
       this.sugerencias = [];
+      this.sinResultados = false;
       cambio = true;
     }
     if (!objetivo.closest('.cuenta') && this.menuCuentaAbierto) {
@@ -130,12 +202,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     if (texto.length < 2) {
       this.sugerencias = [];
+      this.sinResultados = false;
       this.buscando = false;
       this.cdr.markForCheck();
       return;
     }
 
     this.buscando = true;
+    this.sinResultados = false;
     this.cdr.markForCheck();
     this.termino$.next(texto);
   }
@@ -145,12 +219,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
     if (!texto) return;
 
     this.sugerencias = [];
+    this.sinResultados = false;
     this.menuAbierto = false;
     this.router.navigate(['/store/catalogo'], { queryParams: { q: texto } });
   }
 
   irAProducto(producto: ProductoTienda): void {
     this.sugerencias = [];
+    this.sinResultados = false;
     this.termino = '';
     this.catalogo.guardarPreview(producto);
     this.router.navigate(['/store/producto', producto.id_producto]);

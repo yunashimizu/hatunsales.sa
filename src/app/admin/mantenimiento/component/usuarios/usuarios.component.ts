@@ -10,12 +10,14 @@ import { FormsModule } from '@angular/forms';
 import { GestionService } from '../../service/gestion.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
 @Component({
   selector: 'app-usuarios',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CountUpDirective, RevealDirective],
   templateUrl: './usuarios.component.html',
   styleUrl: './usuarios.component.css',
 })

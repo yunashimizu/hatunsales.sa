@@ -1,0 +1,303 @@
+/* ===========================================================================
+   Tema oscuro · HatunSales
+
+   Se activa con <html data-tema="oscuro"> (script de index.html + TemaService,
+   que respeta prefers-color-scheme y recuerda la elección en localStorage
+   'hs.tema'). No hay otro mecanismo: todo el oscuro sale de redefinir los
+   tokens, así que las pantallas que usan --t-*, --adm-* y --hs-* lo heredan
+   sin tocar su CSS.
+
+   Familias
+   - Tienda (--t-*)  → carbón cálido (#121110 → #232120), texto crema.
+   - Panel (--adm-*) → tinta azulada (#0a0e1a → #1a233d), texto frío.
+   - Rellenos con texto blanco (botones índigo, CTA naranja) conservan su
+     tono; los TEXTOS de color de marca usan --t-primario-texto / --adm-primario
+     (aclarados) para mantener ≥ 4,5:1 sobre las superficies oscuras.
+   =========================================================================== */
+
+:root[data-tema='oscuro'] {
+  color-scheme: dark;
+
+  /* ── Compartidos ─────────────────────────────────────────────── */
+  --hs-pagina-fondo: #0a0e1a;
+  --hs-pagina-solido: #0a0e1a;
+  --hs-pagina-texto: #e9edf7;
+  --hs-texto: #e9edf7;
+  --hs-texto-suave: #a7b1c8;
+  --hs-texto-tenue: #8893ad;
+  --hs-foco: #a5a1ff;
+  --hs-enlace: #a5a1ff;
+  --hs-enlace-hover: #c4c1ff;
+  --hs-seleccion: rgba(129, 140, 248, 0.38);
+
+  /* ── Tienda: carbón cálido ───────────────────────────────────── */
+  --t-fondo: #121110;
+  --t-superficie: #1b1a18;
+  --t-superficie-2: #232120;
+  --t-borde: #33302c;
+  --t-borde-fuerte: #4a4640;
+  --t-imagen-fondo: #f1eee7;
+  --t-vidrio: rgba(18, 17, 16, 0.76);
+
+  --t-texto: #f4f1ea;
+  --t-texto-suave: #b9b3a8;
+  --t-texto-tenue: #99938a;
+
+  --t-primario: #5b52f0;
+  --t-primario-osc: #4f46e5;
+  --t-primario-claro: #24224f;
+  --t-primario-texto: #a5a1ff;
+
+  --t-acento: #fb923c;
+  --t-acento-texto: #ff9a5c;
+  --t-cta: #c2410c;
+  --t-cta-hover: #a8380a;
+  --t-cta-texto: #ffffff;
+
+  --t-exito: #34d399;
+  --t-exito-texto: #34d399;
+  --t-exito-claro: rgba(16, 185, 129, 0.14);
+  --t-aviso: #fbbf24;
+  --t-aviso-texto: #fbbf24;
+  --t-aviso-claro: rgba(245, 158, 11, 0.14);
+  --t-peligro: #f87171;
+  --t-peligro-texto: #f87171;
+  --t-peligro-claro: rgba(239, 68, 68, 0.14);
+  --t-info-texto: #7dd3fc;
+  --t-info-claro: rgba(14, 165, 233, 0.14);
+  --t-estrella: #fbbf24;
+
+  --t-sombra-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --t-sombra-md: 0 6px 16px rgba(0, 0, 0, 0.42), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --t-sombra-lg: 0 24px 50px -12px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.35);
+  --t-sombra-xl: 0 40px 80px -18px rgba(0, 0, 0, 0.75);
+
+  /* ── Panel: tinta azulada ────────────────────────────────────── */
+  --adm-fondo: #0a0e1a;
+  --adm-fondo-2: #0d1220;
+  --adm-superficie: #11172a;
+  --adm-superficie-2: #151c32;
+  --adm-superficie-3: #1a233d;
+  --adm-borde: #232d49;
+  --adm-borde-fuerte: #34416a;
+
+  --adm-texto: #e9edf7;
+  --adm-texto-2: #d6dcec;
+  --adm-texto-suave: #a7b1c8;
+  --adm-texto-tenue: #8893ad;
+
+  --adm-primario: #9a95ff;
+  --adm-primario-osc: #b3afff;
+  --adm-primario-claro: #1b1f45;
+  --adm-primario-suave: #242a63;
+  --adm-primario-borde: #3a41a0;
+  --adm-violeta: #b79cff;
+
+  --adm-exito: #34d399;
+  --adm-exito-texto: #4ade9d;
+  --adm-exito-claro: rgba(16, 185, 129, 0.14);
+  --adm-exito-borde: rgba(16, 185, 129, 0.38);
+  --adm-peligro: #f87171;
+  --adm-peligro-texto: #fca5a5;
+  --adm-peligro-claro: rgba(239, 68, 68, 0.14);
+  --adm-peligro-borde: rgba(239, 68, 68, 0.4);
+  --adm-aviso: #fbbf24;
+  --adm-aviso-texto: #fcd34d;
+  --adm-aviso-claro: rgba(245, 158, 11, 0.14);
+  --adm-aviso-borde: rgba(245, 158, 11, 0.4);
+  --adm-info: #38bdf8;
+  --adm-info-texto: #7dd3fc;
+  --adm-info-claro: rgba(14, 165, 233, 0.14);
+  --adm-info-borde: rgba(14, 165, 233, 0.4);
+
+  --adm-sombra-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --adm-sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px -4px rgba(0, 0, 0, 0.5);
+  --adm-sombra-md: 0 8px 22px -4px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --adm-sombra-lg: 0 26px 60px -14px rgba(0, 0, 0, 0.7), 0 8px 20px -8px rgba(0, 0, 0, 0.45);
+  --adm-sombra-primario: 0 8px 20px -6px rgba(99, 102, 241, 0.55);
+  --adm-anillo: 0 0 0 4px rgba(129, 140, 248, 0.3);
+
+  /* Tokens del panel que en claro eran colores sueltos */
+  --adm-borde-hover: #3d4a72;
+  --adm-borde-campo-hover: #4a5a88;
+  --adm-borde-boton-hover: #4a5a88;
+  --adm-interruptor-off: #3a4663;
+  --adm-hover-fila: #161e36;
+  --adm-zebra: #0f1526;
+  --adm-hover-fila-zebra: #1a2340;
+  --adm-esqueleto-fondo: #1b2440;
+  --adm-esqueleto-brillo: rgba(255, 255, 255, 0.07);
+  --adm-velo-carga: rgba(10, 14, 26, 0.72);
+  --adm-oscuro-fondo: #e9edf7;
+  --adm-oscuro-fondo-hover: #ffffff;
+  --adm-oscuro-texto: #0a0e1a;
+  --adm-aviso-info-texto: #bae6fd;
+  --adm-aviso-exito-texto: #a7f3d0;
+  --adm-aviso-aviso-texto: #fde68a;
+  --adm-aviso-peligro-texto: #fecaca;
+  --adm-peligro-suave-hover: rgba(239, 68, 68, 0.24);
+  --adm-punteado: rgba(255, 255, 255, 0.05);
+
+  /* Esqueletos y brillos del sistema de movimiento */
+  --mov-esqueleto-fondo: #232120;
+  --mov-esqueleto-brillo: rgba(255, 252, 240, 0.08);
+  --mov-sombra-elevada: 0 14px 30px -10px rgba(0, 0, 0, 0.7), 0 2px 6px rgba(0, 0, 0, 0.4);
+
+  /* Plano del escenario */
+  --x-plano-linea: rgba(255, 252, 240, 0.05);
+}
+
+:root[data-tema='oscuro'] .cdk-overlay-dark-backdrop {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+/* ---------------------------------------------------------------------------
+   Login y registro: sus plantillas usan utilidades de Tailwind pensadas para
+   fondo claro (text-slate-*, bg-slate-50/80, border-slate-200…). En oscuro se
+   reasignan a los tokens de la tienda solo dentro de la tarjeta del formulario.
+   --------------------------------------------------------------------------- */
+:root[data-tema='oscuro'] .auth-card .text-slate-900 { color: var(--t-texto); }
+:root[data-tema='oscuro'] .auth-card .text-slate-800,
+:root[data-tema='oscuro'] .auth-card .text-slate-700,
+:root[data-tema='oscuro'] .auth-card .text-slate-600 { color: var(--t-texto-suave); }
+:root[data-tema='oscuro'] .auth-card .text-slate-500,
+:root[data-tema='oscuro'] .auth-card .text-slate-400 { color: var(--t-texto-tenue); }
+:root[data-tema='oscuro'] .auth-card .hover\:text-slate-700:hover { color: var(--t-texto); }
+:root[data-tema='oscuro'] .auth-card .bg-slate-50\/80 { background-color: var(--t-superficie-2); }
+:root[data-tema='oscuro'] .auth-card input:focus { background-color: var(--t-superficie); }
+:root[data-tema='oscuro'] .auth-card .border-slate-200,
+:root[data-tema='oscuro'] .auth-card .border-slate-300 { border-color: var(--t-borde-fuerte); }
+:root[data-tema='oscuro'] .auth-card .bg-slate-200 { background-color: var(--t-borde-fuerte); }
+:root[data-tema='oscuro'] .auth-card .bg-white { background-color: var(--t-superficie); }
+:root[data-tema='oscuro'] .auth-card .bg-amber-50 { background-color: var(--t-aviso-claro); }
+:root[data-tema='oscuro'] .auth-card .border-amber-200 { border-color: color-mix(in srgb, var(--t-aviso) 40%, transparent); }
+:root[data-tema='oscuro'] .auth-card .text-amber-800 { color: var(--t-aviso-texto); }
+:root[data-tema='oscuro'] .auth-card .bg-rose-50 { background-color: var(--t-peligro-claro); }
+:root[data-tema='oscuro'] .auth-card .border-rose-200 { border-color: color-mix(in srgb, var(--t-peligro) 40%, transparent); }
+:root[data-tema='oscuro'] .auth-card .text-rose-700,
+:root[data-tema='oscuro'] .auth-card .text-rose-600 { color: var(--t-peligro-texto); }
+:root[data-tema='oscuro'] .auth-card .bg-emerald-50 { background-color: var(--t-exito-claro); }
+:root[data-tema='oscuro'] .auth-card .text-emerald-700,
+:root[data-tema='oscuro'] .auth-card .text-emerald-600 { color: var(--t-exito-texto); }
+:root[data-tema='oscuro'] .auth-card .bg-indigo-100 { background-color: var(--t-primario-claro); }
+:root[data-tema='oscuro'] .auth-card .text-indigo-700,
+:root[data-tema='oscuro'] .auth-card .text-indigo-600 { color: var(--t-primario-texto); }
+:root[data-tema='oscuro'] .auth-card .hover\:text-indigo-700:hover { color: var(--t-primario-texto); }
+:root[data-tema='oscuro'] .auth-card input::placeholder { color: var(--t-texto-tenue); }
+
+/* ---------------------------------------------------------------------------
+   Piezas globales con colores propios: estados inline (.hs-estado), avisos
+   (.nt-*) y modales de SweetAlert. En claro usan literales; aquí se adaptan.
+   --------------------------------------------------------------------------- */
+
+/* Estados inline: vacío, error, aviso, éxito y cargando */
+:root[data-tema='oscuro'] .hs-estado {
+  --hs-estado-fondo-icono: rgba(129, 140, 248, 0.16);
+  --hs-estado-borde-icono: rgba(129, 140, 248, 0.38);
+  --hs-estado-linea: var(--adm-borde-fuerte);
+  --hs-estado-superficie: var(--adm-superficie);
+}
+
+:root[data-tema='oscuro'] .hs-estado--tienda {
+  --hs-estado-linea: var(--t-borde-fuerte);
+  --hs-estado-superficie: var(--t-superficie);
+}
+
+:root[data-tema='oscuro'] .hs-estado--error {
+  --hs-estado-acento: #f87171;
+  --hs-estado-fondo-icono: rgba(239, 68, 68, 0.16);
+  --hs-estado-borde-icono: rgba(239, 68, 68, 0.4);
+  --hs-estado-titulo: #fca5a5;
+}
+
+:root[data-tema='oscuro'] .hs-estado--aviso {
+  --hs-estado-acento: #fbbf24;
+  --hs-estado-fondo-icono: rgba(245, 158, 11, 0.16);
+  --hs-estado-borde-icono: rgba(245, 158, 11, 0.4);
+  --hs-estado-titulo: #fcd34d;
+}
+
+:root[data-tema='oscuro'] .hs-estado--exito {
+  --hs-estado-acento: #34d399;
+  --hs-estado-fondo-icono: rgba(16, 185, 129, 0.16);
+  --hs-estado-borde-icono: rgba(16, 185, 129, 0.4);
+  --hs-estado-titulo: #4ade9d;
+}
+
+:root[data-tema='oscuro'] .hs-estado--tienda.hs-estado--error { --hs-estado-titulo: var(--t-peligro-texto); }
+:root[data-tema='oscuro'] .hs-estado--tienda.hs-estado--aviso { --hs-estado-titulo: var(--t-aviso-texto); }
+
+:root[data-tema='oscuro'] .hs-estado__icono {
+  background: linear-gradient(160deg, var(--hs-estado-fondo-icono), var(--hs-estado-superficie));
+}
+
+:root[data-tema='oscuro'] .hs-estado__boton {
+  background: var(--hs-estado-superficie);
+  box-shadow: none;
+}
+
+:root[data-tema='oscuro'] .hs-estado__boton:hover {
+  background: var(--adm-superficie-3);
+  border-color: var(--adm-borde-boton-hover);
+}
+
+:root[data-tema='oscuro'] .hs-estado--tienda .hs-estado__boton:hover {
+  background: var(--t-superficie-2);
+  border-color: var(--t-texto-tenue);
+}
+
+:root[data-tema='oscuro'] .hs-estado__boton--primario,
+:root[data-tema='oscuro'] .hs-estado__boton--primario:hover {
+  color: #ffffff;
+}
+
+/* Avisos nt-* (toasts) */
+:root[data-tema='oscuro'] .nt-pila {
+  --nt-superficie: #171d33;
+  --nt-borde: #2a3558;
+  --nt-borde-fuerte: #3a4670;
+  --nt-texto: #e9edf7;
+  --nt-texto-2: #c4cde3;
+  --nt-texto-3: #9aa6c2;
+  --nt-hover: #1f2845;
+  --nt-foco: #a5a1ff;
+  --nt-sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 40px -14px rgba(0, 0, 0, 0.7);
+}
+
+:root[data-tema='oscuro'] .nt-pila[data-tema='tienda'] {
+  --nt-superficie: var(--t-superficie);
+  --nt-borde: var(--t-borde);
+  --nt-borde-fuerte: var(--t-borde-fuerte);
+  --nt-texto: var(--t-texto);
+  --nt-texto-2: var(--t-texto-suave);
+  --nt-texto-3: var(--t-texto-tenue);
+  --nt-hover: var(--t-superficie-2);
+  --nt-foco: var(--t-primario-texto);
+}
+
+:root[data-tema='oscuro'] .nt-aviso { --nt-acento-texto: #7dd3fc; --nt-fondo-icono: rgba(14, 165, 233, 0.18); }
+:root[data-tema='oscuro'] .nt-aviso[data-tipo='exito'] { --nt-acento: #34d399; --nt-acento-texto: #4ade9d; --nt-fondo-icono: rgba(16, 185, 129, 0.18); }
+:root[data-tema='oscuro'] .nt-aviso[data-tipo='error'] { --nt-acento: #f87171; --nt-acento-texto: #fca5a5; --nt-fondo-icono: rgba(239, 68, 68, 0.18); }
+:root[data-tema='oscuro'] .nt-aviso[data-tipo='advertencia'] { --nt-acento: #fbbf24; --nt-acento-texto: #fcd34d; --nt-fondo-icono: rgba(245, 158, 11, 0.18); }
+:root[data-tema='oscuro'] .nt-aviso[data-tipo='cargando'] { --nt-acento: #818cf8; --nt-acento-texto: #a5a1ff; --nt-fondo-icono: rgba(99, 102, 241, 0.2); }
+
+/* Modales de SweetAlert */
+:root[data-tema='oscuro'] .swal2-container {
+  --swal2-backdrop: rgba(4, 6, 14, 0.68);
+  --swal2-deny-button-background-color: var(--adm-superficie-2);
+  --swal2-cancel-button-background-color: var(--adm-superficie-2);
+  --swal2-input-box-shadow: none;
+  --swal2-input-hover-box-shadow: none;
+  --swal2-outline: 0 0 0 4px rgba(129, 140, 248, 0.3);
+}
+
+:root[data-tema='oscuro'] .swal2-container.hs-swal-contenedor--tienda {
+  --swal2-backdrop: rgba(0, 0, 0, 0.7);
+  --swal2-background: var(--t-superficie);
+  --swal2-input-background: var(--t-superficie-2);
+  --swal2-deny-button-background-color: var(--t-superficie-2);
+  --swal2-cancel-button-background-color: var(--t-superficie-2);
+}
+
+:root[data-tema='oscuro'] .swal2-container .swal2-html-container small { color: var(--adm-texto-suave); }
+:root[data-tema='oscuro'] .swal2-container .swal2-popup { box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.04); }

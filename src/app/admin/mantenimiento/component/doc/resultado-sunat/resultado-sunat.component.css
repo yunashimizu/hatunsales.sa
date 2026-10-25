@@ -1,0 +1,37 @@
+:host { display: block; }
+
+.rs { align-items: flex-start; }
+
+.rs__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rs__numero { font-weight: var(--fw-medio, 500); white-space: nowrap; }
+
+.rs__beta { align-self: flex-start; }
+
+.rs__texto {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* El siguiente paso es lo que el usuario debe leer: va en su propia línea, con flecha */
+.rs__siguiente {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-weight: var(--fw-medio, 500);
+}
+
+.rs__siguiente > i { flex-shrink: 0; margin-top: 2px; }
+
+.rs__observaciones {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding-left: 18px;
+}

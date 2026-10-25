@@ -1,0 +1,5 @@
+:host { display: block; min-width: 0; }
+.ubigeo__control { position: relative; }
+.ubigeo__control .adm-input { padding-right: 40px; }
+.ubigeo__limpiar { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); }
+.ubigeo .adm-ayuda { margin: 4px 0 0; overflow-wrap: anywhere; }

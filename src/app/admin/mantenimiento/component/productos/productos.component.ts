@@ -12,6 +12,8 @@ import { RouterLink } from '@angular/router';
 import { Subject, Subscription, catchError, of, takeUntil } from 'rxjs';
 
 import { VisorImagenComponent } from '../../../../shared/components/visor-imagen/visor-imagen.component';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
@@ -46,7 +48,7 @@ const UNIDADES = ['NIU', 'ZZ', 'KGM', 'MTR', 'LTR', 'GLL', 'BX', 'PK', 'SET'];
   selector: 'app-productos',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, VisorImagenComponent],
+  imports: [CommonModule, FormsModule, RouterLink, VisorImagenComponent, CountUpDirective, RevealDirective],
   templateUrl: './productos.component.html',
   styleUrl: './productos.component.css',
 })
@@ -56,6 +58,8 @@ export class ProductosComponent implements OnInit, OnDestroy {
   categorias: OpcionCategoria[] = [];
   marcas: OpcionMarca[] = [];
   cargando = false;
+  /** Mensaje de la última carga fallida de la lista (solo para mostrar el estado de error en pantalla). */
+  errorCarga = '';
   /** URL abierta en el visor moderado (null = cerrado). */
   vistaImagen: string | null = null;
   urlsVista: string[] = [];
@@ -135,6 +139,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   cargar(): void {
     this.cargando = true;
+    this.errorCarga = '';
     this.cdr.markForCheck();
 
     this.service.listar().pipe(takeUntil(this.destruir$)).subscribe({
@@ -145,6 +150,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.cargando = false;
+        this.errorCarga = mensajeDeError(error);
         this.cdr.markForCheck();
         this.alerta.error({
           title: 'No se pudieron cargar los productos',
@@ -213,6 +219,23 @@ export class ProductosComponent implements OnInit, OnDestroy {
         default: return true;
       }
     });
+  }
+
+  /** Hay algún filtro aplicado (para mostrar «Limpiar»). */
+  get hayFiltros(): boolean {
+    return !!this.filtro.trim() || this.filtroCategoria !== '' || this.filtroEstado !== '';
+  }
+
+  get totalActivos(): number {
+    return this.productos.filter((p) => p.estado).length;
+  }
+
+  get totalInactivos(): number {
+    return this.productos.filter((p) => !p.estado).length;
+  }
+
+  get totalDestacados(): number {
+    return this.productos.filter((p) => p.destacado).length;
   }
 
   get totalSinImagen(): number {
@@ -682,6 +705,34 @@ export class ProductosComponent implements OnInit, OnDestroy {
   precioFinal(producto: ProductoAdmin): number {
     const descuento = Number(producto.descuento) || 0;
     return Math.max(0, Number(producto.precio_venta) - descuento);
+  }
+
+  /** Descuento como porcentaje del precio de venta (solo para mostrarlo en la tabla). */
+  descuentoPct(producto: ProductoAdmin): number {
+    const venta = Number(producto.precio_venta) || 0;
+    return venta > 0 ? ((Number(producto.descuento) || 0) / venta) * 100 : 0;
+  }
+
+  /** Margen sobre el precio final; null si el producto no tiene costo cargado. */
+  margen(producto: ProductoAdmin): number | null {
+    const costo = Number(producto.precio_compra) || 0;
+    const final = this.precioFinal(producto);
+    return costo > 0 && final > 0 ? ((final - costo) / final) * 100 : (costo > 0 ? -100 : null);
+  }
+
+  /** Resumen de precios de la ficha, calculado en vivo con lo que se está escribiendo. */
+  get precioFinalFormulario(): number {
+    return Math.max(0, (Number(this.formulario.precio_venta) || 0) - (Number(this.formulario.descuento) || 0));
+  }
+
+  get gananciaFormulario(): number {
+    return this.precioFinalFormulario - (Number(this.formulario.precio_compra) || 0);
+  }
+
+  get margenFormulario(): number | null {
+    const costo = Number(this.formulario.precio_compra) || 0;
+    const final = this.precioFinalFormulario;
+    return costo > 0 && final > 0 ? (this.gananciaFormulario / final) * 100 : null;
   }
 
   /** URL lista para el <img>: Cloudinary o /archivos del backend. */

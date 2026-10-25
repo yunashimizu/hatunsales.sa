@@ -18,12 +18,16 @@ import { CajaSesionService } from '../../service/caja-sesion.service';
 import { HttpClient } from '@angular/common/http';
 import { urlConstants } from '../../../constants/urlConstants';
 import { opcionesHttp } from '../../service/api-base.service';
+import { CountUpDirective } from '../../../shared/ui/count-up.directive';
+import { MagneticDirective } from '../../../shared/ui/magnetic.directive';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
+import { SpotlightDirective } from '../../../shared/ui/spotlight.directive';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, CountUpDirective, MagneticDirective, RevealDirective, SpotlightDirective],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
@@ -86,6 +90,19 @@ export class DashboardComponent implements OnInit {
         .replace(/\./g, '');
     } catch {
       return new Date().toLocaleDateString();
+    }
+  }
+
+  /** Día del mes y mes abreviado para el instrumento decorativo del escenario. */
+  get diaMes(): string {
+    return String(new Date().getDate());
+  }
+
+  get mesCorto(): string {
+    try {
+      return new Date().toLocaleDateString('es-PE', { month: 'short' }).replace(/\./g, '');
+    } catch {
+      return '';
     }
   }
 

@@ -10,11 +10,24 @@ import { AccionesTiendaService } from '../../service/acciones.service';
 import { AlertService } from '../../../shared/services/alert.service';
 import { Carrito, CarritoItem, CuponValidado, ProductoTienda } from '../../models/tienda.models';
 import { ProductoCardComponent } from '../../components/producto-card/producto-card.component';
+import { CountUpDirective } from '../../../shared/ui/count-up.directive';
+import { MagneticDirective } from '../../../shared/ui/magnetic.directive';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
+import { SpotlightDirective } from '../../../shared/ui/spotlight.directive';
 
 @Component({
   selector: 'app-carrito',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ProductoCardComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    ProductoCardComponent,
+    CountUpDirective,
+    MagneticDirective,
+    RevealDirective,
+    SpotlightDirective,
+  ],
   templateUrl: './carrito.component.html',
   styleUrl: './carrito.component.css',
 })
@@ -36,6 +49,25 @@ export class CarritoComponent implements OnInit, OnDestroy {
   validandoCupon = false;
   itemOcupado: number | null = null;
   cargando = true;
+
+  /** Solo vista: compra (con IGV) desde la que la tienda anuncia el envío gratis (promesa del encabezado). */
+  readonly umbralEnvioGratis = 250;
+
+  /** Solo vista: avance de 0 a 100 hacia el envío gratis, con el total que ya expone el carrito. */
+  get progresoEnvio(): number {
+    const total = Number(this.carrito.total) || 0;
+    return Math.min(100, Math.max(0, (total / this.umbralEnvioGratis) * 100));
+  }
+
+  /** Solo vista: la promesa dice «mayores a», por eso es estricto. */
+  get envioGratis(): boolean {
+    return (Number(this.carrito.total) || 0) > this.umbralEnvioGratis;
+  }
+
+  /** Solo vista: lo que falta para llegar al envío gratis (nunca menos de un céntimo mientras no se alcance). */
+  get faltaEnvioGratis(): number {
+    return Math.max(0.01, this.umbralEnvioGratis - (Number(this.carrito.total) || 0));
+  }
 
   ngOnInit(): void {
     this.cart.carrito$.pipe(takeUntil(this.destruir$)).subscribe((carrito) => (this.carrito = carrito));

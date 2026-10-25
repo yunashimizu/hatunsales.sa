@@ -2,7 +2,7 @@
   <div class="adm-tarjeta__cabecera">
     <div class="adm-tarjeta__encabezado">
       <h2 class="adm-tarjeta__titulo" id="envios-sunat-titulo">
-        <i class="bi bi-send-check"></i> Envíos SUNAT
+        <i class="bi bi-send-check" aria-hidden="true"></i> Envíos SUNAT
         @if (!cargando || envios.length) {
           <span class="adm-insignia adm-insignia--neutra">{{ total }}</span>
         }
@@ -101,7 +101,7 @@
         </thead>
         <tbody>
           @for (envio of envios; track envio.id_envio) {
-            <tr [class.envios-fila--procesando]="idEnProceso === envio.id_envio">
+            <tr [class.envios-fila--procesando]="idEnProceso === envio.id_envio" [attr.data-estado]="envio.estado">
               <td data-etiqueta="Documento">
                 <div class="adm-tabla__principal adm-tabular">{{ documento(envio) }}</div>
                 <div class="adm-tabla__secundario">

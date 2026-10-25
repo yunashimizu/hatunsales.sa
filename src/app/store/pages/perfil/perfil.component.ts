@@ -9,6 +9,8 @@ import { AlertService } from '../../../shared/services/alert.service';
 import { AuthService } from '../../../auth/service/auth.service';
 import { DireccionEnvio, DireccionPayload, Pedido } from '../../models/tienda.models';
 import { mensajeDeError } from '../../../admin/service/api-base.service';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
+import { SpotlightDirective } from '../../../shared/ui/spotlight.directive';
 
 type Seccion = 'datos' | 'direcciones' | 'pedidos';
 
@@ -28,7 +30,7 @@ const DIRECCION_VACIA: DireccionPayload = {
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, RevealDirective, SpotlightDirective],
   templateUrl: './perfil.component.html',
   styleUrl: './perfil.component.css',
 })

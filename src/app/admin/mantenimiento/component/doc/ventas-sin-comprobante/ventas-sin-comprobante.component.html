@@ -1,0 +1,310 @@
+<section class="adm-tarjeta adm-tarjeta--acento-aviso" aria-labelledby="vsc-titulo-lista">
+  <div class="adm-tarjeta__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="vsc-titulo-lista">
+        <i class="bi bi-receipt"></i> Ventas sin comprobante
+        @if (!cargando || ventas.length) {
+          <span class="adm-insignia adm-insignia--neutra">{{ total }}</span>
+        }
+      </h2>
+      <p class="adm-tarjeta__sub">
+        Ventas cobradas que quedaron sin factura ni boleta. Al emitir, el comprobante se envía a SUNAT en el acto con los montos que se cobraron.
+      </p>
+    </div>
+    <div class="adm-tarjeta__extra">
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  @if (emisionInactiva; as motivo) {
+    <div class="adm-tarjeta__cuerpo adm-tarjeta__cuerpo--compacto">
+      <div class="adm-aviso adm-aviso--peligro" role="alert">
+        <i class="bi bi-pause-circle" aria-hidden="true"></i>
+        <span>
+          <strong class="adm-aviso__titulo">La emisión electrónica no está activa</strong>
+          {{ motivo }} Podrá emitir estos comprobantes cuando un administrador la reactive en Facturación SUNAT.
+        </span>
+      </div>
+    </div>
+  }
+
+  <div class="adm-tarjeta__cuerpo adm-tarjeta__cuerpo--compacto">
+    <div class="adm-fila" role="search" aria-label="Filtros de ventas sin comprobante">
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="vsc-desde">Desde</label>
+        <input id="vsc-desde" class="adm-input" type="date" [(ngModel)]="filtro.desde" (ngModelChange)="cargar(1)">
+      </div>
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="vsc-hasta">Hasta</label>
+        <input id="vsc-hasta" class="adm-input" type="date" [(ngModel)]="filtro.hasta" (ngModelChange)="cargar(1)">
+      </div>
+      @if (conFiltros) {
+        <div class="adm-campo adm-campo--accion">
+          <span class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</span>
+          <button type="button" class="adm-btn adm-btn--fantasma" (click)="limpiarFiltros()">
+            <i class="bi bi-eraser" aria-hidden="true"></i> Limpiar
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+      <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">No se pudieron cargar las ventas sin comprobante</div>
+      <p>{{ error }}</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+      </button>
+    </div>
+  } @else if (cargando && !ventas.length) {
+    <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando ventas sin comprobante">
+      @for (n of [1, 2, 3]; track n) {
+        <div class="adm-esqueleto adm-esqueleto--fila"></div>
+      }
+    </div>
+  } @else if (!ventas.length) {
+    <div class="adm-vacio adm-vacio--compacto" role="status">
+      <div class="adm-vacio__icono adm-vacio__icono--exito"><i class="bi bi-check2-circle" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">
+        {{ conFiltros ? 'Ninguna venta sin comprobante en esas fechas' : 'Todas las ventas tienen su comprobante' }}
+      </div>
+    </div>
+  } @else {
+    <div class="adm-tabla-envoltorio">
+      <table class="adm-tabla adm-tabla--adaptable vsc-tabla">
+        <thead>
+          <tr>
+            <th>Venta</th>
+            <th>Cliente</th>
+            <th class="adm-num">Total</th>
+            <th>Por qué no tiene comprobante</th>
+            <th class="adm-centro">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (fila of ventas; track fila.id_venta) {
+            <tr>
+              <td data-etiqueta="Venta">
+                <div class="adm-tabla__principal adm-tabular">#{{ fila.id_venta }}</div>
+                <div class="adm-tabla__secundario adm-tabular">{{ fila.fecha | date: 'dd/MM/yyyy HH:mm' : '-0500' }}</div>
+              </td>
+              <td data-etiqueta="Cliente">
+                <div class="adm-tabla__principal">{{ fila.cliente }}</div>
+                <div class="adm-tabla__secundario adm-tabular">{{ fila.documento_cliente || 'Sin documento' }}</div>
+              </td>
+              <td data-etiqueta="Total" class="adm-num adm-tabla__principal adm-tabular">S/ {{ fila.total | number: '1.2-2' }}</td>
+              <td data-etiqueta="Por qué no tiene comprobante">
+                <span class="vsc-motivo" [attr.title]="fila.ultimo_error">{{ fila.ultimo_error || 'Sin detalle registrado' }}</span>
+              </td>
+              <td data-etiqueta="Acciones" class="adm-centro">
+                <div class="adm-tabla__acciones">
+                  <button type="button" class="adm-btn adm-btn--primario adm-btn--sm" (click)="abrirEmision(fila)"
+                          [attr.aria-label]="'Emitir el comprobante de la venta ' + fila.id_venta">
+                    <i class="bi bi-send" aria-hidden="true"></i> Emitir comprobante
+                  </button>
+                  <a class="adm-btn-icono" [routerLink]="rutaVenta" [queryParams]="{ venta: fila.id_venta }"
+                     title="Documentos de la venta" [attr.aria-label]="'Ver los documentos de la venta ' + fila.id_venta">
+                    <i class="bi bi-bag-check" aria-hidden="true"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (total > porPagina) {
+      <nav class="adm-paginacion" aria-label="Paginación de ventas sin comprobante">
+        <span><strong class="adm-tabular">{{ total }}</strong> ventas · página {{ pagina }} de {{ totalPaginas }}</span>
+        <div class="adm-paginacion__botones">
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="pagina <= 1 || cargando" (click)="irA(pagina - 1)">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
+          </button>
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="pagina >= totalPaginas || cargando" (click)="irA(pagina + 1)">
+            Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </nav>
+    }
+  }
+</section>
+
+@if (venta; as v) {
+  <div class="adm-velo" (click)="cerrarEmision()" aria-hidden="true"></div>
+  <div class="adm-modal">
+    <div #marco class="adm-modal__marco vsc-marco" role="dialog" aria-modal="true" aria-labelledby="vsc-titulo"
+         tabindex="-1" (keydown.escape)="cerrarEmision()">
+      <div class="adm-modal__cabecera">
+        <div class="adm-tarjeta__encabezado">
+          <h2 class="adm-tarjeta__titulo" id="vsc-titulo"><i class="bi bi-send"></i> Emitir comprobante</h2>
+          <p class="adm-tarjeta__sub">
+            Venta <span class="adm-tabular">#{{ v.id_venta }}</span> · {{ v.cliente }} ·
+            <span class="adm-tabular">S/ {{ v.total | number: '1.2-2' }}</span>
+          </p>
+        </div>
+        <button type="button" class="adm-btn-icono" (click)="cerrarEmision()" [disabled]="emitiendo"
+                aria-label="Cerrar la emisión" title="Cerrar">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="adm-modal__cuerpo">
+        @if (resultado?.comprobante; as comprobante) {
+          <app-resultado-sunat [resultado]="comprobante"></app-resultado-sunat>
+        } @else {
+          @if (resultado?.comprobante_error; as motivoError) {
+            <div class="adm-aviso adm-aviso--peligro" role="alert">
+              <i class="bi bi-x-octagon" aria-hidden="true"></i>
+              <span><strong class="adm-aviso__titulo">La venta sigue sin comprobante</strong>{{ motivoError }}</span>
+            </div>
+          }
+
+          @if (emisionInactiva; as motivo) {
+            <div class="adm-aviso adm-aviso--peligro" role="alert">
+              <i class="bi bi-pause-circle" aria-hidden="true"></i>
+              <span>
+                <strong class="adm-aviso__titulo">La emisión electrónica no está activa</strong>
+                {{ motivo }} Un administrador puede reactivarla en Facturación SUNAT.
+              </span>
+            </div>
+          } @else if (esBeta) {
+            <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto">
+              <i class="bi bi-cone-striped" aria-hidden="true"></i>
+              <span>Se emitirá en SUNAT BETA (pruebas): el comprobante no tendrá validez tributaria.</span>
+            </div>
+          }
+
+          <div class="adm-campo">
+            <span class="adm-etiqueta" id="vsc-tipo-etiqueta">Comprobante</span>
+            <div class="adm-segmentado" role="radiogroup" aria-labelledby="vsc-tipo-etiqueta">
+              <button type="button" class="adm-segmento" role="radio" [attr.aria-checked]="formulario.id_tipo === TIPO_BOLETA"
+                      [class.adm-segmento--activo]="formulario.id_tipo === TIPO_BOLETA" (click)="elegirTipo(TIPO_BOLETA)"
+                      [disabled]="emitiendo">
+                Boleta
+              </button>
+              <button type="button" class="adm-segmento" role="radio" [attr.aria-checked]="formulario.id_tipo === TIPO_FACTURA"
+                      [class.adm-segmento--activo]="formulario.id_tipo === TIPO_FACTURA" (click)="elegirTipo(TIPO_FACTURA)"
+                      [disabled]="emitiendo">
+                Factura
+              </button>
+            </div>
+          </div>
+
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="vsc-documento">
+              DNI o RUC del cliente <span class="adm-etiqueta__opcional">(opcional)</span>
+            </label>
+            <div class="vsc-documento">
+              <input id="vsc-documento" class="adm-input adm-tabular" inputmode="numeric" maxlength="11" autocomplete="off"
+                     name="documento" [(ngModel)]="formulario.documento" (ngModelChange)="alCambiarDocumento()"
+                     [disabled]="emitiendo" placeholder="Vacío: el cliente de la venta" aria-describedby="vsc-documento-ayuda">
+              <button type="button" class="adm-btn adm-btn--suave" (click)="buscarReceptor()"
+                      [disabled]="buscandoReceptor || emitiendo || !documentoValido">
+                <i class="bi" [ngClass]="buscandoReceptor ? 'bi-arrow-repeat adm-girando' : 'bi-search'" aria-hidden="true"></i>
+                Buscar
+              </button>
+            </div>
+            <span class="adm-ayuda" id="vsc-documento-ayuda">
+              Si lo deja vacío se usa el cliente registrado en la venta{{ v.documento_cliente ? ' (' + v.documento_cliente + ')' : '' }}.
+            </span>
+          </div>
+
+          @if (receptor?.denominacion) {
+            <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto" role="status">
+              <i class="bi bi-person-check" aria-hidden="true"></i>
+              <span>
+                <strong>{{ receptor?.denominacion }}</strong>
+                @if (receptor?.direccion) {
+                  · {{ receptor?.direccion }}
+                }
+              </span>
+            </div>
+          }
+          @if (avisoReceptor) {
+            <p class="adm-ayuda adm-ayuda--error" role="status">{{ avisoReceptor }}</p>
+          }
+
+          @if (pedirNombre) {
+            <div class="adm-campo">
+              <label class="adm-etiqueta adm-etiqueta--requerida" for="vsc-nombre">Nombre o razón social</label>
+              <input id="vsc-nombre" class="adm-input" maxlength="200" name="cliente_denominacion"
+                     [(ngModel)]="formulario.cliente_denominacion" [disabled]="emitiendo">
+            </div>
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="vsc-direccion">Dirección <span class="adm-etiqueta__opcional">(opcional)</span></label>
+              <input id="vsc-direccion" class="adm-input" maxlength="255" name="cliente_direccion"
+                     [(ngModel)]="formulario.cliente_direccion" [disabled]="emitiendo">
+            </div>
+          }
+
+          @if (errorFormulario) {
+            <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ errorFormulario }}</p>
+          }
+
+          @if (errorEmision) {
+            <div class="adm-aviso adm-aviso--peligro" role="alert">
+              <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+              <div class="vsc-error">
+                <strong class="adm-aviso__titulo">
+                  {{ emisionIncierta ? 'No se pudo confirmar si se emitió' : 'No se emitió el comprobante' }}
+                </strong>
+                <span>{{ errorEmision }}</span>
+                @if (emisionIncierta) {
+                  <span>Puede haber quedado emitido: actualice la lista antes de volver a intentarlo.</span>
+                }
+                @if (idComprobanteExistente || emisionIncierta) {
+                  <div class="vsc-error__acciones">
+                    @if (idComprobanteExistente) {
+                      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="abrirComprobante(idComprobanteExistente)">
+                        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Ver el comprobante de la venta
+                      </button>
+                    }
+                    @if (emisionIncierta) {
+                      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cerrarEmision(); cargar()">
+                        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Actualizar la lista
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <div class="adm-modal__pie">
+        @if (resultado?.comprobante; as comprobante) {
+          @if (comprobante.estado !== 'error') {
+            <button type="button" class="adm-btn adm-btn--suave" (click)="descargarPdf('a4')" [disabled]="descargando !== null">
+              <i class="bi" [ngClass]="descargando === 'a4' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-pdf'" aria-hidden="true"></i>
+              PDF A4
+            </button>
+            <button type="button" class="adm-btn adm-btn--suave" (click)="descargarPdf('ticket')" [disabled]="descargando !== null">
+              <i class="bi" [ngClass]="descargando === 'ticket' ? 'bi-arrow-repeat adm-girando' : 'bi-receipt-cutoff'" aria-hidden="true"></i>
+              Ticket 80 mm
+            </button>
+          }
+          @if (comprobante.id_comprobante) {
+            <button type="button" class="adm-btn adm-btn--suave" (click)="abrirComprobante(comprobante.id_comprobante)">
+              <i class="bi bi-eye" aria-hidden="true"></i> Ver comprobante
+            </button>
+          }
+          <button type="button" class="adm-btn adm-btn--primario" (click)="cerrarEmision()">Listo</button>
+        } @else {
+          <button type="button" class="adm-btn adm-btn--fantasma" (click)="cerrarEmision()" [disabled]="emitiendo">Cancelar</button>
+          <button type="button" class="adm-btn adm-btn--primario" (click)="emitir()"
+                  [disabled]="emitiendo || emisionIncierta || !!errorFormulario || !!emisionInactiva">
+            <i class="bi" [ngClass]="emitiendo ? 'bi-arrow-repeat adm-girando' : 'bi-send'" aria-hidden="true"></i>
+            {{ emitiendo ? 'Enviando a SUNAT…' : formulario.id_tipo === TIPO_FACTURA ? 'Emitir factura a SUNAT' : 'Emitir boleta a SUNAT' }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

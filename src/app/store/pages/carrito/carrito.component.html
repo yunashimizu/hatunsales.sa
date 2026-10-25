@@ -1,26 +1,80 @@
-<div class="contenedor">
+<div class="contenedor x-contenedor">
 
-  <nav class="migas" aria-label="Ruta de navegación">
+  <nav class="migas x-etiqueta" aria-label="Ruta de navegación">
     <a routerLink="/store">Inicio</a>
     <i class="bi bi-chevron-right"></i>
     <span>Carrito</span>
   </nav>
 
-  <h1>Tu carrito</h1>
+  <header class="cab">
+    <span class="x-etiqueta x-etiqueta--corchetes">Mi compra</span>
+    <h1 class="x-titulo">
+      Tu carrito
+      <span class="conteo x-numero" *ngIf="carrito.items.length > 0">
+        {{ carrito.cantidad_items | number: '2.0-0' }}<span class="visually-hidden"> productos</span>
+      </span>
+    </h1>
+  </header>
 
-  <div class="vacio" *ngIf="!cargando && carrito.items.length === 0">
-    <div class="ilustracion"><i class="bi bi-bag"></i></div>
-    <h2>Todavía no agregaste nada</h2>
-    <p>Explora el catálogo y arma tu pedido con las herramientas y materiales que necesitas.</p>
-    <a class="boton-primario" routerLink="/store/catalogo">Ir al catálogo<i class="bi bi-arrow-right"></i></a>
+  <!-- Cargando -->
+  <div class="disposicion" *ngIf="cargando && carrito.items.length === 0" aria-busy="true">
+    <div class="filas">
+      @for (n of [1, 2, 3]; track n) {
+        <div class="mov-esqueleto esq-fila"></div>
+      }
+    </div>
+    <div class="mov-esqueleto esq-resumen"></div>
   </div>
+
+  <!-- Vacío -->
+  <section class="vacio x-grano x-plano" *ngIf="!cargando && carrito.items.length === 0">
+    <div class="vacio-texto">
+      <span class="x-sticker x-sticker--limon"><i class="bi bi-bag"></i>Carrito vacío</span>
+      <h2 class="x-titulo">Todavía no agregaste nada</h2>
+      <p>Explora el catálogo y arma tu pedido con las herramientas y materiales que necesitas.</p>
+      <div class="vacio-acciones">
+        <span class="x-iman" hsMagnetic>
+          <a class="x-boton x-boton--vivo x-boton--lg" routerLink="/store/catalogo">Ir al catálogo<i class="bi bi-arrow-right"></i></a>
+        </span>
+        <a class="x-boton x-boton--mono x-boton--lg" routerLink="/store/catalogo" [queryParams]="{ oferta: 1 }">
+          Ver ofertas<i class="bi bi-arrow-up-right"></i>
+        </a>
+      </div>
+    </div>
+
+    <div class="vacio-arte" aria-hidden="true">
+      <div class="x-dial vacio-dial">
+        <i class="x-dial__anillo"></i>
+        <i class="x-dial__marcas"></i>
+        <i class="x-dial__aro"></i>
+        <div class="x-dial__disco">
+          <svg class="tuerca" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">
+            <path class="t-hex" pathLength="1" d="M60 8 L105 34 V86 L60 112 L15 86 V34 Z" />
+            <path class="t-hex t-hex--2" pathLength="1" d="M60 18 L96 39 V81 L60 102 L24 81 V39 Z" />
+            <circle class="t-rosca" pathLength="1" cx="60" cy="60" r="27" />
+            <circle class="t-rosca2" cx="60" cy="60" r="19" />
+            <path class="t-cruz" pathLength="1" d="M60 41 V79 M41 60 H79" />
+          </svg>
+          <span class="x-etiqueta dial-leyenda">0 productos</span>
+        </div>
+        <div class="x-dial__orbita">
+          <span class="x-dial__chip" style="--i: 0; --x-chip-color: var(--x-ambar)"><i class="bi bi-hammer"></i></span>
+          <span class="x-dial__chip" style="--i: 1; --x-chip-color: var(--x-cian)"><i class="bi bi-wrench-adjustable"></i></span>
+          <span class="x-dial__chip" style="--i: 2; --x-chip-color: var(--x-lima)"><i class="bi bi-plug"></i></span>
+          <span class="x-dial__chip" style="--i: 3; --x-chip-color: var(--x-rosa)"><i class="bi bi-brush"></i></span>
+          <span class="x-dial__chip" style="--i: 4; --x-chip-color: var(--x-azul)"><i class="bi bi-droplet"></i></span>
+          <span class="x-dial__chip" style="--i: 5; --x-chip-color: var(--x-coral)"><i class="bi bi-bricks"></i></span>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <div class="disposicion" *ngIf="carrito.items.length > 0">
 
-    <section class="lista">
+    <section class="lista" aria-label="Productos de tu carrito">
       <div class="lista-cabecera">
-        <span>{{ carrito.cantidad_items }} {{ carrito.cantidad_items === 1 ? 'producto' : 'productos' }}</span>
-        <button type="button" class="vaciar" (click)="vaciar()"><i class="bi bi-trash3"></i>Vaciar carrito</button>
+        <span class="x-etiqueta">{{ carrito.cantidad_items }} {{ carrito.cantidad_items === 1 ? 'producto' : 'productos' }}</span>
+        <button type="button" class="vaciar x-boton x-boton--fantasma x-boton--sm" (click)="vaciar()"><i class="bi bi-trash3"></i>Vaciar carrito</button>
       </div>
 
       <div class="aviso" *ngIf="hayProblemasDeStock">
@@ -29,7 +83,7 @@
       </div>
 
       @if (hayNoDisponibles) {
-        <div class="aviso" role="alert">
+        <div class="aviso aviso--peligro" role="alert">
           <i class="bi bi-slash-circle"></i>
           Algunos productos ya no están a la venta. Quítalos de tu carrito para continuar.
         </div>
@@ -42,65 +96,103 @@
         </div>
       }
 
-      <article class="fila" *ngFor="let item of carrito.items" [class.ocupado]="itemOcupado === item.id_item">
-        <a class="miniatura" [routerLink]="['/store/producto', item.id_producto]">
-          <img [src]="imagen(item)" [alt]="item.nombre" loading="lazy" />
-        </a>
+      <div class="filas mov-lista">
+        @for (item of carrito.items; track item.id_producto; let i = $index) {
+          <article class="fila" animate.leave="fila-sale" [style.--i]="i" [class.ocupado]="itemOcupado === item.id_item">
+            <a class="miniatura" [routerLink]="['/store/producto', item.id_producto]">
+              <img [src]="imagen(item)" [alt]="item.nombre" loading="lazy" />
+            </a>
 
-        <div class="info">
-          <span class="marca" *ngIf="item.marca">{{ item.marca }}</span>
-          <a class="nombre" [routerLink]="['/store/producto', item.id_producto]">{{ item.nombre }}</a>
-          <span class="unitario">
-            S/ {{ item.precio_unitario | number: '1.2-2' }} c/u
-            @if (item.precio_cambio && item.precio_anterior !== undefined) {
-              <s class="precio-anterior" [attr.aria-label]="'Antes S/ ' + (item.precio_anterior | number: '1.2-2')">
-                S/ {{ item.precio_anterior | number: '1.2-2' }}
-              </s>
-            }
-          </span>
+            <div class="info">
+              <span class="marca x-etiqueta" *ngIf="item.marca">{{ item.marca }}</span>
+              <a class="nombre" [routerLink]="['/store/producto', item.id_producto]">{{ item.nombre }}</a>
+              <span class="unitario x-numero">
+                S/ {{ item.precio_unitario | number: '1.2-2' }} c/u
+                @if (item.precio_cambio && item.precio_anterior !== undefined) {
+                  <s class="precio-anterior" [attr.aria-label]="'Antes S/ ' + (item.precio_anterior | number: '1.2-2')">
+                    S/ {{ item.precio_anterior | number: '1.2-2' }}
+                  </s>
+                }
+              </span>
 
-          @if (item.no_disponible) {
-            <span class="alerta-stock"><i class="bi bi-slash-circle"></i>Ya no está a la venta</span>
-          } @else if (item.excede_stock) {
-            <span class="alerta-stock">
-              <i class="bi bi-exclamation-triangle-fill"></i>
-              {{ item.stock_disponible > 0 ? 'Solo quedan ' + item.stock_disponible + ' unidades' : 'Agotado' }}
-            </span>
-          }
-        </div>
+              @if (item.no_disponible) {
+                <span class="alerta alerta--peligro"><i class="bi bi-slash-circle"></i>Ya no está a la venta</span>
+              } @else if (item.excede_stock) {
+                <span class="alerta alerta--aviso">
+                  <i class="bi bi-exclamation-triangle-fill"></i>
+                  {{ item.stock_disponible > 0 ? 'Solo quedan ' + item.stock_disponible + ' unidades' : 'Agotado' }}
+                </span>
+              }
+            </div>
 
-        <div class="cantidad">
-          <button type="button" (click)="cambiar(item, -1)" [disabled]="item.cantidad <= 1" aria-label="Quitar una unidad">
-            <i class="bi bi-dash"></i>
-          </button>
-          <span>{{ item.cantidad }}</span>
-          <button type="button" (click)="cambiar(item, 1)" aria-label="Agregar una unidad">
-            <i class="bi bi-plus"></i>
-          </button>
-        </div>
+            <div class="cantidad" role="group" aria-label="Cantidad">
+              <button type="button" (click)="cambiar(item, -1)" [disabled]="item.cantidad <= 1" aria-label="Quitar una unidad">
+                <i class="bi bi-dash-lg"></i>
+              </button>
+              @for (n of [item.cantidad]; track n) {
+                <span class="num x-numero">{{ n }}</span>
+              }
+              <button type="button" (click)="cambiar(item, 1)" aria-label="Agregar una unidad">
+                <i class="bi bi-plus-lg"></i>
+              </button>
+            </div>
 
-        <span class="subtotal">S/ {{ item.subtotal | number: '1.2-2' }}</span>
+            <span class="subtotal x-numero">S/ {{ item.subtotal | number: '1.2-2' }}</span>
 
-        <button type="button" class="quitar" (click)="quitar(item)" aria-label="Quitar del carrito">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </article>
+            <button type="button" class="quitar" (click)="quitar(item)" aria-label="Quitar del carrito">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </article>
+        }
+      </div>
 
-      <a class="seguir" routerLink="/store/catalogo"><i class="bi bi-arrow-left"></i>Seguir comprando</a>
+      <a class="seguir x-boton x-boton--contorno x-boton--sm" routerLink="/store/catalogo"><i class="bi bi-arrow-left"></i>Seguir comprando</a>
     </section>
 
-    <aside class="resumen">
+    <aside class="resumen x-grano x-brillo" hsSpotlight aria-label="Resumen del pedido">
+      <span class="x-etiqueta x-etiqueta--corchetes">Resumen</span>
       <h2>Resumen del pedido</h2>
+
+      <!-- Avance hacia el envío gratis (la promesa del encabezado) -->
+      <section class="envio" [class.envio--listo]="envioGratis" aria-label="Envío gratis">
+        <p class="envio__texto">
+          <i class="bi bi-truck" aria-hidden="true"></i>
+          @if (envioGratis) {
+            <span><strong>¡Listo!</strong> Tu compra califica para envío gratis.</span>
+          } @else {
+            <span>Agrega <strong class="x-numero">S/ {{ faltaEnvioGratis | number: '1.2-2' }}</strong> más y el envío es gratis.</span>
+          }
+        </p>
+
+        <div
+          class="pista"
+          role="progressbar"
+          aria-label="Avance hacia el envío gratis"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-valuenow]="progresoEnvio | number: '1.0-0'"
+          [style.--p]="progresoEnvio / 100">
+          <span class="relleno"></span>
+          <span class="camion" aria-hidden="true"><i class="bi bi-truck"></i></span>
+        </div>
+
+        <div class="escala x-etiqueta" aria-hidden="true">
+          <span>S/ 0</span>
+          <span>S/ {{ umbralEnvioGratis }}</span>
+        </div>
+      </section>
 
       <div class="cupon">
         <div class="cupon-campo" *ngIf="!cupon">
+          <i class="bi bi-ticket-perforated" aria-hidden="true"></i>
           <input
             type="text"
             [(ngModel)]="codigoCupon"
             (keyup.enter)="aplicarCupon()"
             placeholder="Código de cupón"
-            aria-label="Código de cupón" />
-          <button type="button" (click)="aplicarCupon()" [disabled]="validandoCupon || !codigoCupon.trim()">
+            aria-label="Código de cupón"
+            autocomplete="off" />
+          <button type="button" (click)="aplicarCupon()" [disabled]="validandoCupon || !codigoCupon.trim()" [attr.aria-busy]="validandoCupon">
             {{ validandoCupon ? '…' : 'Aplicar' }}
           </button>
         </div>
@@ -113,32 +205,33 @@
 
       <div class="linea">
         <span>Valor de venta</span>
-        <span>S/ {{ carrito.subtotal | number: '1.2-2' }}</span>
+        <span class="x-numero">S/ {{ carrito.subtotal | number: '1.2-2' }}</span>
       </div>
       <div class="linea">
         <span>IGV (18%)</span>
-        <span>S/ {{ carrito.igv | number: '1.2-2' }}</span>
+        <span class="x-numero">S/ {{ carrito.igv | number: '1.2-2' }}</span>
       </div>
       <div class="linea descuento" *ngIf="descuento > 0">
         <span>Descuento</span>
-        <span>− S/ {{ descuento | number: '1.2-2' }}</span>
+        <span class="x-numero">− S/ {{ descuento | number: '1.2-2' }}</span>
       </div>
-      <div class="linea envio">
+      <div class="linea envio-linea">
         <span>Envío</span>
         <span>Se calcula al finalizar</span>
       </div>
 
       <div class="linea total">
         <span>Total</span>
-        <span>S/ {{ totalFinal | number: '1.2-2' }}</span>
+        <span class="total__cifra"><span [hsCountUp]="totalFinal" [hsDecimales]="2" hsPrefijo="S/ "></span></span>
       </div>
 
-      <button type="button" class="boton-primario ancho" (click)="continuar()">
+      <button type="button" class="x-boton x-boton--vivo x-boton--lg x-boton--bloque" (click)="continuar()">
         Continuar con la compra<i class="bi bi-arrow-right"></i>
       </button>
 
       <ul class="garantias">
         <li><i class="bi bi-shield-lock"></i>Pago 100% seguro</li>
+        <li><i class="bi bi-patch-check"></i>Garantía oficial</li>
         <li><i class="bi bi-truck"></i>Envío a todo el Perú</li>
         <li><i class="bi bi-arrow-repeat"></i>Cambios dentro de 7 días</li>
       </ul>
@@ -146,8 +239,28 @@
   </div>
 
   <section class="sugeridos" *ngIf="sugeridos.length > 0 && carrito.items.length > 0">
-    <h2>También te puede interesar</h2>
-    <div class="grilla">
+    <header class="cab-seccion" hsReveal>
+      <span class="x-etiqueta x-etiqueta--corchetes">Sugeridos</span>
+      <h2 class="x-titulo">También te puede interesar</h2>
+    </header>
+    <div class="grilla" hsReveal="lista">
+      <app-producto-card
+        *ngFor="let p of sugeridos"
+        [producto]="p"
+        [esFavorito]="esFavorito(p)"
+        (agregar)="agregarSugerido($event)"
+        (alternarFavorito)="alternarFavorito($event)">
+      </app-producto-card>
+    </div>
+  </section>
+
+  <!-- Con el carrito vacío: por dónde empezar (mismos productos destacados) -->
+  <section class="sugeridos" *ngIf="sugeridos.length > 0 && !cargando && carrito.items.length === 0">
+    <header class="cab-seccion" hsReveal>
+      <span class="x-etiqueta x-etiqueta--corchetes">Para empezar</span>
+      <h2 class="x-titulo">Lo que más se lleva la gente</h2>
+    </header>
+    <div class="grilla" hsReveal="lista">
       <app-producto-card
         *ngFor="let p of sugeridos"
         [producto]="p"

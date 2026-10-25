@@ -74,7 +74,7 @@
       <section class="adm-tarjeta" aria-labelledby="fiscal-estado-titulo">
         <div class="adm-tarjeta__cabecera">
           <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo" id="fiscal-estado-titulo"><i class="bi bi-broadcast"></i> Estado de la emisión</h2>
+            <h2 class="adm-tarjeta__titulo" id="fiscal-estado-titulo"><i class="bi bi-broadcast" aria-hidden="true"></i> Estado de la emisión</h2>
             <p class="adm-tarjeta__sub">Qué pasa ahora con los comprobantes de las ventas.</p>
           </div>
           <div class="adm-tarjeta__extra">
@@ -86,11 +86,20 @@
         </div>
         <div class="adm-tarjeta__cuerpo fiscal-estado">
           @if (fiscalEstado.estado(); as est) {
-            <div class="fiscal-estado__principal">
-              <span class="adm-insignia adm-insignia--punto fiscal-estado__insignia" [ngClass]="claseEmision(est)">
-                {{ textoEmision(est) }}
-              </span>
-              <p class="fiscal-estado__texto">{{ descripcionEmision(est) }}</p>
+            <div class="fiscal-estado__principal fiscal-semaforo" [attr.data-semaforo]="est.semaforo">
+              <div class="fiscal-semaforo__luces" role="img"
+                   [attr.aria-label]="'Semáforo fiscal: ' + (est.semaforo === 'verde' ? 'verde, todo en orden' : (est.semaforo === 'rojo' ? 'rojo, requiere atención' : 'ámbar, hay algo por revisar'))">
+                <span class="fiscal-semaforo__luz fiscal-semaforo__luz--rojo" [class.is-encendida]="est.semaforo === 'rojo'"></span>
+                <span class="fiscal-semaforo__luz fiscal-semaforo__luz--ambar" [class.is-encendida]="est.semaforo === 'amarillo'"></span>
+                <span class="fiscal-semaforo__luz fiscal-semaforo__luz--verde" [class.is-encendida]="est.semaforo === 'verde'"></span>
+              </div>
+              <div class="fiscal-semaforo__cuerpo">
+                <span class="fiscal-semaforo__rotulo">Semáforo fiscal · {{ est.semaforo === 'verde' ? 'verde' : (est.semaforo === 'rojo' ? 'rojo' : 'ámbar') }}</span>
+                <span class="adm-insignia adm-insignia--punto fiscal-estado__insignia" [ngClass]="claseEmision(est)">
+                  {{ textoEmision(est) }}
+                </span>
+                <p class="fiscal-estado__texto">{{ descripcionEmision(est) }}</p>
+              </div>
             </div>
 
             @if (est.bloqueo; as bloqueo) {
@@ -237,7 +246,7 @@
       <section class="adm-tarjeta" id="fiscal-operacion" aria-labelledby="fiscal-operacion-titulo">
         <div class="adm-tarjeta__cabecera">
           <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo" id="fiscal-operacion-titulo"><i class="bi bi-sliders"></i> Operación y series</h2>
+            <h2 class="adm-tarjeta__titulo" id="fiscal-operacion-titulo"><i class="bi bi-sliders" aria-hidden="true"></i> Operación y series</h2>
             <p class="adm-tarjeta__sub">
               Ambiente actual: <strong>{{ cfg.ambiente === 'produccion' ? 'producción' : 'SUNAT BETA (pruebas)' }}</strong>.
               Se cambia en «Estado y activación», con confirmación.
@@ -276,7 +285,7 @@
                 </select>
               </div>
             </div>
-            <label class="adm-check fiscal-opcion">
+            <label class="adm-switch fiscal-opcion">
               <input name="envioLinea" type="checkbox" [(ngModel)]="operacion.envio_en_linea" /> Envío en línea
             </label>
             <p class="adm-ayuda">
@@ -293,7 +302,7 @@
       <section class="adm-tarjeta" id="fiscal-emisor" aria-labelledby="fiscal-emisor-titulo">
         <div class="adm-tarjeta__cabecera">
           <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo" id="fiscal-emisor-titulo"><i class="bi bi-building"></i> Datos fiscales del emisor</h2>
+            <h2 class="adm-tarjeta__titulo" id="fiscal-emisor-titulo"><i class="bi bi-building" aria-hidden="true"></i> Datos fiscales del emisor</h2>
             <p class="adm-tarjeta__sub">
               RUC configurado: <strong>{{ cfg.emisor.ruc }}</strong>. El RUC se administra en Configuración general.
             </p>
@@ -319,7 +328,7 @@
       <section class="adm-tarjeta" id="fiscal-certificados" aria-labelledby="fiscal-certificados-titulo">
         <div class="adm-tarjeta__cabecera">
           <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo" id="fiscal-certificados-titulo"><i class="bi bi-shield-lock"></i> Certificados digitales</h2>
+            <h2 class="adm-tarjeta__titulo" id="fiscal-certificados-titulo"><i class="bi bi-shield-lock" aria-hidden="true"></i> Certificados digitales</h2>
             <p class="adm-tarjeta__sub">El de producción firma los comprobantes reales; el de BETA, solo las pruebas.</p>
           </div>
         </div>
@@ -331,6 +340,10 @@
                 @if (cfg.certificado[ambiente]; as certificado) {
                   <p class="fiscal-certificado__titular">
                     {{ certificado.titular || certificado.nombre_archivo || 'Certificado digital' }}
+                    <span class="adm-insignia adm-insignia--sm adm-insignia--punto"
+                          [ngClass]="certificado.vencido ? 'adm-insignia--peligro' : (certificado.dias_para_vencer < 30 ? 'adm-insignia--aviso' : 'adm-insignia--exito')">
+                      {{ certificado.vencido ? 'Vencido' : (certificado.dias_para_vencer < 30 ? 'Por vencer' : 'Vigente') }}
+                    </span>
                   </p>
                   <p class="adm-ayuda">
                     RUC: {{ certificado.ruc || 'Sin identificar' }} · Vence:
@@ -357,7 +370,9 @@
                     </button>
                   </div>
                 } @else {
-                  <p role="status">Certificado pendiente de cargar.</p>
+                  <p role="status" class="fiscal-certificado__vacio">
+                    <i class="bi bi-shield-x" aria-hidden="true"></i> Certificado pendiente de cargar.
+                  </p>
                 }
               </div>
             }
@@ -366,7 +381,7 @@
             <fieldset [disabled]="ocupado || cargando || !!errorCarga || !cfg.estado.esquema.listo || !cfg.estado.cifrado_disponible">
               <legend>Subir o reemplazar certificado</legend>
               @if (ambienteCertificado === 'beta') {
-                <label class="adm-check fiscal-opcion">
+                <label class="adm-switch fiscal-opcion">
                   <input type="checkbox" name="otroEmisorBeta" [(ngModel)]="otroEmisorBeta" />
                   El certificado pertenece al emisor separado de pruebas BETA.
                 </label>
@@ -407,7 +422,7 @@
         <section class="adm-tarjeta" id="fiscal-sol" aria-labelledby="fiscal-sol-titulo">
           <div class="adm-tarjeta__cabecera">
             <div class="adm-tarjeta__encabezado">
-              <h2 class="adm-tarjeta__titulo" id="fiscal-sol-titulo"><i class="bi bi-person-lock"></i> Usuario secundario SOL</h2>
+              <h2 class="adm-tarjeta__titulo" id="fiscal-sol-titulo"><i class="bi bi-person-lock" aria-hidden="true"></i> Usuario secundario SOL</h2>
               <p class="adm-tarjeta__sub">
                 Clave: {{ cfg.sol.tiene_clave ? 'registrada' : 'pendiente' }}. BETA usa las credenciales públicas de SUNAT.
               </p>
@@ -439,7 +454,7 @@
         <section class="adm-tarjeta" aria-labelledby="fiscal-api-gre-titulo">
           <div class="adm-tarjeta__cabecera">
             <div class="adm-tarjeta__encabezado">
-              <h2 class="adm-tarjeta__titulo" id="fiscal-api-gre-titulo"><i class="bi bi-cloud-check"></i> Credenciales API de guías</h2>
+              <h2 class="adm-tarjeta__titulo" id="fiscal-api-gre-titulo"><i class="bi bi-cloud-check" aria-hidden="true"></i> Credenciales API de guías</h2>
               <p class="adm-tarjeta__sub">
                 {{
                   cfg.gre.credenciales.tiene_credenciales
@@ -479,7 +494,7 @@
         <div class="adm-tarjeta__cabecera">
           <div class="adm-tarjeta__encabezado">
             <h2 class="adm-tarjeta__titulo" id="fiscal-gre-titulo">
-              <i class="bi bi-truck"></i> Guía de remisión remitente
+              <i class="bi bi-truck" aria-hidden="true"></i> Guía de remisión remitente
               <span class="adm-insignia" [ngClass]="cfg.estado.checklist.gre.listo ? 'adm-insignia--exito' : 'adm-insignia--aviso'">
                 {{ cfg.estado.checklist.gre.listo ? 'Preparada' : 'Pendiente' }}
               </span>
@@ -489,7 +504,7 @@
         </div>
         <form #greForm="ngForm" (ngSubmit)="greForm.valid && guardarGre()" class="adm-tarjeta__cuerpo">
           <fieldset [disabled]="ocupado || cargando || !!errorCarga">
-            <label class="adm-check fiscal-opcion">
+            <label class="adm-switch fiscal-opcion">
               <input name="greActiva" type="checkbox" [(ngModel)]="gre.activa" /> Activar envío de guías a SUNAT
             </label>
             <div class="fiscal-campos">
@@ -544,7 +559,7 @@
         <div class="adm-tarjeta__cabecera">
           <div class="adm-tarjeta__encabezado">
             <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--aviso" id="fiscal-pos-beta-titulo">
-              <i class="bi bi-flask"></i> Emisión de prueba del POS en SUNAT BETA
+              <i class="bi bi-flask" aria-hidden="true"></i> Emisión de prueba del POS en SUNAT BETA
             </h2>
             <p class="adm-tarjeta__sub">Las ventas del POS se envían a SUNAT BETA: sirve para probar el circuito completo.</p>
           </div>
@@ -598,7 +613,7 @@
       <section class="adm-tarjeta" aria-labelledby="fiscal-emisor-beta-titulo">
         <div class="adm-tarjeta__cabecera">
           <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo" id="fiscal-emisor-beta-titulo"><i class="bi bi-person-vcard"></i> Emisor separado para BETA</h2>
+            <h2 class="adm-tarjeta__titulo" id="fiscal-emisor-beta-titulo"><i class="bi bi-person-vcard" aria-hidden="true"></i> Emisor separado para BETA</h2>
             <p class="adm-tarjeta__sub">
               Datos exclusivos de los documentos de prueba. RUC del certificado BETA: {{ rucCertificadoBeta || 'pendiente' }}.
             </p>
@@ -643,7 +658,7 @@
       <section class="adm-tarjeta" aria-labelledby="fiscal-validar-titulo">
         <div class="adm-tarjeta__cabecera">
           <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo" id="fiscal-validar-titulo"><i class="bi bi-clipboard-check"></i> Validar configuración y circuito BETA</h2>
+            <h2 class="adm-tarjeta__titulo" id="fiscal-validar-titulo"><i class="bi bi-clipboard-check" aria-hidden="true"></i> Validar configuración y circuito BETA</h2>
             <p class="adm-tarjeta__sub">En BETA genera, firma y envía un comprobante de prueba; en producción solo comprueba sin emitir.</p>
           </div>
         </div>
@@ -689,21 +704,27 @@
             </p>
           }
           @if (resultadoPrueba; as prueba) {
-            <p role="status" class="adm-mt-3">
-              <strong>{{ prueba.ok ? 'Verificaciones ejecutadas correctas' : 'Hay verificaciones pendientes o fallidas' }}</strong>
-              · {{ prueba.ambiente === 'produccion' ? 'Producción' : 'BETA' }} ·
-              {{ prueba.documento === 'gre' ? 'Guía remitente' : 'Comprobantes' }} · {{ prueba.tiempo_ms }} ms
+            <p role="status" class="adm-aviso adm-mt-3" [ngClass]="prueba.ok ? 'adm-aviso--exito' : 'adm-aviso--aviso'">
+              <i class="bi" [ngClass]="prueba.ok ? 'bi-check-circle' : 'bi-exclamation-triangle'" aria-hidden="true"></i>
+              <span>
+                <strong>{{ prueba.ok ? 'Verificaciones ejecutadas correctas' : 'Hay verificaciones pendientes o fallidas' }}</strong>
+                · {{ prueba.ambiente === 'produccion' ? 'Producción' : 'BETA' }} ·
+                {{ prueba.documento === 'gre' ? 'Guía remitente' : 'Comprobantes' }} · {{ prueba.tiempo_ms }} ms
+              </span>
             </p>
             @if (!prueba.envio_disponible) {
               <p class="adm-ayuda">
                 Resultado de comprobaciones locales. El módulo de envío todavía está pendiente de habilitar.
               </p>
             }
-            <ul class="fiscal-lista">
+            <ul class="fiscal-lista fiscal-pasos">
               @for (paso of prueba.pasos; track paso.paso) {
-                <li>
-                  <strong>{{ paso.ok === null ? 'Sin ejecutar' : paso.ok ? 'Correcto' : 'Error' }} · {{ paso.paso }}</strong>
-                  <p class="adm-ayuda">{{ paso.detalle }}</p>
+                <li class="fiscal-paso" [class.fiscal-paso--ok]="paso.ok === true" [class.fiscal-paso--error]="paso.ok === false">
+                  <i class="bi" [ngClass]="paso.ok === null ? 'bi-dash-circle' : (paso.ok ? 'bi-check-circle-fill' : 'bi-x-circle-fill')" aria-hidden="true"></i>
+                  <div>
+                    <strong>{{ paso.ok === null ? 'Sin ejecutar' : paso.ok ? 'Correcto' : 'Error' }} · {{ paso.paso }}</strong>
+                    <p class="adm-ayuda">{{ paso.detalle }}</p>
+                  </div>
                 </li>
               }
             </ul>
@@ -718,7 +739,7 @@
       <section class="adm-tarjeta" aria-labelledby="fiscal-bitacora-titulo">
         <div class="adm-tarjeta__cabecera">
           <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo" id="fiscal-bitacora-titulo"><i class="bi bi-journal-text"></i> Bitácora fiscal</h2>
+            <h2 class="adm-tarjeta__titulo" id="fiscal-bitacora-titulo"><i class="bi bi-journal-text" aria-hidden="true"></i> Bitácora fiscal</h2>
             <p class="adm-tarjeta__sub">Cada cambio de configuración, certificado, credenciales y confirmación manual.</p>
           </div>
           <div class="adm-tarjeta__extra">

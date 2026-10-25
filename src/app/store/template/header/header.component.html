@@ -1,15 +1,24 @@
-<div class="franja">
+<div class="franja" role="region" aria-label="Beneficios de la tienda">
   <div class="contenedor franja-contenido">
-    <span><i class="bi bi-truck"></i>Envío gratis en compras mayores a S/ 250</span>
-    <span class="oculta-movil"><i class="bi bi-shield-check"></i>Garantía oficial en todas las marcas</span>
-    <span class="oculta-movil"><i class="bi bi-headset"></i>Asesoría técnica especializada</span>
+    <div class="x-marquesina franja-marq">
+      <div class="x-marquesina__pista">
+        <span><i class="bi bi-truck"></i>Envío gratis en compras mayores a S/ 250</span>
+        <span><i class="bi bi-shield-check"></i>Garantía oficial en todas las marcas</span>
+        <span><i class="bi bi-headset"></i>Asesoría técnica especializada</span>
+      </div>
+      <div class="x-marquesina__pista" aria-hidden="true">
+        <span><i class="bi bi-truck"></i>Envío gratis en compras mayores a S/ 250</span>
+        <span><i class="bi bi-shield-check"></i>Garantía oficial en todas las marcas</span>
+        <span><i class="bi bi-headset"></i>Asesoría técnica especializada</span>
+      </div>
+    </div>
     <a class="franja-acceso" routerLink="/auth" title="Login de personal (admin, caja, vendedor)">
       <i class="bi bi-briefcase"></i>Acceso personal
     </a>
   </div>
 </div>
 
-<header class="cabecera" [class.compacta]="compacto">
+<header #cabecera class="cabecera" [class.compacta]="compacto" [class.oculta]="oculto" (focusin)="alEnfocarCabecera()">
   <div class="contenedor barra">
 
     <a class="logo" routerLink="/store" (click)="cerrarTodo()" [attr.title]="empresa.nombre">
@@ -20,21 +29,27 @@
       </span>
     </a>
 
-    <div class="buscador">
-      <i class="bi bi-search icono-buscar"></i>
+    <div class="buscador" [class.activo]="buscadorActivo">
+      <i class="bi bi-search icono-buscar" aria-hidden="true"></i>
 
       <input
+        #campoBusqueda
         type="search"
         [(ngModel)]="termino"
         (input)="alEscribir()"
         (keyup.enter)="buscar()"
+        (focus)="alEnfocarBuscador()"
+        (blur)="alDesenfocarBuscador()"
         placeholder="Busca por nombre, SKU, código o marca…"
         aria-label="Buscar productos"
         autocomplete="off" />
 
+      <kbd class="x-kbd atajo-buscar" *ngIf="!termino && !buscadorActivo" aria-hidden="true">/</kbd>
+
       <i class="bi bi-arrow-repeat girando icono-cargando" *ngIf="buscando"></i>
 
       <div class="sugerencias" *ngIf="sugerencias.length > 0" role="listbox">
+        <span class="sugerencias-titulo x-etiqueta">Productos</span>
         <button type="button" class="sugerencia" *ngFor="let p of sugerencias" (click)="irAProducto(p)" role="option">
           <img [src]="imagen(p)" [alt]="p.nombre" loading="lazy" />
           <span class="info">
@@ -47,6 +62,13 @@
         <button type="button" class="ver-todo" (click)="buscar()">
           Ver todos los resultados de "{{ termino }}"<i class="bi bi-arrow-right"></i>
         </button>
+      </div>
+
+      <div class="sugerencias sin-resultados" *ngIf="sinResultados && sugerencias.length === 0 && termino.trim().length >= 2" role="status">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <strong>Sin resultados para "{{ termino }}"</strong>
+        <span>Revisa la ortografía o prueba con otra palabra.</span>
+        <a class="x-boton x-boton--sm x-boton--contorno" routerLink="/store/catalogo" (click)="cerrarTodo()">Explorar el catálogo</a>
       </div>
     </div>
 
@@ -84,13 +106,17 @@
         </div>
       </div>
 
+      <app-boton-tema class="tema-cabecera" />
+
       <button type="button" class="icono-boton carrito" (click)="abrirCarrito()" aria-label="Abrir carrito">
         <i class="bi bi-bag"></i>
-        <span class="globo" *ngIf="cantidadCarrito > 0">{{ cantidadCarrito }}</span>
+        <ng-container *ngIf="cantidadCarrito > 0">
+          <span class="globo" *ngFor="let n of [cantidadCarrito]">{{ n > 99 ? '99+' : n }}</span>
+        </ng-container>
         <span class="etiqueta-icono">Carrito</span>
       </button>
 
-      <button type="button" class="hamburguesa" (click)="alternarMenu()" aria-label="Abrir menú">
+      <button type="button" class="hamburguesa" (click)="alternarMenu()" [attr.aria-expanded]="menuAbierto" aria-label="Abrir menú">
         <i class="bi" [class.bi-list]="!menuAbierto" [class.bi-x-lg]="menuAbierto"></i>
       </button>
     </nav>
@@ -101,23 +127,33 @@
 
       <div class="mega">
         <button type="button" class="boton-mega" (click)="alternarMega()" [attr.aria-expanded]="megaMenuAbierto">
-          <i class="bi bi-grid-3x3-gap-fill"></i>Categorías<i class="bi bi-chevron-down mini"></i>
+          <i class="bi bi-grid-3x3-gap-fill"></i>Categorías<i class="bi bi-chevron-down mini" [class.girado]="megaMenuAbierto"></i>
         </button>
 
         <div class="mega-panel" *ngIf="megaMenuAbierto">
-          <a
-            *ngFor="let cat of categorias"
-            [routerLink]="['/store/catalogo']"
-            [queryParams]="{ categoria: cat.id_categoria }"
-            (click)="cerrarTodo()">
-            <i class="bi" [class]="cat.icono || 'bi-tag'"></i>
-            <span>
-              <strong>{{ cat.nombre }}</strong>
-              <small>{{ cat.total_productos }} productos</small>
-            </span>
-          </a>
+          <div class="mega-lista">
+            <a
+              *ngFor="let cat of categorias"
+              class="mega-item"
+              [routerLink]="['/store/catalogo']"
+              [queryParams]="{ categoria: cat.id_categoria }"
+              (click)="cerrarTodo()">
+              <i class="bi mega-icono" [class]="cat.icono || 'bi-tag'"></i>
+              <span class="mega-textos">
+                <strong>{{ cat.nombre }}</strong>
+                <small>{{ cat.total_productos }} productos</small>
+              </span>
+              <i class="bi bi-arrow-up-right mega-flecha" aria-hidden="true"></i>
+            </a>
 
-          <span class="mega-vacio" *ngIf="categorias.length === 0">Aún no hay categorías registradas</span>
+            <span class="mega-vacio" *ngIf="categorias.length === 0">Aún no hay categorías registradas</span>
+          </div>
+
+          <a class="mega-oferta" [routerLink]="['/store/catalogo']" [queryParams]="{ oferta: 1 }" (click)="cerrarTodo()">
+            <span class="x-sticker x-sticker--limon"><i class="bi bi-fire"></i>Ofertas</span>
+            <strong>Precios rebajados por tiempo limitado</strong>
+            <span class="mega-oferta__cta">Ver las ofertas<i class="bi bi-arrow-right"></i></span>
+          </a>
         </div>
       </div>
 
@@ -129,6 +165,11 @@
       <a routerLink="/store/contacto" routerLinkActive="activo" (click)="cerrarTodo()">Contacto</a>
       <a routerLink="/store/perfil" routerLinkActive="activo" (click)="cerrarTodo()" *ngIf="autenticado">Mi cuenta</a>
       <a routerLink="/store/pedidos" routerLinkActive="activo" (click)="cerrarTodo()" *ngIf="autenticado">Mis pedidos</a>
+
+      <div class="nav-info">
+        <a class="nav-info__enlace" [href]="telHref"><i class="bi bi-telephone"></i>{{ empresa.telefonoMostrar }}</a>
+        <a class="nav-info__enlace nav-info__wa" [href]="waHref" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i>Asesoría por WhatsApp</a>
+      </div>
     </div>
   </nav>
 </header>

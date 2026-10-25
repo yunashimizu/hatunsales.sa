@@ -11,6 +11,8 @@ import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
 
 import { VisorImagenComponent } from '../../../../shared/components/visor-imagen/visor-imagen.component';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { mensajeDeError } from '../../../service/api-base.service';
@@ -36,7 +38,7 @@ const MOTIVOS = [
   selector: 'app-inventario',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, VisorImagenComponent],
+  imports: [CommonModule, FormsModule, VisorImagenComponent, CountUpDirective, RevealDirective],
   templateUrl: './inventario.component.html',
   styleUrl: './inventario.component.css',
 })
@@ -50,6 +52,8 @@ export class InventarioComponent implements OnInit, OnDestroy {
   pagina = 1;
   porPagina = 50;
   cargando = false;
+  /** La última carga de la lista falló (solo para mostrar el estado de error en pantalla). */
+  errorCarga = false;
 
   filtro: FiltroInventario = { texto: '', id_almacen: '', solo_alertas: false };
 
@@ -100,6 +104,7 @@ export class InventarioComponent implements OnInit, OnDestroy {
 
   cargar(pagina = this.pagina): void {
     this.cargando = true;
+    this.errorCarga = false;
     this.cdr.markForCheck();
 
     this.service
@@ -115,6 +120,7 @@ export class InventarioComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.cargando = false;
+          this.errorCarga = true;
           this.cdr.markForCheck();
           this.alerta.error({
             title: 'No se pudo cargar el inventario',
@@ -159,6 +165,40 @@ export class InventarioComponent implements OnInit, OnDestroy {
   alternarAlertas(): void {
     this.filtro.solo_alertas = !this.filtro.solo_alertas;
     this.cargar(1);
+  }
+
+  /** Productos sin stock + bajo mínimo según el resumen (solo para el contador del filtro de alertas). */
+  get totalAlertas(): number {
+    return (this.resumen?.sin_stock ?? 0) + (this.resumen?.bajo_stock ?? 0);
+  }
+
+  /** Relleno (0–100) de la barra de nivel: el stock medido contra el doble del mínimo; sin mínimo, llena si hay existencias. */
+  nivel(stock: number | string | null | undefined, minimo: number | string | null | undefined): number {
+    const existencias = Number(stock) || 0;
+    const umbral = Number(minimo) || 0;
+    if (existencias <= 0) return 0;
+    if (umbral <= 0) return 100;
+    return Math.min(100, (existencias / (umbral * 2)) * 100);
+  }
+
+  /** Estado de la barra de nivel (solo color; no toca los datos). */
+  estadoNivel(stock: number | string | null | undefined, minimo: number | string | null | undefined): FilaInventario['estado'] {
+    const existencias = Number(stock) || 0;
+    const umbral = Number(minimo) || 0;
+    if (existencias <= 0) return 'sin_stock';
+    if (umbral > 0 && existencias <= umbral) return 'bajo';
+    return 'ok';
+  }
+
+  /** Color de la insignia del tipo de movimiento del kardex. */
+  claseTipo(tipo: string): string {
+    const mapa: Record<string, string> = {
+      entrada: 'adm-insignia--exito',
+      salida: 'adm-insignia--peligro',
+      ajuste: 'adm-insignia--aviso',
+      transferencia: 'adm-insignia--info',
+    };
+    return mapa[tipo] ?? 'adm-insignia--neutra';
   }
 
   get totalPaginas(): number {

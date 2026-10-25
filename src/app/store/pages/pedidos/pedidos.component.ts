@@ -2,9 +2,14 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, Subject, takeUntil } from 'rxjs';
-import { PedidoService } from '../../service/pedido.service';
+import { PASOS_PEDIDO, PedidoService } from '../../service/pedido.service';
 import { CatalogoService } from '../../service/catalogo.service';
 import { EstadoPedido, Pedido } from '../../models/tienda.models';
+import { CountUpDirective } from '../../../shared/ui/count-up.directive';
+import { MagneticDirective } from '../../../shared/ui/magnetic.directive';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
+import { SpotlightDirective } from '../../../shared/ui/spotlight.directive';
+import { FechaEsPipe } from './fecha-es.pipe';
 
 const ETIQUETAS: Record<EstadoPedido, { texto: string; clase: string }> = {
   pendiente:  { texto: 'Pendiente de pago', clase: 'pendiente' },
@@ -18,7 +23,7 @@ const ETIQUETAS: Record<EstadoPedido, { texto: string; clase: string }> = {
 @Component({
   selector: 'app-pedidos',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CountUpDirective, MagneticDirective, RevealDirective, SpotlightDirective, FechaEsPipe],
   templateUrl: './pedidos.component.html',
   styleUrl: './pedidos.component.css',
 })
@@ -86,6 +91,28 @@ export class PedidosComponent implements OnInit, OnDestroy {
   contar(estado: EstadoPedido | 'todos'): number {
     if (estado === 'todos') return this.pedidos.length;
     return this.pedidos.filter((p) => p.estado === estado).length;
+  }
+
+  // ---------------------------------------------------- presentación (solo vista)
+
+  /** Pasos del seguimiento (los mismos del detalle): alimentan la barra de progreso de cada tarjeta. */
+  readonly pasos = PASOS_PEDIDO;
+
+  /** Pedidos que aún no terminan: ni entregados ni cancelados. */
+  get enCurso(): number {
+    return this.pedidos.filter((p) => p.estado !== 'entregado' && p.estado !== 'cancelado').length;
+  }
+
+  /** Suma de lo comprado; los pedidos cancelados no cuentan. */
+  get totalComprado(): number {
+    return this.pedidos
+      .filter((p) => p.estado !== 'cancelado')
+      .reduce((suma, p) => suma + (Number(p.total) || 0), 0);
+  }
+
+  /** Posición del estado en el seguimiento (−1 si el pedido fue cancelado). */
+  paso(estado: EstadoPedido): number {
+    return this.pedidoService.indicePaso(estado);
   }
 
   etiqueta(estado: EstadoPedido) {

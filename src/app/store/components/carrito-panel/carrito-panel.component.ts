@@ -5,12 +5,14 @@ import { Subject, takeUntil } from 'rxjs';
 import { CartService } from '../../service/cart.service';
 import { CatalogoService } from '../../service/catalogo.service';
 import { AlertService } from '../../../shared/services/alert.service';
+import { MagneticDirective } from '../../../shared/ui/magnetic.directive';
+import { CountUpDirective } from '../../../shared/ui/count-up.directive';
 import { Carrito, CarritoItem } from '../../models/tienda.models';
 
 @Component({
   selector: 'app-carrito-panel',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CountUpDirective, MagneticDirective],
   templateUrl: './carrito-panel.component.html',
   styleUrl: './carrito-panel.component.css',
 })
@@ -25,6 +27,25 @@ export class CarritoPanelComponent implements OnInit, OnDestroy {
   abierto = false;
   carrito: Carrito = { id_carrito: 0, items: [], cantidad_items: 0, subtotal: 0, igv: 0, total: 0 };
   itemOcupado: number | null = null;
+
+  /** Solo vista: compra (con IGV) desde la que la tienda anuncia el envío gratis (promesa del encabezado). */
+  readonly umbralEnvioGratis = 250;
+
+  /** Solo vista: avance de 0 a 100 hacia el envío gratis, con el total que ya expone el carrito. */
+  get progresoEnvio(): number {
+    const total = Number(this.carrito.total) || 0;
+    return Math.min(100, Math.max(0, (total / this.umbralEnvioGratis) * 100));
+  }
+
+  /** Solo vista: la promesa dice «mayores a», por eso es estricto. */
+  get envioGratis(): boolean {
+    return (Number(this.carrito.total) || 0) > this.umbralEnvioGratis;
+  }
+
+  /** Solo vista: lo que falta para llegar al envío gratis (nunca menos de un céntimo mientras no se alcance). */
+  get faltaEnvioGratis(): number {
+    return Math.max(0.01, this.umbralEnvioGratis - (Number(this.carrito.total) || 0));
+  }
 
   ngOnInit(): void {
     this.cart.panelAbierto$.pipe(takeUntil(this.destruir$)).subscribe((abierto) => {

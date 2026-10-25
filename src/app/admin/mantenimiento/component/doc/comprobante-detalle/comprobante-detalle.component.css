@@ -1,0 +1,127 @@
+:host { display: contents; }
+
+.det:focus { outline: none; }
+
+.det-encabezado { min-width: 0; }
+
+.det-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+/* SUNAT devuelve el tipo en mayúsculas ("FACTURA ELECTRONICA"): se muestra en tipo oración */
+.det-tipo { display: inline-block; text-transform: lowercase; }
+.det-tipo::first-letter { text-transform: uppercase; }
+
+.det-aviso__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.det-parrafo { margin: 0; overflow-wrap: anywhere; }
+
+.det-texto-largo { overflow-wrap: anywhere; word-break: break-word; }
+
+/* ── Secciones ───────────────────────────────────────────────── */
+
+.det-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  background: var(--adm-superficie);
+}
+
+.det-seccion__titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--adm-fs-etiqueta);
+  font-weight: var(--fw-negrita, 700);
+  color: var(--adm-texto);
+}
+
+.det-seccion__titulo > i { color: var(--adm-primario); }
+
+.det-dato--ancho { grid-column: 1 / -1; }
+
+.det-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+/* ── Enlaces a otros documentos ──────────────────────────────── */
+
+.det-enlaces {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.det-enlaces__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--adm-borde);
+  font-size: var(--adm-fs-etiqueta);
+}
+
+.det-enlaces__fila:last-child { border-bottom: none; }
+
+.det-enlace {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: var(--fw-semi, 600);
+  color: var(--adm-primario);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.det-enlace:hover { text-decoration-thickness: 2px; }
+.det-enlace:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; border-radius: 2px; }
+
+.det-venta { align-self: flex-start; }
+
+.det-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Comprobante ─────────────────────────────────────────────── */
+
+.det-ticket .adm-ticket__emisor,
+.det-ticket .adm-ticket__dato span:last-child,
+.det-ticket__descripcion { min-width: 0; overflow-wrap: anywhere; }
+
+.det-esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Pie ─────────────────────────────────────────────────────── */
+
+.det-pie__ayuda { margin-right: auto; }
+
+@media (max-width: 640px) {
+  .det-seccion { padding: 12px; }
+  .det-pie__ayuda { flex: 1 1 100%; }
+}

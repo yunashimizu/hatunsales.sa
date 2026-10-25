@@ -46,8 +46,44 @@
 
 .rec-pestanias > .adm-pestania:hover:not(.adm-pestania--activa) {
   color: var(--adm-texto);
-  background: rgba(255, 255, 255, 0.6);
+  background: color-mix(in srgb, var(--adm-superficie) 60%, transparent);
 }
+
+/* ── Pasos de la recepción ───────────────────────────────────── */
+
+.rec-pasos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+
+.rec-paso {
+  display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px 16px;
+  background: var(--adm-superficie); border: 1px solid var(--adm-borde); border-radius: var(--adm-r-lg); box-shadow: var(--adm-sombra-sm);
+  transition: border-color var(--adm-transicion), background var(--adm-transicion);
+}
+
+.rec-paso__n {
+  display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%;
+  background: var(--adm-superficie-3); color: var(--adm-texto-suave);
+  font-family: var(--x-mono, var(--adm-fuente-mono)); font-size: 13px; font-weight: 600;
+}
+
+.rec-paso__texto { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.rec-paso__texto strong { font-size: 13.5px; font-weight: 650; color: var(--adm-texto); }
+.rec-paso__texto small { font-size: 12px; color: var(--adm-texto-suave); }
+.rec-paso--actual { border-color: var(--adm-primario-borde); background: linear-gradient(160deg, var(--adm-superficie), var(--adm-primario-claro)); }
+.rec-paso--actual .rec-paso__n { background: var(--adm-gradiente); color: var(--x-lienzo-texto); }
+.rec-paso--ok { border-color: var(--adm-exito-borde); }
+.rec-paso--ok .rec-paso__n { background: var(--adm-exito-claro); color: var(--adm-exito-texto); box-shadow: inset 0 0 0 1px var(--adm-exito-borde); }
+
+/* Reparto de lo recibido: verde = conforme, ámbar = observado (solo anima `scale`) */
+.rec-reparto { position: relative; height: 8px; overflow: hidden; border-radius: 999px; background: var(--adm-exito); }
+
+.rec-reparto > i {
+  position: absolute; inset: 0; background: var(--adm-aviso);
+  transform-origin: right center; scale: calc(var(--obs, 0) / 100) 1; transition: scale 420ms var(--x-ease, ease);
+}
+
+/* Chips de resumen sobre el historial y las observaciones */
+.rec-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px; background: var(--adm-superficie-2); border-bottom: 1px solid var(--adm-borde); }
+.rec-detalle__totales { padding: 0; background: none; border: 0; }
 
 /* ── Nueva recepción ─────────────────────────────────────────── */
 
@@ -292,6 +328,13 @@
 /* ── Móvil ───────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
+  /* Pasos: número arriba y título debajo (sin la línea de detalle) */
+  .rec-pasos { gap: 8px; }
+  .rec-paso { flex-direction: column; gap: 6px; padding: 10px 6px; text-align: center; }
+  .rec-paso__texto small { display: none; }
+  .rec-paso__texto strong { font-size: 12px; }
+  .rec-chips { padding: 10px 14px; }
+
   /* Tres pestañas iguales: icono arriba y texto debajo */
   .rec-pestanias {
     display: grid;
@@ -392,5 +435,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rec-opcion { transition: none; }
+  .rec-opcion, .rec-paso, .rec-reparto > i { transition: none; }
 }

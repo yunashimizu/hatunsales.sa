@@ -1,0 +1,304 @@
+<div class="adm-velo" aria-hidden="true" (click)="cerrar.emit()"></div>
+
+<aside class="adm-panel adm-panel--ancho gre-detalle" role="dialog" aria-modal="true" aria-labelledby="gre-detalle-titulo"
+       (keydown.escape)="cerrar.emit()">
+  <div class="adm-panel__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="gre-detalle-titulo">
+        <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+        {{ guia ? 'Guía ' + numero : 'Guía de remisión' }}
+        @if (guia) {
+          <span class="adm-insignia" [ngClass]="claseEstado">{{ estadoTexto }}</span>
+        }
+      </h2>
+      @if (guia; as g) {
+        <p class="adm-panel__sub">
+          {{ g.motivo_traslado_texto || 'Sin motivo' }} ·
+          {{ g.fecha_emision ? 'emitida el ' + fecha(g.fecha_emision) : 'creada el ' + fecha(g.creado_en) }}
+        </p>
+      }
+    </div>
+    <button type="button" class="adm-btn-icono" (click)="cerrar.emit()" aria-label="Cerrar el detalle de la guía">
+      <i class="bi bi-x-lg" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="adm-panel__cuerpo">
+    @if (cargando && !guia) {
+      <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando la guía">
+        <div class="adm-esqueleto adm-esqueleto--titulo"></div>
+        <div class="adm-esqueleto adm-esqueleto--fila"></div>
+        <div class="adm-esqueleto adm-esqueleto--fila"></div>
+      </div>
+    } @else if (error && !guia) {
+      <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+        <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">No se pudo cargar la guía</div>
+        <p>{{ error }}</p>
+        <button type="button" class="adm-btn adm-btn--suave" (click)="recargar.emit()">
+          <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+        </button>
+      </div>
+    } @else if (guia; as g) {
+      @if (resumen; as r) {
+        <div class="adm-aviso gre-detalle__sunat" [ngClass]="'adm-aviso--' + r.tono" [attr.role]="r.tono === 'peligro' ? 'alert' : 'status'">
+          <i class="bi" [ngClass]="r.icono" aria-hidden="true"></i>
+          <div class="gre-detalle__texto">
+            <span class="adm-aviso__titulo">{{ r.titulo }}</span>
+            @if (r.mensaje) {
+              <p>{{ r.mensaje }}</p>
+            }
+            @if (r.errores.length) {
+              <ul>
+                @for (e of r.errores; track e) {
+                  <li>{{ e }}</li>
+                }
+              </ul>
+            }
+            @if (r.siguiente) {
+              <p><strong>Qué sigue:</strong> {{ r.siguiente }}</p>
+            }
+            @if (consultaAutomatica && g.estado === 'enviado') {
+              <p class="gre-detalle__consulta" role="status">{{ consultaAutomatica }}</p>
+            }
+            @if (g.estado === 'aceptado' && enlaceQr) {
+              <a class="adm-btn adm-btn--suave adm-btn--sm" [href]="enlaceQr" target="_blank" rel="noopener noreferrer">
+                <i class="bi bi-qr-code" aria-hidden="true"></i> Ver la guía en SUNAT (enlace del QR)
+              </a>
+            }
+          </div>
+        </div>
+      }
+
+      @if (validacion; as v) {
+        @if (v.valido) {
+          <div class="adm-aviso adm-aviso--exito" role="status">
+            <i class="bi bi-check2-circle" aria-hidden="true"></i>
+            <span>La guía cumple las validaciones de SUNAT: ya puede emitirla.</span>
+          </div>
+        } @else {
+          <div class="adm-aviso adm-aviso--peligro" role="alert">
+            <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+            <div class="gre-detalle__texto">
+              <span class="adm-aviso__titulo">La guía tiene {{ v.errores.length }} error(es) que impiden emitirla</span>
+              <ul>
+                @for (e of v.errores; track $index) {
+                  <li>{{ e }}</li>
+                }
+              </ul>
+              @if (g.acciones.puede_editar && puedeEscribir) {
+                <p>Corríjalos con «{{ g.estado === 'rechazado' ? 'Corregir' : 'Editar' }}»: cada error aparece junto a su campo.</p>
+              }
+            </div>
+          </div>
+        }
+        @if (v.advertencias.length) {
+          <div class="adm-aviso adm-aviso--aviso" role="status">
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+            <div class="gre-detalle__texto">
+              <span class="adm-aviso__titulo">Advertencias (no impiden emitir)</span>
+              <ul>
+                @for (a of v.advertencias; track a) {
+                  <li>{{ a }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+        }
+      }
+
+      @for (aviso of g.avisos; track aviso) {
+        <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto">
+          <i class="bi bi-info-circle" aria-hidden="true"></i><span>{{ aviso }}</span>
+        </div>
+      }
+      @if (g.anulacion; as a) {
+        <div class="adm-aviso adm-aviso--neutro">
+          <i class="bi bi-x-circle" aria-hidden="true"></i>
+          <span>Anulada en el sistema el {{ fecha(a.fecha) }}{{ a.motivo ? ': ' + a.motivo : '.' }}</span>
+        </div>
+      }
+
+      <div class="adm-datos">
+        <div class="adm-dato">
+          <span class="adm-dato__etiqueta">Motivo</span>
+          <span class="adm-dato__valor">{{ g.motivo_traslado ? g.motivo_traslado + ' · ' + (g.motivo_traslado_texto || '') : '—' }}</span>
+        </div>
+        @if (g.descripcion_motivo) {
+          <div class="adm-dato"><span class="adm-dato__etiqueta">Descripción del motivo</span><span class="adm-dato__valor">{{ g.descripcion_motivo }}</span></div>
+        }
+        <div class="adm-dato">
+          <span class="adm-dato__etiqueta">Modalidad</span>
+          <span class="adm-dato__valor">{{ g.modalidad_traslado_texto || '—' }}</span>
+        </div>
+        <div class="adm-dato">
+          <span class="adm-dato__etiqueta">Emisión</span>
+          <span class="adm-dato__valor">{{ g.fecha_emision ? fecha(g.fecha_emision) + (g.hora_emision ? ' ' + g.hora_emision : '') : 'Al emitir' }}</span>
+        </div>
+        <div class="adm-dato">
+          <span class="adm-dato__etiqueta">Inicio del traslado</span>
+          <span class="adm-dato__valor">{{ fecha(g.fecha_inicio_traslado) }}</span>
+        </div>
+        @if (g.fecha_entrega_transportista) {
+          <div class="adm-dato"><span class="adm-dato__etiqueta">Entrega al transportista</span><span class="adm-dato__valor">{{ fecha(g.fecha_entrega_transportista) }}</span></div>
+        }
+        <div class="adm-dato">
+          <span class="adm-dato__etiqueta">Peso bruto</span>
+          <span class="adm-dato__valor">{{ g.peso_bruto_total !== null ? g.peso_bruto_total + ' ' + (g.unidad_peso || '') : '—' }}</span>
+        </div>
+        <div class="adm-dato">
+          <span class="adm-dato__etiqueta">Bultos</span>
+          <span class="adm-dato__valor">{{ g.numero_bultos ?? '—' }}</span>
+        </div>
+        <div class="adm-dato">
+          <span class="adm-dato__etiqueta">Venta</span>
+          <span class="adm-dato__valor">
+            @if (g.id_venta) {
+              <a routerLink="/dashboard/mantenimiento/ventas-historial" [queryParams]="{ venta: g.id_venta }">Venta #{{ g.id_venta }}</a>
+            } @else {
+              Sin venta
+            }
+          </span>
+        </div>
+        <div class="adm-dato">
+          <span class="adm-dato__etiqueta">Documento relacionado</span>
+          <span class="adm-dato__valor">
+            @if (g.documento_relacionado; as d) {
+              <a routerLink="/dashboard/mantenimiento/doc" [queryParams]="{ comprobante: d.id_comprobante }">{{ d.tipo_texto }} {{ d.numero_formateado }}</a>
+            } @else {
+              Ninguno
+            }
+          </span>
+        </div>
+      </div>
+
+      <div class="adm-grid adm-grid--2 gre-detalle__bloques">
+        <div class="adm-bloque">
+          <h3 class="adm-bloque__titulo"><i class="bi bi-person-vcard" aria-hidden="true"></i> Destinatario</h3>
+          <div class="adm-dato__valor">{{ g.destinatario.denominacion || 'Sin indicar' }}</div>
+          <div class="adm-ayuda">{{ nombreDocumento(g.destinatario.tipo_documento) }} {{ g.destinatario.numero_documento || '—' }}</div>
+        </div>
+        <div class="adm-bloque">
+          <h3 class="adm-bloque__titulo"><i class="bi bi-truck" aria-hidden="true"></i> Transporte</h3>
+          @if (g.modalidad_traslado === '01') {
+            <div class="adm-dato__valor">{{ g.transportista?.razon_social || 'Transportista sin indicar' }}</div>
+            <div class="adm-ayuda">RUC {{ g.transportista?.ruc || '—' }}{{ g.transportista?.registro_mtc ? ' · MTC ' + g.transportista?.registro_mtc : '' }}</div>
+          } @else if (g.modalidad_traslado === '02') {
+            <div class="adm-dato__valor">Placa {{ g.vehiculo?.placa || '—' }}{{ g.vehiculo?.marca ? ' · ' + g.vehiculo?.marca : '' }}</div>
+            <div class="adm-ayuda">
+              Conductor: {{ g.conductor ? ((g.conductor.nombres || '') + ' ' + (g.conductor.apellidos || '')).trim() || 'sin nombre' : 'sin indicar' }}
+              @if (g.conductor?.licencia) { · licencia {{ g.conductor?.licencia }} }
+            </div>
+          } @else {
+            <div class="adm-ayuda">Sin modalidad.</div>
+          }
+        </div>
+        <div class="adm-bloque">
+          <h3 class="adm-bloque__titulo"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Partida</h3>
+          <div class="adm-dato__valor">{{ g.partida.direccion || 'Sin dirección' }}</div>
+          <div class="adm-ayuda">{{ g.partida.ubigeo_texto || 'Sin distrito' }}{{ g.partida.codigo_establecimiento ? ' · establecimiento ' + g.partida.codigo_establecimiento : '' }}</div>
+        </div>
+        <div class="adm-bloque">
+          <h3 class="adm-bloque__titulo"><i class="bi bi-geo-alt" aria-hidden="true"></i> Llegada</h3>
+          <div class="adm-dato__valor">{{ g.llegada.direccion || 'Sin dirección' }}</div>
+          <div class="adm-ayuda">{{ g.llegada.ubigeo_texto || 'Sin distrito' }}{{ g.llegada.codigo_establecimiento ? ' · establecimiento ' + g.llegada.codigo_establecimiento : '' }}</div>
+        </div>
+      </div>
+
+      <div class="adm-tabla-envoltorio">
+        <table class="adm-tabla adm-tabla--compacta adm-tabla--adaptable">
+          <thead>
+            <tr>
+              <th scope="col">Código</th>
+              <th scope="col">Bien</th>
+              <th scope="col">Unidad</th>
+              <th scope="col" class="adm-num">Cantidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of g.items; track item.id_item) {
+              <tr>
+                <td data-etiqueta="Código" class="adm-mono">{{ item.codigo || '—' }}</td>
+                <td data-etiqueta="Bien">{{ item.descripcion }}</td>
+                <td data-etiqueta="Unidad" class="adm-mono">{{ item.unidad }}</td>
+                <td data-etiqueta="Cantidad" class="adm-num adm-tabular">{{ item.cantidad }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="adm-texto-tenue">La guía no tiene bienes.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (g.observaciones) {
+        <p class="adm-ayuda"><strong>Observaciones:</strong> {{ g.observaciones }}</p>
+      }
+
+      <div class="adm-bloque">
+        <h3 class="adm-bloque__titulo"><i class="bi bi-download" aria-hidden="true"></i> Archivos</h3>
+        <div class="gre-detalle__archivos">
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="descargar.emit({ guia: g, tipo: 'pdf' })" [disabled]="ocupado"
+                  [attr.aria-label]="'Descargar el PDF de la guía ' + numero">
+            <i class="bi bi-filetype-pdf" aria-hidden="true"></i> PDF{{ g.estado === 'aceptado' ? ' con QR' : '' }}
+          </button>
+          @for (tipo of g.archivos; track tipo) {
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="descargar.emit({ guia: g, tipo })" [disabled]="ocupado"
+                    [attr.aria-label]="'Descargar ' + nombresArchivo[tipo] + ' de la guía ' + numero">
+              <i class="bi bi-file-earmark-code" aria-hidden="true"></i> {{ nombresArchivo[tipo] }}
+            </button>
+          }
+        </div>
+        @if (g.sunat.ticket || g.sunat.codigo_hash) {
+          <p class="adm-ayuda gre-detalle__sunat-datos">
+            @if (g.sunat.ticket) { Ticket SUNAT <span class="adm-mono">{{ g.sunat.ticket }}</span> }
+            @if (g.sunat.codigo) { · código {{ g.sunat.codigo }} }
+            @if (g.sunat.codigo_hash) { · hash <span class="adm-mono">{{ g.sunat.codigo_hash }}</span> }
+          </p>
+        }
+      </div>
+    }
+  </div>
+
+  @if (guia; as g) {
+    <div class="adm-panel__pie gre-detalle__pie">
+      @if (accion === 'emitir' || accion === 'consultar') {
+        <p class="adm-ayuda gre-detalle__sin-emitir" role="status">
+          <i class="bi bi-hourglass-split" aria-hidden="true"></i> Esperando la respuesta de SUNAT: suele tardar unos segundos.
+        </p>
+      } @else if (puedeEscribir && g.acciones.puede_emitir && motivoSinEmitir) {
+        <p class="adm-ayuda gre-detalle__sin-emitir" id="gre-detalle-sin-emitir">
+          <i class="bi bi-info-circle" aria-hidden="true"></i> {{ motivoSinEmitir }}
+        </p>
+      }
+      @if (puedeEscribir && g.acciones.puede_anular) {
+        <button type="button" class="adm-btn adm-btn--peligro-suave" (click)="anular.emit(g)" [disabled]="ocupado">
+          <i class="bi" [ngClass]="accion === 'anular' ? 'bi-arrow-repeat adm-girando' : 'bi-x-circle'" aria-hidden="true"></i> Anular
+        </button>
+      }
+      @if (puedeEscribir && g.acciones.puede_validar) {
+        <button type="button" class="adm-btn adm-btn--suave" (click)="validar.emit(g)" [disabled]="ocupado">
+          <i class="bi" [ngClass]="accion === 'validar' ? 'bi-arrow-repeat adm-girando' : 'bi-clipboard-check'" aria-hidden="true"></i>
+          {{ accion === 'validar' ? 'Validando…' : 'Validar sin enviar' }}
+        </button>
+      }
+      @if (puedeEscribir && g.acciones.puede_editar) {
+        <button type="button" class="adm-btn adm-btn--suave" (click)="editar.emit(g)" [disabled]="ocupado">
+          <i class="bi bi-pencil" aria-hidden="true"></i> {{ g.estado === 'rechazado' ? 'Corregir' : 'Editar' }}
+        </button>
+      }
+      @if (puedeEscribir && g.acciones.puede_consultar) {
+        <button type="button" class="adm-btn adm-btn--primario" (click)="consultar.emit(g)" [disabled]="ocupado">
+          <i class="bi" [ngClass]="accion === 'consultar' ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-repeat'" aria-hidden="true"></i>
+          {{ accion === 'consultar' ? 'Consultando…' : 'Consultar en SUNAT' }}
+        </button>
+      }
+      @if (puedeEscribir && g.acciones.puede_emitir) {
+        <button type="button" class="adm-btn adm-btn--primario" (click)="emitir.emit(g)" [disabled]="ocupado || !!motivoSinEmitir"
+                [attr.aria-describedby]="motivoSinEmitir ? 'gre-detalle-sin-emitir' : null">
+          <i class="bi" [ngClass]="accion === 'emitir' ? 'bi-arrow-repeat adm-girando' : 'bi-send'" aria-hidden="true"></i>
+          {{ accion === 'emitir' ? 'Enviando a SUNAT…' : textoEmitir }}
+        </button>
+      }
+    </div>
+  }
+</aside>

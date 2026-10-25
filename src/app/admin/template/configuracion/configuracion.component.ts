@@ -19,13 +19,16 @@ import {
   SeriesPos,
 } from '../../service/configuracion-fiscal.service';
 import { AlertService } from '../../../shared/services/alert.service';
+import { CountUpDirective } from '../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
+import { SpotlightDirective } from '../../../shared/ui/spotlight.directive';
 import { mensajeDeError } from '../../service/api-base.service';
 
 @Component({
   selector: 'app-admin-configuracion',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, CountUpDirective, RevealDirective, SpotlightDirective],
   templateUrl: './configuracion.component.html',
   styleUrl: './configuracion.component.css',
 })

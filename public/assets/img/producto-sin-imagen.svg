@@ -1,9 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Producto sin imagen">
-  <rect width="400" height="300" fill="#f4f6fb"/>
-  <g fill="none" stroke="#c3cadd" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M138 118h124a10 10 0 0 1 10 10v64a10 10 0 0 1-10 10H138a10 10 0 0 1-10-10v-64a10 10 0 0 1 10-10z"/>
-    <path d="M128 176l30-26 24 20 32-30 58 48"/>
-    <circle cx="168" cy="142" r="9"/>
+  <g fill="none" stroke="#8d877c" stroke-opacity=".16" stroke-width="1">
+    <path d="M0 50H400M0 100H400M0 150H400M0 200H400M0 250H400M50 0V300M100 0V300M150 0V300M200 0V300M250 0V300M300 0V300M350 0V300"/>
   </g>
-  <text x="200" y="232" text-anchor="middle" font-family="Inter, Segoe UI, sans-serif" font-size="15" fill="#8b93a7">Sin imagen</text>
+  <g fill="none" stroke="#8d877c" stroke-opacity=".7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M200 70L252 100V160L200 190L148 160V100Z"/>
+    <circle cx="200" cy="130" r="30"/>
+    <circle cx="200" cy="130" r="20" stroke-width="3" stroke-dasharray="3 8"/>
+  </g>
+  <text x="200" y="232" text-anchor="middle" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" letter-spacing="2.4" fill="#8d877c" fill-opacity=".85">SIN IMAGEN</text>
 </svg>

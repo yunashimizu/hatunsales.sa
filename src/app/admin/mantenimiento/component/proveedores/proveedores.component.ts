@@ -12,18 +12,22 @@ import { AlertService } from '../../../../shared/services/alert.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { mensajeDeError, escapeHtmlAlerta } from '../../../service/api-base.service';
 import { RecepcionService } from '../../../service/recepcion.service';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
 @Component({
   selector: 'app-proveedores',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, CountUpDirective, RevealDirective],
   templateUrl: './proveedores.component.html',
   styleUrl: './proveedores.component.css',
 })
 export class ProveedoresComponent implements OnInit {
   proveedores: any[] = [];
   cargando = false;
+  /** La última carga de la lista falló (solo para mostrar el estado de error en pantalla). */
+  errorCarga = false;
   guardando = false;
   consultandoRuc = false;
   editandoId: number | null = null;
@@ -51,6 +55,21 @@ export class ProveedoresComponent implements OnInit {
     return this.proveedores.filter((p) => String(p.telefono || '').trim()).length;
   }
 
+  /** Estado del RUC para su insignia: 11 dígitos = válido; algo escrito pero incompleto; o vacío. */
+  estadoRuc(p: any): 'valido' | 'incompleto' | 'vacio' {
+    if (String(p?.ruc || '').replace(/\D/g, '').length === 11) return 'valido';
+    return String(p?.ruc || '').trim() ? 'incompleto' : 'vacio';
+  }
+
+  /** Totales del historial abierto (cabecera del panel de recepciones). */
+  get unidadesOkProv(): number {
+    return this.recepcionesProv.reduce((s, r) => s + (Number(r.unidades_ok) || 0), 0);
+  }
+
+  get unidadesObsProv(): number {
+    return this.recepcionesProv.reduce((s, r) => s + (Number(r.unidades_obs) || 0), 0);
+  }
+
   private readonly cdr = inject(ChangeDetectorRef);
 
   constructor(
@@ -69,6 +88,7 @@ export class ProveedoresComponent implements OnInit {
 
   cargar(): void {
     this.cargando = true;
+    this.errorCarga = false;
     this.cdr.markForCheck();
     this.api.listarProveedores().subscribe({
       next: (lista) => {
@@ -78,6 +98,7 @@ export class ProveedoresComponent implements OnInit {
       },
       error: (e) => {
         this.cargando = false;
+        this.errorCarga = true;
         this.cdr.markForCheck();
         this.ns.error(mensajeDeError(e, 'No se pudieron cargar los proveedores'));
       },

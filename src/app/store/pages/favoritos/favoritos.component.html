@@ -1,37 +1,70 @@
-<div class="contenedor">
+<div class="pagina x-contenedor">
 
   <nav class="migas" aria-label="Ruta de navegación">
     <a routerLink="/store">Inicio</a>
-    <i class="bi bi-chevron-right"></i>
-    <span>Favoritos</span>
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    <span aria-current="page">Favoritos</span>
   </nav>
 
-  <header class="cabecera">
-    <div>
-      <h1>Mis favoritos</h1>
-      <p class="subtitulo" *ngIf="!cargando">
+  <header class="cab" hsReveal>
+    <div class="cab__texto">
+      <span class="x-etiqueta x-etiqueta--corchetes">Mi cuenta</span>
+      <h1 class="x-titulo">Mis favoritos</h1>
+      <p class="cab__desc" *ngIf="!cargando">
         {{ productos.length }} {{ productos.length === 1 ? 'producto guardado' : 'productos guardados' }}
         <span *ngIf="disponibles < productos.length"> · {{ productos.length - disponibles }} sin stock</span>
       </p>
     </div>
 
-    <button type="button" class="boton-primario" *ngIf="disponibles > 0" (click)="agregarTodos()">
-      <i class="bi bi-cart-plus"></i>Agregar todo al carrito
-    </button>
+    <div class="cab__lado" *ngIf="!cargando && productos.length > 0">
+      <dl class="cifras">
+        <div class="cifra">
+          <dt class="x-etiqueta">Guardados</dt>
+          <dd class="x-numero"><span [hsCountUp]="productos.length"></span></dd>
+        </div>
+        <div class="cifra">
+          <dt class="x-etiqueta">En stock</dt>
+          <dd class="x-numero"><span [hsCountUp]="disponibles"></span></dd>
+        </div>
+        <div class="cifra cifra--monto">
+          <dt class="x-etiqueta">Valor</dt>
+          <dd class="x-numero"><span [hsCountUp]="valorDisponibles" [hsDecimales]="2" hsPrefijo="S/ "></span></dd>
+        </div>
+      </dl>
+
+      <span class="x-iman" hsMagnetic *ngIf="disponibles > 0">
+        <button type="button" class="x-boton x-boton--cta" (click)="agregarTodos()">
+          <i class="bi bi-cart-plus" aria-hidden="true"></i>Agregar todo al carrito
+        </button>
+      </span>
+    </div>
   </header>
 
-  <div class="rejilla" *ngIf="cargando">
-    <div class="esqueleto" *ngFor="let i of [1, 2, 3, 4]"></div>
+  <div class="rejilla" *ngIf="cargando" aria-busy="true" aria-label="Cargando tus favoritos">
+    <div class="tarjeta-esqueleto" *ngFor="let i of [1, 2, 3, 4]" aria-hidden="true">
+      <span class="esq esq-imagen"></span>
+      <span class="esq esq-linea esq-corta"></span>
+      <span class="esq esq-linea"></span>
+      <span class="esq esq-linea esq-precio"></span>
+      <span class="esq esq-boton"></span>
+    </div>
   </div>
 
-  <div class="vacio" *ngIf="!cargando && productos.length === 0">
-    <div class="ilustracion"><i class="bi bi-heart"></i></div>
+  <section class="vacio x-plano" *ngIf="!cargando && productos.length === 0">
+    <svg class="vacio__arte" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path class="trazo" pathLength="1" d="M60 104 C18 74 12 47 24 32 C35 18 53 21 60 37 C67 21 85 18 96 32 C108 47 102 74 60 104 Z" />
+      <path class="trazo trazo--2" pathLength="1" d="M33 42 C37 35 45 34 51 39" />
+      <path class="trazo trazo--3" pathLength="1" d="M94 12 L98 5 M103 21 L111 18 M25 13 L21 6" />
+    </svg>
+    <span class="x-etiqueta x-etiqueta--corchetes">Sin favoritos</span>
     <h2>Aún no guardas nada</h2>
     <p>Toca el corazón en cualquier producto para guardarlo y comparar con calma antes de comprar.</p>
-    <a class="boton-primario" routerLink="/store/catalogo">Explorar productos<i class="bi bi-arrow-right"></i></a>
-  </div>
+    <span class="x-iman" hsMagnetic>
+      <a class="x-boton x-boton--cta x-boton--lg" routerLink="/store/catalogo">Explorar productos<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+    </span>
+  </section>
 
-  <div class="rejilla" *ngIf="!cargando && productos.length > 0">
+  <div class="rejilla" *ngIf="!cargando && productos.length > 0" hsReveal="lista">
     <app-producto-card
       *ngFor="let producto of productos"
       [producto]="producto"

@@ -22,7 +22,10 @@ import {
   MetodoPago,
   Pedido,
 } from '../../models/tienda.models';
-import { EMPRESA_TIENDA } from '../../config/empresa-tienda.config';
+import { EMPRESA_TIENDA, urlWhatsapp } from '../../config/empresa-tienda.config';
+import { CountUpDirective } from '../../../shared/ui/count-up.directive';
+import { MagneticDirective } from '../../../shared/ui/magnetic.directive';
+import { SpotlightDirective } from '../../../shared/ui/spotlight.directive';
 
 interface Paso {
   numero: number;
@@ -54,13 +57,16 @@ const DIRECCION_VACIA: DireccionPayload = {
 @Component({
   selector: 'app-checkout',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, CountUpDirective, MagneticDirective, SpotlightDirective],
   templateUrl: './checkout.component.html',
   styleUrl: './checkout.component.css',
 })
 export class CheckoutComponent implements OnInit, OnDestroy {
 
   readonly empresa = EMPRESA_TIENDA;
+
+  /** Solo vista: enlace de ayuda por WhatsApp junto al resumen. */
+  readonly waAyuda = urlWhatsapp(`Hola, tengo una duda con mi compra en ${EMPRESA_TIENDA.nombreCorto}.`);
 
   private readonly cart = inject(CartService);
   private readonly catalogo = inject(CatalogoService);
@@ -172,6 +178,18 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
   get requiereDireccion(): boolean {
     return (this.envioSeleccionado?.costo ?? 0) > 0 || !this.esRecojoEnTienda;
+  }
+
+  /**
+   * Solo vista: mensaje breve bajo el campo del documento cuando su largo no cuadra con el
+   * comprobante elegido (vacío si está bien). La validación real sigue siendo `puedeAvanzar()`.
+   */
+  get ayudaDocumento(): string {
+    const largo = this.datos.documento.trim().length;
+    if (this.datos.tipo_comprobante === 'factura') {
+      return largo === 11 ? '' : 'El RUC tiene 11 dígitos';
+    }
+    return largo === 0 || largo === 8 ? '' : 'El DNI tiene 8 dígitos';
   }
 
   get esRecojoEnTienda(): boolean {

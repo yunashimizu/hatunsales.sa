@@ -1,149 +1,179 @@
 <div class="adm-pagina">
 
+  <!-- Cabecera de página -->
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Stock</h1>
-      <p class="adm-cabecera__sub">
-        Consulta de niveles y alertas (solo lectura). Inventario es donde se ajusta y transfiere.
-      </p>
-      <p class="adm-ayuda" *ngIf="!puedeIrInventario" style="margin-top:0.35rem">
-        Solo lectura: consulta de niveles, sin ajustes ni transferencias.
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-bar-chart-steps"></i></span>
+      <div class="stk-cabecera__texto">
+        <span class="adm-cabecera__eyebrow">Almacén</span>
+        <h1 class="adm-cabecera__titulo">Stock</h1>
+        <p class="adm-cabecera__sub">
+          Consulta de niveles y alertas (solo lectura). Inventario es donde se ajusta y transfiere.
+        </p>
+        <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto stk-solo-lectura" *ngIf="!puedeIrInventario" role="status">
+          <i class="bi bi-lock" aria-hidden="true"></i>
+          <span>Solo lectura: consulta de niveles, sin ajustes ni transferencias.</span>
+        </div>
+      </div>
     </div>
     <div class="adm-acciones">
-      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/inventario" *ngIf="puedeIrInventario">
-        <i class="bi bi-box-seam"></i> Ir a Inventario
-      </a>
-      <button type="button" class="adm-btn adm-btn--primario" (click)="actualizarTodo()" [disabled]="cargando">
+      <button type="button" class="adm-btn adm-btn--suave" (click)="actualizarTodo()" [disabled]="cargando">
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
         Actualizar
       </button>
+      <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/inventario" *ngIf="puedeIrInventario">
+        <i class="bi bi-box-seam"></i> Ir a Inventario
+      </a>
     </div>
   </header>
 
-  <!-- KPIs -->
-  <section class="adm-grid adm-grid--4" *ngIf="resumen">
+  <!-- Indicadores -->
+  <section class="adm-grid adm-grid--4" *ngIf="resumen" aria-label="Resumen del stock" hsReveal="lista">
     <div class="adm-metrica">
       <div class="adm-metrica__icono"><i class="bi bi-boxes"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ resumen.productos }}</div>
+        <div class="adm-metrica__valor"><span [hsCountUp]="resumen.productos"></span></div>
         <div class="adm-metrica__etiqueta">Productos con stock</div>
+        <div class="adm-metrica__delta">{{ resumen.unidades | number:'1.0-2' }} unidades en total</div>
       </div>
     </div>
     <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--peligro"><i class="bi bi-x-circle"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ resumen.sin_stock }}</div>
+        <div class="adm-metrica__valor"><span [hsCountUp]="resumen.sin_stock"></span></div>
         <div class="adm-metrica__etiqueta">Sin stock</div>
+        <div class="adm-metrica__delta">Agotados (0 unidades)</div>
       </div>
     </div>
     <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-exclamation-triangle"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ resumen.bajo_stock }}</div>
+        <div class="adm-metrica__valor"><span [hsCountUp]="resumen.bajo_stock"></span></div>
         <div class="adm-metrica__etiqueta">Bajo mínimo</div>
+        <div class="adm-metrica__delta">{{ totalAlertas }} alertas en total</div>
       </div>
     </div>
     <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-cash-coin"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ moneda(resumen.valorizado) }}</div>
+        <div class="adm-metrica__valor" [title]="moneda(resumen.valorizado)"><span [hsCountUp]="resumen.valorizado" [hsDecimales]="2" hsPrefijo="S/ "></span></div>
         <div class="adm-metrica__etiqueta">Valorizado</div>
+        <div class="adm-metrica__delta">Stock × precio de compra</div>
       </div>
     </div>
   </section>
 
-  <!-- Guía rápida -->
-  <section class="adm-tarjeta">
-    <div class="adm-tarjeta__cuerpo stock-guia">
+  <!-- Marcador de las cifras mientras llega el resumen -->
+  <section class="adm-grid adm-grid--4" *ngIf="!resumen && cargando" aria-hidden="true">
+    <div class="adm-metrica" *ngFor="let n of [1,2,3,4]">
+      <span class="adm-esqueleto stk-esqueleto-icono"></span>
       <div>
-        <div class="adm-etiqueta">Cómo leerlo</div>
-        <ul class="adm-leyenda" style="margin:.5rem 0 0">
-          <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--exito"></span> OK — nivel saludable</li>
-          <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--aviso"></span> Bajo mínimo</li>
-          <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--peligro"></span> Sin stock (0)</li>
-        </ul>
-        <p class="adm-ayuda" style="margin:.35rem 0 0">
-          Alertas actuales: <strong>{{ totalAlertas }}</strong>.
-          Ajustes y transferencias se hacen en <strong>Inventario</strong>.
-        </p>
-      </div>
-      <div class="adm-ayuda">
-        Unidades totales: <strong>{{ resumen?.unidades ?? 0 }}</strong>
+        <span class="adm-esqueleto stk-esqueleto-cifra"></span>
+        <span class="adm-esqueleto adm-esqueleto--linea"></span>
       </div>
     </div>
   </section>
 
   <!-- Filtros -->
-  <section class="adm-tarjeta">
-    <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-funnel"></i> Filtros</h2>
-    </div>
-    <div class="adm-tarjeta__cuerpo">
-      <div class="adm-acciones stock-filtros">
-        <button type="button" class="adm-btn"
-                [class.adm-btn--primario]="filtroEstado === 'alertas'"
-                [class.adm-btn--suave]="filtroEstado !== 'alertas'"
-                (click)="cambiarFiltro('alertas')">Alertas</button>
-        <button type="button" class="adm-btn"
-                [class.adm-btn--primario]="filtroEstado === 'sin_stock'"
-                [class.adm-btn--suave]="filtroEstado !== 'sin_stock'"
-                (click)="cambiarFiltro('sin_stock')">Sin stock</button>
-        <button type="button" class="adm-btn"
-                [class.adm-btn--primario]="filtroEstado === 'bajo'"
-                [class.adm-btn--suave]="filtroEstado !== 'bajo'"
-                (click)="cambiarFiltro('bajo')">Bajo mínimo</button>
-        <button type="button" class="adm-btn"
-                [class.adm-btn--primario]="filtroEstado === 'ok'"
-                [class.adm-btn--suave]="filtroEstado !== 'ok'"
-                (click)="cambiarFiltro('ok')">OK</button>
-        <button type="button" class="adm-btn"
-                [class.adm-btn--primario]="filtroEstado === 'todos'"
-                [class.adm-btn--suave]="filtroEstado !== 'todos'"
-                (click)="cambiarFiltro('todos')">Todos</button>
-      </div>
-
-      <div class="adm-fila" style="margin-top:1rem">
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="stock-buscar">Buscar</label>
-          <input id="stock-buscar" class="adm-input" type="search"
-                 [(ngModel)]="texto" placeholder="Producto, SKU, almacén…">
-        </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="stock-almacen">Almacén</label>
-          <select id="stock-almacen" class="adm-select" [(ngModel)]="idAlmacen" (ngModelChange)="alCambiarAlmacen()">
-            <option [ngValue]="''">Todos</option>
-            <option *ngFor="let a of almacenes" [ngValue]="a.id_almacen">
-              {{ a.nombre }}{{ a.sucursal ? ' · ' + a.sucursal : '' }}
-            </option>
-          </select>
-        </div>
+  <section class="adm-filtros" aria-label="Filtros del stock">
+    <div class="adm-campo adm-campo--grande">
+      <label class="adm-etiqueta" for="stock-buscar">Buscar</label>
+      <div class="adm-input-icono">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input id="stock-buscar" class="adm-input" type="search" autocomplete="off"
+               [(ngModel)]="texto" placeholder="Producto, SKU, almacén…">
       </div>
     </div>
+    <div class="adm-campo">
+      <label class="adm-etiqueta" for="stock-almacen">Almacén</label>
+      <select id="stock-almacen" class="adm-select" [(ngModel)]="idAlmacen" (ngModelChange)="alCambiarAlmacen()">
+        <option [ngValue]="''">Todos</option>
+        <option *ngFor="let a of almacenes" [ngValue]="a.id_almacen">
+          {{ a.nombre }}{{ a.sucursal ? ' · ' + a.sucursal : '' }}
+        </option>
+      </select>
+    </div>
+    <p class="adm-filtros__resumen stk-filtros__resumen">
+      <i class="bi bi-funnel" aria-hidden="true"></i>
+      <strong class="adm-tabular">{{ filasVisibles.length }}</strong> de {{ filas.length }}
+    </p>
   </section>
 
-  <!-- Tabla -->
-  <section class="adm-tarjeta">
+  <!-- Niveles -->
+  <section class="adm-tarjeta adm-tarjeta--acento">
     <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Niveles de stock</h2>
-      <span class="adm-insignia adm-insignia--neutra">{{ filasVisibles.length }}</span>
+      <div class="adm-tarjeta__encabezado stk-encabezado">
+        <h2 class="adm-tarjeta__titulo">
+          <i class="bi bi-table"></i> Niveles de stock
+          <span class="adm-insignia adm-insignia--neutra">{{ filasVisibles.length }}</span>
+        </h2>
+        <p class="adm-tarjeta__sub">Cada fila es un producto en un almacén. La barra mide su stock frente al doble del mínimo.</p>
+      </div>
+      <ul class="adm-leyenda adm-tarjeta__extra stk-leyenda" aria-label="Cómo leer los niveles">
+        <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--exito"></span> OK: nivel saludable</li>
+        <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--aviso"></span> Bajo mínimo</li>
+        <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--peligro"></span> Sin stock (0)</li>
+        <li class="adm-leyenda__item"><span class="stk-leyenda__marca" aria-hidden="true"></span> Mínimo en la barra</li>
+      </ul>
     </div>
 
-    <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !filas.length">
-      <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4,5]"></div>
+    <!-- Atajos por estado, con sus conteos -->
+    <div class="stk-chips" role="group" aria-label="Filtrar por estado">
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtroEstado === 'alertas'"
+              [attr.aria-pressed]="filtroEstado === 'alertas'" (click)="cambiarFiltro('alertas')">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Alertas
+        <span class="stk-chip__n" *ngIf="resumen">{{ totalAlertas }}</span>
+      </button>
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtroEstado === 'sin_stock'"
+              [attr.aria-pressed]="filtroEstado === 'sin_stock'" (click)="cambiarFiltro('sin_stock')">
+        <span class="adm-punto adm-punto--peligro" aria-hidden="true"></span> Sin stock
+        <span class="stk-chip__n" *ngIf="resumen">{{ resumen.sin_stock }}</span>
+      </button>
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtroEstado === 'bajo'"
+              [attr.aria-pressed]="filtroEstado === 'bajo'" (click)="cambiarFiltro('bajo')">
+        <span class="adm-punto adm-punto--aviso" aria-hidden="true"></span> Bajo mínimo
+        <span class="stk-chip__n" *ngIf="resumen">{{ resumen.bajo_stock }}</span>
+      </button>
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtroEstado === 'ok'"
+              [attr.aria-pressed]="filtroEstado === 'ok'" (click)="cambiarFiltro('ok')">
+        <span class="adm-punto adm-punto--exito" aria-hidden="true"></span> OK
+      </button>
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtroEstado === 'todos'"
+              [attr.aria-pressed]="filtroEstado === 'todos'" (click)="cambiarFiltro('todos')">
+        Todos
+      </button>
     </div>
 
-    <div class="adm-vacio" *ngIf="!cargando && !filasVisibles.length">
-      <div class="adm-vacio__icono"><i class="bi bi-check2-circle"></i></div>
+    <div class="adm-esqueletos" *ngIf="cargando && !filas.length" aria-busy="true" aria-label="Cargando niveles de stock">
+      <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1,2,3,4,5]"></div>
+    </div>
+
+    <!-- Error de carga (la lista no llegó) -->
+    <div class="adm-vacio adm-vacio--error" *ngIf="errorCarga && !cargando && !filasVisibles.length" role="alert">
+      <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">No se pudo cargar el stock</div>
+      <p>Revise la conexión e intente de nuevo.</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="actualizarTodo()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+      </button>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargando && !errorCarga && !filasVisibles.length">
+      <div class="adm-vacio__icono" [ngClass]="filtroEstado === 'alertas' ? 'adm-vacio__icono--exito' : 'adm-vacio__icono--neutro'">
+        <i class="bi" [ngClass]="filtroEstado === 'alertas' ? 'bi-check2-circle' : 'bi-search'"></i>
+      </div>
       <div class="adm-vacio__titulo">
         {{ filtroEstado === 'alertas' ? 'Sin alertas de stock' : 'Sin resultados' }}
       </div>
       <p *ngIf="filtroEstado === 'alertas'">Todo el inventario está en niveles OK según el mínimo configurado.</p>
       <p *ngIf="filtroEstado !== 'alertas'">Prueba otro filtro o ve a Inventario para registrar stock.</p>
+      <button type="button" class="adm-btn adm-btn--suave" *ngIf="texto" (click)="texto = ''">
+        <i class="bi bi-x-circle" aria-hidden="true"></i> Limpiar la búsqueda
+      </button>
     </div>
 
     <div class="adm-tabla-envoltorio" *ngIf="filasVisibles.length">
-      <table class="adm-tabla adm-tabla--adaptable">
+      <table class="adm-tabla adm-tabla--adaptable stk-tabla">
         <thead>
           <tr>
             <th>Producto</th>
@@ -155,8 +185,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let f of filasVisibles; trackBy: identificarFila">
-            <td data-etiqueta="Producto">
+          <tr *ngFor="let f of filasVisibles; trackBy: identificarFila"
+              [class.stk-fila--bajo]="f.estado === 'bajo'" [class.stk-fila--sin]="f.estado === 'sin_stock'">
+            <td data-etiqueta="Producto" class="stk-td-producto">
               <div class="stock-prod">
                 <img *ngIf="urlDe(f.imagen_url)" class="stock-prod__img" [src]="urlDe(f.imagen_url)" alt="">
                 <div>
@@ -168,14 +199,22 @@
                 </div>
               </div>
             </td>
-            <td data-etiqueta="Almacén">
+            <td data-etiqueta="Almacén" class="stk-td-almacen">
               <div class="adm-tabla__principal">{{ f.almacen || '—' }}</div>
               <div class="adm-ayuda" *ngIf="f.sucursal">{{ f.sucursal }}</div>
             </td>
-            <td data-etiqueta="Stock" class="adm-num"><strong>{{ f.stock }}</strong></td>
+            <td data-etiqueta="Stock" class="adm-num">
+              <div class="stk-stock">
+                <strong>{{ f.stock }}</strong>
+                <!-- Barra de nivel: el stock frente al doble del mínimo (la marca central es el mínimo) -->
+                <span class="stk-nivel" [ngClass]="'stk-nivel--' + f.estado"
+                      [class.stk-nivel--sin-minimo]="!(f.stock_minimo > 0)"
+                      [style.--n]="nivel(f.stock, f.stock_minimo)" aria-hidden="true"><i></i></span>
+              </div>
+            </td>
             <td data-etiqueta="Mínimo" class="adm-num">{{ f.stock_minimo }}</td>
             <td data-etiqueta="Estado">
-              <span class="adm-insignia" [ngClass]="claseEstado(f.estado)">
+              <span class="adm-insignia adm-insignia--punto" [ngClass]="claseEstado(f.estado)">
                 {{ etiquetaEstado(f.estado) }}
               </span>
             </td>

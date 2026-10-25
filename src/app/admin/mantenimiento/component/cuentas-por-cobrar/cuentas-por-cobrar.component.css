@@ -1,14 +1,188 @@
-/* Estilos compartidos en admin-ui.css; solo refuerzo local del overlay */
-:host {
-  display: block;
-}
+:host { display: block; }
 
-/* La lista de crédito debe quedar por encima del bloque de cuentas */
+/* Cuentas por cobrar · «Taller» v3. Lo compartido vive en admin-ui.css (clases adm-*); aquí queda lo propio.
+   Todo color sale de tokens: estados con --adm-*-texto en letra y el color vivo solo en puntos, barras y fondos. */
+
+.cxc-cabecera__texto { min-width: 0; }
+
+/* La lista de crédito debe quedar por encima de la tarjeta que le sigue (sus sugerencias se despliegan) */
 .adm-tarjeta--desbordable {
   position: relative;
   z-index: 5;
 }
 
-.adm-tarjeta--desbordable .adm-sugerencias {
-  z-index: 90;
+.adm-tarjeta--desbordable .adm-sugerencias { z-index: 90; }
+
+/* ── Indicadores ─────────────────────────────────────────────── */
+
+.cxc-esqueleto-cifra {
+  display: block;
+  width: 112px;
+  height: 24px;
+  margin: 3px 0 2px;
+  border-radius: var(--adm-r-xs);
+}
+
+/* ── Filtros y esqueleto ─────────────────────────────────────── */
+
+.cxc-filtros { border-bottom: 1px solid var(--adm-borde); }
+
+.cxc-esqueleto { display: flex; align-items: center; gap: 12px; }
+.cxc-esqueleto .adm-esqueleto { display: block; }
+.cxc-esqueleto .adm-esqueleto--circulo { flex-shrink: 0; }
+.cxc-esqueleto__texto { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 0; }
+.cxc-esqueleto__corta { width: 34%; }
+.cxc-esqueleto__dato { width: 96px; height: 12px; flex-shrink: 0; }
+
+/* ── Tabla de cuentas ────────────────────────────────────────── */
+
+.cxc-td-deudor { min-width: 230px; }
+
+.cxc-deudor { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cxc-deudor__texto { min-width: 0; }
+.cxc-deudor__texto .adm-tabla__principal { overflow-wrap: anywhere; }
+
+/* Avatar con iniciales en seis tonos estables (data-tono lo calcula tonoDe) */
+.cxc-avatar {
+  background: var(--adm-primario-claro);
+  color: var(--adm-primario);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.cxc-avatar[data-tono='1'] { background: var(--adm-exito-claro); color: var(--adm-exito-texto); }
+.cxc-avatar[data-tono='2'] { background: var(--adm-info-claro); color: var(--adm-info-texto); }
+.cxc-avatar[data-tono='3'] { background: var(--adm-aviso-claro); color: var(--adm-aviso-texto); }
+.cxc-avatar[data-tono='4'] { background: var(--adm-peligro-claro); color: var(--adm-peligro-texto); }
+.cxc-avatar[data-tono='5'] { background: color-mix(in srgb, var(--adm-violeta) 14%, var(--adm-superficie)); color: var(--adm-violeta); }
+.cxc-avatar--banco { border-radius: var(--adm-r-sm); }
+
+/* Una cuenta vencida lleva su marca roja a la izquierda (también al pasar el cursor) */
+.cxc-fila--vencida > td:first-child { box-shadow: inset 3px 0 0 var(--adm-peligro); }
+
+/* Vencimiento: fecha y, debajo, los días que faltan o los que lleva vencida */
+.cxc-vence { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.cxc-vence__fecha { font-variant-numeric: tabular-nums; }
+.cxc-vence__texto { font-size: 12px; font-weight: 600; line-height: 1.4; color: var(--adm-texto-suave); }
+.cxc-vence__texto--aviso { color: var(--adm-aviso-texto); }
+.cxc-vence__texto--peligro { color: var(--adm-peligro-texto); }
+.cxc-vence__texto--exito { color: var(--adm-exito-texto); }
+
+/* Saldo con su barra de avance de cobro (scale, no width) */
+.cxc-saldo { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.cxc-saldo__monto { font-weight: 700; color: var(--adm-texto); }
+.cxc-saldo__pct { font-size: 11px; line-height: 1; color: var(--adm-texto-tenue); }
+
+.cxc-avance {
+  display: block;
+  width: 112px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--adm-superficie-3);
+  overflow: hidden;
+}
+
+.cxc-avance > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--adm-primario);
+  transform-origin: left center;
+  scale: clamp(0, calc(var(--n, 0) / 100), 1) 1;
+  animation: cxc-avance-entra 700ms var(--x-ease, ease) backwards;
+}
+
+.cxc-avance[data-estado='pagado'] > i { background: var(--adm-exito); }
+.cxc-avance[data-estado='parcial'] > i { background: var(--adm-aviso); }
+.cxc-avance[data-estado='vencido'] > i { background: var(--adm-peligro); }
+
+@keyframes cxc-avance-entra { from { scale: 0 1; } }
+
+.cxc-estado { text-transform: capitalize; }
+
+.cxc-td-accion { white-space: nowrap; }
+
+/* ── Línea de crédito y cuentas bancarias ────────────────────── */
+
+.cxc-ayuda { margin: 10px 0 0; }
+
+/* Formulario de cuentas: cinco campos y el botón caben en una sola fila en escritorio */
+.cxc-fila-banco > .adm-campo:not(.adm-campo--accion) { flex: 1 1 140px; }
+.cxc-ficha { margin-top: 14px; }
+.cxc-numero { color: var(--adm-texto-2); white-space: nowrap; }
+.cxc-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cxc-tipo { text-transform: capitalize; }
+
+/* ── Panel de abono ──────────────────────────────────────────── */
+
+.cxc-panel__sub { overflow-wrap: anywhere; }
+
+.cxc-cuenta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 16px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--adm-primario) 7%, var(--adm-superficie)), var(--adm-superficie) 70%);
+}
+
+.cxc-cuenta__saldo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.cxc-cuenta__cifra {
+  font-family: var(--adm-fuente-titulos);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  color: var(--adm-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.cxc-cuenta__cifra--pagado { color: var(--adm-exito-texto); }
+
+.cxc-avance--grande { grid-column: 1 / -1; width: 100%; height: 8px; }
+.cxc-cuenta__ayuda { grid-column: 1 / -1; margin: 0; }
+.cxc-cuenta__ayuda strong { color: var(--adm-texto); }
+
+.cxc-form { display: flex; flex-direction: column; gap: 14px; }
+
+.cxc-historial__titulo { margin: 4px 0 10px; }
+.cxc-historial .adm-tabla-envoltorio { border: 1px solid var(--adm-borde); border-radius: var(--adm-r-md); }
+.cxc-historial__vacio { margin: 0; text-align: center; }
+
+/* ── Adaptación ──────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .cxc-td-deudor { min-width: 0; }
+
+  /* El deudor encabeza la ficha: avatar y nombre a la izquierda, sin etiqueta */
+  .adm-tabla--adaptable tbody td.cxc-td-deudor {
+    display: block;
+    padding: 10px 12px 9px;
+    margin-bottom: 4px;
+    text-align: left;
+    border-bottom: 1px dashed var(--adm-borde);
+  }
+
+  .adm-tabla--adaptable tbody td.cxc-td-deudor::before { content: none; }
+  .cxc-deudor .adm-tabla__principal { text-align: left; }
+
+  .cxc-vence { align-items: flex-end; }
+  .cxc-chips { justify-content: flex-end; }
+
+  .adm-tabla--adaptable tbody td.cxc-td-accion { display: block; padding-top: 6px; }
+  .cxc-td-accion .adm-btn,
+  .cxc-td-accion .adm-acciones { width: 100%; }
+  .cxc-td-accion .adm-acciones .adm-btn { flex: 1 1 auto; }
+
+  /* Las fichas de las cuentas ocupan todo el ancho de la tarjeta (compensan su relleno) */
+  .cxc-bancos .adm-tabla-envoltorio { margin-inline: -14px; width: auto; }
+
+  .cxc-cuenta { padding: 14px; }
+  .cxc-cuenta__cifra { font-size: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cxc-avance > i { animation: none; }
 }

@@ -1,35 +1,44 @@
 <div class="adm-pagina ini">
 
-  <header class="adm-cabecera">
-    <div class="adm-cabecera__principal">
-      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-house-door"></i></span>
-      <div>
-        <span class="adm-cabecera__eyebrow">{{ fechaHoy }}</span>
-        <h1 class="adm-cabecera__titulo">{{ saludo }}, {{ nombreCorto }}</h1>
-        <p class="adm-cabecera__sub">
-          Resumen del día en HatunSales · <strong>{{ etiquetaRol }}</strong>
-          <span *ngIf="sesion.email" class="adm-texto-tenue"> · {{ sesion.email }}</span>
-        </p>
+  <header class="ini-escenario x-grano x-plano">
+    <div class="ini-dial x-dial" aria-hidden="true">
+      <i class="x-dial__anillo"></i>
+      <i class="x-dial__marcas"></i>
+      <i class="x-dial__aro"></i>
+      <div class="x-dial__disco">
+        <span class="ini-dial__dia">{{ diaMes }}</span>
+        <span class="ini-dial__mes">{{ mesCorto }}</span>
       </div>
     </div>
-    <div class="adm-acciones">
-      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/caja-sesion">
+
+    <div class="ini-escenario__texto">
+      <span class="x-etiqueta ini-eyebrow">{{ fechaHoy }}</span>
+      <h1 class="ini-saludo">{{ saludo }}, <span class="x-texto-degradado">{{ nombreCorto }}</span></h1>
+      <p class="ini-sub">
+        Resumen del día en HatunSales · <strong>{{ etiquetaRol }}</strong>
+        <span *ngIf="sesion.email"> · {{ sesion.email }}</span>
+      </p>
+    </div>
+    <div class="ini-escenario__acciones">
+      <a class="x-boton x-boton--mono" routerLink="/dashboard/mantenimiento/caja-sesion">
         <i class="bi bi-cash-stack"></i> Caja
       </a>
-      <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/ventas">
-        <i class="bi bi-cart-plus"></i> Nueva venta
-      </a>
+      <span class="x-iman" hsMagnetic>
+        <a class="x-boton x-boton--vivo" routerLink="/dashboard/mantenimiento/ventas">
+          <i class="bi bi-cart-plus"></i> Nueva venta
+        </a>
+      </span>
     </div>
   </header>
 
   <!-- Indicadores -->
-  <section class="adm-grid adm-grid--4" aria-label="Indicadores del día">
+  <section class="adm-grid adm-grid--4" aria-label="Indicadores del día" hsReveal="lista">
     <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-graph-up-arrow"></i></div>
       <div>
         <div class="adm-metrica__valor">
           <ng-container *ngIf="!cargandoKpis; else esqueleto">
-            <ng-container *ngIf="ventasHoy != null; else guion">S/ {{ ventasHoy | number:'1.2-2' }}</ng-container>
+            <ng-container *ngIf="ventasHoy != null; else guion"><span [hsCountUp]="ventasHoy" [hsDecimales]="2" hsPrefijo="S/ "></span></ng-container>
           </ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Ventas hoy</div>
@@ -41,7 +50,7 @@
       <div>
         <div class="adm-metrica__valor">
           <ng-container *ngIf="!cargandoKpis; else esqueleto">
-            <ng-container *ngIf="sinStock != null; else guion">{{ sinStock }}</ng-container>
+            <ng-container *ngIf="sinStock != null; else guion"><span [hsCountUp]="sinStock"></span></ng-container>
           </ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Productos sin stock</div>
@@ -54,7 +63,7 @@
         <div class="adm-metrica__valor">
           <ng-container *ngIf="!cargandoKpis; else esqueleto">
             <ng-container *ngIf="bajoStock != null || cpeAtencion != null; else guion">
-              {{ (bajoStock || 0) + (cpeAtencion || 0) }}
+              <span [hsCountUp]="(bajoStock || 0) + (cpeAtencion || 0)"></span>
             </ng-container>
           </ng-container>
         </div>
@@ -96,8 +105,8 @@
         </span>
       </div>
       <div class="adm-tarjeta__cuerpo">
-        <nav class="adm-atajos" aria-label="Accesos rápidos">
-          <a class="adm-atajo" routerLink="/dashboard/mantenimiento/ventas">
+        <nav class="adm-atajos" aria-label="Accesos rápidos" hsReveal="lista">
+          <a class="adm-atajo x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/ventas">
             <span class="adm-atajo__icono"><i class="bi bi-receipt"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Ventas</span>
@@ -105,7 +114,7 @@
             </span>
             <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a class="adm-atajo adm-atajo--info" routerLink="/dashboard/mantenimiento/cotizaciones">
+          <a class="adm-atajo adm-atajo--info x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/cotizaciones">
             <span class="adm-atajo__icono"><i class="bi bi-file-earmark-ruled"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Cotizaciones</span>
@@ -113,7 +122,7 @@
             </span>
             <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a class="adm-atajo adm-atajo--aviso" routerLink="/dashboard/mantenimiento/doc">
+          <a class="adm-atajo adm-atajo--aviso x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/doc">
             <span class="adm-atajo__icono"><i class="bi bi-file-earmark-text"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Documentos</span>
@@ -122,7 +131,7 @@
             <span class="adm-insignia adm-insignia--aviso" *ngIf="cpeAtencion">{{ cpeAtencion }}</span>
             <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true" *ngIf="!cpeAtencion"></i>
           </a>
-          <a class="adm-atajo" routerLink="/dashboard/mantenimiento/clientes">
+          <a class="adm-atajo x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/clientes">
             <span class="adm-atajo__icono"><i class="bi bi-people"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Clientes</span>
@@ -130,7 +139,7 @@
             </span>
             <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a class="adm-atajo adm-atajo--exito" routerLink="/dashboard/mantenimiento/recepcion">
+          <a class="adm-atajo adm-atajo--exito x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/recepcion">
             <span class="adm-atajo__icono"><i class="bi bi-box-arrow-in-down"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Recepción</span>
@@ -138,7 +147,7 @@
             </span>
             <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a class="adm-atajo adm-atajo--exito" routerLink="/dashboard/mantenimiento/inventario">
+          <a class="adm-atajo adm-atajo--exito x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/inventario">
             <span class="adm-atajo__icono"><i class="bi bi-boxes"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Inventario</span>
@@ -146,7 +155,7 @@
             </span>
             <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
           </a>
-          <a class="adm-atajo adm-atajo--peligro" routerLink="/dashboard/mantenimiento/stock">
+          <a class="adm-atajo adm-atajo--peligro x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/stock">
             <span class="adm-atajo__icono"><i class="bi bi-clipboard-data"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Stock</span>
@@ -155,7 +164,7 @@
             <span class="adm-insignia adm-insignia--peligro" *ngIf="sinStock">{{ sinStock }}</span>
             <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true" *ngIf="!sinStock"></i>
           </a>
-          <a class="adm-atajo adm-atajo--info" routerLink="/dashboard/mantenimiento/reportes">
+          <a class="adm-atajo adm-atajo--info x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/reportes">
             <span class="adm-atajo__icono"><i class="bi bi-bar-chart-line"></i></span>
             <span class="adm-atajo__texto">
               <span class="adm-atajo__titulo">Reportes</span>
@@ -189,7 +198,7 @@
         <ng-container *ngIf="!cargandoKpis && cajaAbierta">
           <div class="ini-turno__total">
             <span class="adm-dato__etiqueta">Cobrado en el turno</span>
-            <span class="ini-turno__monto">S/ {{ (turnoTotal ?? 0) | number:'1.2-2' }}</span>
+            <span class="ini-turno__monto" [hsCountUp]="turnoTotal ?? 0" [hsDecimales]="2" hsPrefijo="S/ "></span>
           </div>
           <dl class="adm-datos adm-datos--columna ini-turno__datos">
             <div class="adm-dato">

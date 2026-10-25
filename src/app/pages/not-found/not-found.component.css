@@ -3,48 +3,79 @@
 }
 
 .nf {
+  position: relative;
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 24px 16px;
-  color: #0f172a;
+  background: var(--t-fondo);
+  color: var(--t-texto);
+  overflow: hidden;
+}
+
+.nf__fondo {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(50% 40% at 85% 100%, color-mix(in srgb, var(--t-primario) 16%, transparent), transparent 70%),
+    radial-gradient(circle at 1px 1px, var(--adm-punteado, rgba(15, 23, 42, 0.07)) 1px, transparent 0) 0 0 / 24px 24px;
 }
 
 .nf__tarjeta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
-  max-width: 440px;
-  padding: 40px 32px;
+  max-width: 560px;
+  padding: clamp(32px, 6vw, 56px) clamp(24px, 5vw, 48px);
   text-align: center;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--x-lienzo-linea);
+  border-radius: 36px;
+  background:
+    radial-gradient(70% 60% at 100% 0%, rgba(99, 102, 241, 0.46), transparent 66%),
+    radial-gradient(60% 50% at 0% 100%, rgba(255, 125, 54, 0.28), transparent 64%),
+    var(--x-lienzo);
+  color: var(--x-lienzo-texto);
+  box-shadow: 0 50px 90px -40px rgba(20, 18, 15, 0.7);
+  overflow: hidden;
+  animation: nf-entra 700ms var(--x-ease, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
+}
+
+@keyframes nf-entra {
+  from { opacity: 0; translate: 0 24px; scale: 0.97; }
+}
+
+.nf__dial {
+  --x-dial: 190px;
+  margin-bottom: 22px;
+}
+
+.nf__cifra {
+  font-family: var(--x-mono);
+  font-size: 2.4rem;
+  font-weight: 600;
+  letter-spacing: -0.06em;
+  color: var(--x-lienzo-texto);
 }
 
 .nf__codigo {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: #eef2ff;
-  color: #4f46e5;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--x-lienzo-tenue);
 }
 
 .nf__titulo {
-  margin: 16px 0 8px;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  margin: 14px 0 12px;
+  font-size: clamp(2rem, 1.2rem + 3vw, 3.2rem);
+  color: var(--x-lienzo-texto);
 }
 
 .nf__texto {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.55;
-  color: #64748b;
+  max-width: 38ch;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--x-lienzo-suave);
 }
 
 .nf__acciones {
@@ -52,35 +83,9 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
-  margin-top: 24px;
+  margin-top: 28px;
 }
 
-.nf__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #0f172a;
-  font-size: 13.5px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.nf__btn:hover {
-  background: #f1f5f9;
-}
-
-.nf__btn--primario {
-  background: #4f46e5;
-  border-color: #4f46e5;
-  color: #ffffff;
-}
-
-.nf__btn--primario:hover {
-  background: #4338ca;
-  border-color: #4338ca;
+@media (prefers-reduced-motion: reduce) {
+  .nf__tarjeta { animation: none; }
 }

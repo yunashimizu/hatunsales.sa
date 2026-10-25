@@ -11,6 +11,8 @@ import { FormsModule } from '@angular/forms';
 import { esRolStaff } from '../../../../auth/roles.constants';
 import { Subject, takeUntil } from 'rxjs';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 import { mensajeDeError } from '../../../service/api-base.service';
 import { RolAdmin, RolesAdminCrudService } from '../../../service/roles-crud.service';
 
@@ -18,7 +20,7 @@ import { RolAdmin, RolesAdminCrudService } from '../../../service/roles-crud.ser
   selector: 'app-roles',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CountUpDirective, RevealDirective],
   templateUrl: './roles.component.html',
   styleUrl: './roles.component.css',
 })

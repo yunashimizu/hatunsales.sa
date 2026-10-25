@@ -27,12 +27,12 @@
   </header>
 
   <!-- Indicadores -->
-  <section class="adm-grid adm-grid--3" aria-label="Resumen de almacenes">
+  <section class="adm-grid adm-grid--4" aria-label="Resumen de almacenes" hsReveal="lista">
     <div class="adm-metrica">
       <div class="adm-metrica__icono"><i class="bi bi-building"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargando || almacenes.length; else almEsqueletoValor">{{ almacenes.length }}</ng-container>
+          <ng-container *ngIf="!cargando || almacenes.length; else almEsqueletoValor"><span [hsCountUp]="almacenes.length"></span></ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Almacenes</div>
         <div class="adm-metrica__delta">Ubicaciones de stock registradas</div>
@@ -42,7 +42,7 @@
       <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-boxes"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargando || almacenes.length; else almEsqueletoValor">{{ totalProductos }}</ng-container>
+          <ng-container *ngIf="!cargando || almacenes.length; else almEsqueletoValor"><span [hsCountUp]="totalProductos"></span></ng-container>
         </div>
         <div class="adm-metrica__etiqueta">SKUs en inventario</div>
         <div class="adm-metrica__delta">Suma de productos por almacén</div>
@@ -52,10 +52,20 @@
       <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-stack"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargando || almacenes.length; else almEsqueletoValor">{{ totalUnidades }}</ng-container>
+          <ng-container *ngIf="!cargando || almacenes.length; else almEsqueletoValor"><span [hsCountUp]="totalUnidades"></span></ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Unidades totales</div>
         <div class="adm-metrica__delta">Existencias en todos los almacenes</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-inbox"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!cargando || almacenes.length; else almEsqueletoValor"><span [hsCountUp]="sinExistencias"></span></ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Vacíos</div>
+        <div class="adm-metrica__delta">Sin ningún producto registrado</div>
       </div>
     </div>
   </section>
@@ -127,7 +137,7 @@
               <i class="bi bi-list-ul"></i> Almacenes registrados
               <span class="adm-insignia adm-insignia--neutra">{{ almacenes.length }}</span>
             </h2>
-            <p class="adm-tarjeta__sub">Solo se puede eliminar un almacén que no tenga productos con stock.</p>
+            <p class="adm-tarjeta__sub">Solo se puede eliminar un almacén que no tenga productos con stock. La barra compara sus unidades con las del almacén más grande.</p>
           </div>
         </div>
 
@@ -142,7 +152,17 @@
           </div>
         </div>
 
-        <div class="adm-vacio" *ngIf="!cargando && !almacenes.length">
+        <!-- Error de carga (la lista no llegó) -->
+        <div class="adm-vacio adm-vacio--error" *ngIf="errorCarga && !cargando && !almacenes.length" role="alert">
+          <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+          <div class="adm-vacio__titulo">No se pudieron cargar los almacenes</div>
+          <p>Revise la conexión e intente de nuevo.</p>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+          </button>
+        </div>
+
+        <div class="adm-vacio" *ngIf="!cargando && !errorCarga && !almacenes.length">
           <div class="adm-vacio__icono"><i class="bi bi-building-add"></i></div>
           <div class="adm-vacio__titulo">Todavía no hay almacenes</div>
           <p>Registre el primero para ubicar el stock de sus productos y empezar a recibir mercadería.</p>
@@ -159,6 +179,7 @@
                 <th>Sucursal</th>
                 <th class="adm-num">Productos</th>
                 <th class="adm-num">Unidades</th>
+                <th>Estado</th>
                 <th class="adm-centro">Acciones</th>
               </tr>
             </thead>
@@ -174,13 +195,26 @@
                     </div>
                   </div>
                 </td>
-                <td data-etiqueta="Sucursal">
+                <td data-etiqueta="Sucursal" class="alm-td-sucursal">
                   <span class="adm-insignia adm-insignia--info alm-sucursal" *ngIf="a.sucursal; else almSinSucursal">
                     <i class="bi bi-shop" aria-hidden="true"></i> {{ a.sucursal }}
                   </span>
                 </td>
                 <td data-etiqueta="Productos" class="adm-num alm-cifra">{{ a.productos ?? 0 }}</td>
-                <td data-etiqueta="Unidades" class="adm-num alm-cifra">{{ a.unidades ?? 0 }}</td>
+                <td data-etiqueta="Unidades" class="adm-num alm-cifra">
+                  <div class="alm-unidades">
+                    <span>{{ (a.unidades ?? 0) | number:'1.0-2' }}</span>
+                    <span class="alm-reparto">
+                      <span class="alm-barra" aria-hidden="true"><i [style.--n]="((a.unidades ?? 0) / maxUnidades) * 100"></i></span>
+                      <span class="alm-reparto__pct" *ngIf="totalUnidades" [title]="'Parte del stock total'">{{ (a.unidades ?? 0) / totalUnidades | percent:'1.0-0' }}</span>
+                    </span>
+                  </div>
+                </td>
+                <td data-etiqueta="Estado">
+                  <span class="adm-insignia adm-insignia--punto" [ngClass]="(a.productos ?? 0) > 0 ? 'adm-insignia--exito' : 'adm-insignia--neutra'">
+                    {{ (a.productos ?? 0) > 0 ? 'Con productos' : 'Vacío' }}
+                  </span>
+                </td>
                 <td data-etiqueta="Acciones" class="adm-centro">
                   <div class="adm-tabla__acciones">
                     <button type="button" class="adm-btn-icono adm-btn-icono--primario" (click)="editar(a)"

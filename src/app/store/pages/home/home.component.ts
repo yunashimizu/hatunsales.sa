@@ -9,12 +9,27 @@ import { CatalogoService } from '../../service/catalogo.service';
 import { AccionesTiendaService } from '../../service/acciones.service';
 import { CuentaTiendaService } from '../../service/cuenta.service';
 import { BannerTienda, CategoriaTienda, MarcaTienda, ProductoTienda } from '../../models/tienda.models';
+import { urlWhatsapp } from '../../config/empresa-tienda.config';
+import { CountUpDirective } from '../../../shared/ui/count-up.directive';
+import { MagneticDirective } from '../../../shared/ui/magnetic.directive';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
+import { SpotlightDirective } from '../../../shared/ui/spotlight.directive';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink, HeroBannerComponent, CategoriasGridComponent, ProductoCardComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    HeroBannerComponent,
+    CategoriasGridComponent,
+    ProductoCardComponent,
+    RevealDirective,
+    CountUpDirective,
+    MagneticDirective,
+    SpotlightDirective,
+  ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css',
 })
@@ -29,6 +44,24 @@ export class HomeComponent implements OnInit, OnDestroy {
   banners: BannerTienda[] = [];
   categorias: CategoriaTienda[] = [];
   marcas: MarcaTienda[] = [];
+  /** Marcas con productos (la lista visible se recorta a 8). */
+  marcasTotal = 0;
+
+  /** Diapositiva por defecto cuando la tienda aún no tiene banners cargados. */
+  readonly bannerRespaldo: BannerTienda[] = [
+    {
+      id_banner: 0,
+      etiqueta: 'Nuevo catálogo en línea',
+      titulo: 'Todo lo que necesitas para construir tus proyectos',
+      subtitulo: 'Herramientas, materiales y equipos de las mejores marcas, con envío a todo el Perú.',
+      cta_texto: 'Explorar catálogo',
+      cta_url: '/store/catalogo',
+    },
+  ];
+  readonly waCotizar = urlWhatsapp('Hola, quisiera cotizar un proyecto.');
+  /** Graduación de la cinta métrica decorativa (cm). */
+  readonly cinta = Array.from({ length: 16 }, (_, i) => i * 10);
+
   destacados: ProductoTienda[] = [];
   ofertas: ProductoTienda[] = [];
   nuevos: ProductoTienda[] = [];
@@ -63,7 +96,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.catalogo.marcas().pipe(takeUntil(this.destruir$)).subscribe({
       next: (marcas) => {
-        this.marcas = marcas.filter((m) => m.total_productos > 0).slice(0, 8);
+        const conProductos = marcas.filter((m) => m.total_productos > 0);
+        this.marcasTotal = conProductos.length;
+        this.marcas = conProductos.slice(0, 8);
         this.cdr.markForCheck();
       },
     });
@@ -103,6 +138,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destruir$.next();
     this.destruir$.complete();
+  }
+
+  /** Cifras de la franja de datos: salen de las mismas listas que ya carga la portada. */
+  get totalProductos(): number {
+    return this.categorias.reduce((suma, c) => suma + (Number(c.total_productos) || 0), 0);
   }
 
   get hayContenido(): boolean {

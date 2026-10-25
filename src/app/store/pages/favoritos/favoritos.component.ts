@@ -7,11 +7,14 @@ import { CuentaTiendaService } from '../../service/cuenta.service';
 import { AccionesTiendaService } from '../../service/acciones.service';
 import { AlertService } from '../../../shared/services/alert.service';
 import { ProductoTienda } from '../../models/tienda.models';
+import { CountUpDirective } from '../../../shared/ui/count-up.directive';
+import { MagneticDirective } from '../../../shared/ui/magnetic.directive';
+import { RevealDirective } from '../../../shared/ui/reveal.directive';
 
 @Component({
   selector: 'app-favoritos',
   standalone: true,
-  imports: [CommonModule, RouterLink, ProductoCardComponent],
+  imports: [CommonModule, RouterLink, ProductoCardComponent, CountUpDirective, MagneticDirective, RevealDirective],
   templateUrl: './favoritos.component.html',
   styleUrl: './favoritos.component.css',
 })
@@ -41,6 +44,11 @@ export class FavoritosComponent implements OnInit, OnDestroy {
 
   get disponibles(): number {
     return this.productos.filter((p) => p.stock > 0).length;
+  }
+
+  /** Suma de los productos con stock (solo para mostrar en la cabecera). */
+  get valorDisponibles(): number {
+    return this.productos.filter((p) => p.stock > 0).reduce((total, p) => total + p.precio_final, 0);
   }
 
   agregar(producto: ProductoTienda): void {

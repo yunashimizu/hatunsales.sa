@@ -27,12 +27,12 @@
   </header>
 
   <!-- Indicadores -->
-  <section class="adm-grid adm-grid--3" aria-label="Resumen de proveedores">
+  <section class="adm-grid adm-grid--3" aria-label="Resumen de proveedores" hsReveal="lista">
     <div class="adm-metrica">
       <div class="adm-metrica__icono"><i class="bi bi-truck-front"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargando || proveedores.length; else provEsqueletoValor">{{ proveedores.length }}</ng-container>
+          <ng-container *ngIf="!cargando || proveedores.length; else provEsqueletoValor"><span [hsCountUp]="proveedores.length"></span></ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Proveedores</div>
         <div class="adm-metrica__delta">Registrados en el catálogo</div>
@@ -42,7 +42,7 @@
       <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-person-vcard"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargando || proveedores.length; else provEsqueletoValor">{{ conRuc }}</ng-container>
+          <ng-container *ngIf="!cargando || proveedores.length; else provEsqueletoValor"><span [hsCountUp]="conRuc"></span></ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Con RUC</div>
         <div class="adm-metrica__delta">{{ proveedores.length - conRuc }} sin RUC válido</div>
@@ -52,7 +52,7 @@
       <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-telephone"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargando || proveedores.length; else provEsqueletoValor">{{ conTelefono }}</ng-container>
+          <ng-container *ngIf="!cargando || proveedores.length; else provEsqueletoValor"><span [hsCountUp]="conTelefono"></span></ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Con teléfono</div>
         <div class="adm-metrica__delta">{{ proveedores.length - conTelefono }} sin teléfono</div>
@@ -192,7 +192,17 @@
           </div>
         </div>
 
-        <div class="adm-vacio" *ngIf="!cargando && !proveedores.length">
+        <!-- Error de carga (la lista no llegó) -->
+        <div class="adm-vacio adm-vacio--error" *ngIf="errorCarga && !cargando && !proveedores.length" role="alert">
+          <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+          <div class="adm-vacio__titulo">No se pudieron cargar los proveedores</div>
+          <p>Revise la conexión e intente de nuevo.</p>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+          </button>
+        </div>
+
+        <div class="adm-vacio" *ngIf="!cargando && !errorCarga && !proveedores.length">
           <div class="adm-vacio__icono"><i class="bi bi-truck-front"></i></div>
           <div class="adm-vacio__titulo">Todavía no hay proveedores</div>
           <p>Registre el primero con el formulario o consulte su RUC en SUNAT para traer sus datos.</p>
@@ -235,9 +245,19 @@
                   </div>
                 </td>
                 <td data-etiqueta="RUC">
-                  <span class="adm-tabla__mono prov-ruc-celda">{{ p.ruc || '—' }}</span>
+                  <div class="prov-ruc-bloque">
+                    <span class="adm-tabla__mono prov-ruc-celda">{{ p.ruc || '—' }}</span>
+                    <span class="adm-insignia adm-insignia--punto adm-insignia--sm"
+                          [ngClass]="{
+                            'adm-insignia--exito': estadoRuc(p) === 'valido',
+                            'adm-insignia--aviso': estadoRuc(p) === 'incompleto',
+                            'adm-insignia--neutra': estadoRuc(p) === 'vacio'
+                          }">
+                      {{ estadoRuc(p) === 'valido' ? 'RUC válido' : estadoRuc(p) === 'incompleto' ? 'RUC incompleto' : 'Sin RUC' }}
+                    </span>
+                  </div>
                 </td>
-                <td data-etiqueta="Contacto">
+                <td data-etiqueta="Contacto" class="prov-td-contacto">
                   <div class="prov-contacto">
                     <span class="prov-contacto__dato" *ngIf="p.telefono">
                       <i class="bi bi-telephone" aria-hidden="true"></i> {{ p.telefono }}
@@ -286,6 +306,10 @@
         <span class="adm-insignia adm-insignia--neutra" *ngIf="!cargandoRecepciones">{{ recepcionesProv.length }}</span>
       </h2>
       <p class="adm-panel__sub">{{ proveedorHistorial.nombre }}</p>
+      <div class="prov-historial__totales" *ngIf="!cargandoRecepciones && recepcionesProv.length">
+        <span class="adm-insignia adm-insignia--exito adm-insignia--punto adm-insignia--sm">{{ unidadesOkProv }} unidades conformes</span>
+        <span class="adm-insignia adm-insignia--sm adm-insignia--punto" [ngClass]="unidadesObsProv > 0 ? 'adm-insignia--aviso' : 'adm-insignia--neutra'">{{ unidadesObsProv }} observadas</span>
+      </div>
     </div>
     <button type="button" class="adm-btn-icono" (click)="cerrarRecepciones()" title="Cerrar" aria-label="Cerrar historial">
       <i class="bi bi-x-lg"></i>

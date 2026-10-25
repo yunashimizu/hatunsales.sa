@@ -1,16 +1,25 @@
 <section class="nf">
-  <div class="nf__tarjeta">
-    <span class="nf__codigo">Error 404</span>
-    <h1 class="nf__titulo">Página no encontrada</h1>
+  <div class="nf__fondo" aria-hidden="true"></div>
+
+  <div class="nf__tarjeta x-grano x-plano">
+    <div class="nf__dial x-dial" aria-hidden="true">
+      <i class="x-dial__anillo"></i>
+      <i class="x-dial__marcas"></i>
+      <i class="x-dial__aro"></i>
+      <div class="x-dial__disco"><span class="nf__cifra">404</span></div>
+    </div>
+
+    <span class="nf__codigo x-etiqueta x-etiqueta--corchetes">Error 404</span>
+    <h1 class="nf__titulo x-display">Página no encontrada</h1>
     <p class="nf__texto">
       La dirección que ingresaste no existe o fue movida. Revisa el enlace o vuelve al inicio.
     </p>
     <div class="nf__acciones">
-      <a routerLink="/store" class="nf__btn nf__btn--primario">
+      <a routerLink="/store" class="nf__btn x-boton x-boton--vivo">
         <i class="bi bi-shop" aria-hidden="true"></i> Ir a la tienda
       </a>
       @if (esStaff) {
-        <a routerLink="/dashboard/home" class="nf__btn">
+        <a routerLink="/dashboard/home" class="nf__btn x-boton x-boton--mono">
           <i class="bi bi-speedometer2" aria-hidden="true"></i> Volver al panel
         </a>
       }

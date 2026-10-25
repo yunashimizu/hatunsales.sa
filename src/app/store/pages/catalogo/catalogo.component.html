@@ -1,44 +1,38 @@
-<div class="contenedor">
+<div class="pagina x-contenedor">
 
-  <nav class="migas" aria-label="Ruta de navegación">
-    <a routerLink="/store">Inicio</a>
-    <i class="bi bi-chevron-right"></i>
-    <span>{{ tituloPagina }}</span>
-  </nav>
+  <!-- Cabecera: migas, título, descripción y contador -->
+  <header class="cab">
+    <nav class="migas" aria-label="Ruta de navegación">
+      <ol>
+        <li><a routerLink="/store">Inicio</a></li>
+        <li><span aria-current="page">{{ tituloPagina }}</span></li>
+      </ol>
+    </nav>
 
-  <header class="encabezado">
-    <div>
-      <h1>{{ tituloPagina }}</h1>
-      <p>{{ rangoMostrado }}</p>
-    </div>
+    <div class="cab__fila" hsReveal>
+      <div class="cab__texto">
+        <span class="x-etiqueta x-etiqueta--corchetes">Catálogo</span>
+        <h1 class="x-titulo">{{ tituloPagina }}</h1>
+        <p class="cab__desc" *ngIf="descripcionCategoria">{{ descripcionCategoria }}</p>
+      </div>
 
-    <div class="herramientas">
-      <button type="button" class="boton-filtros" (click)="alternarFiltrosMovil()">
-        <i class="bi bi-sliders"></i>Filtros
-      </button>
-
-      <label class="selector-orden">
-        <span class="visualmente-oculto">Ordenar por</span>
-        <select [ngModel]="consulta.orden" (ngModelChange)="cambiarOrden($event)">
-          <option *ngFor="let o of ordenamientos" [value]="o.valor">{{ o.etiqueta }}</option>
-        </select>
-        <i class="bi bi-chevron-down"></i>
-      </label>
-
-      <div class="vistas" role="group" aria-label="Cambiar vista">
-        <button type="button" [class.activa]="vista === 'grilla'" (click)="vista = 'grilla'" aria-label="Vista de grilla">
-          <i class="bi bi-grid-3x3-gap-fill"></i>
-        </button>
-        <button type="button" [class.activa]="vista === 'lista'" (click)="vista = 'lista'" aria-label="Vista de lista">
-          <i class="bi bi-list-ul"></i>
-        </button>
+      <div class="cab__contador" aria-hidden="true">
+        <span class="contador x-numero">
+          <span *ngIf="!cargando || total > 0; else sinCifra" [hsCountUp]="total"></span>
+          <ng-template #sinCifra>—</ng-template>
+        </span>
+        <span class="x-etiqueta">{{ total === 1 ? 'producto' : 'productos' }}</span>
       </div>
     </div>
+
+    <div class="x-regla" aria-hidden="true"></div>
+    <p class="visualmente-oculto" role="status">{{ cargando ? 'Cargando productos…' : rangoMostrado }}</p>
   </header>
 
   <div class="disposicion">
 
     <app-filtros
+      #filtros
       [disponibles]="disponibles"
       [seleccion]="consulta"
       [abiertoEnMovil]="filtrosAbiertos"
@@ -49,12 +43,60 @@
 
     <section class="resultados">
 
-      <div class="grilla" [class.lista]="vista === 'lista'" *ngIf="cargando">
-        <div class="esqueleto tarjeta-esqueleto" *ngFor="let i of esqueletos"></div>
+      <!-- Herramientas: filtros (móvil), chips activos, orden y vista -->
+      <div class="barra">
+        <button
+          type="button"
+          class="boton-filtros"
+          (click)="alternarFiltrosMovil()"
+          [attr.aria-expanded]="filtrosAbiertos"
+          aria-controls="panel-filtros">
+          <i class="bi bi-sliders" aria-hidden="true"></i>Filtros
+          <span class="boton-filtros__n x-numero" *ngIf="filtros.totalActivos > 0">{{ filtros.totalActivos }}</span>
+        </button>
+
+        <div class="activos" [class.sin-chips]="!consulta.q && filtros.totalActivos === 0">
+          <app-filtros-activos
+            [seleccion]="consulta"
+            [disponibles]="disponibles"
+            (cambio)="aplicarFiltros($event)"
+            (limpiar)="limpiarFiltros()">
+          </app-filtros-activos>
+        </div>
+
+        <label class="orden">
+          <span class="visualmente-oculto">Ordenar por</span>
+          <span class="orden__rotulo x-etiqueta" aria-hidden="true"><i class="bi bi-arrow-down-up"></i>Orden</span>
+          <select [ngModel]="consulta.orden" (ngModelChange)="cambiarOrden($event)">
+            <option *ngFor="let o of ordenamientos" [value]="o.valor">{{ o.etiqueta }}</option>
+          </select>
+          <i class="bi bi-chevron-down orden__flecha" aria-hidden="true"></i>
+        </label>
+
+        <div class="vistas" [class.es-lista]="vista === 'lista'" role="group" aria-label="Cambiar vista">
+          <span class="vistas__marca" aria-hidden="true"></span>
+          <button type="button" [class.activa]="vista === 'grilla'" [attr.aria-pressed]="vista === 'grilla'" (click)="vista = 'grilla'" aria-label="Vista de grilla">
+            <i class="bi bi-grid-3x3-gap-fill"></i>
+          </button>
+          <button type="button" [class.activa]="vista === 'lista'" [attr.aria-pressed]="vista === 'lista'" (click)="vista = 'lista'" aria-label="Vista de lista">
+            <i class="bi bi-list-ul"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Carga -->
+      <div class="grilla" [class.lista]="vista === 'lista'" *ngIf="cargando" aria-busy="true">
+        <div class="tarjeta-esqueleto" *ngFor="let i of esqueletos" aria-hidden="true">
+          <span class="esq esq-imagen"></span>
+          <span class="esq esq-linea esq-corta"></span>
+          <span class="esq esq-linea"></span>
+          <span class="esq esq-linea esq-precio"></span>
+          <span class="esq esq-boton"></span>
+        </div>
       </div>
 
       <ng-container *ngIf="!cargando">
-        <div class="grilla" [class.lista]="vista === 'lista'" *ngIf="productos.length > 0">
+        <div class="grilla" [class.lista]="vista === 'lista'" *ngIf="productos.length > 0" hsReveal="lista">
           <app-producto-card
             *ngFor="let p of productos; trackBy: trackProducto"
             [producto]="p"
@@ -64,39 +106,58 @@
           </app-producto-card>
         </div>
 
+        <!-- Sin resultados -->
         <div class="sin-resultados" *ngIf="productos.length === 0">
-          <i class="bi bi-search"></i>
-          <h2>No encontramos productos</h2>
+          <span class="sin-resultados__icono" aria-hidden="true">
+            <i class="bi bi-search"></i>
+          </span>
+          <span class="x-etiqueta x-etiqueta--corchetes">0 resultados</span>
+          <h2 class="x-titulo">No encontramos productos</h2>
           <p>Prueba con otras palabras o quita algunos filtros para ampliar la búsqueda.</p>
-          <button type="button" class="boton-primario" (click)="limpiarFiltros()">Quitar filtros</button>
+          <div class="sin-resultados__acciones">
+            <button type="button" class="x-boton x-boton--cta" (click)="limpiarFiltros()">
+              <i class="bi bi-x-circle" aria-hidden="true"></i>Quitar filtros
+            </button>
+            <a class="x-boton x-boton--contorno" [href]="waVacio" target="_blank" rel="noopener">
+              <i class="bi bi-whatsapp" aria-hidden="true"></i>Consultar por WhatsApp
+            </a>
+          </div>
         </div>
       </ng-container>
 
+      <!-- Paginación -->
       <nav class="paginacion" *ngIf="!cargando && totalPaginas > 1" aria-label="Paginación">
-        <button type="button" (click)="irAPagina((consulta.pagina || 1) - 1)" [disabled]="(consulta.pagina || 1) <= 1" aria-label="Página anterior">
-          <i class="bi bi-chevron-left"></i>
-        </button>
+        <div class="paginacion__medidor" aria-hidden="true">
+          <span class="x-etiqueta">{{ rangoMostrado }}</span>
+          <span class="paginacion__riel"><i [style.--p]="avance"></i></span>
+        </div>
 
-        <button type="button" *ngIf="paginas[0] > 1" (click)="irAPagina(1)">1</button>
-        <span class="puntos" *ngIf="paginas[0] > 2">…</span>
+        <div class="paginacion__botones">
+          <button type="button" class="paso" (click)="irAPagina((consulta.pagina || 1) - 1)" [disabled]="(consulta.pagina || 1) <= 1" aria-label="Página anterior">
+            <i class="bi bi-arrow-left"></i>
+          </button>
 
-        <button
-          type="button"
-          *ngFor="let p of paginas"
-          [class.activa]="p === consulta.pagina"
-          [attr.aria-current]="p === consulta.pagina ? 'page' : null"
-          (click)="irAPagina(p)">
-          {{ p }}
-        </button>
+          <button type="button" *ngIf="paginas[0] > 1" (click)="irAPagina(1)">1</button>
+          <span class="puntos" *ngIf="paginas[0] > 2">…</span>
 
-        <span class="puntos" *ngIf="paginas[paginas.length - 1] < totalPaginas - 1">…</span>
-        <button type="button" *ngIf="paginas[paginas.length - 1] < totalPaginas" (click)="irAPagina(totalPaginas)">
-          {{ totalPaginas }}
-        </button>
+          <button
+            type="button"
+            *ngFor="let p of paginas"
+            [class.activa]="p === consulta.pagina"
+            [attr.aria-current]="p === consulta.pagina ? 'page' : null"
+            (click)="irAPagina(p)">
+            {{ p }}
+          </button>
 
-        <button type="button" (click)="irAPagina((consulta.pagina || 1) + 1)" [disabled]="(consulta.pagina || 1) >= totalPaginas" aria-label="Página siguiente">
-          <i class="bi bi-chevron-right"></i>
-        </button>
+          <span class="puntos" *ngIf="paginas[paginas.length - 1] < totalPaginas - 1">…</span>
+          <button type="button" *ngIf="paginas[paginas.length - 1] < totalPaginas" (click)="irAPagina(totalPaginas)">
+            {{ totalPaginas }}
+          </button>
+
+          <button type="button" class="paso" (click)="irAPagina((consulta.pagina || 1) + 1)" [disabled]="(consulta.pagina || 1) >= totalPaginas" aria-label="Página siguiente">
+            <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
       </nav>
     </section>
   </div>

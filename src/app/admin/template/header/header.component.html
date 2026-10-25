@@ -19,6 +19,12 @@
     </div>
   </div>
 
+  <button type="button" class="tb-buscar" (click)="abrirPaleta()" aria-label="Buscar o ir a una pantalla" [attr.title]="'Buscar o ir a… (' + atajoPaleta + ')'">
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <span class="tb-buscar__texto">Buscar o ir a…</span>
+    <kbd class="tb-buscar__atajo" aria-hidden="true">{{ atajoPaleta }}</kbd>
+  </button>
+
   <div class="tb-actions">
     @if (mostrarEstadoFiscal ? chipFiscal() : null; as chip) {
       @if (esAdmin) {
@@ -53,6 +59,8 @@
       <i class="bi bi-shop" aria-hidden="true"></i>
       <span>Ver tienda</span>
     </a>
+
+    <app-boton-tema class="tb-tema" />
 
     <div class="user-pill"
          role="button"

@@ -1,0 +1,18 @@
+:host { display: contents; }
+
+.gre-detalle__sunat { align-items: flex-start; }
+.gre-detalle__texto { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.gre-detalle__texto p { margin: 0; overflow-wrap: anywhere; }
+.gre-detalle__texto ul { display: flex; flex-direction: column; gap: 3px; margin: 0; padding-left: 18px; }
+.gre-detalle__texto .adm-btn { align-self: flex-start; }
+.gre-detalle__consulta { font-size: var(--adm-fs-ayuda); font-style: italic; }
+.gre-detalle__bloques { align-items: stretch; }
+.gre-detalle__bloques .adm-bloque { min-width: 0; }
+.gre-detalle__archivos { display: flex; flex-wrap: wrap; gap: 6px; }
+.gre-detalle__sunat-datos { margin: 10px 0 0; overflow-wrap: anywhere; }
+.gre-detalle__sin-emitir { flex: 1 1 100%; margin: 0; }
+
+@media (max-width: 640px) {
+  .gre-detalle__bloques { grid-template-columns: 1fr; }
+  .gre-detalle__pie .adm-btn { flex: 1 1 auto; }
+}

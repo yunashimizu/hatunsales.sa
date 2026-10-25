@@ -28,19 +28,33 @@
   </header>
 
   <!-- Indicadores -->
-  <section class="adm-grid adm-grid--3" aria-label="Resumen del catálogo">
+  <section class="adm-grid adm-grid--4" aria-label="Resumen del catálogo" hsReveal="lista">
     <div class="adm-metrica">
       <div class="adm-metrica__icono"><i class="bi bi-box-seam"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ productos.length }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !productos.length); else prodEsqCifra"><span [hsCountUp]="productos.length"></span></ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">En catálogo</div>
         <div class="adm-metrica__delta">{{ productosFiltrados.length }} en la vista actual</div>
       </div>
     </div>
     <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-shop-window"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !productos.length); else prodEsqCifra"><span [hsCountUp]="totalActivos"></span></ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Visibles en tienda</div>
+        <div class="adm-metrica__delta">{{ totalDestacados }} destacados en portada</div>
+      </div>
+    </div>
+    <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-image"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ totalSinImagen }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !productos.length); else prodEsqCifra"><span [hsCountUp]="totalSinImagen"></span></ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">Sin imagen</div>
         <div class="adm-metrica__delta">Pendientes de foto</div>
       </div>
@@ -48,12 +62,15 @@
     <div class="adm-metrica">
       <div class="adm-metrica__icono adm-metrica__icono--peligro"><i class="bi bi-exclamation-triangle"></i></div>
       <div>
-        <div class="adm-metrica__valor">{{ totalSinStock }}</div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !productos.length); else prodEsqCifra"><span [hsCountUp]="totalSinStock"></span></ng-container>
+        </div>
         <div class="adm-metrica__etiqueta">Sin stock</div>
         <div class="adm-metrica__delta">Agotados en almacén</div>
       </div>
     </div>
   </section>
+  <ng-template #prodEsqCifra><span class="adm-esqueleto prod-esqueleto-cifra" aria-hidden="true"></span></ng-template>
 
   <!-- Filtros -->
   <section class="adm-filtros" aria-label="Filtros del catálogo">
@@ -85,6 +102,11 @@
       </select>
     </div>
 
+    <button type="button" class="adm-btn adm-btn--fantasma adm-btn--sm prod-limpiar" *ngIf="hayFiltros"
+            (click)="filtro = ''; filtroCategoria = ''; filtroEstado = ''">
+      <i class="bi bi-x-circle" aria-hidden="true"></i> Limpiar
+    </button>
+
     <p class="adm-filtros__resumen prod-filtros__resumen">
       <i class="bi bi-funnel" aria-hidden="true"></i>
       <strong class="adm-tabular">{{ productosFiltrados.length }}</strong> de {{ productos.length }}
@@ -103,11 +125,52 @@
       </div>
     </div>
 
-    <div class="adm-esqueletos" *ngIf="cargando && !productos.length" aria-busy="true" aria-label="Cargando productos">
-      <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1,2,3,4,5,6]"></div>
+    <!-- Atajos por estado, con sus conteos -->
+    <div class="prod-chips" role="group" aria-label="Filtrar por estado" *ngIf="productos.length">
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtroEstado === ''"
+              [attr.aria-pressed]="filtroEstado === ''" (click)="filtroEstado = ''">
+        Todos <span class="prod-chip__n">{{ productos.length }}</span>
+      </button>
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtroEstado === 'activos'"
+              [attr.aria-pressed]="filtroEstado === 'activos'" (click)="filtroEstado = 'activos'">
+        <span class="adm-punto adm-punto--exito" aria-hidden="true"></span> Activos <span class="prod-chip__n">{{ totalActivos }}</span>
+      </button>
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtroEstado === 'inactivos'"
+              [attr.aria-pressed]="filtroEstado === 'inactivos'" (click)="filtroEstado = 'inactivos'">
+        <span class="adm-punto" aria-hidden="true"></span> Inactivos <span class="prod-chip__n">{{ totalInactivos }}</span>
+      </button>
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtroEstado === 'sin_stock'"
+              [attr.aria-pressed]="filtroEstado === 'sin_stock'" (click)="filtroEstado = 'sin_stock'">
+        <span class="adm-punto adm-punto--peligro" aria-hidden="true"></span> Sin stock <span class="prod-chip__n">{{ totalSinStock }}</span>
+      </button>
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtroEstado === 'sin_imagen'"
+              [attr.aria-pressed]="filtroEstado === 'sin_imagen'" (click)="filtroEstado = 'sin_imagen'">
+        <span class="adm-punto adm-punto--aviso" aria-hidden="true"></span> Sin imagen <span class="prod-chip__n">{{ totalSinImagen }}</span>
+      </button>
     </div>
 
-    <div class="adm-vacio" *ngIf="!cargando && !productosFiltrados.length">
+    <div class="adm-esqueletos" *ngIf="cargando && !productos.length" aria-busy="true" aria-label="Cargando productos">
+      <div class="prod-esqueleto-fila" *ngFor="let n of [1,2,3,4,5,6]">
+        <span class="adm-esqueleto prod-esqueleto-foto"></span>
+        <span class="prod-esqueleto-texto">
+          <span class="adm-esqueleto adm-esqueleto--titulo"></span>
+          <span class="adm-esqueleto adm-esqueleto--linea"></span>
+        </span>
+        <span class="adm-esqueleto prod-esqueleto-cifra prod-esqueleto-cifra--ancha"></span>
+      </div>
+    </div>
+
+    <!-- Error de carga (la lista no llegó) -->
+    <div class="adm-vacio adm-vacio--error" *ngIf="errorCarga && !cargando && !productos.length" role="alert">
+      <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">No se pudieron cargar los productos</div>
+      <p>{{ errorCarga }}</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+      </button>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargando && !errorCarga && !productosFiltrados.length">
       <div class="adm-vacio__icono" [ngClass]="productos.length ? 'adm-vacio__icono--neutro' : ''">
         <i class="bi" [ngClass]="productos.length ? 'bi-search' : 'bi-box'"></i>
       </div>
@@ -122,10 +185,14 @@
       <button type="button" class="adm-btn adm-btn--primario" (click)="abrirNuevo()" *ngIf="puedeEditar && !productos.length">
         <i class="bi bi-plus-lg"></i> Crear el primero
       </button>
+      <button type="button" class="adm-btn adm-btn--suave" *ngIf="productos.length && hayFiltros"
+              (click)="filtro = ''; filtroCategoria = ''; filtroEstado = ''">
+        <i class="bi bi-x-circle" aria-hidden="true"></i> Limpiar filtros
+      </button>
     </div>
 
     <div class="adm-tabla-envoltorio" *ngIf="productosFiltrados.length">
-      <table class="adm-tabla adm-tabla--adaptable">
+      <table class="adm-tabla adm-tabla--adaptable prod-tabla">
         <thead>
           <tr>
             <th>Producto</th>
@@ -141,21 +208,20 @@
               [class.adm-recien-creado]="idDestacado === p.id_producto">
 
             <td data-etiqueta="Producto" class="prod-td-producto">
-              <div class="adm-tabla__con-miniatura">
-                <img *ngIf="p.thumb_url || p.imagen_url"
-                     class="adm-tabla__miniatura adm-img-clic"
-                     [src]="urlDe(p.thumb_url || p.imagen_url)"
-                     [alt]="p.nombre"
-                     loading="lazy"
-                     title="Ver imagen"
-                     (click)="abrirVistaImagenProducto(p, $event)">
-                <span class="prod-miniatura--vacia" *ngIf="!p.thumb_url && !p.imagen_url" aria-hidden="true">
-                  <i class="bi bi-image"></i>
-                </span>
+              <div class="prod-celda">
+                <button type="button" class="prod-foto prod-foto--clic" *ngIf="p.thumb_url || p.imagen_url; else prodSinFoto"
+                        title="Ver imagen" [attr.aria-label]="'Ver imágenes de ' + p.nombre"
+                        (click)="abrirVistaImagenProducto(p, $event)">
+                  <img [src]="urlDe(p.thumb_url || p.imagen_url)" alt="" loading="lazy">
+                  <span class="prod-foto__n" *ngIf="p.total_imagenes > 1" aria-hidden="true">{{ p.total_imagenes }}</span>
+                </button>
+                <ng-template #prodSinFoto>
+                  <span class="prod-foto prod-foto--vacia" aria-hidden="true"><i class="bi bi-image"></i></span>
+                </ng-template>
                 <div class="prod-producto__texto">
-                  <div class="adm-tabla__principal">{{ p.nombre }}</div>
-                  <div class="adm-tabla__secundario">
-                    {{ p.sku || 'sin SKU' }}
+                  <div class="adm-tabla__principal prod-nombre">{{ p.nombre }}</div>
+                  <div class="adm-tabla__secundario prod-meta">
+                    <span class="adm-tabla__mono">{{ p.sku || 'sin SKU' }}</span>
                     <span *ngIf="p.codigo_barras"> · {{ p.codigo_barras }}</span>
                     <span *ngIf="p.marca"> · {{ p.marca }}</span>
                   </div>
@@ -163,26 +229,45 @@
               </div>
             </td>
 
-            <td data-etiqueta="Categoría">{{ p.categoria || '—' }}</td>
+            <td data-etiqueta="Categoría">
+              <span class="prod-cat" *ngIf="p.categoria; else prodSinDato"><i class="bi bi-tag" aria-hidden="true"></i> {{ p.categoria }}</span>
+            </td>
 
             <td data-etiqueta="Precio" class="adm-num">
-              <div class="adm-tabla__principal">S/ {{ precioFinal(p) | number:'1.2-2' }}</div>
-              <div class="adm-tabla__secundario prod-precio-antes" *ngIf="p.descuento > 0">
-                antes S/ {{ p.precio_venta | number:'1.2-2' }}
+              <div class="prod-precio-celda">
+                <div class="adm-tabla__principal prod-precio">S/ {{ precioFinal(p) | number:'1.2-2' }}</div>
+                <div class="prod-precio__extra" *ngIf="p.descuento > 0">
+                  <s class="prod-precio-antes">S/ {{ p.precio_venta | number:'1.2-2' }}</s>
+                  <span class="adm-insignia adm-insignia--aviso adm-insignia--sm" [title]="'Descuento de S/ ' + (p.descuento | number:'1.2-2')">
+                    −{{ descuentoPct(p) | number:'1.0-0' }} %
+                  </span>
+                </div>
+                <div class="prod-margen" *ngIf="margen(p) as mg"
+                     [class.prod-margen--neg]="mg <= 0" title="Margen sobre el precio final">
+                  <span class="prod-margen__punto" aria-hidden="true"></span>
+                  {{ mg <= 0 ? 'Bajo costo' : 'Margen ' + (mg | number:'1.0-0') + ' %' }}
+                </div>
               </div>
             </td>
 
             <td data-etiqueta="Stock" class="adm-num">
-              <span class="adm-insignia adm-insignia--punto"
-                    [ngClass]="p.stock_total > 0 ? 'adm-insignia--neutra' : 'adm-insignia--peligro'">
-                {{ p.stock_total }}
-              </span>
+              <div class="prod-stock-celda">
+                <span class="adm-insignia adm-insignia--punto"
+                      [ngClass]="p.stock_total > 0 ? 'adm-insignia--neutra' : 'adm-insignia--peligro'">
+                  {{ p.stock_total }}
+                </span>
+                <span class="prod-unidad" *ngIf="p.stock_total > 0; else prodAgotado">{{ p.unidad_medida }}</span>
+                <ng-template #prodAgotado><span class="prod-unidad prod-unidad--agotado">agotado</span></ng-template>
+              </div>
             </td>
 
             <td data-etiqueta="Estado">
               <div class="prod-estado">
                 <span class="adm-insignia adm-insignia--punto" [ngClass]="p.estado ? 'adm-insignia--exito' : 'adm-insignia--neutra'">
                   {{ p.estado ? 'Activo' : 'Inactivo' }}
+                </span>
+                <span class="adm-insignia adm-insignia--info adm-insignia--sm" *ngIf="p.destacado">
+                  <i class="bi bi-star-fill" aria-hidden="true"></i> destacado
                 </span>
                 <span class="adm-insignia adm-insignia--aviso adm-insignia--sm" *ngIf="!p.total_imagenes">
                   <i class="bi bi-image" aria-hidden="true"></i> sin foto
@@ -212,6 +297,7 @@
         </tbody>
       </table>
     </div>
+    <ng-template #prodSinDato><span class="prod-sin-dato">—</span></ng-template>
   </section>
 </div>
 
@@ -233,6 +319,34 @@
   </div>
 
   <div class="adm-panel__cuerpo">
+
+    <!-- Ficha rápida del producto que se edita -->
+    <div class="prod-ficha" *ngIf="editando">
+      <span class="prod-foto prod-foto--grande" [class.prod-foto--vacia]="!(editando.thumb_url || editando.imagen_url)">
+        <img *ngIf="editando.thumb_url || editando.imagen_url" [src]="urlDe(editando.thumb_url || editando.imagen_url)" alt="">
+        <i class="bi bi-image" *ngIf="!(editando.thumb_url || editando.imagen_url)" aria-hidden="true"></i>
+      </span>
+      <div class="prod-ficha__texto">
+        <div class="adm-tabla__principal">{{ formulario.nombre || editando.nombre }}</div>
+        <div class="adm-tabla__secundario prod-meta">
+          <span class="adm-tabla__mono">{{ formulario.sku || editando.sku || 'sin SKU' }}</span>
+          <span *ngIf="editando.categoria"> · {{ editando.categoria }}</span>
+        </div>
+        <div class="prod-estado prod-ficha__insignias">
+          <span class="adm-insignia adm-insignia--punto adm-insignia--sm" [ngClass]="formulario.estado ? 'adm-insignia--exito' : 'adm-insignia--neutra'">
+            {{ formulario.estado ? 'Visible' : 'Oculto' }}
+          </span>
+          <span class="adm-insignia adm-insignia--info adm-insignia--sm" *ngIf="formulario.destacado">
+            <i class="bi bi-star-fill" aria-hidden="true"></i> destacado
+          </span>
+          <span class="adm-insignia adm-insignia--sm" *ngIf="stockVerificado"
+                [ngClass]="stockActualEdicion > 0 ? 'adm-insignia--neutra' : 'adm-insignia--peligro'">
+            {{ stockActualEdicion }} {{ formulario.unidad_medida }} en el almacén
+          </span>
+        </div>
+      </div>
+    </div>
+
     <fieldset class="prod-fieldset" [disabled]="!puedeEditar">
       <div class="prod-form">
 
@@ -333,6 +447,26 @@
                 <p class="adm-ayuda">Código SUNAT: NIU = unidad, KGM = kilo, MTR = metro.</p>
               </div>
             </div>
+
+            <!-- Lo que verá el cliente y lo que queda, en vivo -->
+            <dl class="prod-calculo" aria-label="Resumen de precios" aria-live="polite">
+              <div class="prod-calculo__celda">
+                <dt>Precio final</dt>
+                <dd>S/ {{ precioFinalFormulario | number:'1.2-2' }}</dd>
+              </div>
+              <div class="prod-calculo__celda" [class.prod-calculo__celda--neg]="margenFormulario !== null && gananciaFormulario <= 0">
+                <dt>Ganancia por unidad</dt>
+                <dd>{{ margenFormulario === null ? '—' : 'S/ ' + (gananciaFormulario | number:'1.2-2') }}</dd>
+              </div>
+              <div class="prod-calculo__celda" [class.prod-calculo__celda--neg]="margenFormulario !== null && margenFormulario <= 0">
+                <dt>Margen</dt>
+                <dd>{{ margenFormulario === null ? '—' : (margenFormulario | number:'1.0-1') + ' %' }}</dd>
+              </div>
+            </dl>
+            <p class="adm-ayuda adm-ayuda--error" *ngIf="margenFormulario !== null && margenFormulario <= 0" role="alert">
+              <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+              El precio final no cubre el costo de compra: se vendería con pérdida.
+            </p>
           </div>
         </div>
 
@@ -432,11 +566,13 @@
             </div>
 
             <ng-container *ngIf="editando">
-              <div class="adm-soltar" [class.adm-soltar--encima]="zonaActiva"
+              <div class="adm-soltar prod-soltar" [class.adm-soltar--encima]="zonaActiva" [class.prod-soltar--subiendo]="subiendo"
                    (dragover)="alArrastrarSobreZona($event, true)"
                    (dragleave)="alArrastrarSobreZona($event, false)"
                    (drop)="alSoltarArchivos($event)"
                    (click)="selector.click()"
+                   (keydown.enter)="selector.click()"
+                   (keydown.space)="selector.click(); $event.preventDefault()"
                    role="button" tabindex="0" aria-label="Subir imágenes">
                 <i class="bi" [ngClass]="subiendo ? 'bi-arrow-repeat adm-girando' : 'bi-cloud-arrow-up'"></i>
                 <span class="prod-soltar__texto">{{ subiendo ? 'Subiendo…' : 'Arrastre las imágenes o haga clic para elegirlas' }}</span>
@@ -449,7 +585,7 @@
                 <div class="adm-esqueleto prod-galeria-esqueleto__pieza" *ngFor="let n of [1,2,3]"></div>
               </div>
 
-              <div class="adm-galeria" *ngIf="imagenes.length">
+              <div class="adm-galeria prod-galeria" *ngIf="imagenes.length">
                 <div class="adm-galeria__pieza"
                      *ngFor="let imagen of imagenes; let i = index; trackBy: identificarImagen"
                      [class.adm-galeria__pieza--principal]="imagen.is_primary"
@@ -464,7 +600,8 @@
                        loading="lazy"
                        title="Ver imagen"
                        (click)="abrirVistaImagen(imagen.url || imagen.thumb_url, $event)">
-                  <span class="adm-galeria__cinta" *ngIf="imagen.is_primary">Principal</span>
+                  <span class="prod-galeria__orden" aria-hidden="true">{{ i + 1 }}</span>
+                  <span class="adm-galeria__cinta" *ngIf="imagen.is_primary"><i class="bi bi-star-fill" aria-hidden="true"></i> Principal</span>
                   <div class="adm-galeria__acciones">
                     <button type="button" class="adm-galeria__accion" *ngIf="!imagen.is_primary"
                             (click)="marcarPrincipal(imagen); $event.stopPropagation()"
@@ -480,9 +617,9 @@
                 </div>
               </div>
 
-              <p class="adm-ayuda" *ngIf="imagenes.length > 1 && puedeEditar">
+              <p class="adm-ayuda prod-galeria__ayuda" *ngIf="imagenes.length > 1 && puedeEditar">
                 <i class="bi bi-arrows-move" aria-hidden="true"></i>
-                Arrastre las miniaturas para cambiar el orden en que se ven en la tienda.
+                Arrastre las miniaturas para cambiar el orden en que se ven en la tienda. La n.º 1 es la principal.
               </p>
             </ng-container>
           </div>

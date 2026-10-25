@@ -21,12 +21,12 @@
   </header>
 
   <!-- Indicadores -->
-  <section class="adm-grid adm-grid--3 cli-metricas" aria-label="Resumen del padrón">
+  <section class="adm-grid adm-grid--4 cli-metricas" aria-label="Resumen del padrón" hsReveal="lista">
     <div class="adm-metrica">
       <div class="adm-metrica__icono"><i class="bi bi-person"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!(cargando && !clientes.length); else cliMetricaCargando">{{ clientes.length }}</ng-container>
+          <ng-container *ngIf="!(cargando && !clientes.length); else cliMetricaCargando"><span [hsCountUp]="clientes.length"></span></ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Personas</div>
         <div class="adm-metrica__delta">Identificadas con DNI</div>
@@ -36,7 +36,7 @@
       <div class="adm-metrica__icono adm-metrica__icono--info"><i class="bi bi-building"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!(cargando && !clientes.length); else cliMetricaCargando">{{ empresas.length }}</ng-container>
+          <ng-container *ngIf="!(cargando && !clientes.length); else cliMetricaCargando"><span [hsCountUp]="empresas.length"></span></ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Empresas</div>
         <div class="adm-metrica__delta">Identificadas con RUC</div>
@@ -46,29 +46,39 @@
       <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-people"></i></div>
       <div>
         <div class="adm-metrica__valor">
-          <ng-container *ngIf="!(cargando && !clientes.length); else cliMetricaCargando">{{ clientes.length + empresas.length }}</ng-container>
+          <ng-container *ngIf="!(cargando && !clientes.length); else cliMetricaCargando"><span [hsCountUp]="clientes.length + empresas.length"></span></ng-container>
         </div>
         <div class="adm-metrica__etiqueta">Total</div>
         <div class="adm-metrica__delta">En el padrón</div>
       </div>
     </div>
+    <div class="adm-metrica adm-metrica--aviso">
+      <div class="adm-metrica__icono"><i class="bi bi-bag-check"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !clientes.length); else cliMetricaCargando"><span [hsCountUp]="personasConCuenta"></span></ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Con tienda online</div>
+        <div class="adm-metrica__delta">Personas con cuenta</div>
+      </div>
+    </div>
   </section>
-  <ng-template #cliMetricaCargando><span class="adm-esqueleto cli-metrica-esqueleto"></span></ng-template>
+  <ng-template #cliMetricaCargando><span class="adm-esqueleto cli-metrica-esqueleto" aria-hidden="true"></span></ng-template>
 
   <!-- Alta por documento -->
-  <section class="adm-tarjeta adm-tarjeta--destacada" aria-labelledby="cli-alta-titulo">
+  <section class="adm-tarjeta adm-tarjeta--destacada cli-alta-tarjeta x-plano" aria-labelledby="cli-alta-titulo">
     <div class="adm-tarjeta__cuerpo cli-alta">
       <div class="cli-alta__intro">
         <h2 class="adm-tarjeta__titulo" id="cli-alta-titulo"><i class="bi bi-person-plus"></i> Registrar por documento</h2>
         <p class="cli-alta__texto">
-          Escriba el número y pulse Enter. Si ya estaba registrado, se muestra en la lista; si no, se trae de SUNAT y se guarda.
+          Escriba el número y pulse <kbd class="adm-kbd">Enter</kbd>. Si ya estaba registrado, se muestra en la lista; si no, se trae de SUNAT y se guarda.
         </p>
         <ul class="cli-alta__tipos" aria-label="Tipos de documento aceptados">
-          <li class="cli-alta__tipo">
+          <li class="cli-alta__tipo" [class.cli-alta__tipo--activo]="tipoDocumento === 'dni'">
             <span class="cli-alta__tipo-icono" aria-hidden="true"><i class="bi bi-person"></i></span>
             <span><strong>DNI</strong> · 8 dígitos · persona</span>
           </li>
-          <li class="cli-alta__tipo">
+          <li class="cli-alta__tipo" [class.cli-alta__tipo--activo]="tipoDocumento === 'ruc'">
             <span class="cli-alta__tipo-icono cli-alta__tipo-icono--empresa" aria-hidden="true"><i class="bi bi-building"></i></span>
             <span><strong>RUC</strong> · 11 dígitos · empresa</span>
           </li>
@@ -78,7 +88,10 @@
       <div class="cli-alta__form">
         <div class="cli-alta__fila">
           <div class="adm-campo cli-campo--doc">
-            <label class="adm-etiqueta" for="cli-doc">DNI o RUC</label>
+            <label class="adm-etiqueta cli-alta__etiqueta" for="cli-doc">
+              DNI o RUC
+              <span class="cli-alta__contador" [class.cli-alta__contador--ok]="tipoDocumento" aria-hidden="true">{{ digitosDocumento }} / {{ digitosDocumento > 8 ? 11 : 8 }}</span>
+            </label>
             <div class="adm-input-icono">
               <i class="bi bi-person-vcard" aria-hidden="true"></i>
               <input id="cli-doc" class="adm-input adm-input--grande cli-alta__input" type="text" inputmode="numeric" maxlength="11"
@@ -138,6 +151,19 @@
       </button>
     </div>
 
+    <!-- Resumen de lo que hay en la pestaña (solo informativo) -->
+    <ul class="cli-resumen" *ngIf="pestania === 'personas' && clientes.length" aria-label="Resumen de personas">
+      <li class="adm-insignia adm-insignia--sm adm-insignia--info"><i class="bi bi-bag-check" aria-hidden="true"></i> <strong>{{ personasConCuenta }}</strong> con cuenta en la tienda</li>
+      <li class="adm-insignia adm-insignia--sm adm-insignia--neutra"><i class="bi bi-envelope" aria-hidden="true"></i> <strong>{{ personasConCorreo }}</strong> con correo</li>
+      <li class="adm-insignia adm-insignia--sm adm-insignia--neutra"><i class="bi bi-telephone" aria-hidden="true"></i> <strong>{{ personasConTelefono }}</strong> con teléfono</li>
+      <li class="cli-resumen__filtro" *ngIf="filtro.trim()">Mostrando <strong>{{ personasFiltradas.length }}</strong> de {{ clientes.length }}</li>
+    </ul>
+    <ul class="cli-resumen" *ngIf="pestania === 'empresas' && empresas.length" aria-label="Resumen de empresas">
+      <li class="adm-insignia adm-insignia--sm adm-insignia--exito"><i class="bi bi-patch-check" aria-hidden="true"></i> <strong>{{ empresasActivas }}</strong> activas en SUNAT</li>
+      <li class="adm-insignia adm-insignia--sm adm-insignia--aviso" *ngIf="empresasConAviso"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> <strong>{{ empresasConAviso }}</strong> con observación</li>
+      <li class="cli-resumen__filtro" *ngIf="filtro.trim()">Mostrando <strong>{{ empresasFiltradas.length }}</strong> de {{ empresas.length }}</li>
+    </ul>
+
     <div class="adm-esqueletos" *ngIf="cargando && !clientes.length" role="status" aria-busy="true" aria-label="Cargando clientes">
       <div class="cli-esqueleto" *ngFor="let n of [1,2,3,4,5]">
         <span class="adm-esqueleto adm-esqueleto--circulo"></span>
@@ -148,6 +174,9 @@
         <span class="adm-esqueleto cli-esqueleto__dato"></span>
       </div>
     </div>
+
+    <!-- Error de carga: sustituye al vacío engañoso («aún no hay…») cuando la lista no llegó -->
+    <ng-container *ngIf="!(errorCarga && !cargando && pestania === 'personas') && !(errorEmpresas && !cargando && pestania === 'empresas'); else cliErrorLista">
 
     <!-- Personas -->
     <ng-container *ngIf="pestania === 'personas'">
@@ -184,7 +213,7 @@
                 [class.adm-recien-creado]="idDestacado === c.id_cliente">
               <td data-etiqueta="Cliente" class="cli-td-principal">
                 <div class="cli-identidad">
-                  <span class="adm-avatar" aria-hidden="true">{{ (c.nombre || nombreDe(c)).charAt(0) }}{{ (c.apellido_paterno || '').charAt(0) }}</span>
+                  <span class="adm-avatar cli-avatar" [attr.data-tono]="tonoDe(c)" aria-hidden="true">{{ (c.nombre || nombreDe(c)).charAt(0) }}{{ (c.apellido_paterno || '').charAt(0) }}</span>
                   <div class="cli-identidad__texto">
                     <div class="adm-tabla__principal">{{ nombreDe(c) }}</div>
                     <span class="adm-insignia adm-insignia--info adm-insignia--sm cli-cuenta" *ngIf="c.tiene_cuenta">
@@ -193,7 +222,12 @@
                   </div>
                 </div>
               </td>
-              <td data-etiqueta="DNI"><span class="adm-mono cli-documento">{{ c.dni || '—' }}</span></td>
+              <td data-etiqueta="DNI">
+                <span class="cli-doc">
+                  <span class="adm-insignia adm-insignia--sm adm-insignia--neutra cli-doc__tipo" aria-hidden="true">DNI</span>
+                  <span class="adm-mono cli-documento">{{ c.dni || '—' }}</span>
+                </span>
+              </td>
               <td data-etiqueta="Contacto">
                 <div class="cli-apilado">
                   <span class="cli-contacto" *ngIf="c.telefono">
@@ -263,21 +297,26 @@
                 [class.adm-recien-creado]="idDestacado === e.id_empresa">
               <td data-etiqueta="Empresa" class="cli-td-principal">
                 <div class="cli-identidad">
-                  <span class="adm-avatar cli-avatar--empresa" aria-hidden="true"><i class="bi bi-building"></i></span>
+                  <span class="adm-avatar cli-avatar cli-avatar--empresa" [attr.data-tono]="tonoDe(e)" aria-hidden="true"><i class="bi bi-building"></i></span>
                   <div class="cli-identidad__texto">
                     <div class="adm-tabla__principal">{{ e.razon_social }}</div>
                     <div class="adm-tabla__secundario" *ngIf="e.nombre_comercial">{{ e.nombre_comercial }}</div>
                   </div>
                 </div>
               </td>
-              <td data-etiqueta="RUC"><span class="adm-mono cli-documento">{{ e.ruc }}</span></td>
+              <td data-etiqueta="RUC">
+                <span class="cli-doc">
+                  <span class="adm-insignia adm-insignia--sm adm-insignia--primaria cli-doc__tipo" aria-hidden="true">RUC</span>
+                  <span class="adm-mono cli-documento">{{ e.ruc }}</span>
+                </span>
+              </td>
               <td data-etiqueta="Situación">
                 <div class="cli-apilado">
                   <span class="adm-insignia adm-insignia--punto"
-                        [ngClass]="e.estado === 'ACTIVO' ? 'adm-insignia--exito' : 'adm-insignia--aviso'">
+                        [ngClass]="claseEstadoEmpresa(e.estado)">
                     {{ e.estado || 'Sin dato' }}
                   </span>
-                  <span class="adm-tabla__secundario" *ngIf="e.condicion">{{ e.condicion }}</span>
+                  <span class="adm-insignia adm-insignia--sm cli-condicion" [ngClass]="claseCondicion(e.condicion)" *ngIf="e.condicion">{{ e.condicion }}</span>
                 </div>
               </td>
               <td data-etiqueta="Dirección">
@@ -307,6 +346,20 @@
         </table>
       </div>
     </ng-container>
+
+    </ng-container>
+    <ng-template #cliErrorLista>
+      <div class="adm-vacio adm-vacio--error" role="alert">
+        <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">
+          {{ pestania === 'personas' ? 'No se pudieron cargar las personas' : 'No se pudieron cargar las empresas' }}
+        </div>
+        <p>Revise la conexión e intente de nuevo. Lo que ya estaba registrado no se perdió.</p>
+        <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+          <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+        </button>
+      </div>
+    </ng-template>
   </section>
 </div>
 
@@ -320,9 +373,6 @@
         <i class="bi" [ngClass]="editando.tipo === 'empresa' ? 'bi-building' : 'bi-person'"></i>
         {{ editando.tipo === 'empresa' ? 'Editar empresa' : 'Editar cliente' }}
       </h2>
-      <p class="adm-panel__sub cli-panel__sub">
-        {{ editando.tipo === 'empresa' ? (editando.razon_social || 'Empresa sin razón social') : nombreDe(editando) }}
-      </p>
     </div>
     <button type="button" class="adm-btn-icono" (click)="cerrarPanel()" aria-label="Cerrar" title="Cerrar">
       <i class="bi bi-x-lg"></i>
@@ -330,6 +380,29 @@
   </div>
 
   <div class="adm-panel__cuerpo">
+    <!-- Ficha: quién se está editando -->
+    <div class="cli-ficha">
+      <span class="adm-avatar adm-avatar--lg cli-avatar cli-ficha__avatar" [class.cli-avatar--empresa]="editando.tipo === 'empresa'"
+            [attr.data-tono]="tonoDe(editando)" aria-hidden="true">
+        <i class="bi bi-building" *ngIf="editando.tipo === 'empresa'"></i>
+        <ng-container *ngIf="editando.tipo !== 'empresa'">{{ (editando.nombre || nombreDe(editando)).charAt(0) }}{{ (editando.apellido_paterno || '').charAt(0) }}</ng-container>
+      </span>
+      <div class="cli-ficha__texto">
+        <p class="cli-ficha__nombre">
+          {{ editando.tipo === 'empresa' ? (editando.razon_social || 'Empresa sin razón social') : nombreDe(editando) }}
+        </p>
+        <div class="cli-ficha__chips">
+          <span class="adm-insignia adm-insignia--sm adm-insignia--neutra" *ngIf="editando.tipo !== 'empresa'">DNI</span>
+          <span class="adm-insignia adm-insignia--sm adm-insignia--primaria" *ngIf="editando.tipo === 'empresa'">RUC</span>
+          <span class="adm-insignia adm-insignia--sm adm-insignia--info" *ngIf="editando.tipo !== 'empresa' && editando.tiene_cuenta">
+            <i class="bi bi-bag-check" aria-hidden="true"></i> Con cuenta en la tienda
+          </span>
+          <span class="adm-insignia adm-insignia--sm adm-insignia--punto" *ngIf="editando.tipo === 'empresa' && editando.estado"
+                [ngClass]="claseEstadoEmpresa(editando.estado)">{{ editando.estado }}</span>
+        </div>
+      </div>
+    </div>
+
     <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto">
       <i class="bi bi-shield-lock" aria-hidden="true"></i>
       <span>

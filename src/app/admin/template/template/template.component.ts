@@ -15,6 +15,7 @@ import { filter } from 'rxjs';
 import { HeaderComponent } from '../header/header.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { FooterComponent } from '../footer/footer.component';
+import { PaletaComandosComponent } from '../paleta-comandos/paleta-comandos.component';
 
 /** Mismo punto de corte que el CSS del sidebar (cajón sobre el contenido). */
 const MEDIA_MOVIL = '(max-width: 900px)';
@@ -25,7 +26,7 @@ const CLAVE_MENU = 'hs.panel.menu';
   selector: 'app-template',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterModule, HeaderComponent, SidebarComponent, FooterComponent],
+  imports: [CommonModule, RouterModule, HeaderComponent, SidebarComponent, FooterComponent, PaletaComandosComponent],
   templateUrl: './template.component.html',
   styleUrl: './template.component.scss',
 })

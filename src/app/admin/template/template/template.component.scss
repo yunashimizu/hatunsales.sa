@@ -21,11 +21,12 @@
   overflow: hidden;
   min-width: 0;
   min-height: 0;
-  /* Fondo con un leve resplandor de marca en la esquina superior: separa el
-     contenido del gris plano sin restar contraste a las tarjetas. */
+  /* Fondo: resplandor de marca en las esquinas y una cuadrícula de puntos casi
+     invisible (el «papel milimetrado» del taller) que separa el contenido del gris plano. */
   background:
-    radial-gradient(900px 320px at 12% -8%, rgba(99, 102, 241, 0.09), transparent 62%),
-    radial-gradient(700px 300px at 100% 0%, rgba(14, 165, 233, 0.05), transparent 60%),
+    radial-gradient(900px 320px at 12% -8%, color-mix(in srgb, var(--adm-primario) 10%, transparent), transparent 62%),
+    radial-gradient(700px 300px at 100% 0%, rgba(14, 165, 233, 0.06), transparent 60%),
+    radial-gradient(circle at 1px 1px, var(--adm-punteado) 1px, transparent 0) 0 0 / 24px 24px,
     var(--adm-fondo, #f3f5fa);
 
   .main-content {
@@ -36,11 +37,7 @@
     overscroll-behavior-y: contain;
     padding: 26px 30px 34px;
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
-
-    &::-webkit-scrollbar { width: 8px; }
-    &::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
-    &::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    scrollbar-color: var(--adm-interruptor-off) transparent;
   }
 
   > app-header,

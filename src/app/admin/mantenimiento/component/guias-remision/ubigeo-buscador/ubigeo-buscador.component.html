@@ -1,0 +1,37 @@
+<div class="adm-campo adm-autocompletar ubigeo">
+  <label class="adm-etiqueta" [for]="idCampo">{{ etiqueta }}</label>
+  <div class="ubigeo__control">
+    <input class="adm-input" type="text" autocomplete="off" role="combobox" aria-autocomplete="list"
+           [id]="idCampo" [ngModel]="consulta" (ngModelChange)="alEscribir($event)" [ngModelOptions]="{ standalone: true }"
+           [disabled]="deshabilitado" [class.adm-input--error]="ayuda.error"
+           [attr.aria-invalid]="ayuda.error ? true : null"
+           [attr.aria-expanded]="abierto" [attr.aria-controls]="idLista"
+           [attr.aria-activedescendant]="abierto && activo >= 0 ? idOpcion(activo) : null"
+           [attr.aria-describedby]="idAyuda"
+           placeholder="Distrito o código INEI"
+           (keydown)="alTeclear($event)" (blur)="alSalir()">
+    @if (consulta && !deshabilitado) {
+      <button type="button" class="adm-btn-icono adm-btn-icono--sm ubigeo__limpiar" (click)="limpiar()"
+              [attr.aria-label]="'Quitar el distrito de ' + etiqueta">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    }
+  </div>
+  @if (abierto && resultados.length) {
+    <ul class="adm-sugerencias" role="listbox" [id]="idLista" [attr.aria-label]="'Distritos para ' + etiqueta">
+      @for (u of resultados; track u.codigo; let i = $index) {
+        <li class="adm-sugerencia" role="option" [id]="idOpcion(i)"
+            [class.adm-sugerencia--activa]="i === activo" [attr.aria-selected]="i === activo"
+            (mousedown)="$event.preventDefault(); elegir(u)">
+          <span class="adm-insignia adm-insignia--neutra adm-mono">{{ u.codigo }}</span>
+          <div class="adm-sugerencia__texto">
+            <div class="adm-sugerencia__titulo">{{ u.distrito }}</div>
+            <div class="adm-sugerencia__detalle">{{ u.provincia }} · {{ u.departamento }}</div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+  <p class="adm-ayuda" [id]="idAyuda" [class.adm-ayuda--error]="ayuda.error"
+     [attr.role]="estado === 'error' ? 'alert' : estado === 'buscando' ? 'status' : null">{{ ayuda.texto }}</p>
+</div>

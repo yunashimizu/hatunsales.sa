@@ -1,0 +1,33 @@
+<div class="adm-aviso rs" [ngClass]="clase" [attr.role]="vista.tono === 'peligro' ? 'alert' : 'status'">
+  <i class="bi" [ngClass]="vista.icono" aria-hidden="true"></i>
+  <div class="rs__cuerpo">
+    <strong class="adm-aviso__titulo">
+      {{ vista.titulo }}
+      @if (numero) {
+        <span class="rs__numero adm-tabular">· {{ numero }}</span>
+      }
+    </strong>
+    @if (vista.beta) {
+      <span class="adm-insignia adm-insignia--aviso adm-insignia--sm rs__beta">
+        <i class="bi bi-cone-striped" aria-hidden="true"></i> Prueba SUNAT BETA - sin validez tributaria
+      </span>
+    }
+    @if (vista.detalle) {
+      <p class="rs__texto">{{ vista.detalle }}</p>
+    }
+    @if (vista.observaciones.length) {
+      <ul class="rs__observaciones" aria-label="Observaciones de SUNAT">
+        @for (observacion of vista.observaciones; track $index) {
+          <li><span class="adm-mono">{{ observacion.codigo }}</span> {{ observacion.descripcion }}</li>
+        }
+      </ul>
+    }
+    @if (vista.siguiente) {
+      <p class="rs__texto rs__siguiente">
+        <i class="bi bi-arrow-right-circle" aria-hidden="true"></i>
+        <span>{{ vista.siguiente }}</span>
+      </p>
+    }
+    <ng-content></ng-content>
+  </div>
+</div>

@@ -1,110 +1,144 @@
-<div class="contenedor">
+<div class="pagina x-contenedor">
 
   <nav class="migas" aria-label="Ruta de navegación">
     <a routerLink="/store">Inicio</a>
-    <i class="bi bi-chevron-right"></i>
-    <span>Mi cuenta</span>
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    <span aria-current="page">Mi cuenta</span>
   </nav>
 
-  <header class="perfil-cabecera">
-    <div class="avatar" aria-hidden="true">{{ iniciales || 'C' }}</div>
-    <div>
-      <h1>{{ usuario.nombre }}</h1>
-      <p class="subtitulo">{{ usuario.email || 'Sin correo registrado' }}</p>
-    </div>
+  <header class="cab" hsReveal>
+    <span class="x-etiqueta x-etiqueta--corchetes">Perfil</span>
+    <h1 class="x-titulo">Mi cuenta</h1>
+    <p>Gestiona tus datos, direcciones y pedidos desde un solo lugar.</p>
   </header>
 
   <div class="disposicion">
 
-    <nav class="menu" aria-label="Secciones de la cuenta">
-      <button
-        type="button"
-        *ngFor="let s of secciones"
-        [class.activo]="seccion === s.id"
-        (click)="seccion = s.id">
-        <i class="bi" [class]="s.icono"></i>{{ s.titulo }}
-      </button>
+    <aside class="lateral">
 
-      <a routerLink="/store/favoritos"><i class="bi bi-heart"></i>Favoritos</a>
-      <a routerLink="/store/pedidos"><i class="bi bi-clock-history"></i>Historial completo</a>
-    </nav>
+      <!-- Identidad -->
+      <section class="identidad x-brillo x-grano" hsSpotlight aria-label="Tu cuenta">
+        <div class="avatar" aria-hidden="true">{{ iniciales || 'C' }}</div>
+        <div class="identidad__texto">
+          <h2>{{ usuario.nombre }}</h2>
+          <p>{{ usuario.email || 'Sin correo registrado' }}</p>
+        </div>
+        <ul class="chips">
+          <li class="x-pastilla" *ngIf="usuario.rol"><i class="bi bi-patch-check" aria-hidden="true"></i>{{ usuario.rol | titlecase }}</li>
+          <li class="x-pastilla" *ngIf="!cargando"><i class="bi bi-geo-alt" aria-hidden="true"></i>{{ direcciones.length }} {{ direcciones.length === 1 ? 'dirección' : 'direcciones' }}</li>
+          <li class="x-pastilla" *ngIf="pedidos.length > 0"><i class="bi bi-box-seam" aria-hidden="true"></i>{{ pedidos.length }} {{ pedidos.length === 1 ? 'pedido reciente' : 'pedidos recientes' }}</li>
+        </ul>
+      </section>
+
+      <nav class="menu" aria-label="Secciones de la cuenta">
+        <button
+          type="button"
+          *ngFor="let s of secciones"
+          [class.activo]="seccion === s.id"
+          [attr.aria-current]="seccion === s.id ? 'true' : null"
+          (click)="seccion = s.id">
+          <span class="menu__ic"><i class="bi" [class]="s.icono"></i></span>{{ s.titulo }}
+        </button>
+
+        <a routerLink="/store/favoritos"><span class="menu__ic"><i class="bi bi-heart"></i></span>Favoritos</a>
+        <a routerLink="/store/pedidos"><span class="menu__ic"><i class="bi bi-clock-history"></i></span>Historial completo</a>
+      </nav>
+    </aside>
 
     <section class="panel">
 
       <!-- Datos -->
       <div class="bloque" *ngIf="seccion === 'datos'">
-        <h2>Mis datos</h2>
-        <p class="ayuda">Actualiza tu nombre, correo o contraseña cuando quieras.</p>
+        <header class="sec-cab">
+          <span class="sec-ic sec-ic--cielo"><i class="bi bi-person" aria-hidden="true"></i></span>
+          <div class="sec-cab__texto">
+            <h2>Mis datos</h2>
+            <p class="ayuda">Actualiza tu nombre, correo o contraseña cuando quieras.</p>
+          </div>
+        </header>
 
-        <div class="campos" style="margin-bottom:1.25rem">
-          <label class="campo">
-            <span>Nombre</span>
-            <input type="text" [(ngModel)]="formulario.nombre" autocomplete="name" />
-          </label>
-          <label class="campo">
-            <span>Correo</span>
-            <input type="email" [(ngModel)]="formulario.email" autocomplete="email" />
-          </label>
-          <label class="campo" *ngIf="usuario.rol">
-            <span>Tipo de cuenta</span>
-            <input type="text" [value]="usuario.rol | titlecase" disabled />
-          </label>
-          <label class="campo">
-            <span>Contraseña actual</span>
-            <input type="password" [(ngModel)]="formulario.password_actual" autocomplete="current-password" placeholder="Solo si cambias la clave" />
-          </label>
-          <label class="campo">
-            <span>Nueva contraseña</span>
-            <input type="password" [(ngModel)]="formulario.password_nueva" autocomplete="new-password" />
-          </label>
-          <label class="campo">
-            <span>Confirmar nueva</span>
-            <input type="password" [(ngModel)]="formulario.password_confirma" autocomplete="new-password" />
-          </label>
+        <div class="tarjeta">
+          <h3>Datos personales</h3>
+          <div class="campos campos--3">
+            <label class="campo">
+              <span>Nombre</span>
+              <input type="text" [(ngModel)]="formulario.nombre" autocomplete="name" />
+            </label>
+            <label class="campo">
+              <span>Correo</span>
+              <input type="email" [(ngModel)]="formulario.email" autocomplete="email" />
+            </label>
+            <label class="campo" *ngIf="usuario.rol">
+              <span>Tipo de cuenta</span>
+              <input type="text" [value]="usuario.rol | titlecase" disabled />
+            </label>
+          </div>
         </div>
 
-        <button type="button" class="boton-primario" (click)="guardarPerfil()" [disabled]="guardandoPerfil">
-          {{ guardandoPerfil ? 'Guardando…' : 'Guardar mis datos' }}
-        </button>
+        <div class="tarjeta">
+          <h3>Contraseña</h3>
+          <p class="nota">Déjala en blanco si no quieres cambiarla.</p>
+          <div class="campos campos--3">
+            <label class="campo">
+              <span>Contraseña actual</span>
+              <input type="password" [(ngModel)]="formulario.password_actual" autocomplete="current-password" placeholder="Solo si cambias la clave" />
+            </label>
+            <label class="campo">
+              <span>Nueva contraseña</span>
+              <input type="password" [(ngModel)]="formulario.password_nueva" autocomplete="new-password" />
+            </label>
+            <label class="campo">
+              <span>Confirmar nueva</span>
+              <input type="password" [(ngModel)]="formulario.password_confirma" autocomplete="new-password" />
+            </label>
+          </div>
+        </div>
 
-        <div class="atajos" style="margin-top:1.5rem">
-          <a routerLink="/store/pedidos" class="atajo">
-            <i class="bi bi-box-seam"></i>
-            <span><strong>Mis pedidos</strong><small>Estado y seguimiento</small></span>
-            <i class="bi bi-chevron-right flecha"></i>
+        <div class="acciones-formulario">
+          <button type="button" class="x-boton" (click)="guardarPerfil()" [disabled]="guardandoPerfil">
+            <i class="bi bi-check2" aria-hidden="true"></i>{{ guardandoPerfil ? 'Guardando…' : 'Guardar mis datos' }}
+          </button>
+        </div>
+
+        <div class="atajos">
+          <a routerLink="/store/pedidos" class="atajo atajo--a x-brillo" hsSpotlight>
+            <span class="atajo__ic"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
+            <span class="atajo__texto"><strong>Mis pedidos</strong><small>Estado y seguimiento</small></span>
+            <i class="bi bi-arrow-up-right flecha" aria-hidden="true"></i>
           </a>
-          <a routerLink="/store/favoritos" class="atajo">
-            <i class="bi bi-heart"></i>
-            <span><strong>Favoritos</strong><small>Productos guardados</small></span>
-            <i class="bi bi-chevron-right flecha"></i>
+          <a routerLink="/store/favoritos" class="atajo atajo--b x-brillo" hsSpotlight>
+            <span class="atajo__ic"><i class="bi bi-heart" aria-hidden="true"></i></span>
+            <span class="atajo__texto"><strong>Favoritos</strong><small>Productos guardados</small></span>
+            <i class="bi bi-arrow-up-right flecha" aria-hidden="true"></i>
           </a>
-          <a routerLink="/store/carrito" class="atajo">
-            <i class="bi bi-cart3"></i>
-            <span><strong>Mi carrito</strong><small>Continuar la compra</small></span>
-            <i class="bi bi-chevron-right flecha"></i>
+          <a routerLink="/store/carrito" class="atajo atajo--c x-brillo" hsSpotlight>
+            <span class="atajo__ic"><i class="bi bi-cart3" aria-hidden="true"></i></span>
+            <span class="atajo__texto"><strong>Mi carrito</strong><small>Continuar la compra</small></span>
+            <i class="bi bi-arrow-up-right flecha" aria-hidden="true"></i>
           </a>
-          <a routerLink="/store/contacto" class="atajo">
-            <i class="bi bi-headset"></i>
-            <span><strong>Ayuda y contacto</strong><small>Teléfono, WhatsApp y ubicación</small></span>
-            <i class="bi bi-chevron-right flecha"></i>
+          <a routerLink="/store/contacto" class="atajo atajo--d x-brillo" hsSpotlight>
+            <span class="atajo__ic"><i class="bi bi-headset" aria-hidden="true"></i></span>
+            <span class="atajo__texto"><strong>Ayuda y contacto</strong><small>Teléfono, WhatsApp y ubicación</small></span>
+            <i class="bi bi-arrow-up-right flecha" aria-hidden="true"></i>
           </a>
         </div>
       </div>
 
       <!-- Direcciones -->
       <div class="bloque" *ngIf="seccion === 'direcciones'">
-        <div class="titulo-fila">
-          <div>
+        <header class="sec-cab">
+          <span class="sec-ic sec-ic--rosa"><i class="bi bi-geo-alt" aria-hidden="true"></i></span>
+          <div class="sec-cab__texto">
             <h2>Mis direcciones</h2>
             <p class="ayuda">Guarda tus lugares de entrega para comprar más rápido.</p>
           </div>
-          <button type="button" class="boton-primario" *ngIf="!mostrarFormulario" (click)="nueva()">
-            <i class="bi bi-plus-lg"></i>Nueva
+          <button type="button" class="x-boton x-boton--sm" *ngIf="!mostrarFormulario" (click)="nueva()">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i>Nueva
           </button>
-        </div>
+        </header>
 
         <!-- Formulario -->
-        <div class="formulario" *ngIf="mostrarFormulario">
+        <div class="tarjeta formulario" *ngIf="mostrarFormulario">
           <h3>{{ editandoId ? 'Editar dirección' : 'Nueva dirección' }}</h3>
 
           <div class="campos">
@@ -148,23 +182,28 @@
           </label>
 
           <div class="acciones-formulario">
-            <button type="button" class="boton-primario" (click)="guardar()" [disabled]="guardando">
+            <button type="button" class="x-boton" (click)="guardar()" [disabled]="guardando">
               {{ guardando ? 'Guardando…' : 'Guardar dirección' }}
             </button>
-            <button type="button" class="boton-texto" (click)="cancelar()">Cancelar</button>
+            <button type="button" class="x-boton x-boton--fantasma" (click)="cancelar()">Cancelar</button>
           </div>
         </div>
 
+        <div class="tarjetas" *ngIf="cargando" aria-busy="true" aria-label="Cargando tus direcciones">
+          <div class="esq-dir mov-esqueleto" *ngFor="let i of [1, 2]" aria-hidden="true"></div>
+        </div>
+
         <div class="vacio-mini" *ngIf="!cargando && direcciones.length === 0 && !mostrarFormulario">
-          <i class="bi bi-geo-alt"></i>
-          Todavía no tienes direcciones guardadas.
+          <i class="bi bi-geo-alt" aria-hidden="true"></i>
+          <span>Todavía no tienes direcciones guardadas.</span>
         </div>
 
         <div class="tarjetas">
           <article class="direccion" *ngFor="let d of direcciones" [class.predeterminada]="d.es_predeterminada">
             <header>
+              <span class="direccion__ic"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i></span>
               <strong>{{ d.alias || 'Dirección' }}</strong>
-              <span class="etiqueta-mini" *ngIf="d.es_predeterminada">Predeterminada</span>
+              <span class="etiqueta-mini" *ngIf="d.es_predeterminada"><i class="bi bi-check2-circle" aria-hidden="true"></i>Predeterminada</span>
             </header>
 
             <p>{{ textoDireccion(d) }}</p>
@@ -172,8 +211,8 @@
             <small *ngIf="d.destinatario">{{ d.destinatario }}<span *ngIf="d.telefono"> · {{ d.telefono }}</span></small>
 
             <footer>
-              <button type="button" (click)="editar(d)"><i class="bi bi-pencil"></i>Editar</button>
-              <button type="button" class="peligro" (click)="eliminar(d)"><i class="bi bi-trash"></i>Eliminar</button>
+              <button type="button" (click)="editar(d)"><i class="bi bi-pencil" aria-hidden="true"></i>Editar</button>
+              <button type="button" class="peligro" (click)="eliminar(d)"><i class="bi bi-trash" aria-hidden="true"></i>Eliminar</button>
             </footer>
           </article>
         </div>
@@ -181,28 +220,32 @@
 
       <!-- Últimos pedidos -->
       <div class="bloque" *ngIf="seccion === 'pedidos'">
-        <div class="titulo-fila">
-          <div>
+        <header class="sec-cab">
+          <span class="sec-ic sec-ic--naranja"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
+          <div class="sec-cab__texto">
             <h2>Últimos pedidos</h2>
             <p class="ayuda">Tus compras más recientes.</p>
           </div>
-          <a class="boton-texto" routerLink="/store/pedidos">Ver todos<i class="bi bi-arrow-right"></i></a>
-        </div>
+          <a class="x-boton x-boton--contorno x-boton--sm" routerLink="/store/pedidos">Ver todos<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </header>
 
         <div class="vacio-mini" *ngIf="pedidos.length === 0">
-          <i class="bi bi-box-seam"></i>
-          Todavía no tienes pedidos registrados.
+          <i class="bi bi-box-seam" aria-hidden="true"></i>
+          <span>Todavía no tienes pedidos registrados.</span>
         </div>
 
-        <a class="pedido-fila" *ngFor="let p of pedidos" [routerLink]="['/store/pedidos', p.id_pedido]">
-          <div class="pedido-info">
-            <strong>{{ p.codigo }}</strong>
-            <small>{{ p.creado_en | date: 'dd MMM yyyy' }} · {{ p.cantidad_items }} productos</small>
-          </div>
-          <span class="pedido-estado" [class]="p.estado">{{ p.estado | titlecase }}</span>
-          <strong class="pedido-total">S/ {{ p.total | number: '1.2-2' }}</strong>
-          <i class="bi bi-chevron-right flecha"></i>
-        </a>
+        <div class="pedidos">
+          <a class="pedido-fila x-brillo" hsSpotlight *ngFor="let p of pedidos" [routerLink]="['/store/pedidos', p.id_pedido]">
+            <span class="pedido-ic"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
+            <div class="pedido-info">
+              <strong class="x-numero">{{ p.codigo }}</strong>
+              <small>{{ p.creado_en | date: 'dd MMM yyyy' }} · {{ p.cantidad_items }} productos</small>
+            </div>
+            <span class="pedido-estado" [class]="p.estado">{{ p.estado | titlecase }}</span>
+            <strong class="pedido-total">S/ {{ p.total | number: '1.2-2' }}</strong>
+            <i class="bi bi-chevron-right flecha" aria-hidden="true"></i>
+          </a>
+        </div>
       </div>
     </section>
   </div>

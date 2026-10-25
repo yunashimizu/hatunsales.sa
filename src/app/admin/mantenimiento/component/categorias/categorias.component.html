@@ -1,12 +1,18 @@
 <div class="adm-pagina">
 
+  <!-- Cabecera de página -->
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Categorías</h1>
-      <p class="adm-cabecera__sub">Organizan el catálogo de productos en el panel y en la tienda.</p>
-      <p class="adm-ayuda" *ngIf="!puedeEditar" style="margin-top:0.35rem">
-        Solo lectura: puede ver las categorías, sin crear ni editar.
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-tags"></i></span>
+      <div class="cat-cabecera__texto">
+        <span class="adm-cabecera__eyebrow">Catálogo</span>
+        <h1 class="adm-cabecera__titulo">Categorías</h1>
+        <p class="adm-cabecera__sub">Organizan el catálogo de productos en el panel y en la tienda.</p>
+        <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto cat-solo-lectura" *ngIf="!puedeEditar" role="status">
+          <i class="bi bi-lock" aria-hidden="true"></i>
+          <span>Solo lectura: puede ver las categorías, sin crear ni editar.</span>
+        </div>
+      </div>
     </div>
     <div class="adm-acciones">
       <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
@@ -16,83 +22,179 @@
     </div>
   </header>
 
-  <div class="adm-grid" [class.adm-grid--2]="puedeEditar">
-
-    <section class="adm-tarjeta" *ngIf="puedeEditar">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo">
-          <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
-          {{ editandoId ? 'Editar categoría' : 'Crear categoría' }}
-        </h2>
+  <!-- Indicadores -->
+  <section class="adm-grid adm-grid--3" aria-label="Resumen de categorías" hsReveal="lista">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"><i class="bi bi-tags"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !categorias.length); else catEsqCifra"><span [hsCountUp]="categorias.length"></span></ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Categorías</div>
+        <div class="adm-metrica__delta">Ordenan la tienda y el panel</div>
       </div>
-      <div class="adm-tarjeta__cuerpo">
-        <div class="adm-campo">
-          <label class="adm-etiqueta" for="cat-nombre">Nombre</label>
-          <input id="cat-nombre" class="adm-input" type="text" [(ngModel)]="modelo.nombre">
+    </div>
+    <div class="adm-metrica adm-metrica--exito">
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-check2-circle"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !categorias.length); else catEsqCifra"><span [hsCountUp]="totalActivas"></span></ng-container>
         </div>
-        <div class="adm-campo" style="margin-top:0.85rem">
-          <label class="adm-etiqueta" for="cat-desc">Descripción</label>
-          <textarea id="cat-desc" class="adm-textarea" rows="3" [(ngModel)]="modelo.descripcion"></textarea>
+        <div class="adm-metrica__etiqueta">Activas</div>
+        <div class="adm-metrica__delta">{{ categorias.length - totalActivas }} inactivas</div>
+      </div>
+    </div>
+    <div class="adm-metrica adm-metrica--aviso">
+      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-card-text"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !categorias.length); else catEsqCifra"><span [hsCountUp]="totalSinDescripcion"></span></ng-container>
         </div>
-        <div class="adm-campo" style="margin-top:0.85rem">
-          <label class="adm-etiqueta" for="cat-color">Color</label>
-          <input id="cat-color" class="adm-input" type="color" [(ngModel)]="modelo.color">
+        <div class="adm-metrica__etiqueta">Sin descripción</div>
+        <div class="adm-metrica__delta">Conviene explicar cada una</div>
+      </div>
+    </div>
+  </section>
+  <ng-template #catEsqCifra><span class="adm-esqueleto cat-esqueleto-cifra" aria-hidden="true"></span></ng-template>
+
+  <!-- Formulario + listado (lado a lado cuando hay espacio) -->
+  <div class="cat-area">
+    <div class="cat-disposicion" [class.cat-disposicion--sola]="!puedeEditar">
+
+      <!-- Alta y edición -->
+      <section class="adm-tarjeta cat-form" *ngIf="puedeEditar" [class.cat-form--editando]="editandoId" aria-labelledby="cat-form-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="cat-form-titulo">
+              <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+              {{ editandoId ? 'Editar categoría' : 'Crear categoría' }}
+            </h2>
+            <p class="adm-tarjeta__sub">
+              {{ editandoId ? 'Modifique los datos y guarde los cambios.' : 'Se verá en el panel y en el menú de la tienda.' }}
+            </p>
+          </div>
+          <span class="adm-insignia adm-insignia--primaria adm-insignia--punto" *ngIf="editandoId">Editando</span>
         </div>
-        <div class="adm-acciones" style="margin-top:1rem;gap:.5rem">
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
-            {{ guardando ? 'Guardando…' : (editandoId ? 'Actualizar' : 'Crear') }}
-          </button>
+
+        <div class="adm-tarjeta__cuerpo cat-form__cuerpo">
+          <div class="adm-campo">
+            <label class="adm-etiqueta adm-etiqueta--requerida" for="cat-nombre">Nombre</label>
+            <input id="cat-nombre" class="adm-input" type="text" autocomplete="off" placeholder="Ej.: Herramientas manuales"
+                   [(ngModel)]="modelo.nombre">
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="cat-desc">Descripción <span class="adm-etiqueta__opcional">opcional</span></label>
+            <textarea id="cat-desc" class="adm-textarea" rows="3" placeholder="Qué productos agrupa"
+                      [(ngModel)]="modelo.descripcion"></textarea>
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="cat-color">Color</label>
+            <div class="cat-color-campo">
+              <input id="cat-color" class="adm-input cat-color-input" type="color" [(ngModel)]="modelo.color">
+              <span class="cat-color-valor">{{ modelo.color }}</span>
+            </div>
+            <p class="adm-ayuda">Solo identifica la categoría en esta lista.</p>
+          </div>
+
+          <!-- Vista previa en vivo -->
+          <div class="cat-previa" aria-hidden="true">
+            <span class="cat-previa__rotulo">Vista previa</span>
+            <div class="cat-tarjeta cat-tarjeta--previa" [style.--cat-color]="modelo.color">
+              <span class="cat-icono"><i class="bi" [ngClass]="iconoVista"></i></span>
+              <div class="cat-tarjeta__cuerpo">
+                <h3 class="cat-nombre">{{ modelo.nombre?.trim() || 'Nombre de la categoría' }}</h3>
+                <p class="cat-desc">{{ modelo.descripcion?.trim() || 'Sin descripción' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="adm-tarjeta__pie">
           <button type="button" class="adm-btn adm-btn--suave" *ngIf="editandoId" (click)="cancelarEdicion()">
             Cancelar
           </button>
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
+            {{ guardando ? 'Guardando…' : (editandoId ? 'Actualizar' : 'Crear') }}
+          </button>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-tags"></i> Lista</h2>
-        <span class="adm-insignia adm-insignia--neutra">{{ categorias.length }}</span>
-      </div>
+      <!-- Listado -->
+      <section class="adm-tarjeta adm-tarjeta--acento" aria-labelledby="cat-lista-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="cat-lista-titulo">
+              <i class="bi bi-tags"></i> Lista
+              <span class="adm-insignia adm-insignia--neutra">{{ categorias.length }}</span>
+            </h2>
+            <p class="adm-tarjeta__sub" *ngIf="puedeEditar">Use el lápiz para cargar una categoría en el formulario.</p>
+          </div>
+        </div>
 
-      <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !categorias.length">
-        <div class="adm-esqueleto" *ngFor="let n of [1,2,3,4]"></div>
-      </div>
+        <div class="cat-lista" *ngIf="cargando && !categorias.length" aria-busy="true" aria-label="Cargando categorías">
+          <div class="cat-tarjeta cat-tarjeta--esqueleto" *ngFor="let n of [1,2,3,4]">
+            <span class="adm-esqueleto cat-esqueleto-icono"></span>
+            <span class="cat-esqueleto-texto">
+              <span class="adm-esqueleto adm-esqueleto--titulo"></span>
+              <span class="adm-esqueleto adm-esqueleto--linea"></span>
+            </span>
+          </div>
+        </div>
 
-      <div class="adm-vacio" *ngIf="!cargando && !categorias.length">
-        <div class="adm-vacio__icono"><i class="bi bi-tags"></i></div>
-        <div class="adm-vacio__titulo">No hay categorías</div>
-      </div>
+        <div class="adm-vacio adm-vacio--error" *ngIf="errorCarga && !cargando && !categorias.length" role="alert">
+          <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+          <div class="adm-vacio__titulo">No se pudieron cargar las categorías</div>
+          <p>Revise la conexión e intente de nuevo.</p>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+          </button>
+        </div>
 
-      <div class="adm-tabla-envoltorio" *ngIf="categorias.length">
-        <table class="adm-tabla adm-tabla--adaptable">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Descripción</th>
-              <th *ngIf="puedeEditar"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let c of categorias; trackBy: identificarCategoria" [class.adm-recien-creado]="idDestacado === c.id_categoria">
-              <td data-etiqueta="Nombre">
-                <div class="adm-tabla__principal" style="display:flex;align-items:center;gap:.5rem">
-                  <span class="cat-color" [style.background]="c.color || '#cbd5e1'"></span>
-                  {{ c.nombre }}
-                </div>
-              </td>
-              <td data-etiqueta="Descripción">{{ c.descripcion || '—' }}</td>
-              <td data-etiqueta="Acciones" *ngIf="puedeEditar">
-                <div class="adm-acciones">
-                  <button type="button" class="adm-btn adm-btn--suave" (click)="editar(c)">Editar</button>
-                  <button type="button" class="adm-btn adm-btn--suave" (click)="eliminar(c.id_categoria)">Eliminar</button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+        <div class="adm-vacio" *ngIf="!cargando && !errorCarga && !categorias.length">
+          <div class="adm-vacio__icono"><i class="bi bi-tags"></i></div>
+          <div class="adm-vacio__titulo">No hay categorías</div>
+          <p *ngIf="puedeEditar">Cree la primera con el formulario para empezar a ordenar los productos.</p>
+        </div>
 
+        <ul class="cat-lista" *ngIf="categorias.length" hsReveal="lista">
+          <li class="cat-tarjeta" *ngFor="let c of categorias; trackBy: identificarCategoria"
+              [style.--cat-color]="c.color || null"
+              [class.adm-recien-creado]="idDestacado === c.id_categoria"
+              [class.cat-tarjeta--editando]="editandoId === c.id_categoria"
+              [class.cat-tarjeta--inactiva]="c.activo === false">
+            <div class="cat-tarjeta__cabecera">
+              <span class="cat-icono" aria-hidden="true">
+                <img *ngIf="c.imagen_url; else catIcono" [src]="urlDe(c.imagen_url)" alt="" loading="lazy">
+                <ng-template #catIcono><i class="bi" [ngClass]="c.icono || 'bi-tag'"></i></ng-template>
+              </span>
+              <div class="cat-tarjeta__cuerpo">
+                <h3 class="cat-nombre">{{ c.nombre }}</h3>
+                <p class="cat-slug" *ngIf="c.slug">/{{ c.slug }}</p>
+              </div>
+              <div class="cat-acciones" *ngIf="puedeEditar">
+                <button type="button" class="adm-btn-icono adm-btn-icono--primario adm-btn-icono--sm" (click)="editar(c)"
+                        title="Editar" [attr.aria-label]="'Editar ' + c.nombre">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="adm-btn-icono adm-btn-icono--peligro adm-btn-icono--sm" (click)="eliminar(c.id_categoria)"
+                        title="Eliminar" [attr.aria-label]="'Eliminar ' + c.nombre">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+            <p class="cat-desc" [class.cat-desc--vacia]="!c.descripcion">{{ c.descripcion || 'Sin descripción' }}</p>
+            <div class="cat-tarjeta__pie">
+              <span class="adm-insignia adm-insignia--punto adm-insignia--sm"
+                    [ngClass]="c.activo === false ? 'adm-insignia--neutra' : 'adm-insignia--exito'">
+                {{ c.activo === false ? 'Inactiva' : 'Activa' }}
+              </span>
+              <span class="cat-orden" *ngIf="c.orden != null" title="Posición en la tienda">N.º {{ c.orden }}</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+    </div>
   </div>
 </div>

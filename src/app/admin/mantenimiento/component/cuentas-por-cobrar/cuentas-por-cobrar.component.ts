@@ -18,12 +18,14 @@ import { rolPermitido } from '../../../../auth/roles.constants';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { mensajeDeError, errorOperativo, escapeHtmlAlerta } from '../../../service/api-base.service';
 import { SugerenciaReceptor } from '../../../models/admin.models';
+import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
+import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
 @Component({
   selector: 'app-cuentas-por-cobrar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, CountUpDirective, RevealDirective],
   templateUrl: './cuentas-por-cobrar.component.html',
   styleUrl: './cuentas-por-cobrar.component.css',
 })
@@ -31,6 +33,8 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   cuentas: any[] = [];
   total = 0;
   cargando = false;
+  /** La última carga de cuentas falló (solo para mostrar el estado de error en pantalla; el aviso modal sigue igual). */
+  errorCarga = false;
   filtroEstado = '';
   filtroTexto = '';
   seleccion: any = null;
@@ -135,6 +139,117 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destruir$.next();
     this.destruir$.complete();
+  }
+
+  // ── Resumen y presentación (solo vista; calculado sobre las cuentas que muestra la lista) ──
+
+  private monto(valor: unknown): number {
+    const n = Number(valor);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  /** Días hasta el vencimiento (negativo = ya venció; 0 = vence hoy). null si la fecha no es válida. */
+  diasPara(c: any): number | null {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(c?.fecha_vencimiento ?? ''));
+    if (!m) return null;
+    const vence = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    return Math.round((vence.getTime() - hoy.getTime()) / 86_400_000);
+  }
+
+  /** «Vence en 5 días», «Vence hoy», «Venció hace 7 días» o «Pagada». */
+  textoVence(c: any): string {
+    if (c?.estado === 'pagado') return 'Pagada';
+    const d = this.diasPara(c);
+    if (d === null) return '';
+    if (d === 0) return 'Vence hoy';
+    if (d === 1) return 'Vence mañana';
+    if (d > 1) return `Vence en ${d} días`;
+    return d === -1 ? 'Venció ayer' : `Venció hace ${-d} días`;
+  }
+
+  /** Lo mismo en minúscula para frases: «faltan 5 días», «vence hoy», «venció hace 7 días». */
+  textoDias(c: any): string {
+    if (c?.estado === 'pagado') return '';
+    const d = this.diasPara(c);
+    if (d === null) return '';
+    if (d === 0) return 'vence hoy';
+    if (d === 1) return 'vence mañana';
+    if (d > 1) return `faltan ${d} días`;
+    return d === -1 ? 'venció ayer' : `venció hace ${-d} días`;
+  }
+
+  /** Urgencia del vencimiento para colorear el texto: neutro, aviso (≤ 3 días) o peligro (vencida). */
+  urgenciaVence(c: any): 'neutro' | 'aviso' | 'peligro' | 'exito' {
+    if (c?.estado === 'pagado') return 'exito';
+    const d = this.diasPara(c);
+    if (c?.estado === 'vencido' || (d !== null && d < 0)) return 'peligro';
+    return d !== null && d <= 3 ? 'aviso' : 'neutro';
+  }
+
+  /** Parte ya cobrada de una cuenta (0–100). */
+  pctCobro(c: any): number {
+    const total = this.monto(c?.monto_total);
+    if (total <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round(((total - this.monto(c?.saldo)) / total) * 100)));
+  }
+
+  get totalSaldo(): number {
+    return this.cuentas.reduce((s, c) => s + this.monto(c.saldo), 0);
+  }
+
+  get saldoVencido(): number {
+    return this.cuentas.filter((c) => c.estado === 'vencido').reduce((s, c) => s + this.monto(c.saldo), 0);
+  }
+
+  get cuentasVencidas(): number {
+    return this.cuentas.filter((c) => c.estado === 'vencido').length;
+  }
+
+  /** Saldo de las cuentas vigentes que vencen en los próximos 7 días (incluye hoy). */
+  get saldoPorVencer(): number {
+    return this.cuentasPorVencerLista.reduce((s, c) => s + this.monto(c.saldo), 0);
+  }
+
+  get cuentasPorVencer(): number {
+    return this.cuentasPorVencerLista.length;
+  }
+
+  private get cuentasPorVencerLista(): any[] {
+    return this.cuentas.filter((c) => {
+      if (c.estado !== 'pendiente' && c.estado !== 'parcial') return false;
+      const d = this.diasPara(c);
+      return d !== null && d >= 0 && d <= 7;
+    });
+  }
+
+  get cuentasConSaldo(): number {
+    return this.cuentas.filter((c) => this.monto(c.saldo) > 0).length;
+  }
+
+  get totalCobrado(): number {
+    return this.cuentas.reduce((s, c) => s + Math.max(0, this.monto(c.monto_total) - this.monto(c.saldo)), 0);
+  }
+
+  get pctCobrado(): number {
+    const facturado = this.cuentas.reduce((s, c) => s + this.monto(c.monto_total), 0);
+    return facturado > 0 ? Math.round((this.totalCobrado / facturado) * 100) : 0;
+  }
+
+  /** Iniciales para el avatar de un banco o deudor («BCP» → «BC», «Juan Pérez» → «JP»). */
+  iniciales(texto: unknown): string {
+    const partes = String(texto ?? '').trim().split(/\s+/).filter(Boolean);
+    if (!partes.length) return '?';
+    return (partes.length === 1 ? partes[0].slice(0, 2) : partes[0][0] + partes[1][0]).toUpperCase();
+  }
+
+  /** Tono estable (0–5) del avatar según el texto. */
+  tonoDe(texto: unknown): number {
+    const clave = String(texto ?? '');
+    let h = 0;
+    for (let i = 0; i < clave.length; i++) h = (h * 31 + clave.charCodeAt(i)) >>> 0;
+    return h % 6;
   }
 
   identificarCuenta(_i: number, c: any): number {
@@ -327,6 +442,7 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
 
   cargar(): void {
     this.cargando = true;
+    this.errorCarga = false;
     this.cdr.markForCheck();
     this.pv.listarCxc({
       estado: this.filtroEstado || undefined,
@@ -341,6 +457,7 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
       },
       error: (e) => {
         this.cargando = false;
+        this.errorCarga = true;
         this.cdr.markForCheck();
         void this.alerta.error({
           title: 'No se pudieron cargar las cuentas',

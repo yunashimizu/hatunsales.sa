@@ -1,123 +1,233 @@
 <div class="adm-pagina">
 
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Cuentas por cobrar</h1>
-      <p class="adm-cabecera__sub">
-        Créditos a clientes y empresas. Abona pagos parciales o totales sin tocar el POS.
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-wallet2"></i></span>
+      <div class="cxc-cabecera__texto">
+        <span class="adm-cabecera__eyebrow">Ventas</span>
+        <h1 class="adm-cabecera__titulo">Cuentas por cobrar</h1>
+        <p class="adm-cabecera__sub">
+          Créditos a clientes y empresas. Abona pagos parciales o totales sin tocar el POS.
+        </p>
+      </div>
     </div>
     <div class="adm-acciones">
       <a routerLink="/dashboard/mantenimiento/ventas" class="adm-btn adm-btn--suave">
         <i class="bi bi-cash-coin"></i> Ir al POS
       </a>
       <button type="button" class="adm-btn adm-btn--primario" (click)="cargar()" [disabled]="cargando">
-        <i class="bi bi-arrow-clockwise"></i> Actualizar
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i> Actualizar
       </button>
     </div>
   </header>
 
-  <section class="adm-tarjeta">
-    <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-bank"></i> Cuentas bancarias (transferencias)</h2>
-      <button type="button" class="adm-btn adm-btn--suave" *ngIf="esAdmin" (click)="nuevaCuenta()">Nueva</button>
-    </div>
-    <div class="adm-tarjeta__cuerpo">
-      <div class="adm-fila" *ngIf="esAdmin">
-        <div class="adm-campo">
-          <label class="adm-etiqueta">Banco</label>
-          <input class="adm-input" [(ngModel)]="cuentaForm.banco" placeholder="BCP, BBVA…">
+  <!-- Totales de las cuentas que muestra la lista -->
+  <section class="adm-grid adm-grid--4 cxc-metricas" aria-label="Resumen de cuentas por cobrar" hsReveal="lista">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"><i class="bi bi-wallet2"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !cuentas.length); else cxcEsqueletoCifra"><span [hsCountUp]="totalSaldo" [hsDecimales]="2" hsPrefijo="S/ "></span></ng-container>
         </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta">Alias</label>
-          <input class="adm-input" [(ngModel)]="cuentaForm.alias" placeholder="Cuenta principal">
-        </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta">Nº cuenta</label>
-          <input class="adm-input" [(ngModel)]="cuentaForm.numero_cuenta">
-        </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta">CCI</label>
-          <input class="adm-input" [(ngModel)]="cuentaForm.cci">
-        </div>
-        <div class="adm-campo">
-          <label class="adm-etiqueta">Titular</label>
-          <input class="adm-input" [(ngModel)]="cuentaForm.titular">
-        </div>
-        <div class="adm-campo adm-campo--accion">
-          <label class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</label>
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardarCuenta()" [disabled]="guardandoCuenta">
-            {{ editandoCuentaId ? 'Actualizar' : 'Agregar' }}
-          </button>
-        </div>
+        <div class="adm-metrica__etiqueta">Saldo por cobrar</div>
+        <div class="adm-metrica__delta">{{ cuentasConSaldo }} cuenta{{ cuentasConSaldo === 1 ? '' : 's' }} con saldo</div>
       </div>
-      <p class="adm-ayuda" style="margin-top:6px">
-        Estas cuentas aparecen en el POS al cobrar por transferencia.
-        <span *ngIf="esAdmin"> Desactivar no borra historial (soft-delete).</span>
-        <span *ngIf="!esAdmin"> Solo el administrador puede crear o desactivar cuentas.</span>
-      </p>
-
-      <div class="adm-tabla-envoltorio" *ngIf="cuentasBancarias.length">
-        <table class="adm-tabla adm-tabla--adaptable">
-          <thead>
-            <tr>
-              <th>Banco</th>
-              <th>Cuenta</th>
-              <th>CCI</th>
-              <th>Estado</th>
-              <th *ngIf="esAdmin"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let c of cuentasBancarias; trackBy: identificarCuentaBancaria">
-              <td data-etiqueta="Banco">
-                <div class="adm-tabla__principal">{{ c.banco }}</div>
-                <div class="adm-ayuda">{{ c.alias || c.titular }}</div>
-              </td>
-              <td data-etiqueta="Cuenta">{{ c.numero_cuenta || '—' }}</td>
-              <td data-etiqueta="CCI">{{ c.cci || '—' }}</td>
-              <td data-etiqueta="Estado">
-                <span class="adm-insignia" [ngClass]="c.activo === false ? 'adm-insignia--neutra' : 'adm-insignia--exito'">
-                  {{ c.activo === false ? 'Inactiva' : 'Activa' }}
-                </span>
-              </td>
-              <td *ngIf="esAdmin">
-                <div class="adm-acciones">
-                  <button type="button" class="adm-btn adm-btn--suave" (click)="editarCuenta(c)">Editar</button>
-                  <button type="button" class="adm-btn adm-btn--peligro" *ngIf="c.activo !== false" (click)="desactivarCuenta(c)">
-                    Desactivar
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    </div>
+    <div class="adm-metrica adm-metrica--peligro">
+      <div class="adm-metrica__icono"><i class="bi bi-exclamation-octagon"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !cuentas.length); else cxcEsqueletoCifra"><span [hsCountUp]="saldoVencido" [hsDecimales]="2" hsPrefijo="S/ "></span></ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Vencido</div>
+        <div class="adm-metrica__delta">{{ cuentasVencidas }} cuenta{{ cuentasVencidas === 1 ? '' : 's' }} vencida{{ cuentasVencidas === 1 ? '' : 's' }}</div>
+      </div>
+    </div>
+    <div class="adm-metrica adm-metrica--aviso">
+      <div class="adm-metrica__icono"><i class="bi bi-hourglass-split"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !cuentas.length); else cxcEsqueletoCifra"><span [hsCountUp]="saldoPorVencer" [hsDecimales]="2" hsPrefijo="S/ "></span></ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Vence en 7 días</div>
+        <div class="adm-metrica__delta">{{ cuentasPorVencer }} cuenta{{ cuentasPorVencer === 1 ? '' : 's' }} por vencer</div>
+      </div>
+    </div>
+    <div class="adm-metrica adm-metrica--exito">
+      <div class="adm-metrica__icono"><i class="bi bi-check2-circle"></i></div>
+      <div>
+        <div class="adm-metrica__valor">
+          <ng-container *ngIf="!(cargando && !cuentas.length); else cxcEsqueletoCifra"><span [hsCountUp]="totalCobrado" [hsDecimales]="2" hsPrefijo="S/ "></span></ng-container>
+        </div>
+        <div class="adm-metrica__etiqueta">Cobrado</div>
+        <div class="adm-metrica__delta">{{ pctCobrado }} % de lo vendido a crédito</div>
       </div>
     </div>
   </section>
+  <ng-template #cxcEsqueletoCifra><span class="adm-esqueleto cxc-esqueleto-cifra" aria-hidden="true"></span></ng-template>
 
-  <section class="adm-tarjeta adm-tarjeta--desbordable">
+  <!-- Cuentas -->
+  <section class="adm-tarjeta adm-tarjeta--acento" aria-labelledby="cxc-cuentas-titulo">
     <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-sliders"></i> Activar crédito (admin)</h2>
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo" id="cxc-cuentas-titulo"><i class="bi bi-table"></i> Cuentas ({{ total }})</h2>
+        <p class="adm-tarjeta__sub">Pulse «Abonar» en una cuenta para registrar un pago parcial o total.</p>
+      </div>
+    </div>
+    <div class="adm-tarjeta__cuerpo cxc-filtros">
+      <div class="adm-fila">
+        <div class="adm-campo adm-campo--chico">
+          <label class="adm-etiqueta" for="cxc-filtro-estado">Estado</label>
+          <select id="cxc-filtro-estado" class="adm-select" [(ngModel)]="filtroEstado" (ngModelChange)="cargar()">
+            <option value="">Todos</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="parcial">Parcial</option>
+            <option value="vencido">Vencido</option>
+            <option value="pagado">Pagado</option>
+          </select>
+        </div>
+        <div class="adm-campo adm-campo--grande">
+          <label class="adm-etiqueta" for="cxc-filtro-texto">Buscar</label>
+          <div class="adm-input-icono">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input id="cxc-filtro-texto" class="adm-input" type="search" [(ngModel)]="filtroTexto"
+                   placeholder="Cliente, RUC, n° venta" (keyup.enter)="cargar()">
+          </div>
+        </div>
+        <div class="adm-campo adm-campo--accion">
+          <label class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</label>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+            <i class="bi bi-funnel" aria-hidden="true"></i> Filtrar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="adm-esqueletos" *ngIf="cargando && !cuentas.length" role="status" aria-busy="true" aria-label="Cargando cuentas">
+      <div class="cxc-esqueleto" *ngFor="let n of [1,2,3,4]">
+        <span class="adm-esqueleto adm-esqueleto--circulo"></span>
+        <span class="cxc-esqueleto__texto">
+          <span class="adm-esqueleto adm-esqueleto--linea"></span>
+          <span class="adm-esqueleto adm-esqueleto--linea cxc-esqueleto__corta"></span>
+        </span>
+        <span class="adm-esqueleto cxc-esqueleto__dato"></span>
+      </div>
+    </div>
+
+    <!-- Error de carga: sustituye al vacío engañoso («sin cuentas») cuando la lista no llegó -->
+    <ng-container *ngIf="!(errorCarga && !cargando); else cxcErrorLista">
+
+    <div class="adm-vacio" *ngIf="!cargando && !cuentas.length">
+      <div class="adm-vacio__icono"><i class="bi bi-wallet2" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">Sin cuentas por cobrar</div>
+      <p>Cuando vendas a crédito desde el POS aparecerán aquí.</p>
+      <a routerLink="/dashboard/mantenimiento/ventas" class="adm-btn adm-btn--suave">
+        <i class="bi bi-cash-coin" aria-hidden="true"></i> Ir al POS
+      </a>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="cuentas.length">
+      <table class="adm-tabla adm-tabla--adaptable" aria-label="Cuentas por cobrar">
+        <thead>
+          <tr>
+            <th>Deudor</th>
+            <th>Venta</th>
+            <th>Vence</th>
+            <th class="adm-num">Total</th>
+            <th class="adm-num">Saldo</th>
+            <th>Estado</th>
+            <th><span class="visually-hidden">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of cuentas; trackBy: identificarCuenta" [class.cxc-fila--vencida]="c.estado === 'vencido'">
+            <td data-etiqueta="Deudor" class="cxc-td-deudor">
+              <div class="cxc-deudor">
+                <span class="adm-avatar cxc-avatar" [attr.data-tono]="tonoDe(c.deudor)" aria-hidden="true">{{ iniciales(c.deudor) }}</span>
+                <div class="cxc-deudor__texto">
+                  <div class="adm-tabla__principal">{{ c.deudor }}</div>
+                  <div class="adm-tabla__secundario adm-mono">{{ c.documento }}</div>
+                </div>
+              </div>
+            </td>
+            <td data-etiqueta="Venta"><span class="adm-mono">#{{ c.id_venta }}</span></td>
+            <td data-etiqueta="Vence">
+              <div class="cxc-vence">
+                <span class="cxc-vence__fecha">{{ c.fecha_vencimiento | date:'dd/MM/yyyy' }}</span>
+                <span class="cxc-vence__texto" [ngClass]="'cxc-vence__texto--' + urgenciaVence(c)" *ngIf="textoVence(c)">{{ textoVence(c) }}</span>
+              </div>
+            </td>
+            <td data-etiqueta="Total" class="adm-num">S/ {{ c.monto_total | number:'1.2-2' }}</td>
+            <td data-etiqueta="Saldo" class="adm-num">
+              <div class="cxc-saldo">
+                <strong class="cxc-saldo__monto">S/ {{ c.saldo | number:'1.2-2' }}</strong>
+                <span class="cxc-avance" [attr.data-estado]="c.estado" role="img" [attr.aria-label]="pctCobro(c) + ' % cobrado'"><i [style.--n]="pctCobro(c)"></i></span>
+                <span class="cxc-saldo__pct" aria-hidden="true">{{ pctCobro(c) }} % cobrado</span>
+              </div>
+            </td>
+            <td data-etiqueta="Estado">
+              <span class="adm-insignia adm-insignia--punto cxc-estado"
+                    [ngClass]="{
+                      'adm-insignia--info': c.estado === 'pendiente',
+                      'adm-insignia--aviso': c.estado === 'parcial',
+                      'adm-insignia--peligro': c.estado === 'vencido',
+                      'adm-insignia--exito': c.estado === 'pagado'
+                    }">{{ c.estado }}</span>
+            </td>
+            <td class="adm-centro cxc-td-accion">
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="ver(c)"
+                      [attr.aria-label]="'Abonar a la cuenta de ' + c.deudor">
+                <i class="bi bi-cash-coin" aria-hidden="true"></i> Abonar
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    </ng-container>
+    <ng-template #cxcErrorLista>
+      <div class="adm-vacio adm-vacio--error" role="alert">
+        <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">No se pudieron cargar las cuentas</div>
+        <p>Revise la conexión e intente de nuevo. Los créditos y abonos ya registrados no se perdieron.</p>
+        <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+          <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+        </button>
+      </div>
+    </ng-template>
+  </section>
+
+  <!-- Línea de crédito -->
+  <section class="adm-tarjeta adm-tarjeta--desbordable" aria-labelledby="cxc-credito-titulo">
+    <div class="adm-tarjeta__cabecera">
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--info" id="cxc-credito-titulo"><i class="bi bi-sliders"></i> Activar crédito (admin)</h2>
+        <p class="adm-tarjeta__sub">Defina el límite y los días de crédito de un cliente o una empresa registrada.</p>
+      </div>
     </div>
     <div class="adm-tarjeta__cuerpo">
       <div class="adm-fila">
         <div class="adm-campo adm-campo--chico">
-          <label class="adm-etiqueta">Tipo</label>
-          <select class="adm-select" [(ngModel)]="config.tipo" (ngModelChange)="alCambiarTipo()">
+          <label class="adm-etiqueta" for="cxc-credito-tipo">Tipo</label>
+          <select id="cxc-credito-tipo" class="adm-select" [(ngModel)]="config.tipo" (ngModelChange)="alCambiarTipo()">
             <option value="cliente">Cliente</option>
             <option value="empresa">Empresa</option>
           </select>
         </div>
         <div class="adm-campo adm-campo--grande adm-autocompletar">
-          <label class="adm-etiqueta">Buscar {{ config.tipo === 'empresa' ? 'RUC / razón social' : 'DNI / nombre' }}</label>
-          <input
-            class="adm-input"
-            type="search"
-            [(ngModel)]="textoBusqueda"
-            (ngModelChange)="alEscribirBusqueda()"
-            [placeholder]="config.tipo === 'empresa' ? 'Ej. 20123456789 o mi empresa' : 'Ej. 12345678 o Juan Pérez'"
-            autocomplete="off">
+          <label class="adm-etiqueta" for="cxc-credito-buscar">Buscar {{ config.tipo === 'empresa' ? 'RUC / razón social' : 'DNI / nombre' }}</label>
+          <div class="adm-input-icono">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input
+              id="cxc-credito-buscar"
+              class="adm-input"
+              type="search"
+              [(ngModel)]="textoBusqueda"
+              (ngModelChange)="alEscribirBusqueda()"
+              [placeholder]="config.tipo === 'empresa' ? 'Ej. 20123456789 o mi empresa' : 'Ej. 12345678 o Juan Pérez'"
+              autocomplete="off">
+          </div>
           <ul class="adm-sugerencias" *ngIf="sugerencias.length">
             <li
               *ngFor="let s of sugerencias; trackBy: identificarSugerencia"
@@ -133,19 +243,19 @@
               </div>
             </li>
           </ul>
-          <p class="adm-ayuda" *ngIf="buscandoEntidad">Buscando…</p>
+          <p class="adm-ayuda" *ngIf="buscandoEntidad"><i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Buscando…</p>
         </div>
         <div class="adm-campo adm-campo--chico">
-          <label class="adm-etiqueta">Límite S/</label>
-          <input class="adm-input" type="number" min="0" step="0.01" [(ngModel)]="config.limite_credito">
+          <label class="adm-etiqueta" for="cxc-credito-limite">Límite S/</label>
+          <input id="cxc-credito-limite" class="adm-input adm-input--num" type="number" min="0" step="0.01" [(ngModel)]="config.limite_credito">
         </div>
         <div class="adm-campo adm-campo--chico">
-          <label class="adm-etiqueta">Días</label>
-          <input class="adm-input" type="number" min="1" [(ngModel)]="config.dias_credito">
+          <label class="adm-etiqueta" for="cxc-credito-dias">Días</label>
+          <input id="cxc-credito-dias" class="adm-input adm-input--num" type="number" min="1" [(ngModel)]="config.dias_credito">
         </div>
         <div class="adm-campo adm-campo--chico">
-          <label class="adm-etiqueta">Estado</label>
-          <select class="adm-select" [(ngModel)]="config.credito_activo">
+          <label class="adm-etiqueta" for="cxc-credito-estado">Estado</label>
+          <select id="cxc-credito-estado" class="adm-select" [(ngModel)]="config.credito_activo">
             <option [ngValue]="true">Activo</option>
             <option [ngValue]="false">Inactivo</option>
           </select>
@@ -157,13 +267,13 @@
               Limpiar
             </button>
             <button type="button" class="adm-btn adm-btn--primario" (click)="guardarConfig()" [disabled]="guardandoConfig">
-              Guardar línea
+              <i class="bi" [ngClass]="guardandoConfig ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i> Guardar línea
             </button>
           </div>
         </div>
       </div>
 
-      <div class="adm-aviso adm-aviso--info" *ngIf="seleccionado as sel" style="margin-top:0.75rem">
+      <div class="adm-aviso adm-aviso--info cxc-ficha" *ngIf="seleccionado as sel">
         <i class="bi bi-person-check"></i>
         <span>
           Vas a configurar crédito de
@@ -173,121 +283,199 @@
           Debe existir antes en Clientes.
         </span>
       </div>
-      <p class="adm-ayuda" *ngIf="!seleccionado">
+      <p class="adm-ayuda cxc-ayuda" *ngIf="!seleccionado">
         Elige un resultado de la lista. Si no aparece, créalo primero en Clientes y vuelve a buscar.
       </p>
     </div>
   </section>
 
-  <section class="adm-tarjeta">
+  <!-- Cuentas bancarias -->
+  <section class="adm-tarjeta cxc-bancos" aria-labelledby="cxc-bancos-titulo">
     <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo"><i class="bi bi-table"></i> Cuentas ({{ total }})</h2>
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--exito" id="cxc-bancos-titulo">
+          <i class="bi bi-bank"></i> Cuentas bancarias (transferencias)
+          <span class="adm-insignia adm-insignia--primaria adm-insignia--punto" *ngIf="editandoCuentaId">Editando</span>
+        </h2>
+        <p class="adm-tarjeta__sub">Aparecen en el POS cuando el cliente paga por transferencia.</p>
+      </div>
+      <button type="button" class="adm-btn adm-btn--suave" *ngIf="esAdmin" (click)="nuevaCuenta()">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva
+      </button>
     </div>
     <div class="adm-tarjeta__cuerpo">
-      <div class="adm-fila">
-        <div class="adm-campo adm-campo--chico">
-          <label class="adm-etiqueta">Estado</label>
-          <select class="adm-select" [(ngModel)]="filtroEstado" (ngModelChange)="cargar()">
-            <option value="">Todos</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="parcial">Parcial</option>
-            <option value="vencido">Vencido</option>
-            <option value="pagado">Pagado</option>
-          </select>
+      <div class="adm-fila cxc-fila-banco" *ngIf="esAdmin">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cxc-banco">Banco</label>
+          <input id="cxc-banco" class="adm-input" [(ngModel)]="cuentaForm.banco" placeholder="BCP, BBVA…">
         </div>
-        <div class="adm-campo adm-campo--grande">
-          <label class="adm-etiqueta">Buscar</label>
-          <input class="adm-input" type="search" [(ngModel)]="filtroTexto"
-                 placeholder="Cliente, RUC, n° venta" (keyup.enter)="cargar()">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cxc-alias">Alias</label>
+          <input id="cxc-alias" class="adm-input" [(ngModel)]="cuentaForm.alias" placeholder="Cuenta principal">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cxc-numero">Nº cuenta</label>
+          <input id="cxc-numero" class="adm-input" [(ngModel)]="cuentaForm.numero_cuenta">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cxc-cci">CCI</label>
+          <input id="cxc-cci" class="adm-input" [(ngModel)]="cuentaForm.cci">
+        </div>
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cxc-titular">Titular</label>
+          <input id="cxc-titular" class="adm-input" [(ngModel)]="cuentaForm.titular">
         </div>
         <div class="adm-campo adm-campo--accion">
           <label class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</label>
-          <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">Filtrar</button>
+          <button type="button" class="adm-btn adm-btn--primario" (click)="guardarCuenta()" [disabled]="guardandoCuenta">
+            <i class="bi" [ngClass]="guardandoCuenta ? 'bi-arrow-repeat adm-girando' : (editandoCuentaId ? 'bi-check-lg' : 'bi-plus-lg')" aria-hidden="true"></i>
+            {{ editandoCuentaId ? 'Actualizar' : 'Agregar' }}
+          </button>
         </div>
       </div>
-    </div>
+      <p class="adm-ayuda cxc-ayuda">
+        Estas cuentas aparecen en el POS al cobrar por transferencia.
+        <span *ngIf="esAdmin"> Desactivar no borra historial (soft-delete).</span>
+        <span *ngIf="!esAdmin"> Solo el administrador puede crear o desactivar cuentas.</span>
+      </p>
 
-    <div class="adm-vacio" *ngIf="!cargando && !cuentas.length">
-      <div class="adm-vacio__titulo">Sin cuentas por cobrar</div>
-      <p>Cuando vendas a crédito desde el POS aparecerán aquí.</p>
-    </div>
+      <div class="adm-vacio adm-vacio--compacto" *ngIf="!cuentasBancarias.length">
+        <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-bank" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">Aún no hay cuentas bancarias</div>
+        <p>Registre una para ofrecerla al cobrar por transferencia en el POS.</p>
+      </div>
 
-    <div class="adm-tabla-envoltorio" *ngIf="cuentas.length">
-      <table class="adm-tabla adm-tabla--adaptable">
-        <thead>
-          <tr>
-            <th>Deudor</th>
-            <th>Venta</th>
-            <th>Vence</th>
-            <th class="adm-num">Total</th>
-            <th class="adm-num">Saldo</th>
-            <th>Estado</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let c of cuentas; trackBy: identificarCuenta">
-            <td data-etiqueta="Deudor">
-              <div class="adm-tabla__principal">{{ c.deudor }}</div>
-              <div class="adm-ayuda">{{ c.documento }}</div>
-            </td>
-            <td data-etiqueta="Venta">#{{ c.id_venta }}</td>
-            <td data-etiqueta="Vence">{{ c.fecha_vencimiento | date:'dd/MM/yyyy' }}</td>
-            <td data-etiqueta="Total" class="adm-num">S/ {{ c.monto_total | number:'1.2-2' }}</td>
-            <td data-etiqueta="Saldo" class="adm-num">S/ {{ c.saldo | number:'1.2-2' }}</td>
-            <td data-etiqueta="Estado">
-              <span class="adm-insignia"
-                    [ngClass]="{
-                      'adm-insignia--aviso': c.estado === 'pendiente' || c.estado === 'parcial',
-                      'adm-insignia--peligro': c.estado === 'vencido',
-                      'adm-insignia--exito': c.estado === 'pagado'
-                    }">{{ c.estado }}</span>
-            </td>
-            <td>
-              <button type="button" class="adm-btn adm-btn--suave" (click)="ver(c)">Abonar</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="adm-tabla-envoltorio" *ngIf="cuentasBancarias.length">
+        <table class="adm-tabla adm-tabla--adaptable" aria-label="Cuentas bancarias">
+          <thead>
+            <tr>
+              <th>Banco</th>
+              <th>Cuenta</th>
+              <th>CCI</th>
+              <th>Estado</th>
+              <th *ngIf="esAdmin"><span class="visually-hidden">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of cuentasBancarias; trackBy: identificarCuentaBancaria" [class.adm-fila--atenuada]="c.activo === false">
+              <td data-etiqueta="Banco" class="cxc-td-deudor">
+                <div class="cxc-deudor">
+                  <span class="adm-avatar cxc-avatar cxc-avatar--banco" [attr.data-tono]="tonoDe(c.banco)" aria-hidden="true">{{ iniciales(c.banco) }}</span>
+                  <div class="cxc-deudor__texto">
+                    <div class="adm-tabla__principal">{{ c.banco }}</div>
+                    <div class="adm-tabla__secundario">{{ c.alias || c.titular }}</div>
+                  </div>
+                </div>
+              </td>
+              <td data-etiqueta="Cuenta"><span class="adm-mono cxc-numero">{{ c.numero_cuenta || '—' }}</span></td>
+              <td data-etiqueta="CCI"><span class="adm-mono cxc-numero">{{ c.cci || '—' }}</span></td>
+              <td data-etiqueta="Estado">
+                <div class="cxc-chips">
+                  <span class="adm-insignia adm-insignia--punto" [ngClass]="c.activo === false ? 'adm-insignia--neutra' : 'adm-insignia--exito'">
+                    {{ c.activo === false ? 'Inactiva' : 'Activa' }}
+                  </span>
+                  <span class="adm-insignia adm-insignia--sm adm-insignia--primaria" *ngIf="c.es_yape">Yape</span>
+                  <span class="adm-insignia adm-insignia--sm adm-insignia--neutra cxc-tipo" *ngIf="c.tipo_cuenta && !c.es_yape">{{ c.tipo_cuenta }}</span>
+                </div>
+              </td>
+              <td *ngIf="esAdmin" class="cxc-td-accion">
+                <div class="adm-acciones">
+                  <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="editarCuenta(c)"
+                          [attr.aria-label]="'Editar la cuenta de ' + c.banco">
+                    <i class="bi bi-pencil" aria-hidden="true"></i> Editar
+                  </button>
+                  <button type="button" class="adm-btn adm-btn--peligro-suave adm-btn--sm" *ngIf="c.activo !== false" (click)="desactivarCuenta(c)"
+                          [attr.aria-label]="'Desactivar la cuenta de ' + c.banco">
+                    Desactivar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 
-  <section class="adm-tarjeta" *ngIf="seleccion">
-    <div class="adm-tarjeta__cabecera">
-      <h2 class="adm-tarjeta__titulo">
-        Abono · {{ seleccion.deudor }} · Venta #{{ seleccion.id_venta }}
+</div>
+
+<!-- Panel de abono -->
+<div class="adm-velo" *ngIf="seleccion" (click)="seleccion = null"></div>
+
+<aside class="adm-panel adm-panel--angosto cxc-panel" *ngIf="seleccion" role="dialog" aria-modal="true" aria-labelledby="cxc-panel-titulo">
+  <div class="adm-panel__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="cxc-panel-titulo">
+        <i class="bi bi-cash-coin"></i> Abono
       </h2>
-      <button type="button" class="adm-btn-icono" (click)="seleccion = null"><i class="bi bi-x-lg"></i></button>
-    </div>
-    <div class="adm-tarjeta__cuerpo">
-      <p class="adm-ayuda">
-        Saldo: <strong>S/ {{ seleccion.saldo | number:'1.2-2' }}</strong>
-        · Vence {{ seleccion.fecha_vencimiento | date:'dd/MM/yyyy' }}
+      <p class="adm-panel__sub cxc-panel__sub">
+        {{ seleccion.deudor }} · Venta #{{ seleccion.id_venta }}
       </p>
-      <div class="adm-fila" *ngIf="seleccion.estado !== 'pagado'">
+    </div>
+    <button type="button" class="adm-btn-icono" (click)="seleccion = null" aria-label="Cerrar" title="Cerrar"><i class="bi bi-x-lg"></i></button>
+  </div>
+
+  <div class="adm-panel__cuerpo">
+    <!-- Situación de la cuenta -->
+    <div class="cxc-cuenta">
+      <div class="cxc-cuenta__saldo">
+        <span class="adm-dato__etiqueta">Saldo pendiente</span>
+        <span class="cxc-cuenta__cifra" [class.cxc-cuenta__cifra--pagado]="seleccion.estado === 'pagado'">S/ {{ seleccion.saldo | number:'1.2-2' }}</span>
+      </div>
+      <span class="adm-insignia adm-insignia--punto cxc-estado"
+            [ngClass]="{
+              'adm-insignia--info': seleccion.estado === 'pendiente',
+              'adm-insignia--aviso': seleccion.estado === 'parcial',
+              'adm-insignia--peligro': seleccion.estado === 'vencido',
+              'adm-insignia--exito': seleccion.estado === 'pagado'
+            }">{{ seleccion.estado }}</span>
+      <span class="cxc-avance cxc-avance--grande" [attr.data-estado]="seleccion.estado" role="img" [attr.aria-label]="pctCobro(seleccion) + ' % cobrado'"><i [style.--n]="pctCobro(seleccion)"></i></span>
+      <p class="adm-ayuda cxc-cuenta__ayuda">
+        Cobrado <strong>{{ pctCobro(seleccion) }} %</strong> de S/ {{ seleccion.monto_total | number:'1.2-2' }}
+        · Vence {{ seleccion.fecha_vencimiento | date:'dd/MM/yyyy' }}
+        <span class="cxc-vence__texto" [ngClass]="'cxc-vence__texto--' + urgenciaVence(seleccion)" *ngIf="textoDias(seleccion)">({{ textoDias(seleccion) }})</span>
+      </p>
+    </div>
+
+    <!-- Registrar abono -->
+    <div class="adm-bloque" *ngIf="seleccion.estado !== 'pagado'">
+      <h3 class="adm-bloque__titulo"><i class="bi bi-plus-circle"></i> Registrar abono</h3>
+      <div class="cxc-form">
         <div class="adm-campo">
-          <label class="adm-etiqueta">Monto</label>
-          <input class="adm-input" type="number" min="0.01" step="0.01" [(ngModel)]="abono.monto">
+          <label class="adm-etiqueta" for="cxc-abono-monto">Monto</label>
+          <div class="adm-input-grupo">
+            <span class="adm-input-grupo__afijo">S/</span>
+            <input id="cxc-abono-monto" class="adm-input adm-input--num" type="number" min="0.01" step="0.01" [(ngModel)]="abono.monto"
+                   [attr.aria-invalid]="abono.monto && abono.monto > seleccion.saldo ? 'true' : null">
+          </div>
+          <p class="adm-ayuda adm-ayuda--error" *ngIf="abono.monto && abono.monto > seleccion.saldo">
+            <i class="bi bi-exclamation-circle" aria-hidden="true"></i> El abono supera el saldo pendiente.
+          </p>
         </div>
         <div class="adm-campo">
-          <label class="adm-etiqueta">Medio</label>
-          <select class="adm-select" [(ngModel)]="abono.id_metodo">
+          <label class="adm-etiqueta" for="cxc-abono-medio">Medio</label>
+          <select id="cxc-abono-medio" class="adm-select" [(ngModel)]="abono.id_metodo">
             <option *ngFor="let m of metodos" [ngValue]="m.id_metodo">{{ m.nombre }}</option>
           </select>
         </div>
         <div class="adm-campo">
-          <label class="adm-etiqueta">Referencia</label>
-          <input class="adm-input" type="text" [(ngModel)]="abono.referencia" placeholder="N° op. Yape…">
-        </div>
-        <div class="adm-acciones" style="align-self:end">
-          <button type="button" class="adm-btn adm-btn--exito" (click)="registrarAbono()" [disabled]="abonando">
-            {{ abonando ? 'Guardando…' : 'Registrar abono' }}
-          </button>
+          <label class="adm-etiqueta" for="cxc-abono-ref">Referencia <span class="adm-etiqueta__opcional">opcional</span></label>
+          <input id="cxc-abono-ref" class="adm-input" type="text" [(ngModel)]="abono.referencia" placeholder="N° op. Yape…">
         </div>
       </div>
+    </div>
 
-      <div class="adm-tabla-envoltorio" *ngIf="seleccion.abonos?.length">
-        <table class="adm-tabla">
+    <div class="adm-vacio adm-vacio--compacto cxc-pagada" *ngIf="seleccion.estado === 'pagado'">
+      <div class="adm-vacio__icono adm-vacio__icono--exito"><i class="bi bi-check2-circle" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">Cuenta pagada</div>
+      <p>No queda saldo pendiente en esta venta.</p>
+    </div>
+
+    <!-- Historial de abonos -->
+    <div class="cxc-historial" *ngIf="seleccion.abonos?.length">
+      <h3 class="adm-bloque__titulo cxc-historial__titulo"><i class="bi bi-clock-history"></i> Abonos registrados</h3>
+      <div class="adm-tabla-envoltorio">
+        <table class="adm-tabla adm-tabla--compacta" aria-label="Abonos registrados">
           <thead>
             <tr><th>Fecha</th><th>Método</th><th class="adm-num">Monto</th><th>Ref.</th></tr>
           </thead>
@@ -302,6 +490,16 @@
         </table>
       </div>
     </div>
-  </section>
+    <p class="adm-ayuda cxc-historial__vacio" *ngIf="!seleccion.abonos?.length && seleccion.estado !== 'pagado'">
+      Aún no hay abonos en esta cuenta.
+    </p>
+  </div>
 
-</div>
+  <div class="adm-panel__pie" *ngIf="seleccion.estado !== 'pagado'">
+    <button type="button" class="adm-btn adm-btn--suave" (click)="seleccion = null">Cancelar</button>
+    <button type="button" class="adm-btn adm-btn--exito" (click)="registrarAbono()" [disabled]="abonando">
+      <i class="bi" [ngClass]="abonando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
+      {{ abonando ? 'Guardando…' : 'Registrar abono' }}
+    </button>
+  </div>
+</aside>

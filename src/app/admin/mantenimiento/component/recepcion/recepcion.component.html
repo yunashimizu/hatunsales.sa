@@ -39,6 +39,7 @@
             (click)="cambiarPestana('historial')">
       <i class="bi bi-clock-history" aria-hidden="true"></i>
       <span>Historial</span>
+      <span class="adm-insignia adm-insignia--neutra rec-pestania__contador" *ngIf="historial.length" aria-hidden="true">{{ historial.length }}</span>
     </button>
     <button type="button" class="adm-pestania"
             [class.adm-btn--primario]="pestana==='observaciones'"
@@ -55,6 +56,32 @@
 
   <!-- ── Nueva recepción ───────────────────────────────────── -->
   <ng-container *ngIf="pestana==='nueva'">
+
+    <!-- Pasos: el estado de cada uno sale de lo que ya se escribió -->
+    <ol class="rec-pasos" aria-label="Pasos de la recepción">
+      <li class="rec-paso" [class.rec-paso--ok]="cabeceraLista" [class.rec-paso--actual]="!cabeceraLista">
+        <span class="rec-paso__n" aria-hidden="true"><i class="bi bi-check-lg" *ngIf="cabeceraLista; else recPaso1"></i><ng-template #recPaso1>1</ng-template></span>
+        <span class="rec-paso__texto">
+          <strong>Proveedor y documento</strong>
+          <small>{{ cabeceraLista ? 'Datos completos' : 'Falta: ' + textoFaltantes }}</small>
+        </span>
+      </li>
+      <li class="rec-paso" [class.rec-paso--ok]="lineas.length > 0" [class.rec-paso--actual]="cabeceraLista && !lineas.length">
+        <span class="rec-paso__n" aria-hidden="true"><i class="bi bi-check-lg" *ngIf="lineas.length > 0; else recPaso2"></i><ng-template #recPaso2>2</ng-template></span>
+        <span class="rec-paso__texto">
+          <strong>Productos</strong>
+          <small>{{ lineas.length ? lineas.length + (lineas.length === 1 ? ' producto en la lista' : ' productos en la lista') : 'Escanee lo que llega' }}</small>
+        </span>
+      </li>
+      <li class="rec-paso" [class.rec-paso--actual]="cabeceraLista && lineas.length > 0">
+        <span class="rec-paso__n" aria-hidden="true">3</span>
+        <span class="rec-paso__texto">
+          <strong>Confirmar</strong>
+          <small>{{ cabeceraLista && lineas.length ? 'Revise el resumen y confirme' : 'Cuando los pasos 1 y 2 estén listos' }}</small>
+        </span>
+      </li>
+    </ol>
+
     <div class="adm-grid adm-grid--lateral rec-nueva">
 
       <div class="rec-nueva__principal">
@@ -243,31 +270,40 @@
           <h2 class="adm-tarjeta__titulo" id="rec-titulo-resumen">
             <i class="bi bi-clipboard-check"></i> Resumen
           </h2>
+          <span class="adm-insignia adm-insignia--punto" *ngIf="lineas.length" [ngClass]="totalObs > 0 ? 'adm-insignia--aviso' : 'adm-insignia--exito'">
+            {{ totalObs > 0 ? 'Con observaciones' : 'Conforme' }}
+          </span>
         </div>
 
         <div class="adm-tarjeta__cuerpo rec-resumen__cuerpo">
           <ul class="adm-resumen">
             <li class="adm-resumen__fila">
               <span>Productos distintos</span>
-              <span>{{ lineas.length }}</span>
+              <span [hsCountUp]="lineas.length"></span>
             </li>
             <li class="adm-resumen__fila">
               <span class="rec-resumen__concepto">
                 <span class="adm-leyenda__punto adm-leyenda__punto--exito" aria-hidden="true"></span> Unidades OK
               </span>
-              <span>{{ totalOk }}</span>
+              <span [hsCountUp]="totalOk"></span>
             </li>
             <li class="adm-resumen__fila">
               <span class="rec-resumen__concepto">
                 <span class="adm-leyenda__punto adm-leyenda__punto--aviso" aria-hidden="true"></span> Unidades observadas
               </span>
-              <span>{{ totalObs }}</span>
+              <span [hsCountUp]="totalObs"></span>
             </li>
             <li class="adm-resumen__fila adm-resumen__fila--total">
               <span>Total recibido</span>
-              <span>{{ totalOk + totalObs }}</span>
+              <span [hsCountUp]="totalOk + totalObs"></span>
             </li>
           </ul>
+
+          <!-- Reparto de lo recibido: verde = conforme, ámbar = observado -->
+          <div class="rec-reparto" *ngIf="lineas.length" aria-hidden="true"
+               [title]="totalOk + ' unidades conformes y ' + totalObs + ' observadas'">
+            <i [style.--obs]="pctObservado"></i>
+          </div>
 
           <label class="adm-switch rec-opcion" *ngIf="lineas.length">
             <input type="checkbox" [(ngModel)]="actualizarPrecios">
@@ -319,7 +355,26 @@
       <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--aviso"></span> Obs.: espera visto bueno</li>
     </ul>
 
-    <div class="adm-vacio" *ngIf="!historial.length">
+    <div class="rec-chips" *ngIf="historial.length">
+      <span class="adm-insignia adm-insignia--neutra">{{ historial.length }} {{ historial.length === 1 ? 'recepción' : 'recepciones' }}</span>
+      <span class="adm-insignia adm-insignia--exito adm-insignia--punto">{{ historialOk }} unidades conformes</span>
+      <span class="adm-insignia adm-insignia--punto" [ngClass]="historialObs > 0 ? 'adm-insignia--aviso' : 'adm-insignia--neutra'">{{ historialObs }} observadas</span>
+    </div>
+
+    <div class="adm-esqueletos" *ngIf="cargandoHistorial && !historial.length" aria-busy="true" aria-label="Cargando recepciones">
+      <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1,2,3,4]"></div>
+    </div>
+
+    <div class="adm-vacio adm-vacio--error" *ngIf="errorHistorial && !cargandoHistorial && !historial.length" role="alert">
+      <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">No se pudo cargar el historial</div>
+      <p>Revise la conexión e intente de nuevo.</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargarHistorial()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+      </button>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargandoHistorial && !errorHistorial && !historial.length">
       <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-inbox"></i></div>
       <div class="adm-vacio__titulo">Todavía no hay recepciones</div>
       <p>Cuando confirme una recepción aparecerá aquí con sus unidades OK y observadas.</p>
@@ -407,7 +462,26 @@
       </div>
     </div>
 
-    <div class="adm-vacio" *ngIf="!observaciones.length">
+    <div class="rec-chips" *ngIf="observaciones.length">
+      <span class="adm-insignia adm-insignia--aviso adm-insignia--punto" *ngIf="pendientesObs">{{ pendientesObs }} {{ pendientesObs === 1 ? 'pendiente' : 'pendientes' }}</span>
+      <span class="adm-insignia adm-insignia--exito adm-insignia--punto" *ngIf="aprobadasObs">{{ aprobadasObs }} {{ aprobadasObs === 1 ? 'aprobada' : 'aprobadas' }}</span>
+      <span class="adm-insignia adm-insignia--peligro adm-insignia--punto" *ngIf="rechazadasObs">{{ rechazadasObs }} {{ rechazadasObs === 1 ? 'rechazada' : 'rechazadas' }}</span>
+    </div>
+
+    <div class="adm-esqueletos" *ngIf="cargandoObs && !observaciones.length" aria-busy="true" aria-label="Cargando observaciones">
+      <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1,2,3]"></div>
+    </div>
+
+    <div class="adm-vacio adm-vacio--error" *ngIf="errorObs && !cargandoObs && !observaciones.length" role="alert">
+      <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">No se pudieron cargar las observaciones</div>
+      <p>Revise la conexión e intente de nuevo.</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargarObservaciones()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+      </button>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargandoObs && !errorObs && !observaciones.length">
       <div class="adm-vacio__icono adm-vacio__icono--exito"><i class="bi bi-check2-circle"></i></div>
       <div class="adm-vacio__titulo">
         {{ filtroObs === 'pendiente' ? 'No hay observaciones pendientes' : 'Sin observaciones registradas' }}
@@ -548,11 +622,16 @@
                     <div class="adm-tabla__principal">{{ it.producto }}</div>
                     <div class="adm-tabla__secundario adm-mono">{{ it.sku || it.codigo_barras || ('#' + it.id_producto) }}</div>
                   </td>
-                  <td class="adm-num">{{ it.cantidad_ok }}</td>
-                  <td class="adm-num">{{ it.cantidad_observada }}</td>
+                  <td class="adm-num"><span class="adm-insignia adm-insignia--exito adm-insignia--sm">{{ it.cantidad_ok }}</span></td>
+                  <td class="adm-num"><span class="adm-insignia adm-insignia--sm" [ngClass]="it.cantidad_observada > 0 ? 'adm-insignia--aviso' : 'adm-insignia--neutra'">{{ it.cantidad_observada }}</span></td>
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <div class="rec-chips rec-detalle__totales">
+            <span class="adm-insignia adm-insignia--exito adm-insignia--punto">{{ detalleOk }} unidades conformes</span>
+            <span class="adm-insignia adm-insignia--punto" [ngClass]="detalleObs > 0 ? 'adm-insignia--aviso' : 'adm-insignia--neutra'">{{ detalleObs }} observadas</span>
           </div>
         </ng-container>
       </div>
