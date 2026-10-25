@@ -417,3 +417,33 @@ a:focus-visible {
   .acciones { width: 100%; }
   .acciones button { flex: 1; justify-content: center; }
 }
+
+/* Pago por validar (transferencia, Yape, contra entrega) o ya confirmado. */
+.aviso-pago {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.aviso-pago i {
+  font-size: 1.5rem;
+  color: var(--t-primario);
+}
+
+.aviso-pago strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 0.95rem;
+  color: var(--t-texto);
+}
+
+.aviso-pago p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--t-texto-suave);
+}
+
+.aviso-pago a {
+  color: var(--t-primario);
+  font-weight: 600;
+}

@@ -65,6 +65,32 @@
       </div>
     </section>
 
+    @if (puedeCancelar) {
+      <section class="tarjeta aviso-pago" role="status">
+        <i class="bi bi-hourglass-split"></i>
+        <div>
+          <strong>Estamos validando tu pago</strong>
+          <p>
+            Prepararemos tu pedido apenas confirmemos el pago{{ pedido.metodo_pago ? ' con ' + pedido.metodo_pago : '' }}.
+            Si pagaste por transferencia o Yape, envíanos la constancia indicando el código {{ pedido.codigo }}.
+          </p>
+        </div>
+      </section>
+    }
+
+    @if (pagoConfirmado) {
+      <section class="tarjeta aviso-pago" role="status">
+        <i class="bi bi-shield-check"></i>
+        <div>
+          <strong>Tu pago ya fue confirmado</strong>
+          <p>
+            Si necesitas cancelar el pedido, <a routerLink="/store/contacto">comunícate con nosotros</a>
+            y gestionamos la devolución contigo.
+          </p>
+        </div>
+      </section>
+    }
+
     <div class="disposicion">
 
       <section class="tarjeta">

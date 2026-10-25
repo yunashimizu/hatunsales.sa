@@ -481,3 +481,15 @@ a:focus-visible {
 
   .grilla { grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 12px; }
 }
+
+/* Precio vigente distinto al que tenía el producto al agregarse. */
+.aviso--info {
+  background: rgba(59, 130, 246, 0.08);
+  color: #1d4ed8;
+}
+
+.precio-anterior {
+  margin-left: 6px;
+  color: var(--t-texto-suave);
+  opacity: 0.8;
+}

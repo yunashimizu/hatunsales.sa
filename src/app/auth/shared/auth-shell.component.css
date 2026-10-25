@@ -2,20 +2,29 @@
   display: block;
 }
 
+/* Entrada de la tarjeta del formulario: solo un leve ascenso, sin fundido ni
+   desenfoque, para que se vea y acepte clics desde el primer cuadro. Con
+   movimiento reducido, movimiento.css deja la distancia en 0 y la duración en 1 ms. */
 .auth-card {
-  animation: auth-card-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: auth-card-sube var(--mov-entrada, 240ms)
+    var(--ease-entrada, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
 }
 
-@keyframes auth-card-in {
+@keyframes auth-card-sube {
   from {
-    opacity: 0;
-    transform: translateY(18px) scale(0.98);
-    filter: blur(4px);
+    translate: 0 var(--mov-dist, 6px);
   }
+}
+
+/* Flotación suave de la ilustración. Solo la propiedad translate: no pisa
+   transformaciones propias y movimiento.css la apaga con movimiento reducido. */
+.auth-ilustracion {
+  animation: auth-flotar 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes auth-flotar {
   to {
-    opacity: 1;
-    transform: none;
-    filter: none;
+    translate: 0 -10px;
   }
 }
 

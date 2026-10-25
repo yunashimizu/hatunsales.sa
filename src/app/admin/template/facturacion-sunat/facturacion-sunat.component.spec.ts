@@ -4,13 +4,14 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { urlConstants } from '../../../constants/urlConstants';
 import { AlertService } from '../../../shared/services/alert.service';
-import { ConfiguracionSunat } from '../../models/fiscal.models';
+import { ConfiguracionSunat, EstadoFiscalApi } from '../../models/fiscal.models';
+import { FiscalEstadoService } from '../../service/fiscal-estado.service';
 import { FacturacionSunatComponent } from './facturacion-sunat.component';
 
 function configuracionPrueba(): ConfiguracionSunat {
   return {
-    proveedor: 'sunat_directo',
-    proveedor_efectivo: 'sunat_directo',
+    proveedor: 'nubefact',
+    proveedor_efectivo: 'nubefact',
     ambiente: 'beta',
     boletas_modo: 'individual',
     envio_en_linea: true,
@@ -57,6 +58,16 @@ function configuracionPrueba(): ConfiguracionSunat {
       confirmacion: 'Confirmación recibida del servidor.',
       normas: [],
     },
+    correlativo_inicial: { F001: 1, B001: 1, FC01: 1, BC01: 1, FD01: 1, BD01: 1 },
+    correlativo_inicial_revisado: false,
+    cert_ruc_confirmado: false,
+    confirmaciones: {
+      emisor_electronico_sol: false,
+      certificado_en_sol: false,
+      usuario_sol_secundario: false,
+      ruc_habido: false,
+    },
+    emision_bloqueada: { beta: null, produccion: null },
     estado: {
       esquema: { listo: true, mensaje: null, faltantes: [] },
       cifrado_disponible: true,
@@ -85,6 +96,8 @@ function configuracionPrueba(): ConfiguracionSunat {
   };
 }
 
+const paginaVacia = { datos: [], total: 0, pagina: 1, por_pagina: 20 };
+
 describe('FacturacionSunatComponent', () => {
   let fixture: ComponentFixture<FacturacionSunatComponent>;
   let component: FacturacionSunatComponent;
@@ -92,7 +105,11 @@ describe('FacturacionSunatComponent', () => {
   const alerta = {
     toast: vi.fn(),
     error: vi.fn(),
+    warning: vi.fn(),
     confirm: vi.fn(async () => ({ isConfirmed: true })),
+    confirmar: vi.fn(async () => true),
+    confirmarPeligro: vi.fn(async () => true),
+    pedirTexto: vi.fn(async (): Promise<string | null> => null),
   };
 
   function responderConfiguracion(config = configuracionPrueba()): void {
@@ -102,13 +119,14 @@ describe('FacturacionSunatComponent', () => {
       .flush({ registros: [], siguiente: null });
     responderBeta(config);
     fixture.detectChanges();
+    // La lista de envíos se crea con la primera configuración y consulta una sola vez.
+    for (const peticion of http.match((r) => r.url === urlConstants.fiscal.envios)) peticion.flush(paginaVacia);
   }
 
   function responderBeta(config = configuracionPrueba()): void {
     http
       .expectOne(urlConstants.fiscal.emisorBeta)
       .flush({ emisor: config.emisor, ruc_certificado_beta: config.certificado.beta?.ruc ?? null });
-    http.expectOne(urlConstants.fiscal.enviosBeta).flush({ items: [] });
     http.expectOne(urlConstants.fiscal.posBeta).flush({
       habilitado: false,
       activo: false,
@@ -137,7 +155,10 @@ describe('FacturacionSunatComponent', () => {
     fixture.detectChanges();
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    sessionStorage.removeItem('token');
+    http.verify();
+  });
 
   it('muestra el certificado pendiente y solo consulta al abrir la pantalla', () => {
     responderConfiguracion();
@@ -145,21 +166,9 @@ describe('FacturacionSunatComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Certificado pendiente de cargar');
     expect(fixture.nativeElement.textContent).toContain('Texto recibido del servidor.');
     expect(fixture.nativeElement.textContent).not.toContain('[object Object]');
+    expect(fixture.nativeElement.textContent).not.toMatch(/nubefact/i);
     component.probar();
     http.expectNone((r) => r.method !== 'GET');
-  });
-
-  it('solo ofrece reenvío para un envío pendiente que no requiere recuperar el CDR', () => {
-    responderConfiguracion();
-    expect(component.puedeReintentarBeta({ estado: 'ENVIANDO', accion_sunat: null })).toBe(false);
-    expect(component.puedeReintentarBeta({
-      estado: 'PENDIENTE_REENVIO',
-      accion_sunat: 'RECUPERAR_CDR',
-    })).toBe(false);
-    expect(component.puedeReintentarBeta({
-      estado: 'PENDIENTE_REENVIO',
-      accion_sunat: 'REINTENTAR',
-    })).toBe(true);
   });
 
   it('conserva los borradores de otras secciones y omite la clave SOL vacía', () => {
@@ -173,6 +182,18 @@ describe('FacturacionSunatComponent', () => {
     responderConfiguracion();
     expect(component.operacion.series.factura).toBe('F999');
     expect(component.sol.clave).toBe('');
+  });
+
+  it('el formulario de operación ya no cambia el ambiente ni las confirmaciones', () => {
+    responderConfiguracion();
+    component.guardarOperacion();
+    const peticion = http.expectOne(urlConstants.fiscal.configuracion);
+    expect(peticion.request.method).toBe('PUT');
+    expect(Object.keys(peticion.request.body).sort()).toEqual(
+      ['aplicar_reglas_2027', 'boletas_modo', 'codigo_producto_defecto', 'envio_en_linea', 'series'].sort(),
+    );
+    peticion.flush(configuracionPrueba());
+    responderConfiguracion();
   });
 
   it('envía el certificado como multipart y borra el archivo y su clave tras guardar', () => {
@@ -224,6 +245,86 @@ describe('FacturacionSunatComponent', () => {
     responderConfiguracion();
   });
 
+  it('guarda lo que pide la activación y muestra las advertencias del servidor', () => {
+    responderConfiguracion();
+    component.guardarCambios({
+      cambios: { ambiente: 'produccion', proveedor: 'sunat_directo' },
+      mensaje: 'Emisión de producción activada',
+    });
+    const peticion = http.expectOne(urlConstants.fiscal.configuracion);
+    expect(peticion.request.body).toEqual({ ambiente: 'produccion', proveedor: 'sunat_directo' });
+    peticion.flush({
+      ...configuracionPrueba(),
+      advertencias: ['Desde ahora las ventas se emiten directo a SUNAT (producción).'],
+    });
+    expect(alerta.warning).toHaveBeenCalledWith({
+      title: 'Emisión de producción activada',
+      message: 'Desde ahora las ventas se emiten directo a SUNAT (producción).',
+    });
+    responderConfiguracion();
+  });
+
+  it('pide confirmación para apagar las tareas programadas y vuelve atrás si se cancela', async () => {
+    responderConfiguracion();
+    const interruptor = document.createElement('input');
+    interruptor.type = 'checkbox';
+    interruptor.checked = false;
+    alerta.confirmar.mockResolvedValueOnce(false);
+    await component.cambiarTareas(interruptor);
+    expect(interruptor.checked).toBe(true);
+    http.expectNone((r) => r.method === 'PUT');
+
+    interruptor.checked = false;
+    await component.cambiarTareas(interruptor);
+    const peticion = http.expectOne(urlConstants.fiscal.configuracion);
+    expect(peticion.request.body).toEqual({ tareas_activas: false });
+    peticion.flush({ ...configuracionPrueba(), tareas_activas: false });
+    responderConfiguracion({ ...configuracionPrueba(), tareas_activas: false });
+  });
+
+  it('reanuda la emisión detenida tras confirmar y vuelve a leer el estado', async () => {
+    responderConfiguracion();
+    sessionStorage.setItem('token', 'token-de-prueba');
+    const estado = TestBed.inject(FiscalEstadoService);
+    const estadoConBloqueo: EstadoFiscalApi = {
+      proveedor: 'nubefact',
+      proveedor_efectivo: 'nubefact',
+      ambiente: 'beta',
+      semaforo: 'rojo',
+      listo: false,
+      faltantes: [],
+      advertencias: [],
+      certificado: { cargado: true, ambiente: 'beta', dias_para_vencer: 10, vencido: false, autofirmado: true, alerta: null },
+      emision: { activa: false, ambiente: 'beta', codigo: 'FISCAL_EMISION_BLOQUEADA', motivo: 'La emisión está detenida.' },
+      bloqueo: { codigo: '0102', motivo: 'SUNAT no reconoce el usuario o la clave SOL.', fecha: '2026-10-22T14:00:00.000Z' },
+      cola: { pendientes: 1, inciertos: 0 },
+      plazos: { vencen_hoy: 0, vencidos: 0 },
+      tareas: { activas: true, ultima_ejecucion: null },
+      evaluado_en: '2026-10-22T15:00:00.000Z',
+    };
+    estado.refrescar(true);
+    http.expectOne(urlConstants.fiscal.estado).flush(estadoConBloqueo);
+    fixture.detectChanges();
+
+    const texto = fixture.nativeElement.textContent as string;
+    expect(texto).toContain('SUNAT detuvo la emisión (código 0102)');
+    expect(texto).toContain('vence en 10 día(s)');
+    const boton = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(
+      (b) => b.textContent?.includes('Reanudar emisión'),
+    );
+    expect(boton).toBeTruthy();
+
+    await component.reanudarEmision();
+    expect(alerta.confirmar).toHaveBeenCalled();
+    http
+      .expectOne((r) => r.url === urlConstants.fiscal.reanudarEmision && r.method === 'POST')
+      .flush({ ambiente: 'beta', reanudada: true, bloqueo_anterior: estadoConBloqueo.bloqueo });
+    expect(alerta.toast).toHaveBeenCalledWith({ type: 'success', title: 'Emisión reanudada' });
+    http.expectOne(urlConstants.fiscal.estado).flush({ ...estadoConBloqueo, bloqueo: null });
+    responderConfiguracion();
+    expect(fixture.nativeElement.textContent).not.toContain('SUNAT detuvo la emisión');
+  });
+
   it('distingue las comprobaciones locales de un envío todavía no disponible', () => {
     const config = configuracionPrueba();
     config.certificado.beta = {
@@ -254,6 +355,7 @@ describe('FacturacionSunatComponent', () => {
       .expectOne((r) => r.url === urlConstants.fiscal.auditoria)
       .flush({ registros: [], siguiente: null });
     responderBeta(config);
+    http.expectOne((r) => r.url === urlConstants.fiscal.envios).flush(paginaVacia);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Resultado de comprobaciones locales');
     expect(fixture.nativeElement.textContent).toContain('Sin ejecutar');
@@ -279,6 +381,24 @@ describe('FacturacionSunatComponent', () => {
     http.expectNone((r) => r.url === urlConstants.fiscal.configuracion && r.method === 'PUT');
     peticion.flush({});
     responderConfiguracion();
+  });
+
+  it('muestra el emisor BETA aunque falle la lectura de la emisión de prueba del POS', () => {
+    http.expectOne(urlConstants.fiscal.configuracion).flush(configuracionPrueba());
+    http.expectOne((r) => r.url === urlConstants.fiscal.auditoria).flush({ registros: [], siguiente: null });
+    http
+      .expectOne(urlConstants.fiscal.emisorBeta)
+      .flush({ emisor: configuracionPrueba().emisor, ruc_certificado_beta: null });
+    http
+      .expectOne(urlConstants.fiscal.posBeta)
+      .flush({ message: 'Internal server error' }, { status: 500, statusText: 'Internal Server Error' });
+    fixture.detectChanges();
+    for (const peticion of http.match((r) => r.url === urlConstants.fiscal.envios)) peticion.flush(paginaVacia);
+    expect(component.emisorBeta?.razon_social).toBe('Empresa de pruebas');
+    expect(component.estadoPosBeta).toBeNull();
+    expect(component.errorPosBeta).toContain('No se pudo leer el estado de la emisión de prueba del POS');
+    const avisos = Array.from(fixture.nativeElement.querySelectorAll('[role="alert"]') as NodeListOf<HTMLElement>);
+    expect(avisos.some((a) => a.textContent?.includes('emisión de prueba del POS'))).toBe(true);
   });
 
   it('no habilita el envío usando solamente un RUC editado sin guardar', () => {

@@ -344,17 +344,20 @@
               <div class="adm-campo">
                 <label class="adm-etiqueta" for="f-stock">Stock</label>
                 <input id="f-stock" class="adm-input adm-input--num" type="number" min="0" step="1"
-                       [disabled]="!!editando && (cargandoStock || !idAlmacenStock)"
+                       [disabled]="!!editando && (cargandoStock || !idAlmacenStock || !stockVerificado)"
                        [(ngModel)]="formulario.stock">
                 <p class="adm-ayuda" *ngIf="!editando">Cantidad inicial del producto.</p>
-                <p class="adm-ayuda" *ngIf="editando && cargandoStock">
+                <p class="adm-ayuda" *ngIf="editando && cargandoStock" role="status">
                   <span class="adm-spinner adm-spinner--sm prod-spinner-inline" aria-hidden="true"></span>
                   Cargando stock del almacén…
                 </p>
-                <p class="adm-ayuda" *ngIf="editando && !cargandoStock && idAlmacenStock">
+                <p class="adm-ayuda" *ngIf="editando && !cargandoStock && stockVerificado && sinStockRegistrado">
+                  Sin stock registrado en este almacén.
+                </p>
+                <p class="adm-ayuda" *ngIf="editando && !cargandoStock && idAlmacenStock && stockVerificado">
                   Cambiar la cantidad registra un ajuste por corrección en el kardex.
                 </p>
-                <p class="adm-ayuda adm-ayuda--error" *ngIf="editando && !cargandoStock && errorStock">
+                <p class="adm-ayuda adm-ayuda--error" *ngIf="editando && !cargandoStock && errorStock" role="alert">
                   {{ errorStock }}
                 </p>
                 <p class="adm-ayuda adm-ayuda--error" *ngIf="editando && !cargandoStock && !idAlmacenStock">

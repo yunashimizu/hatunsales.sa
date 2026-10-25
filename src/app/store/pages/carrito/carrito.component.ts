@@ -65,6 +65,15 @@ export class CarritoComponent implements OnInit, OnDestroy {
     return this.carrito.items.some((item) => item.excede_stock);
   }
 
+  /** El backend ya aplicó el precio vigente del catálogo; se avisa para que no sorprenda el total. */
+  get hayCambiosDePrecio(): boolean {
+    return this.carrito.items.some((item) => item.precio_cambio);
+  }
+
+  get hayNoDisponibles(): boolean {
+    return this.carrito.items.some((item) => item.no_disponible);
+  }
+
   imagen(item: CarritoItem): string {
     return this.catalogo.urlImagen(item.imagen);
   }
@@ -73,8 +82,12 @@ export class CarritoComponent implements OnInit, OnDestroy {
     const nueva = item.cantidad + delta;
     if (nueva < 1) return;
 
-    if (item.stock_disponible > 0 && nueva > item.stock_disponible) {
-      this.alerta.toast({ type: 'warning', title: `Solo quedan ${item.stock_disponible} unidades` });
+    // Igual que el backend: un producto sin stock tampoco admite más unidades.
+    if (delta > 0 && nueva > item.stock_disponible) {
+      this.alerta.toast({
+        type: 'warning',
+        title: item.stock_disponible > 0 ? `Solo quedan ${item.stock_disponible} unidades` : 'Este producto está agotado',
+      });
       return;
     }
 
@@ -153,6 +166,14 @@ export class CarritoComponent implements OnInit, OnDestroy {
   }
 
   continuar(): void {
+    if (this.hayNoDisponibles) {
+      this.alerta.warning({
+        title: 'Hay productos que ya no vendemos',
+        message: 'Quítalos de tu carrito para continuar con la compra.',
+      });
+      return;
+    }
+
     if (this.hayProblemasDeStock) {
       this.alerta.warning({
         title: 'Revisa el stock',

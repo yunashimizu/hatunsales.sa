@@ -4,16 +4,18 @@ import { urlConstants } from '../../constants/urlConstants';
 import {
   AmbienteFiscal,
   AuditoriaFiscal,
+  CambiosConfiguracionFiscal,
   CertificadoFiscal,
-  ConfigGre,
   ConfiguracionSunat,
-  EmisorSunat,
   EmisorBeta,
-  EnvioBeta,
-  TipoArchivoBeta,
-  OperacionFiscal,
   EstadoPosBetaFiscal,
+  FiltroEnvios,
+  PaginaEnvios,
+  ResultadoEnvio,
+  ResultadoPruebaCredenciales,
   ResultadoPruebaFiscal,
+  ResultadoReanudacion,
+  TipoArchivoEnvio,
 } from '../models/fiscal.models';
 import { opcionesHttp } from './api-base.service';
 
@@ -25,7 +27,7 @@ export class FiscalAdminService {
     return this.http.get<ConfiguracionSunat>(urlConstants.fiscal.configuracion, opcionesHttp());
   }
 
-  guardar(body: Partial<OperacionFiscal> & { emisor?: EmisorSunat; gre?: ConfigGre }) {
+  guardar(body: CambiosConfiguracionFiscal) {
     return this.http.put<ConfiguracionSunat>(
       urlConstants.fiscal.configuracion,
       body,
@@ -97,6 +99,24 @@ export class FiscalAdminService {
     );
   }
 
+  /** Consulta el estado del usuario SOL de producción sin emitir ni numerar nada (D1.4). */
+  probarCredencialesProduccion() {
+    return this.http.post<ResultadoPruebaCredenciales>(
+      urlConstants.fiscal.probarCredencialesProduccion,
+      {},
+      opcionesHttp(),
+    );
+  }
+
+  /** Limpia el interruptor de emisión del ambiente vigente (tras corregir la causa que indicó SUNAT). */
+  reanudarEmision() {
+    return this.http.post<ResultadoReanudacion>(
+      urlConstants.fiscal.reanudarEmision,
+      {},
+      opcionesHttp(),
+    );
+  }
+
   emisorBeta() {
     return this.http.get<{ emisor: EmisorBeta; ruc_certificado_beta: string | null }>(
       urlConstants.fiscal.emisorBeta,
@@ -120,21 +140,41 @@ export class FiscalAdminService {
     );
   }
 
-  enviosBeta() {
-    return this.http.get<{ items: EnvioBeta[] }>(urlConstants.fiscal.enviosBeta, opcionesHttp());
+  /** Envíos de factura, boleta y notas (BETA y producción); los filtros vacíos no se mandan. */
+  envios(filtro: FiltroEnvios) {
+    const params: Record<string, string | number> = {};
+    for (const [clave, valor] of Object.entries(filtro)) {
+      if (valor !== undefined && valor !== null && valor !== '') params[clave] = valor;
+    }
+    return this.http.get<PaginaEnvios>(urlConstants.fiscal.envios, { ...opcionesHttp(), params });
   }
 
-  archivoBeta(id: number, tipo: TipoArchivoBeta) {
-    return this.http.get(urlConstants.fiscal.archivoBeta(id, tipo), {
+  archivoEnvio(id: number, tipo: TipoArchivoEnvio) {
+    return this.http.get(urlConstants.fiscal.archivoEnvio(id, tipo), {
       ...opcionesHttp(),
       responseType: 'blob',
     });
   }
 
-  reintentarBeta(id: number) {
-    return this.http.post<{ aceptado: boolean; mensaje: string }>(
-      urlConstants.fiscal.reintentarBeta(id),
+  /** Reenvío seguro del MISMO ZIP (en facturas de producción consulta antes si SUNAT ya lo tiene). */
+  reintentarEnvio(id: number) {
+    return this.http.post<ResultadoEnvio>(
+      urlConstants.fiscal.reintentarEnvio(id),
       {},
+      opcionesHttp(),
+    );
+  }
+
+  /** getStatusCdr: solo producción y facturas o sus notas (series F); no reenvía nada. */
+  recuperarCdr(id: number) {
+    return this.http.post<ResultadoEnvio>(urlConstants.fiscal.recuperarCdr(id), {}, opcionesHttp());
+  }
+
+  /** Marca como aceptado un envío incierto que el administrador verificó en SOL (queda auditado con la nota). */
+  confirmarAceptado(id: number, nota: string) {
+    return this.http.post<ResultadoEnvio>(
+      urlConstants.fiscal.confirmarAceptado(id),
+      { nota },
       opcionesHttp(),
     );
   }

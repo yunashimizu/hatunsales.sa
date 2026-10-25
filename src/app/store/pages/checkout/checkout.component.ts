@@ -8,7 +8,9 @@ import { CatalogoService } from '../../service/catalogo.service';
 import { CheckoutService } from '../../service/checkout.service';
 import { CuentaTiendaService } from '../../service/cuenta.service';
 import { PasarelaService } from '../../service/pasarela.service';
-import { AlertService, escapeHtml } from '../../../shared/services/alert.service';
+import { AlertService } from '../../../shared/services/alert.service';
+import { mensajeDeError } from '../../../shared/utils/errores-http.util';
+import { avisoFinalCompra, esPreciosActualizados } from './resultado-compra';
 import {
   Carrito,
   CarritoItem,
@@ -260,7 +262,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.guardandoDireccion = false;
         this.alerta.error({
           title: 'No pudimos guardar la dirección',
-          message: err?.error?.message ?? 'Revisa los datos e inténtalo nuevamente.',
+          message: mensajeDeError(err, 'Revisa los datos e inténtalo nuevamente.'),
         });
       },
     });
@@ -303,6 +305,17 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Sin pasarela lista no hay cómo cobrar con tarjeta: el pedido quedaría
+    // pendiente sin forma de pagarlo. Se pide otro método ANTES de crearlo.
+    if (this.eligeTarjeta && !this.pasarelaLista) {
+      this.alerta.warning({
+        title: 'Pago con tarjeta no disponible',
+        message: 'Elige Yape, transferencia u otro método de pago para registrar tu pedido.',
+      });
+      this.paso = 4;
+      return;
+    }
+
     this.procesando = true;
     this.alerta.loading('Registrando tu pedido…');
 
@@ -326,24 +339,46 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         ),
       );
 
-      await this.cobrar(pedido, clave);
-      this.finalizar(pedido);
+      this.finalizar(await this.cobrar(pedido, clave));
     } catch (err: any) {
       this.procesando = false;
       this.alerta.close();
+
+      if (esPreciosActualizados(err)) {
+        this.actualizarPrecios(err);
+        return;
+      }
+
       this.alerta.error({
         title: 'No pudimos completar tu compra',
-        message: err?.error?.message ?? 'Ocurrió un problema al procesar el pedido. Inténtalo nuevamente.',
+        message: mensajeDeError(err, 'Ocurrió un problema al procesar el pedido. Inténtalo nuevamente.'),
       });
     }
   }
 
   /**
-   * Cobra el pedido recién creado. Si el pago falla, el pedido queda pendiente
-   * y el cliente puede reintentar desde el detalle sin volver a armar el carrito.
+   * Cambió un precio desde que el cliente armó el carrito: el pedido no se creó.
+   * Se recarga el carrito (ya con los precios vigentes), se revalida el cupón y
+   * se le pide revisar el nuevo total antes de confirmar otra vez.
    */
-  private async cobrar(pedido: Pedido, clave: string): Promise<void> {
-    if (pedido.estado !== 'pendiente') return;
+  private actualizarPrecios(err: unknown): void {
+    const codigoCupon = this.cupon?.codigo;
+    this.cart.cargar(true).subscribe(() => {
+      if (codigoCupon) this.revalidarCupon(codigoCupon);
+    });
+    this.alerta.warning({
+      title: 'Actualizamos los precios de tu carrito',
+      message: mensajeDeError(err, 'Cambió el precio de algunos productos. Revisa el total y confirma de nuevo.'),
+    });
+  }
+
+  /**
+   * Cobra el pedido recién creado y devuelve su estado actualizado. Sin tarjeta
+   * (transferencia, Yape, contra entrega) queda pendiente hasta que la tienda
+   * valide el pago. Si el cobro falla, el pedido sigue pendiente de pago.
+   */
+  private async cobrar(pedido: Pedido, clave: string): Promise<Pedido> {
+    if (pedido.estado !== 'pendiente') return pedido;
 
     let token: string | null = null;
 
@@ -372,7 +407,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       this.alerta.loading('Confirmando tu pago…');
     }
 
-    await firstValueFrom(
+    return firstValueFrom(
       this.checkout.pagar(
         pedido.id_pedido,
         {
@@ -389,13 +424,15 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     this.procesando = false;
     this.alerta.close();
     this.limpiarClaveIntento();
-    this.cart.cargar().subscribe();
+    // El carrito se convirtió en pedido: se vuelve a pedir aunque ya estuviera cargado.
+    this.cart.cargar(true).subscribe();
 
+    const aviso = avisoFinalCompra(pedido, this.pagoSeleccionado?.nombre);
     this.alerta
       .success({
-        title: '¡Pedido confirmado!',
+        title: aviso.titulo,
         allowHtml: true,
-        message: `Tu número de pedido es <strong>${escapeHtml(pedido.codigo)}</strong>. Te enviaremos las novedades por correo.`,
+        message: aviso.mensaje,
         confirmText: 'Ver mi pedido',
       })
       .then(() => this.router.navigate(['/store/pedidos', pedido.id_pedido]));

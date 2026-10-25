@@ -214,10 +214,12 @@
                           title="Editar" [attr.aria-label]="'Editar a ' + nombreDe(c)">
                     <i class="bi bi-pencil" aria-hidden="true"></i>
                   </button>
-                  <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="eliminarPersona(c)"
-                          title="Eliminar" [attr.aria-label]="'Eliminar a ' + nombreDe(c)">
-                    <i class="bi bi-trash" aria-hidden="true"></i>
-                  </button>
+                  @if (esAdmin) {
+                    <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="eliminarPersona(c)"
+                            title="Eliminar" [attr.aria-label]="'Eliminar a ' + nombreDe(c)">
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                  }
                 </div>
               </td>
             </tr>
@@ -292,10 +294,12 @@
                           title="Editar" [attr.aria-label]="'Editar ' + (e.razon_social || 'empresa')">
                     <i class="bi bi-pencil" aria-hidden="true"></i>
                   </button>
-                  <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="eliminarEmpresa(e)"
-                          title="Eliminar" [attr.aria-label]="'Eliminar ' + (e.razon_social || 'empresa')">
-                    <i class="bi bi-trash" aria-hidden="true"></i>
-                  </button>
+                  @if (esAdmin) {
+                    <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="eliminarEmpresa(e)"
+                            title="Eliminar" [attr.aria-label]="'Eliminar ' + (e.razon_social || 'empresa')">
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                  }
                 </div>
               </td>
             </tr>

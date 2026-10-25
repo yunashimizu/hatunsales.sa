@@ -10,11 +10,12 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { finalize, firstValueFrom } from 'rxjs';
 import { VisorImagenComponent } from '../../../../shared/components/visor-imagen/visor-imagen.component';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
+import { esErrorDeRed } from '../../../../shared/utils/errores-http.util';
 import { mensajeDeError, escapeHtmlAlerta } from '../../../service/api-base.service';
 import { PuntoVentaService } from '../../../service/punto-venta.service';
 import { RecepcionService } from '../../../service/recepcion.service';
@@ -68,6 +69,19 @@ export class RecepcionComponent implements OnInit {
   detalleAbierto: any | null = null;
   cargandoDetalle = false;
   actualizarPrecios = false;
+
+  /**
+   * Observación con una revisión en curso (visto bueno o rechazo). Mientras tanto los botones
+   * quedan deshabilitados: un doble clic ya no manda dos peticiones.
+   */
+  revisandoObs: number | null = null;
+
+  /**
+   * Clave de idempotencia atada al contenido del formulario: si la respuesta se pierde y se
+   * vuelve a confirmar lo mismo, el servidor devuelve la recepción ya registrada en vez de
+   * duplicarla (y sumar el stock dos veces). Si el formulario cambia, la clave es otra.
+   */
+  private intento: { contenido: string; clave: string } | null = null;
 
   get totalOk(): number {
     return this.lineas.reduce((s, l) => s + (Number(l.cantidad_ok) || 0), 0);
@@ -349,11 +363,22 @@ export class RecepcionComponent implements OnInit {
       })),
     };
 
+    const contenido = JSON.stringify(payload);
+    if (this.intento?.contenido !== contenido) {
+      this.intento = {
+        contenido,
+        clave:
+          globalThis.crypto?.randomUUID?.() ??
+          `recepcion-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      };
+    }
+
     this.confirmando = true;
     this.cdr.markForCheck();
     this.alerta.loading('Confirmando recepción…');
-    this.api.confirmar(payload).subscribe({
+    this.api.confirmar({ ...payload, clave_idempotencia: this.intento.clave }).subscribe({
       next: async (resp) => {
+        this.intento = null;
         const fotosPendientes = this.lineas.filter((l) => l.cantidad_observada > 0 && l.foto);
         const mapaObs = new Map<number, number>(
           (resp?.observaciones ?? []).map((o: any) => [Number(o.id_producto), Number(o.id_observacion)]),
@@ -386,7 +411,7 @@ export class RecepcionComponent implements OnInit {
           });
         } else {
           this.alerta.success({
-            title: 'Recepción registrada',
+            title: resp?.repetida ? 'Recepción ya registrada' : 'Recepción registrada',
             message: mensaje,
             timer: 2500,
           });
@@ -409,7 +434,16 @@ export class RecepcionComponent implements OnInit {
         this.alerta.close();
         this.confirmando = false;
         this.cdr.markForCheck();
-        this.alerta.error({ title: 'No se pudo confirmar', message: mensajeDeError(e) });
+        // La recepción es todo o nada. Si la respuesta no llegó, el servidor pudo haberla
+        // registrado: al reintentar con la misma clave no se duplica.
+        this.alerta.error({
+          title: 'No se pudo confirmar',
+          message: `${mensajeDeError(e)} ${
+            esErrorDeRed(e)
+              ? 'Vuelva a confirmar: si ya se había registrado, no se duplicará.'
+              : 'No se registró la recepción ni se movió el stock.'
+          }`,
+        });
       },
     });
   }
@@ -424,47 +458,69 @@ export class RecepcionComponent implements OnInit {
   }
 
   async aprobar(obs: any): Promise<void> {
+    const id = Number(obs?.id_observacion);
+    if (!id || !this.tomarRevision(id)) return;
     const ok = await this.alerta.confirm({
       title: '¿Dar visto bueno?',
       allowHtml: true,
       message: `Se ingresarán <strong>${escapeHtmlAlerta(String(obs.cantidad))}</strong> de <strong>${escapeHtmlAlerta(obs.producto)}</strong> al inventario.`,
       confirmText: 'Visto bueno',
     });
-    if (!ok.isConfirmed) return;
+    if (!ok.isConfirmed) {
+      this.soltarRevision();
+      return;
+    }
 
-    this.api.aprobar(Number(obs.id_observacion)).subscribe({
+    this.api.aprobar(id).pipe(finalize(() => this.soltarRevision())).subscribe({
       next: () => {
-        this.cdr.markForCheck();
         this.alerta.toast({ type: 'success', title: 'Stock ingresado' });
         this.cargarObservaciones();
       },
       error: (e) => {
-        this.cdr.markForCheck();
-        this.alerta.error({ title: 'Error', message: mensajeDeError(e) });
+        this.alerta.error({ title: 'No se pudo dar el visto bueno', message: mensajeDeError(e) });
+        // Otro usuario pudo revisarla antes: la lista muestra el estado real.
+        this.cargarObservaciones();
       },
     });
   }
 
   async rechazar(obs: any): Promise<void> {
+    const id = Number(obs?.id_observacion);
+    if (!id || !this.tomarRevision(id)) return;
     const ok = await this.alerta.confirm({
       title: '¿Rechazar observación?',
       message: 'No entrará al inventario. Quedará en el historial.',
       type: 'warning',
       confirmText: 'Rechazar',
     });
-    if (!ok.isConfirmed) return;
+    if (!ok.isConfirmed) {
+      this.soltarRevision();
+      return;
+    }
 
-    this.api.rechazar(Number(obs.id_observacion), 'Rechazado en revisión').subscribe({
+    this.api.rechazar(id, 'Rechazado en revisión').pipe(finalize(() => this.soltarRevision())).subscribe({
       next: () => {
-        this.cdr.markForCheck();
         this.alerta.toast({ type: 'success', title: 'Observación rechazada' });
         this.cargarObservaciones();
       },
       error: (e) => {
-        this.cdr.markForCheck();
-        this.alerta.error({ title: 'Error', message: mensajeDeError(e) });
+        this.alerta.error({ title: 'No se pudo rechazar', message: mensajeDeError(e) });
+        this.cargarObservaciones();
       },
     });
+  }
+
+  /** Una revisión a la vez: el segundo clic (o el otro botón) no hace nada mientras dure. */
+  private tomarRevision(id: number): boolean {
+    if (this.revisandoObs !== null) return false;
+    this.revisandoObs = id;
+    this.cdr.markForCheck();
+    return true;
+  }
+
+  private soltarRevision(): void {
+    this.revisandoObs = null;
+    this.cdr.markForCheck();
   }
 
   private enfocar(): void {

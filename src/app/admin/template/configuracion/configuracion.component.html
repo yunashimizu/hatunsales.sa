@@ -117,31 +117,63 @@
           </span>
         </div>
 
-        <!-- Series -->
+        <!-- Series (solo lectura: se configuran en Facturación SUNAT) -->
         <div class="adm-bloque cfg-bloque">
           <div class="cfg-bloque__intro">
             <h3 class="adm-bloque__titulo"><i class="bi bi-123" aria-hidden="true"></i> Series de comprobantes</h3>
             <p class="adm-ayuda">
-              El punto de venta elige la serie solo (boleta = B…, factura = F…) y <strong>no se puede cambiar</strong>
-              en Ventas. El POS SUNAT BETA usa series de prueba independientes.
+              El punto de venta usa siempre las series vigentes del ambiente de emisión y <strong>no se pueden
+              cambiar</strong> en Ventas.
             </p>
           </div>
           <div class="cfg-bloque__campos">
-            <div class="adm-fila cfg-fila">
-              <div class="adm-campo adm-campo--chico cfg-campo-serie">
-                <label class="adm-etiqueta" for="cfg-serie-b">Serie boleta</label>
-                <input id="cfg-serie-b" class="adm-input cfg-codigo" type="text" maxlength="4"
-                       autocomplete="off" spellcheck="false"
-                       [(ngModel)]="formSeries.serie_boleta" placeholder="BBB1">
+            @if (cargandoSeries && !series) {
+              <div class="cfg-carga__fila" aria-busy="true" aria-label="Cargando las series vigentes">
+                <div class="adm-esqueleto adm-esqueleto--fila"></div>
+                <div class="adm-esqueleto adm-esqueleto--fila"></div>
               </div>
-              <div class="adm-campo adm-campo--chico cfg-campo-serie">
-                <label class="adm-etiqueta" for="cfg-serie-f">Serie factura</label>
-                <input id="cfg-serie-f" class="adm-input cfg-codigo" type="text" maxlength="4"
-                       autocomplete="off" spellcheck="false"
-                       [(ngModel)]="formSeries.serie_factura" placeholder="FFF1">
+            } @else if (errorSeries) {
+              <div class="adm-aviso adm-aviso--peligro adm-aviso--compacto" role="alert">
+                <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+                <span>{{ errorSeries }}</span>
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargarSeries()">
+                  Reintentar
+                </button>
               </div>
+            } @else if (series) {
+              <dl class="adm-datos cfg-datos">
+                <div class="adm-dato">
+                  <dt class="adm-dato__etiqueta">Serie de factura</dt>
+                  <dd class="adm-dato__valor cfg-codigo">{{ series.serie_factura }}</dd>
+                </div>
+                <div class="adm-dato">
+                  <dt class="adm-dato__etiqueta">Serie de boleta</dt>
+                  <dd class="adm-dato__valor cfg-codigo">{{ series.serie_boleta }}</dd>
+                </div>
+                @if (series.ambiente) {
+                  <div class="adm-dato">
+                    <dt class="adm-dato__etiqueta">Ambiente de emisión</dt>
+                    <dd class="adm-dato__valor cfg-rol">
+                      {{ series.ambiente === 'produccion' ? 'Producción' : 'SUNAT BETA (pruebas)' }}
+                      <span class="adm-insignia adm-insignia--sm"
+                            [ngClass]="series.emision_activa ? 'adm-insignia--exito' : 'adm-insignia--neutra'">
+                        {{ series.emision_activa ? 'Emisión activa' : 'Sin emisión' }}
+                      </span>
+                    </dd>
+                  </div>
+                }
+              </dl>
+              @if (series.mensaje) {
+                <p class="adm-ayuda cfg-sin-margen">{{ series.mensaje }}</p>
+              }
+            }
+            <div class="adm-aviso adm-aviso--info adm-aviso--compacto" role="note">
+              <i class="bi bi-info-circle" aria-hidden="true"></i>
+              <span>Las series se configuran en Facturación SUNAT.</span>
+              <a routerLink="/dashboard/facturacion-sunat" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion">
+                Ir a Facturación SUNAT
+              </a>
             </div>
-            <p class="adm-ayuda cfg-sin-margen">4 caracteres cada una; las pruebas del POS usan las series FB01 y BB01.</p>
           </div>
         </div>
 
@@ -255,7 +287,7 @@
     <div class="adm-tarjeta__pie cfg-pie">
       <p class="adm-ayuda cfg-pie__nota">
         <i class="bi bi-info-circle" aria-hidden="true"></i>
-        Se guardan juntos las series, el emisor, el contacto y las condiciones.
+        Se guardan juntos el emisor, el contacto y las condiciones.
       </p>
       <button type="button" class="adm-btn adm-btn--primario"
               (click)="guardarFiscal()" [disabled]="!fiscal || guardandoFiscal || cargandoFiscal">

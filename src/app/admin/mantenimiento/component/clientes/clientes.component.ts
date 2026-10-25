@@ -11,6 +11,8 @@ import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 
 import { AlertService } from '../../../../shared/services/alert.service';
+import { AuthService } from '../../../../auth/service/auth.service';
+import { rolPermitido } from '../../../../auth/roles.constants';
 import { GestionService } from '../../service/gestion.service';
 import { ReceptorService } from '../../../service/receptor.service';
 import { errorOperativo, mensajeDeError } from '../../../service/api-base.service';
@@ -48,12 +50,22 @@ export class ClientesComponent implements OnInit, OnDestroy {
 
   private readonly destruir$ = new Subject<void>();
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly auth = inject(AuthService);
 
   constructor(
     private readonly gestion: GestionService,
     private readonly receptor: ReceptorService,
     private readonly alerta: AlertService,
   ) {}
+
+  /**
+   * Eliminar personas o empresas: solo admin (la API responde 403 a vendedor y caja). Sin
+   * esto, vendedor y caja veían el botón y el error recién después de confirmar.
+   */
+  get esAdmin(): boolean {
+    const sesion = this.auth.getSesion();
+    return rolPermitido(sesion.rolNombre, ['admin'], sesion.rolId);
+  }
 
   ngOnInit(): void {
     this.cargar();
@@ -261,7 +273,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
 
   async eliminarPersona(cliente: any): Promise<void> {
     const id = Number(cliente?.id_cliente);
-    if (!id) return;
+    if (!id || !this.esAdmin) return;
 
     const nombre = this.nombreDe(cliente);
     const ok = await this.alerta.confirm({
@@ -292,7 +304,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
 
   async eliminarEmpresa(empresa: any): Promise<void> {
     const id = Number(empresa?.id_empresa);
-    if (!id) return;
+    if (!id || !this.esAdmin) return;
 
     const ok = await this.alerta.confirm({
       title: `¿Eliminar ${empresa.razon_social || 'esta empresa'}?`,

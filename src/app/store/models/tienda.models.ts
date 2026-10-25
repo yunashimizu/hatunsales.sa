@@ -114,6 +114,11 @@ export interface CarritoItem {
   subtotal: number;
   stock_disponible: number;
   excede_stock: boolean;
+  /** El precio del catálogo cambió desde que se agregó; `precio_unitario` ya es el nuevo. */
+  precio_cambio?: boolean;
+  precio_anterior?: number;
+  /** El producto se retiró del catálogo: hay que quitarlo para poder comprar. */
+  no_disponible?: boolean;
 }
 
 export interface Carrito {

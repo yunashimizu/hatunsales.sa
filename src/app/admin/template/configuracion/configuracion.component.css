@@ -143,12 +143,6 @@
 
   .cfg-estados { margin-left: 0; }
 
-  /* Las dos series caben lado a lado y ocupan el ancho */
-  .cfg-campo-serie {
-    flex: 1 1 100px !important;
-    max-width: none;
-  }
-
   .cfg-atajos { grid-template-columns: minmax(0, 1fr); }
 
   .cfg-pie__nota { flex-basis: 100%; }

@@ -20,6 +20,28 @@
   </div>
 
   <div class="tb-actions">
+    @if (mostrarEstadoFiscal ? chipFiscal() : null; as chip) {
+      @if (esAdmin) {
+        <a class="tb-fiscal" [ngClass]="'tb-fiscal--' + chip.tono" routerLink="/dashboard/facturacion-sunat"
+           [attr.title]="chip.detalle">
+          <ng-container *ngTemplateOutlet="contenidoChipFiscal; context: { $implicit: chip }"></ng-container>
+        </a>
+      } @else {
+        <span class="tb-fiscal" [ngClass]="'tb-fiscal--' + chip.tono" [attr.title]="chip.detalle">
+          <ng-container *ngTemplateOutlet="contenidoChipFiscal; context: { $implicit: chip }"></ng-container>
+        </span>
+      }
+    }
+    <ng-template #contenidoChipFiscal let-chip>
+      <span class="tb-fiscal__punto" aria-hidden="true"></span>
+      <span class="tb-fiscal__texto">{{ chip.texto }}</span>
+      <span class="tb-fiscal__corto">{{ chip.corto }}</span>
+      <span class="visually-hidden">. {{ chip.detalle }}</span>
+      @if (chip.alerta) {
+        <span class="tb-fiscal__alerta" aria-hidden="true"></span>
+      }
+    </ng-template>
+
     <span class="tb-fecha" [attr.title]="fechaLarga">
       <i class="bi bi-calendar3" aria-hidden="true"></i>
       <span>{{ fechaCorta }}</span>

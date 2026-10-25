@@ -92,7 +92,13 @@
       <div>
         <div class="adm-metrica__valor">{{ moneda(totalVendido) }}</div>
         <div class="adm-metrica__etiqueta">Total vendido</div>
-        <div class="adm-metrica__delta">Importe del periodo</div>
+        <div class="adm-metrica__delta">
+          @if (notasCredito.cantidad > 0) {
+            Neto: incluye −{{ moneda(notasCredito.total) }} de {{ notasCredito.cantidad }} nota{{ notasCredito.cantidad === 1 ? '' : 's' }} de crédito
+          } @else {
+            Ventas netas del periodo
+          }
+        </div>
       </div>
     </div>
     <div class="adm-metrica">
@@ -266,7 +272,10 @@
           <i class="bi bi-table"></i> Detalle del periodo
           <span class="adm-insignia adm-insignia--neutra">{{ detalle.length }}</span>
         </h2>
-        <p class="adm-tarjeta__sub">Cada comprobante del periodo con su cliente, estado y total.</p>
+        <p class="adm-tarjeta__sub">
+          Cada comprobante del periodo con su cliente, estado y total. Las notas de crédito restan;
+          no se incluyen anulados, rechazados por SUNAT, con error ni pruebas BETA.
+        </p>
       </div>
     </div>
 
@@ -295,6 +304,11 @@
           <tr *ngFor="let fila of detalle; trackBy: identificarDetalle">
             <td data-etiqueta="Comprobante">
               <div class="adm-tabla__principal adm-mono">{{ fila.numero_formateado || (fila.serie + '-' + fila.numero) || '—' }}</div>
+              @if (fila.tipo_documento === 'nota_credito') {
+                <div class="adm-tabla__secundario">Nota de crédito</div>
+              } @else if (fila.tipo_documento === 'nota_debito') {
+                <div class="adm-tabla__secundario">Nota de débito</div>
+              }
             </td>
             <td data-etiqueta="Fecha" class="reporte-fecha">{{ fechaCorta(fila.fecha) }}</td>
             <td data-etiqueta="Cliente">

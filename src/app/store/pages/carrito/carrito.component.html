@@ -28,6 +28,20 @@
         Algunos productos superan el stock disponible. Ajusta las cantidades para continuar.
       </div>
 
+      @if (hayNoDisponibles) {
+        <div class="aviso" role="alert">
+          <i class="bi bi-slash-circle"></i>
+          Algunos productos ya no están a la venta. Quítalos de tu carrito para continuar.
+        </div>
+      }
+
+      @if (hayCambiosDePrecio) {
+        <div class="aviso aviso--info" role="status">
+          <i class="bi bi-info-circle-fill"></i>
+          Actualizamos el precio de algunos productos desde que los agregaste. El total ya muestra el precio vigente.
+        </div>
+      }
+
       <article class="fila" *ngFor="let item of carrito.items" [class.ocupado]="itemOcupado === item.id_item">
         <a class="miniatura" [routerLink]="['/store/producto', item.id_producto]">
           <img [src]="imagen(item)" [alt]="item.nombre" loading="lazy" />
@@ -36,11 +50,23 @@
         <div class="info">
           <span class="marca" *ngIf="item.marca">{{ item.marca }}</span>
           <a class="nombre" [routerLink]="['/store/producto', item.id_producto]">{{ item.nombre }}</a>
-          <span class="unitario">S/ {{ item.precio_unitario | number: '1.2-2' }} c/u</span>
-
-          <span class="alerta-stock" *ngIf="item.excede_stock">
-            <i class="bi bi-exclamation-triangle-fill"></i>Solo quedan {{ item.stock_disponible }} unidades
+          <span class="unitario">
+            S/ {{ item.precio_unitario | number: '1.2-2' }} c/u
+            @if (item.precio_cambio && item.precio_anterior !== undefined) {
+              <s class="precio-anterior" [attr.aria-label]="'Antes S/ ' + (item.precio_anterior | number: '1.2-2')">
+                S/ {{ item.precio_anterior | number: '1.2-2' }}
+              </s>
+            }
           </span>
+
+          @if (item.no_disponible) {
+            <span class="alerta-stock"><i class="bi bi-slash-circle"></i>Ya no está a la venta</span>
+          } @else if (item.excede_stock) {
+            <span class="alerta-stock">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              {{ item.stock_disponible > 0 ? 'Solo quedan ' + item.stock_disponible + ' unidades' : 'Agotado' }}
+            </span>
+          }
         </div>
 
         <div class="cantidad">

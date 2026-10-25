@@ -4,12 +4,20 @@ import { Observable } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
 import { opcionesHttp } from './api-base.service';
 
+/** GET /configuracion/series: series vigentes del ambiente de emisión (solo lectura) y si se emite. */
 export type SeriesPos = {
   serie_boleta: string;
   serie_factura: string;
   por_tipo: Record<number, string>;
   editable_en_pos: boolean;
+  /** Las series salen de la configuración fiscal (Facturación SUNAT). */
+  fuente?: 'fiscal';
+  ambiente?: 'beta' | 'produccion';
+  emision_activa?: boolean;
   beta_pos_directo?: boolean;
+  /** Código del motivo cuando la emisión no está activa. */
+  codigo?: string;
+  aviso?: string | null;
   mensaje?: string;
 };
 
@@ -27,7 +35,8 @@ export type ConfigFiscal = {
   };
   /** Condiciones comerciales propias que se añaden a la proforma (una por línea). */
   proforma?: { condiciones: string };
-  series: { serie_boleta: string; serie_factura: string };
+  /** Solo lectura: se configuran en Facturación SUNAT. */
+  series: { serie_boleta: string; serie_factura: string; editable?: boolean; mensaje?: string };
   estados: {
     whatsapp_cloud: boolean;
     caja_modo: string;
@@ -46,10 +55,10 @@ export class ConfiguracionFiscalService {
     return this.http.get<ConfigFiscal>(urlConstants.configuracion.fiscal, opcionesHttp());
   }
 
+  /** Emisor y condiciones de la proforma (las series ya no se guardan aquí). */
   guardarFiscal(body: {
     emisor?: Partial<ConfigFiscal['emisor']>;
     proforma?: { condiciones: string };
-    series?: Partial<ConfigFiscal['series']>;
   }): Observable<ConfigFiscal> {
     return this.http.put<ConfigFiscal>(urlConstants.configuracion.fiscal, body, opcionesHttp());
   }

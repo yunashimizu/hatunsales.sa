@@ -59,6 +59,7 @@ const routes: Routes = [
       title: 'Productos',
       subtitle: 'Catálogo de productos y variantes.',
       icon: 'fa-box',
+      precargar: true,
     },
     loadComponent: () => import('./component/productos/productos.component').then((c) => c.ProductosComponent),
   },
@@ -70,6 +71,7 @@ const routes: Routes = [
       title: 'Inventario',
       subtitle: 'Control y movimientos de inventario.',
       icon: 'fa-warehouse',
+      precargar: true,
     },
     loadComponent: () => import('./component/inventario/inventario.component').then((c) => c.InventarioComponent),
   },
@@ -160,6 +162,7 @@ const routes: Routes = [
       title: 'Caja',
       subtitle: 'Abre y cierra tu turno de caja.',
       icon: 'fa-cash-register',
+      precargar: true,
     },
     loadComponent: () =>
       import('./component/caja-sesion/caja-sesion.component').then((c) => c.CajaSesionComponent),

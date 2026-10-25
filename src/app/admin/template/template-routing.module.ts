@@ -38,6 +38,8 @@ const routes: Routes = [
       },
       {
         path: 'mantenimiento',
+        // Precarga en segundo plano con sesión de personal (PrecargaPanelStrategy).
+        data: { precargar: true },
         loadChildren: () => import('../mantenimiento/mantenimiento.module').then((m) => m.MantenimientoModule)
       }
     ]

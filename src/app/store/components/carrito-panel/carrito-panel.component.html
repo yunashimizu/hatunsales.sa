@@ -29,10 +29,17 @@
         <span class="nombre">{{ item.nombre }}</span>
         <span class="precio">S/ {{ item.precio_unitario | number: '1.2-2' }}</span>
 
-        <span class="alerta-stock" *ngIf="item.excede_stock">
-          <i class="bi bi-exclamation-triangle-fill"></i>
-          Solo quedan {{ item.stock_disponible }}
-        </span>
+        @if (item.no_disponible) {
+          <span class="alerta-stock"><i class="bi bi-slash-circle"></i>Ya no está a la venta</span>
+        } @else if (item.excede_stock) {
+          <span class="alerta-stock">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            {{ item.stock_disponible > 0 ? 'Solo quedan ' + item.stock_disponible : 'Agotado' }}
+          </span>
+        }
+        @if (item.precio_cambio) {
+          <span class="alerta-stock" role="status"><i class="bi bi-info-circle"></i>Precio actualizado</span>
+        }
 
         <div class="controles">
           <div class="cantidad">

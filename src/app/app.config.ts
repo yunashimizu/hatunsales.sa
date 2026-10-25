@@ -15,11 +15,13 @@ import {
   provideRouter,
   withInMemoryScrolling,
   withNavigationErrorHandler,
+  withPreloading,
   withViewTransitions,
 } from '@angular/router';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
+import { PrecargaPanelStrategy } from './shared/routing/precarga-panel.strategy';
 import { ConectividadService } from './shared/services/conectividad.service';
 import { ManejadorErroresGlobal, esErrorDeCargaDeModulo } from './shared/services/manejador-errores';
 
@@ -77,6 +79,8 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
       withViewTransitions({ skipInitialTransition: true, onViewTransitionCreated: alCrearTransicion }),
       withNavigationErrorHandler(alFallarNavegacion),
+      // Pantallas del panel marcadas con data.precargar, solo con sesión de personal.
+      withPreloading(PrecargaPanelStrategy),
     ),
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
     // Avisos "Sin conexión" / "Conexión restablecida" (no hace nada en el servidor).

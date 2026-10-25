@@ -64,6 +64,8 @@ export class ReportesComponent implements OnInit, OnDestroy {
   totalVendido = 0;
   cantidadComprobantes = 0;
   ticketPromedio = 0;
+  /** Notas de crédito del periodo: ya están restadas de totalVendido (ventas netas). */
+  notasCredito = { cantidad: 0, total: 0 };
   fechaInicio = '';
   fechaFin = '';
   detalle: any[] = [];
@@ -204,17 +206,28 @@ export class ReportesComponent implements OnInit, OnDestroy {
     return n.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' });
   }
 
+  /**
+   * 'AAAA-MM-DD' (día de Lima que manda el backend) se muestra tal cual: pasarlo por Date lo
+   * leía como medianoche UTC y en Lima salía el día anterior. Los instantes (inicio y fin del
+   * periodo) se muestran en hora de Lima.
+   */
   fechaCorta(valor?: string): string {
     if (!valor) return '—';
+    const ymd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(valor));
+    if (ymd) return `${ymd[3]}/${ymd[2]}/${ymd[1]}`;
     const d = new Date(valor);
     if (Number.isNaN(d.getTime())) return String(valor).slice(0, 10);
-    return d.toLocaleDateString('es-PE');
+    return d.toLocaleDateString('es-PE', { timeZone: 'America/Lima' });
   }
 
   private aplicarRespuesta(data: any): void {
     this.totalVendido = Number(data?.total_vendido ?? 0);
     this.cantidadComprobantes = Number(data?.cantidad_comprobantes ?? 0);
     this.ticketPromedio = Number(data?.ticket_promedio ?? 0);
+    this.notasCredito = {
+      cantidad: Number(data?.notas_credito?.cantidad ?? 0),
+      total: Number(data?.notas_credito?.total ?? 0),
+    };
     this.fechaInicio = data?.fecha_inicio ?? '';
     this.fechaFin = data?.fecha_fin ?? '';
     this.detalle = Array.isArray(data?.detalle) ? [...data.detalle] : [];
@@ -306,6 +319,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.totalVendido = 0;
     this.cantidadComprobantes = 0;
     this.ticketPromedio = 0;
+    this.notasCredito = { cantidad: 0, total: 0 };
     this.ventaMaxima = 0;
     this.ventaMinima = 0;
     this.emitidos = 0;

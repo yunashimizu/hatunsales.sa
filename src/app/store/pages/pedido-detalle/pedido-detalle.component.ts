@@ -6,6 +6,7 @@ import { PASOS_PEDIDO, PedidoService } from '../../service/pedido.service';
 import { CatalogoService } from '../../service/catalogo.service';
 import { CartService } from '../../service/cart.service';
 import { AlertService, escapeHtml } from '../../../shared/services/alert.service';
+import { mensajeDeError } from '../../../shared/utils/errores-http.util';
 import { EstadoPedido, Pedido, PedidoItem } from '../../models/tienda.models';
 
 @Component({
@@ -66,8 +67,16 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     return this.pedido ? this.pedidoService.indicePaso(this.pedido.estado) : 0;
   }
 
+  /**
+   * En línea solo se cancela lo que todavía no se cobró. Un pedido pagado ya
+   * tiene su venta: la devolución se coordina con la tienda.
+   */
   get puedeCancelar(): boolean {
-    return !!this.pedido && ['pendiente', 'pagado'].includes(this.pedido.estado);
+    return this.pedido?.estado === 'pendiente';
+  }
+
+  get pagoConfirmado(): boolean {
+    return this.pedido?.estado === 'pagado';
   }
 
   imagen(item: PedidoItem): string {
@@ -104,7 +113,7 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
       error: (err) =>
         this.alerta.error({
           title: 'No pudimos cancelar el pedido',
-          message: err?.error?.message ?? 'Comunícate con nosotros para gestionarlo.',
+          message: mensajeDeError(err, 'Comunícate con nosotros para gestionarlo.'),
         }),
     });
   }

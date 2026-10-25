@@ -1,841 +1,746 @@
 <div class="adm-pagina">
   <header class="adm-cabecera">
-    <div>
-      <h1 class="adm-cabecera__titulo">Facturación SUNAT</h1>
-      <p class="adm-cabecera__sub">
-        Configura el emisor, las series, el certificado y las credenciales de SUNAT directo.
-      </p>
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-file-earmark-check"></i></span>
+      <div>
+        <span class="adm-cabecera__eyebrow">Administración</span>
+        <h1 class="adm-cabecera__titulo">Facturación SUNAT</h1>
+        <p class="adm-cabecera__sub">
+          Estado de la emisión, activación en producción, envíos a SUNAT, certificado digital y credenciales.
+        </p>
+      </div>
     </div>
     <div class="adm-acciones">
-      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/configuracion"
-        >Configuración general</a
-      ><button
-        class="adm-btn adm-btn--suave"
-        type="button"
-        (click)="cargar()"
-        [disabled]="cargando || ocupado"
-      >
+      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/configuracion">
+        <i class="bi bi-gear" aria-hidden="true"></i> Configuración general
+      </a>
+      <button class="adm-btn adm-btn--suave" type="button" (click)="actualizarTodo()" [disabled]="cargando || ocupado">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
         Actualizar
       </button>
     </div>
   </header>
-  @if (cargando) {
-    <p role="status">Consultando la configuración guardada…</p>
+
+  @if (cargando && !config) {
+    <div class="adm-tarjeta" aria-busy="true">
+      <p class="visually-hidden" role="status">Consultando la configuración guardada…</p>
+      <div class="adm-esqueletos" aria-hidden="true">
+        <div class="adm-esqueleto adm-esqueleto--titulo"></div>
+        <div class="adm-esqueleto adm-esqueleto--fila"></div>
+        <div class="adm-esqueleto adm-esqueleto--fila"></div>
+      </div>
+    </div>
   }
   @if (errorCarga) {
-    <div class="adm-aviso adm-aviso--aviso" role="alert">{{ errorCarga }}</div>
+    <div class="adm-aviso adm-aviso--peligro" role="alert">
+      <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+      <span>{{ errorCarga }}</span>
+      <button type="button" class="adm-btn adm-btn--suave adm-aviso__accion" (click)="cargar()" [disabled]="cargando">
+        Reintentar
+      </button>
+    </div>
   }
+
   @if (config; as cfg) {
-    <section class="adm-grid adm-grid--3" aria-label="Estado fiscal guardado">
-      <div class="adm-metrica">
-        <div>
-          <div class="adm-metrica__valor">
-            SUNAT directo
-          </div>
-          <div class="adm-metrica__etiqueta">Proveedor efectivo de las ventas</div>
-        </div>
-      </div>
-      <div class="adm-metrica">
-        <div>
-          <div class="adm-metrica__valor">
-            {{ cfg.estado.listo_para_produccion ? 'Preparado' : 'Pendiente' }}
-          </div>
-          <div class="adm-metrica__etiqueta">Configuración de comprobantes</div>
-        </div>
-      </div>
-      <div class="adm-metrica">
-        <div>
-          <div class="adm-metrica__valor">
-            {{ cfg.certificado.produccion ? 'Cargado' : 'Pendiente' }}
-          </div>
-          <div class="adm-metrica__etiqueta">Certificado de producción</div>
-        </div>
-      </div>
-    </section>
     @if (!cfg.estado.esquema.listo) {
-      <p class="adm-aviso adm-aviso--aviso" role="status">
-        {{
-          cfg.estado.esquema.mensaje || 'El servidor está pendiente de preparar el esquema fiscal.'
-        }}
-      </p>
+      <div class="adm-aviso adm-aviso--aviso" role="status">
+        <i class="bi bi-database-exclamation" aria-hidden="true"></i>
+        <span>{{ cfg.estado.esquema.mensaje || 'El servidor está pendiente de preparar el esquema fiscal.' }}</span>
+      </div>
     }
     @if (cfg.estado.cifrado_problema) {
-      <p class="adm-aviso adm-aviso--aviso" role="status">{{ cfg.estado.cifrado_problema }}</p>
+      <div class="adm-aviso adm-aviso--aviso" role="status">
+        <i class="bi bi-key" aria-hidden="true"></i>
+        <span>{{ cfg.estado.cifrado_problema }}</span>
+      </div>
     }
 
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo">SUNAT directo y series</h2>
-      </div>
-      <form
-        #operacionForm="ngForm"
-        (ngSubmit)="operacionForm.valid && guardarOperacion()"
-        class="adm-tarjeta__cuerpo"
-      >
-        <fieldset [disabled]="ocupado || cargando || !!errorCarga">
-          <div class="adm-fila">
-            <div class="adm-campo">
-              <label for="fiscal-ambiente" class="adm-etiqueta">Ambiente</label
-              ><select
-                id="fiscal-ambiente"
-                name="ambiente"
-                class="adm-select"
-                [(ngModel)]="operacion.ambiente"
-              >
-                <option value="beta">BETA (pruebas)</option>
-                <option value="produccion">Producción</option>
-              </select>
-            </div>
-            <div class="adm-campo">
-              <label for="fiscal-boletas" class="adm-etiqueta">Boletas</label
-              ><select
-                id="fiscal-boletas"
-                name="boletas"
-                class="adm-select"
-                [(ngModel)]="operacion.boletas_modo"
-              >
-                <option value="individual">Envío individual</option>
-                <option value="resumen">Resumen diario</option>
-              </select>
-            </div>
-          </div>
-          <div class="fiscal-campos">
-            @for (serie of series; track serie.clave) {
-              <div class="adm-campo">
-                <label class="adm-etiqueta" [for]="'serie-' + serie.clave">{{
-                  serie.etiqueta
-                }}</label
-                ><input
-                  class="adm-input"
-                  [id]="'serie-' + serie.clave"
-                  [name]="serie.clave"
-                  required
-                  maxlength="4"
-                  [pattern]="serie.patron"
-                  [ngModel]="operacion.series[serie.clave]"
-                  (ngModelChange)="operacion.series[serie.clave] = $event.toUpperCase()"
-                  autocomplete="off"
-                />
-              </div>
-            }
-            <div class="adm-campo">
-              <label for="codigo-sunat" class="adm-etiqueta"
-                >Código SUNAT de producto por defecto</label
-              ><input
-                id="codigo-sunat"
-                name="codigoSunat"
-                class="adm-input"
-                maxlength="8"
-                pattern="[0-9]{8}"
-                [(ngModel)]="operacion.codigo_producto_defecto"
-                placeholder="Opcional: 8 dígitos"
-              />
-            </div>
-            <div class="adm-campo">
-              <label for="reglas-fiscales" class="adm-etiqueta">Reglas 2027</label
-              ><select
-                id="reglas-fiscales"
-                name="reglas"
-                class="adm-select"
-                [(ngModel)]="operacion.aplicar_reglas_2027"
-              >
-                <option value="auto">Automático por fecha</option>
-                <option value="true">Activadas</option>
-                <option value="false">Desactivadas</option>
-              </select>
-            </div>
-          </div>
-          <label class="fiscal-opcion"
-            ><input name="envioLinea" type="checkbox" [(ngModel)]="operacion.envio_en_linea" />
-            Envío en línea</label
-          >
-          <label class="fiscal-opcion"
-            ><input name="tareas" type="checkbox" [(ngModel)]="operacion.tareas_activas" /> Tareas
-            automáticas del módulo fiscal</label
-          >
-          <p class="adm-ayuda">{{ cfg.aviso_legal_ose.texto }}</p>
-          <label class="fiscal-opcion"
-            ><input name="noOse" type="checkbox" [(ngModel)]="operacion.confirmo_no_ose" />
-            {{ cfg.aviso_legal_ose.confirmacion }}</label
-          >
-          <button
-            class="adm-btn adm-btn--primario"
-            type="submit"
-            [disabled]="operacionForm.invalid"
-          >
-            Guardar configuración y series
-          </button>
-          <p class="adm-ayuda">
-            Los comprobantes se emiten directamente a SUNAT. El servidor valida los requisitos
-            antes de activar producción.
-          </p>
-        </fieldset>
-      </form>
-    </section>
-
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo">Datos fiscales del emisor</h2>
-      </div>
-      <form
-        #emisorForm="ngForm"
-        (ngSubmit)="emisorForm.valid && guardarEmisor()"
-        class="adm-tarjeta__cuerpo"
-      >
-        <fieldset [disabled]="ocupado || cargando || !!errorCarga">
-          <p class="adm-ayuda">
-            RUC configurado: <strong>{{ cfg.emisor.ruc }}</strong
-            >. El RUC se administra en Configuración general.
-          </p>
-          <div class="fiscal-campos">
-            @for (campo of camposEmisor; track campo.clave) {
-              <div class="adm-campo">
-                <label class="adm-etiqueta" [for]="'emisor-' + campo.clave">{{
-                  campo.etiqueta
-                }}</label
-                ><input
-                  class="adm-input"
-                  [id]="'emisor-' + campo.clave"
-                  [name]="campo.clave"
-                  [required]="campo.clave !== 'nombre_comercial'"
-                  [maxlength]="campo.maximo"
-                  [pattern]="campo.patron"
-                  [(ngModel)]="emisor[campo.clave]"
-                />
-              </div>
-            }
-          </div>
-          <button class="adm-btn adm-btn--primario" type="submit" [disabled]="emisorForm.invalid">
-            Guardar emisor
-          </button>
-        </fieldset>
-      </form>
-    </section>
-
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo">Certificados digitales</h2>
-      </div>
-      <div class="adm-tarjeta__cuerpo">
-        <div class="adm-grid adm-grid--2">
-          @for (ambiente of ambientes; track ambiente) {
-            <div class="adm-bloque">
-              <h3 class="adm-bloque__titulo">{{ ambiente === 'beta' ? 'BETA' : 'Producción' }}</h3>
-              @if (cfg.certificado[ambiente]; as certificado) {
-                <p>
-                  {{ certificado.titular || certificado.nombre_archivo || 'Certificado digital' }}
-                </p>
-                <p class="adm-ayuda">
-                  RUC: {{ certificado.ruc || 'Sin identificar' }} · Vence:
-                  {{ certificado.vigente_hasta | date: 'mediumDate' }} ·
-                  {{ certificado.autofirmado ? 'Autofirmado de pruebas' : 'Certificado real' }}
-                </p>
-                @for (aviso of certificado.advertencias; track aviso) {
-                  <p class="adm-ayuda">{{ aviso }}</p>
-                }
-                <div class="adm-acciones">
-                  <button
-                    class="adm-btn adm-btn--suave"
-                    type="button"
-                    (click)="descargarPublico(ambiente)"
-                    [disabled]="ocupado || cargando"
-                  >
-                    Descargar .cer público</button
-                  ><button
-                    class="adm-btn adm-btn--suave"
-                    type="button"
-                    (click)="eliminarCertificado(ambiente)"
-                    [disabled]="ocupado || cargando"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              } @else {
-                <p role="status">Certificado pendiente de cargar.</p>
-              }
-            </div>
+    <div class="adm-pestanias fiscal-pestanias" role="tablist" aria-label="Secciones de Facturación SUNAT">
+      @for (s of secciones; track s.id) {
+        <button type="button" role="tab" class="adm-pestania" [class.adm-pestania--activa]="seccion === s.id"
+                [id]="'fiscal-tab-' + s.id" [attr.aria-selected]="seccion === s.id"
+                [attr.aria-controls]="'fiscal-panel-' + s.id" (click)="elegirSeccion(s.id)">
+          <i class="bi" [ngClass]="s.icono" aria-hidden="true"></i> {{ s.etiqueta }}
+          @if (s.id === 'envios' && porAtender() > 0) {
+            <span class="adm-insignia adm-insignia--aviso">{{ porAtender() }}<span class="visually-hidden"> por atender</span></span>
           }
-        </div>
-        <form #certificadoForm="ngForm" (ngSubmit)="certificadoForm.valid && subirCertificado()">
-          <fieldset
-            [disabled]="
-              ocupado ||
-              cargando ||
-              !!errorCarga ||
-              !cfg.estado.esquema.listo ||
-              !cfg.estado.cifrado_disponible
-            "
-          >
-            <legend>Subir o reemplazar certificado</legend>
-            @if (ambienteCertificado === 'beta') {
-              <label class="fiscal-opcion"
-                ><input type="checkbox" name="otroEmisorBeta" [(ngModel)]="otroEmisorBeta" /> El
-                certificado pertenece al emisor separado de pruebas BETA.</label
-              >
-            }
-            <div class="adm-fila">
-              <div class="adm-campo">
-                <label class="adm-etiqueta" for="cert-ambiente">Destino del certificado</label
-                ><select
-                  id="cert-ambiente"
-                  name="ambienteCertificado"
-                  class="adm-select"
-                  [(ngModel)]="ambienteCertificado"
-                >
-                  <option value="produccion">Producción</option>
-                  <option value="beta">BETA</option>
-                </select>
-              </div>
-              <div class="adm-campo">
-                <label class="adm-etiqueta" for="cert-archivo"
-                  >Archivo .pfx / .p12 (hasta 200 KB)</label
-                ><input
-                  #archivoCertificado
-                  id="cert-archivo"
-                  class="adm-input"
-                  type="file"
-                  accept=".pfx,.p12"
-                  (change)="seleccionarArchivo($event)"
-                />
-              </div>
-              <div class="adm-campo">
-                <label class="adm-etiqueta" for="cert-clave">Contraseña del archivo</label
-                ><input
-                  id="cert-clave"
-                  name="claveCertificado"
-                  class="adm-input"
-                  type="password"
-                  maxlength="128"
-                  autocomplete="new-password"
-                  [(ngModel)]="claveCertificado"
-                />
-              </div>
-            </div>
-            <div class="adm-acciones">
-              <button
-                class="adm-btn adm-btn--primario"
-                type="submit"
-                [disabled]="!archivo || certificadoForm.invalid"
-              >
-                Guardar certificado</button
-              ><button class="adm-btn adm-btn--suave" type="button" (click)="generarAutofirmado()">
-                Crear certificado de pruebas BETA
-              </button>
-            </div>
-          </fieldset>
-        </form>
-      </div>
-    </section>
-
-    <div class="adm-grid adm-grid--2">
-      <section class="adm-tarjeta">
-        <div class="adm-tarjeta__cabecera">
-          <h2 class="adm-tarjeta__titulo">Usuario secundario SOL</h2>
-        </div>
-        <form
-          #solForm="ngForm"
-          (ngSubmit)="solForm.valid && guardarSol()"
-          class="adm-tarjeta__cuerpo"
-        >
-          <p class="adm-ayuda">
-            Clave: {{ cfg.sol.tiene_clave ? 'registrada' : 'pendiente' }}. BETA utiliza las
-            credenciales públicas de SUNAT.
-          </p>
-          <fieldset
-            [disabled]="
-              ocupado ||
-              cargando ||
-              !!errorCarga ||
-              !cfg.estado.esquema.listo ||
-              !cfg.estado.cifrado_disponible
-            "
-          >
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="sol-usuario">Usuario SOL</label
-              ><input
-                id="sol-usuario"
-                name="usuarioSol"
-                class="adm-input"
-                required
-                maxlength="19"
-                pattern="([0-9]{11})?[A-Za-z0-9]{8}"
-                [(ngModel)]="sol.usuario"
-                autocomplete="off"
-              />
-            </div>
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="sol-clave">Clave SOL (8–12 caracteres)</label
-              ><input
-                id="sol-clave"
-                name="claveSol"
-                class="adm-input"
-                type="password"
-                [required]="!cfg.sol.tiene_clave"
-                minlength="8"
-                maxlength="12"
-                [(ngModel)]="sol.clave"
-                autocomplete="new-password"
-                [placeholder]="cfg.sol.tiene_clave ? 'Vacío conserva la clave actual' : ''"
-              />
-            </div>
-            <div class="adm-acciones">
-              <button class="adm-btn adm-btn--primario" type="submit" [disabled]="solForm.invalid">
-                Guardar SOL</button
-              ><button
-                class="adm-btn adm-btn--suave"
-                type="button"
-                (click)="eliminarCredenciales('sol')"
-                [disabled]="!cfg.sol.tiene_clave"
-              >
-                Eliminar clave
-              </button>
-            </div>
-          </fieldset>
-        </form>
-      </section>
-      <section class="adm-tarjeta">
-        <div class="adm-tarjeta__cabecera">
-          <h2 class="adm-tarjeta__titulo">Credenciales API de guías</h2>
-        </div>
-        <form
-          #credGreForm="ngForm"
-          (ngSubmit)="credGreForm.valid && guardarCredencialesGre()"
-          class="adm-tarjeta__cuerpo"
-        >
-          <p class="adm-ayuda">
-            {{
-              cfg.gre.credenciales.tiene_credenciales
-                ? 'Registradas: ' +
-                  (cfg.gre.credenciales.client_id_mascara || 'identificador protegido')
-                : 'Credenciales pendientes'
-            }}
-          </p>
-          <fieldset
-            [disabled]="
-              ocupado ||
-              cargando ||
-              !!errorCarga ||
-              !cfg.estado.esquema.listo ||
-              !cfg.estado.cifrado_disponible
-            "
-          >
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="gre-client-id">Client ID</label
-              ><input
-                id="gre-client-id"
-                name="clientId"
-                class="adm-input"
-                required
-                pattern="[A-Za-z0-9-]{8,100}"
-                maxlength="100"
-                [(ngModel)]="credencialesGre.clientId"
-                autocomplete="off"
-              />
-            </div>
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="gre-secret">Client secret</label
-              ><input
-                id="gre-secret"
-                name="clientSecret"
-                class="adm-input"
-                type="password"
-                required
-                minlength="8"
-                maxlength="200"
-                pattern="\S+"
-                [(ngModel)]="credencialesGre.clientSecret"
-                autocomplete="new-password"
-              />
-            </div>
-            <div class="adm-acciones">
-              <button
-                class="adm-btn adm-btn--primario"
-                type="submit"
-                [disabled]="credGreForm.invalid"
-              >
-                Guardar credenciales API</button
-              ><button
-                class="adm-btn adm-btn--suave"
-                type="button"
-                (click)="eliminarCredenciales('gre')"
-                [disabled]="!cfg.gre.credenciales.tiene_credenciales"
-              >
-                Eliminar credenciales
-              </button>
-            </div>
-          </fieldset>
-        </form>
-      </section>
-    </div>
-
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo">Guía de remisión remitente</h2>
-      </div>
-      <form
-        #greForm="ngForm"
-        (ngSubmit)="greForm.valid && guardarGre()"
-        class="adm-tarjeta__cuerpo"
-      >
-        <fieldset [disabled]="ocupado || cargando || !!errorCarga">
-          <label class="fiscal-opcion"
-            ><input name="greActiva" type="checkbox" [(ngModel)]="gre.activa" /> Activar envío de
-            guías a SUNAT</label
-          >
-          <div class="fiscal-campos">
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="gre-correlativo">Correlativo inicial</label
-              ><input
-                id="gre-correlativo"
-                name="correlativo"
-                class="adm-input"
-                type="number"
-                required
-                min="1"
-                max="99999999"
-                step="1"
-                [(ngModel)]="gre.correlativo_inicial"
-              />
-            </div>
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="gre-ubigeo">Ubigeo de partida</label
-              ><input
-                id="gre-ubigeo"
-                name="partidaUbigeo"
-                class="adm-input"
-                pattern="[0-9]{6}"
-                maxlength="6"
-                [(ngModel)]="gre.partida.ubigeo"
-                [placeholder]="cfg.emisor.ubigeo"
-              />
-            </div>
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="gre-direccion">Dirección de partida</label
-              ><input
-                id="gre-direccion"
-                name="partidaDireccion"
-                class="adm-input"
-                maxlength="200"
-                [(ngModel)]="gre.partida.direccion"
-                [placeholder]="cfg.emisor.direccion"
-              />
-            </div>
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="gre-establecimiento"
-                >Establecimiento de partida</label
-              ><input
-                id="gre-establecimiento"
-                name="partidaEstablecimiento"
-                class="adm-input"
-                pattern="[0-9]{4}"
-                maxlength="4"
-                [(ngModel)]="gre.partida.codigo_establecimiento"
-                [placeholder]="cfg.emisor.codigo_establecimiento"
-              />
-            </div>
-          </div>
-          <p class="adm-ayuda">
-            Los campos de partida vacíos usan los datos del emisor. La serie de guía se configura
-            arriba.
-          </p>
-          <button class="adm-btn adm-btn--primario" type="submit" [disabled]="greForm.invalid">
-            Guardar configuración de guías
-          </button>
-        </fieldset>
-      </form>
-    </section>
-
-    <div class="adm-grid adm-grid--2">
-      @for (lista of [cfg.estado.checklist.cpe, cfg.estado.checklist.gre]; track lista.titulo) {
-        <section class="adm-tarjeta">
-          <div class="adm-tarjeta__cabecera">
-            <h2 class="adm-tarjeta__titulo">{{ lista.titulo }}</h2>
-            <span>{{ lista.listo ? 'Preparado' : 'Pendiente' }}</span>
-          </div>
-          <ul class="fiscal-lista adm-tarjeta__cuerpo">
-            @for (item of lista.items; track item.codigo) {
-              <li>
-                <strong>{{ item.ok ? '✓' : 'Pendiente:' }} {{ item.titulo }}</strong>
-                @if (!item.ok) {
-                  <p class="adm-ayuda">{{ item.detalle }} {{ item.accion }}</p>
-                }
-              </li>
-            }
-          </ul>
-        </section>
+        </button>
       }
     </div>
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo">Emisor separado para BETA</h2>
-      </div>
-      <div class="adm-tarjeta__cuerpo">
-        <p class="adm-ayuda">
-          Datos exclusivos de los documentos de prueba. RUC del certificado BETA:
-          {{ rucCertificadoBeta || 'pendiente' }}.
-        </p>
-        @if (errorBeta) {
-          <p class="adm-aviso adm-aviso--aviso" role="status">{{ errorBeta }}</p>
-        }
-        @if (emisorBeta; as beta) {
-          <form #betaForm="ngForm" (ngSubmit)="betaForm.valid && guardarEmisorBeta()">
-            <fieldset [disabled]="ocupado || cargando || cargandoBeta || !!errorBeta">
-              <div class="fiscal-campos">
-                <div class="adm-campo">
-                  <label class="adm-etiqueta" for="beta-emisor-ruc">RUC de pruebas</label
-                  ><input
-                    id="beta-emisor-ruc"
-                    class="adm-input"
-                    name="betaRuc"
-                    required
-                    pattern="[0-9]{11}"
-                    maxlength="11"
-                    [(ngModel)]="beta.ruc"
-                  />
-                </div>
-                @for (campo of camposEmisor; track campo.clave) {
-                  <div class="adm-campo">
-                    <label class="adm-etiqueta" [for]="'beta-emisor-' + campo.clave">{{
-                      campo.etiqueta
-                    }}</label
-                    ><input
-                      class="adm-input"
-                      [id]="'beta-emisor-' + campo.clave"
-                      [name]="campo.clave"
-                      [required]="campo.clave !== 'nombre_comercial'"
-                      [maxlength]="campo.maximo"
-                      [pattern]="campo.patron"
-                      [(ngModel)]="beta[campo.clave]"
-                    />
+
+    <!-- Estado de la emisión y activación en producción -->
+    <div class="fiscal-panel" role="tabpanel" id="fiscal-panel-resumen" aria-labelledby="fiscal-tab-resumen"
+         [hidden]="seccion !== 'resumen'">
+      <section class="adm-tarjeta" aria-labelledby="fiscal-estado-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="fiscal-estado-titulo"><i class="bi bi-broadcast"></i> Estado de la emisión</h2>
+            <p class="adm-tarjeta__sub">Qué pasa ahora con los comprobantes de las ventas.</p>
+          </div>
+          <div class="adm-tarjeta__extra">
+            <button type="button" class="adm-btn-icono adm-btn-icono--borde" (click)="fiscalEstado.refrescar(true)"
+                    [disabled]="fiscalEstado.cargando()" aria-label="Actualizar el estado de la emisión" title="Actualizar">
+              <i class="bi" [ngClass]="fiscalEstado.cargando() ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <div class="adm-tarjeta__cuerpo fiscal-estado">
+          @if (fiscalEstado.estado(); as est) {
+            <div class="fiscal-estado__principal">
+              <span class="adm-insignia adm-insignia--punto fiscal-estado__insignia" [ngClass]="claseEmision(est)">
+                {{ textoEmision(est) }}
+              </span>
+              <p class="fiscal-estado__texto">{{ descripcionEmision(est) }}</p>
+            </div>
+
+            @if (est.bloqueo; as bloqueo) {
+              <div class="adm-aviso adm-aviso--peligro" role="alert">
+                <i class="bi bi-sign-stop" aria-hidden="true"></i>
+                <div>
+                  <strong class="adm-aviso__titulo">SUNAT detuvo la emisión (código {{ bloqueo.codigo }})</strong>
+                  {{ bloqueo.motivo }}
+                  <div class="adm-texto-suave">
+                    Desde {{ bloqueo.fecha | date: 'dd/MM/yyyy HH:mm' }}. Corrija la causa (registre de nuevo la clave
+                    SOL o el certificado) y reanúdela: mientras tanto las ventas se registran sin comprobante.
                   </div>
-                }
+                </div>
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion"
+                        (click)="reanudarEmision()" [disabled]="ocupado || cargando">
+                  <i class="bi bi-play-circle" aria-hidden="true"></i> Reanudar emisión
+                </button>
               </div>
-              <button class="adm-btn adm-btn--primario" type="submit" [disabled]="betaForm.invalid">
-                Guardar emisor BETA
+            }
+
+            <div class="adm-grid adm-grid--4">
+              <div class="adm-metrica">
+                <div class="adm-metrica__icono"
+                     [ngClass]="(est.cola?.pendientes ?? 0) > 0 ? 'adm-metrica__icono--aviso' : 'adm-metrica__icono--exito'">
+                  <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <div class="adm-metrica__valor">{{ est.cola ? est.cola.pendientes : '—' }}</div>
+                  <div class="adm-metrica__etiqueta">Por reenviar</div>
+                  <button type="button" class="adm-metrica__delta fiscal-metrica__ver" (click)="verEnvios('PENDIENTE_REENVIO')"
+                          aria-label="Ver en Envíos SUNAT los pendientes de reenvío">
+                    Ver en Envíos SUNAT <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="adm-metrica">
+                <div class="adm-metrica__icono"
+                     [ngClass]="(est.cola?.inciertos ?? 0) > 0 ? 'adm-metrica__icono--aviso' : 'adm-metrica__icono--exito'">
+                  <i class="bi bi-question-circle" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <div class="adm-metrica__valor">{{ est.cola ? est.cola.inciertos : '—' }}</div>
+                  <div class="adm-metrica__etiqueta">Sin respuesta de SUNAT</div>
+                  <button type="button" class="adm-metrica__delta fiscal-metrica__ver" (click)="verEnvios('ENVIANDO')"
+                          aria-label="Ver en Envíos SUNAT los que no tienen respuesta">
+                    Ver en Envíos SUNAT <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="adm-metrica">
+                <div class="adm-metrica__icono"
+                     [ngClass]="(est.plazos?.vencen_hoy ?? 0) > 0 ? 'adm-metrica__icono--aviso' : 'adm-metrica__icono--exito'">
+                  <i class="bi bi-calendar-event" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <div class="adm-metrica__valor">{{ est.plazos ? est.plazos.vencen_hoy : '—' }}</div>
+                  <div class="adm-metrica__etiqueta">Vencen hoy</div>
+                  <button type="button" class="adm-metrica__delta fiscal-metrica__ver" (click)="verEnvios()"
+                          aria-label="Ver en Envíos SUNAT los del ambiente vigente">
+                    Ver en Envíos SUNAT <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="adm-metrica">
+                <div class="adm-metrica__icono"
+                     [ngClass]="(est.plazos?.vencidos ?? 0) > 0 ? 'adm-metrica__icono--peligro' : 'adm-metrica__icono--exito'">
+                  <i class="bi bi-calendar-x" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <div class="adm-metrica__valor">{{ est.plazos ? est.plazos.vencidos : '—' }}</div>
+                  <div class="adm-metrica__etiqueta">Fuera de plazo</div>
+                  <button type="button" class="adm-metrica__delta fiscal-metrica__ver" (click)="verEnvios()"
+                          aria-label="Ver en Envíos SUNAT los del ambiente vigente">
+                    Ver en Envíos SUNAT <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            @for (alerta of alertas(); track alerta.titulo) {
+              <div class="adm-aviso" [ngClass]="'adm-aviso--' + alerta.tono"
+                   [attr.role]="alerta.tono === 'peligro' ? 'alert' : 'status'">
+                <i class="bi" [ngClass]="alerta.icono" aria-hidden="true"></i>
+                <span><strong class="adm-aviso__titulo">{{ alerta.titulo }}</strong>{{ alerta.texto }}</span>
+              </div>
+            }
+          } @else if (fiscalEstado.error(); as error) {
+            <div class="adm-aviso adm-aviso--peligro" role="alert">
+              <i class="bi bi-cloud-slash" aria-hidden="true"></i>
+              <span><strong class="adm-aviso__titulo">No se pudo consultar el estado de la emisión</strong>{{ error }}</span>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="fiscalEstado.refrescar(true)">
+                Reintentar
               </button>
-            </fieldset>
-          </form>
-        }
-      </div>
-    </section>
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo">Validar configuración y circuito BETA</h2>
-      </div>
-      <div class="adm-tarjeta__cuerpo">
-        <fieldset [disabled]="ocupado || cargando || !!errorCarga">
-          <div class="adm-fila">
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="prueba-ambiente">Ambiente a comprobar</label
-              ><select id="prueba-ambiente" class="adm-select" [(ngModel)]="ambientePrueba">
-                <option value="beta">BETA</option>
-                <option value="produccion">Producción</option>
-              </select>
             </div>
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="prueba-documento">Documento</label
-              ><select id="prueba-documento" class="adm-select" [(ngModel)]="documentoPrueba">
-                <option value="cpe">Comprobantes</option>
-                <option value="gre">Guía remitente</option>
-              </select>
+          } @else if (fiscalEstado.cargando()) {
+            <div class="adm-esqueletos fiscal-estado__carga" aria-busy="true" aria-label="Consultando el estado de la emisión">
+              <div class="adm-esqueleto adm-esqueleto--titulo"></div>
+              <div class="adm-esqueleto adm-esqueleto--fila"></div>
             </div>
-            @if (ambientePrueba === 'beta' && documentoPrueba === 'cpe') {
+          } @else {
+            <div class="adm-aviso adm-aviso--neutro" role="status">
+              <i class="bi bi-info-circle" aria-hidden="true"></i>
+              <span>Todavía no se consultó el estado de la emisión.</span>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="fiscalEstado.refrescar(true)">
+                Consultar ahora
+              </button>
+            </div>
+          }
+
+          <div class="adm-bloque fiscal-tareas">
+            <div class="adm-entre">
+              <label class="adm-switch">
+                <input #interruptorTareas type="checkbox" [checked]="cfg.tareas_activas"
+                       (change)="cambiarTareas(interruptorTareas)" [disabled]="ocupado || cargando" />
+                <strong>Tareas programadas {{ cfg.tareas_activas ? 'activas' : 'apagadas' }}</strong>
+              </label>
+              @if (fiscalEstado.estado()?.tareas?.ultima_ejecucion; as ultima) {
+                <span class="adm-ayuda">Última vuelta: {{ ultima | date: 'dd/MM HH:mm' }}</span>
+              }
+            </div>
+            <p class="adm-ayuda adm-mb-0">
+              Con la emisión activa, cada 2 minutos el servidor reintenta los envíos pendientes (espera 2, 5, 15, 30 y
+              60 minutos entre intentos; tras 6 intentos quedan para revisarlos a mano) y recupera los que quedaron sin
+              respuesta. Si las apaga, los pendientes solo se reenvían con «Reintentar» en Envíos SUNAT.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <app-activacion-produccion [config]="cfg" [bloqueado]="ocupado || cargando"
+                                 (guardar)="guardarCambios($event)" (irA)="irA($event)"
+                                 (probado)="cargarAuditoria()" />
+    </div>
+
+    <!-- Envíos SUNAT -->
+    <div class="fiscal-panel" role="tabpanel" id="fiscal-panel-envios" aria-labelledby="fiscal-tab-envios"
+         [hidden]="seccion !== 'envios'">
+      <app-envios-sunat [ambienteVigente]="cfg.ambiente" (cambio)="alCambiarEnvios()" />
+    </div>
+
+    <!-- Configuración -->
+    <div class="fiscal-panel" role="tabpanel" id="fiscal-panel-configuracion" aria-labelledby="fiscal-tab-configuracion"
+         [hidden]="seccion !== 'configuracion'">
+      <section class="adm-tarjeta" id="fiscal-operacion" aria-labelledby="fiscal-operacion-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="fiscal-operacion-titulo"><i class="bi bi-sliders"></i> Operación y series</h2>
+            <p class="adm-tarjeta__sub">
+              Ambiente actual: <strong>{{ cfg.ambiente === 'produccion' ? 'producción' : 'SUNAT BETA (pruebas)' }}</strong>.
+              Se cambia en «Estado y activación», con confirmación.
+            </p>
+          </div>
+        </div>
+        <form #operacionForm="ngForm" (ngSubmit)="operacionForm.valid && guardarOperacion()" class="adm-tarjeta__cuerpo">
+          <fieldset [disabled]="ocupado || cargando || !!errorCarga">
+            <div class="fiscal-campos">
               <div class="adm-campo">
-                <label class="adm-etiqueta" for="prueba-tipo-cpe">Documento de prueba BETA</label
-                ><select id="prueba-tipo-cpe" class="adm-select" [(ngModel)]="tipoCpePrueba">
-                  <option value="01">Factura (FB01)</option>
-                  <option value="03">Boleta (BB01)</option>
+                <label for="fiscal-boletas" class="adm-etiqueta">Boletas</label>
+                <select id="fiscal-boletas" name="boletas" class="adm-select" [(ngModel)]="operacion.boletas_modo">
+                  <option value="individual">Envío individual</option>
+                  <option value="resumen">Resumen diario</option>
                 </select>
+              </div>
+              @for (serie of series; track serie.clave) {
+                <div class="adm-campo">
+                  <label class="adm-etiqueta" [for]="'serie-' + serie.clave">{{ serie.etiqueta }}</label>
+                  <input class="adm-input" [id]="'serie-' + serie.clave" [name]="serie.clave" required maxlength="4"
+                         [pattern]="serie.patron" [ngModel]="operacion.series[serie.clave]"
+                         (ngModelChange)="operacion.series[serie.clave] = $event.toUpperCase()" autocomplete="off" />
+                </div>
+              }
+              <div class="adm-campo">
+                <label for="codigo-sunat" class="adm-etiqueta">Código SUNAT de producto por defecto</label>
+                <input id="codigo-sunat" name="codigoSunat" class="adm-input" maxlength="8" pattern="[0-9]{8}"
+                       [(ngModel)]="operacion.codigo_producto_defecto" placeholder="Opcional: 8 dígitos" />
+              </div>
+              <div class="adm-campo">
+                <label for="reglas-fiscales" class="adm-etiqueta">Reglas 2027</label>
+                <select id="reglas-fiscales" name="reglas" class="adm-select" [(ngModel)]="operacion.aplicar_reglas_2027">
+                  <option value="auto">Automático por fecha</option>
+                  <option value="true">Activadas</option>
+                  <option value="false">Desactivadas</option>
+                </select>
+              </div>
+            </div>
+            <label class="adm-check fiscal-opcion">
+              <input name="envioLinea" type="checkbox" [(ngModel)]="operacion.envio_en_linea" /> Envío en línea
+            </label>
+            <p class="adm-ayuda">
+              Factura y sus notas empiezan con F; boleta y sus notas con B; la guía remitente con T. Si cambia una
+              serie, revise su primer número en «Estado y activación».
+            </p>
+            <button class="adm-btn adm-btn--primario" type="submit" [disabled]="operacionForm.invalid">
+              Guardar operación y series
+            </button>
+          </fieldset>
+        </form>
+      </section>
+
+      <section class="adm-tarjeta" id="fiscal-emisor" aria-labelledby="fiscal-emisor-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="fiscal-emisor-titulo"><i class="bi bi-building"></i> Datos fiscales del emisor</h2>
+            <p class="adm-tarjeta__sub">
+              RUC configurado: <strong>{{ cfg.emisor.ruc }}</strong>. El RUC se administra en Configuración general.
+            </p>
+          </div>
+        </div>
+        <form #emisorForm="ngForm" (ngSubmit)="emisorForm.valid && guardarEmisor()" class="adm-tarjeta__cuerpo">
+          <fieldset [disabled]="ocupado || cargando || !!errorCarga">
+            <div class="fiscal-campos">
+              @for (campo of camposEmisor; track campo.clave) {
+                <div class="adm-campo">
+                  <label class="adm-etiqueta" [for]="'emisor-' + campo.clave">{{ campo.etiqueta }}</label>
+                  <input class="adm-input" [id]="'emisor-' + campo.clave" [name]="campo.clave"
+                         [required]="campo.clave !== 'nombre_comercial'" [maxlength]="campo.maximo"
+                         [pattern]="campo.patron" [(ngModel)]="emisor[campo.clave]" />
+                </div>
+              }
+            </div>
+            <button class="adm-btn adm-btn--primario" type="submit" [disabled]="emisorForm.invalid">Guardar emisor</button>
+          </fieldset>
+        </form>
+      </section>
+
+      <section class="adm-tarjeta" id="fiscal-certificados" aria-labelledby="fiscal-certificados-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="fiscal-certificados-titulo"><i class="bi bi-shield-lock"></i> Certificados digitales</h2>
+            <p class="adm-tarjeta__sub">El de producción firma los comprobantes reales; el de BETA, solo las pruebas.</p>
+          </div>
+        </div>
+        <div class="adm-tarjeta__cuerpo">
+          <div class="adm-grid adm-grid--2">
+            @for (ambiente of ambientes; track ambiente) {
+              <div class="adm-bloque">
+                <h3 class="adm-bloque__titulo">{{ ambiente === 'beta' ? 'BETA' : 'Producción' }}</h3>
+                @if (cfg.certificado[ambiente]; as certificado) {
+                  <p class="fiscal-certificado__titular">
+                    {{ certificado.titular || certificado.nombre_archivo || 'Certificado digital' }}
+                  </p>
+                  <p class="adm-ayuda">
+                    RUC: {{ certificado.ruc || 'Sin identificar' }} · Vence:
+                    {{ certificado.vigente_hasta | date: 'dd/MM/yyyy' }} ·
+                    {{ certificado.autofirmado ? 'Autofirmado de pruebas' : 'Certificado real' }}
+                  </p>
+                  @for (alerta of alertasCertificado(certificado); track alerta.titulo) {
+                    <div class="adm-aviso adm-aviso--compacto adm-mt-2" [ngClass]="'adm-aviso--' + alerta.tono" role="status">
+                      <i class="bi" [ngClass]="alerta.icono" aria-hidden="true"></i>
+                      <span><strong class="adm-aviso__titulo">{{ alerta.titulo }}</strong>{{ alerta.texto }}</span>
+                    </div>
+                  }
+                  @for (aviso of certificado.advertencias; track aviso) {
+                    <p class="adm-ayuda">{{ aviso }}</p>
+                  }
+                  <div class="adm-acciones">
+                    <button class="adm-btn adm-btn--suave" type="button" (click)="descargarPublico(ambiente)"
+                            [disabled]="ocupado || cargando">
+                      <i class="bi bi-download" aria-hidden="true"></i> Descargar .cer público
+                    </button>
+                    <button class="adm-btn adm-btn--suave" type="button" (click)="eliminarCertificado(ambiente)"
+                            [disabled]="ocupado || cargando">
+                      Eliminar
+                    </button>
+                  </div>
+                } @else {
+                  <p role="status">Certificado pendiente de cargar.</p>
+                }
               </div>
             }
           </div>
-          <button
-            class="adm-btn adm-btn--suave"
-            type="button"
-            (click)="probar()"
-            [disabled]="!puedeProbar"
-          >
-            {{
-              ambientePrueba === 'beta' && documentoPrueba === 'cpe'
-                ? 'Generar, firmar y enviar prueba a BETA'
-                : 'Validar configuración guardada'
-            }}
-          </button>
-        </fieldset>
-        @if (!puedeProbar) {
-          <p class="adm-ayuda">
-            Validación pendiente: se necesita el certificado del ambiente elegido y la configuración
-            del servidor. En BETA, guarde un emisor con el mismo RUC del certificado.
-          </p>
-        }
-        @if (resultadoPrueba; as prueba) {
-          <p role="status">
-            <strong>{{
-              prueba.ok
-                ? 'Verificaciones ejecutadas correctas'
-                : 'Hay verificaciones pendientes o fallidas'
-            }}</strong>
-            · {{ prueba.ambiente }} · {{ prueba.documento }} · {{ prueba.tiempo_ms }} ms
-          </p>
-          @if (!prueba.envio_disponible) {
-            <p class="adm-ayuda">
-              Resultado de comprobaciones locales. El módulo de envío todavía está pendiente de
-              habilitar.
-            </p>
-          }
-          <ul class="fiscal-lista">
-            @for (paso of prueba.pasos; track paso.paso) {
-              <li>
-                <strong
-                  >{{ paso.ok === null ? 'Sin ejecutar' : paso.ok ? 'Correcto' : 'Error' }} ·
-                  {{ paso.paso }}</strong
-                >
-                <p class="adm-ayuda">{{ paso.detalle }}</p>
-              </li>
-            }
-          </ul>
-        }
+          <form #certificadoForm="ngForm" (ngSubmit)="certificadoForm.valid && subirCertificado()">
+            <fieldset [disabled]="ocupado || cargando || !!errorCarga || !cfg.estado.esquema.listo || !cfg.estado.cifrado_disponible">
+              <legend>Subir o reemplazar certificado</legend>
+              @if (ambienteCertificado === 'beta') {
+                <label class="adm-check fiscal-opcion">
+                  <input type="checkbox" name="otroEmisorBeta" [(ngModel)]="otroEmisorBeta" />
+                  El certificado pertenece al emisor separado de pruebas BETA.
+                </label>
+              }
+              <div class="adm-fila">
+                <div class="adm-campo">
+                  <label class="adm-etiqueta" for="cert-ambiente">Destino del certificado</label>
+                  <select id="cert-ambiente" name="ambienteCertificado" class="adm-select" [(ngModel)]="ambienteCertificado">
+                    <option value="produccion">Producción</option>
+                    <option value="beta">BETA</option>
+                  </select>
+                </div>
+                <div class="adm-campo">
+                  <label class="adm-etiqueta" for="cert-archivo">Archivo .pfx / .p12 (hasta 200 KB)</label>
+                  <input #archivoCertificado id="cert-archivo" class="adm-input" type="file" accept=".pfx,.p12"
+                         (change)="seleccionarArchivo($event)" />
+                </div>
+                <div class="adm-campo">
+                  <label class="adm-etiqueta" for="cert-clave">Contraseña del archivo</label>
+                  <input id="cert-clave" name="claveCertificado" class="adm-input" type="password" maxlength="128"
+                         autocomplete="new-password" [(ngModel)]="claveCertificado" />
+                </div>
+              </div>
+              <div class="adm-acciones">
+                <button class="adm-btn adm-btn--primario" type="submit" [disabled]="!archivo || certificadoForm.invalid">
+                  Guardar certificado
+                </button>
+                <button class="adm-btn adm-btn--suave" type="button" (click)="generarAutofirmado()">
+                  Crear certificado de pruebas BETA
+                </button>
+              </div>
+            </fieldset>
+          </form>
+        </div>
+      </section>
+
+      <div class="adm-grid adm-grid--2">
+        <section class="adm-tarjeta" id="fiscal-sol" aria-labelledby="fiscal-sol-titulo">
+          <div class="adm-tarjeta__cabecera">
+            <div class="adm-tarjeta__encabezado">
+              <h2 class="adm-tarjeta__titulo" id="fiscal-sol-titulo"><i class="bi bi-person-lock"></i> Usuario secundario SOL</h2>
+              <p class="adm-tarjeta__sub">
+                Clave: {{ cfg.sol.tiene_clave ? 'registrada' : 'pendiente' }}. BETA usa las credenciales públicas de SUNAT.
+              </p>
+            </div>
+          </div>
+          <form #solForm="ngForm" (ngSubmit)="solForm.valid && guardarSol()" class="adm-tarjeta__cuerpo">
+            <fieldset [disabled]="ocupado || cargando || !!errorCarga || !cfg.estado.esquema.listo || !cfg.estado.cifrado_disponible">
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="sol-usuario">Usuario SOL</label>
+                <input id="sol-usuario" name="usuarioSol" class="adm-input" required maxlength="19"
+                       pattern="([0-9]{11})?[A-Za-z0-9]{8}" [(ngModel)]="sol.usuario" autocomplete="off" />
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="sol-clave">Clave SOL (8–12 caracteres)</label>
+                <input id="sol-clave" name="claveSol" class="adm-input" type="password" [required]="!cfg.sol.tiene_clave"
+                       minlength="8" maxlength="12" [(ngModel)]="sol.clave" autocomplete="new-password"
+                       [placeholder]="cfg.sol.tiene_clave ? 'Vacío conserva la clave actual' : ''" />
+              </div>
+              <div class="adm-acciones">
+                <button class="adm-btn adm-btn--primario" type="submit" [disabled]="solForm.invalid">Guardar SOL</button>
+                <button class="adm-btn adm-btn--suave" type="button" (click)="eliminarCredenciales('sol')"
+                        [disabled]="!cfg.sol.tiene_clave">
+                  Eliminar clave
+                </button>
+              </div>
+            </fieldset>
+          </form>
+        </section>
+        <section class="adm-tarjeta" aria-labelledby="fiscal-api-gre-titulo">
+          <div class="adm-tarjeta__cabecera">
+            <div class="adm-tarjeta__encabezado">
+              <h2 class="adm-tarjeta__titulo" id="fiscal-api-gre-titulo"><i class="bi bi-cloud-check"></i> Credenciales API de guías</h2>
+              <p class="adm-tarjeta__sub">
+                {{
+                  cfg.gre.credenciales.tiene_credenciales
+                    ? 'Registradas: ' + (cfg.gre.credenciales.client_id_mascara || 'identificador protegido')
+                    : 'Credenciales pendientes'
+                }}
+              </p>
+            </div>
+          </div>
+          <form #credGreForm="ngForm" (ngSubmit)="credGreForm.valid && guardarCredencialesGre()" class="adm-tarjeta__cuerpo">
+            <fieldset [disabled]="ocupado || cargando || !!errorCarga || !cfg.estado.esquema.listo || !cfg.estado.cifrado_disponible">
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="gre-client-id">Client ID</label>
+                <input id="gre-client-id" name="clientId" class="adm-input" required pattern="[A-Za-z0-9-]{8,100}"
+                       maxlength="100" [(ngModel)]="credencialesGre.clientId" autocomplete="off" />
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="gre-secret">Client secret</label>
+                <input id="gre-secret" name="clientSecret" class="adm-input" type="password" required minlength="8"
+                       maxlength="200" pattern="\S+" [(ngModel)]="credencialesGre.clientSecret" autocomplete="new-password" />
+              </div>
+              <div class="adm-acciones">
+                <button class="adm-btn adm-btn--primario" type="submit" [disabled]="credGreForm.invalid">
+                  Guardar credenciales API
+                </button>
+                <button class="adm-btn adm-btn--suave" type="button" (click)="eliminarCredenciales('gre')"
+                        [disabled]="!cfg.gre.credenciales.tiene_credenciales">
+                  Eliminar credenciales
+                </button>
+              </div>
+            </fieldset>
+          </form>
+        </section>
       </div>
-    </section>
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo">Emisión comercial del POS a SUNAT BETA</h2>
-      </div>
-      <div class="adm-tarjeta__cuerpo">
-        @if (estadoPosBeta; as posBeta) {
-          <p role="status">
-            <strong>
-              {{
-                posBeta.activo
-                  ? 'Activa solo en BETA'
-                  : posBeta.habilitado
-                    ? 'Habilitada, pero suspendida fuera del ambiente BETA'
-                    : 'Desactivada'
-              }}
-            </strong>
-            · Emisor BETA {{ posBeta.ruc_emisor_beta }} · Certificado
-            {{ posBeta.ruc_certificado_beta || 'pendiente' }}
-          </p>
-          <p class="adm-ayuda">{{ posBeta.advertencia }}</p>
-          @if (!posBeta.listo) {
-            <p class="adm-aviso adm-aviso--aviso" role="status">
-              Para activarla se requiere el esquema fiscal aplicado y un certificado BETA vigente
-              cuyo RUC coincida con el emisor BETA.
-            </p>
-          }
-          <button
-            class="adm-btn"
-            [class.adm-btn--primario]="!posBeta.habilitado"
-            [class.adm-btn--suave]="posBeta.habilitado"
-            type="button"
-            (click)="cambiarEstadoPosBeta()"
-            [disabled]="
-              ocupado ||
-              cargando ||
-              cargandoBeta ||
-              (!posBeta.habilitado && !puedeActivarPosBeta)
-            "
-          >
-            {{ posBeta.habilitado ? 'Desactivar envío BETA desde el POS' : 'Activar pruebas del POS en BETA' }}
-          </button>
-        } @else {
-          <p class="adm-ayuda">Consultando el estado de la integración BETA del POS…</p>
-        }
-      </div>
-    </section>
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo">XML, ZIP y CDR de pruebas BETA</h2>
-        <button
-          class="adm-btn adm-btn--suave"
-          type="button"
-          (click)="cargarBeta()"
-          [disabled]="cargandoBeta || ocupado"
-        >
-          Actualizar pruebas
-        </button>
-      </div>
-      <div class="adm-tarjeta__cuerpo fiscal-tabla">
-        <table class="adm-tabla">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Documento</th>
-              <th>Estado SUNAT</th>
-              <th>Archivos</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (envio of enviosBeta; track envio.id_envio) {
-              <tr>
-                <td>{{ envio.creado_en | date: 'short' }}</td>
-                <td>{{ envio.nombre_archivo }}</td>
-                <td [attr.title]="envio.mensaje_sunat">
-                  {{ envio.estado }}
-                  {{ envio.codigo_sunat !== null ? '(' + envio.codigo_sunat + ')' : '' }}
-                  @if (envio.accion_sunat === 'RECUPERAR_CDR') {
-                    <div class="adm-texto-suave">SUNAT reporta recepción; no reenvíe el ZIP. Verifique el CDR antes de continuar.</div>
-                  } @else if (envio.estado === 'ENVIANDO') {
-                    <div class="adm-texto-suave">Resultado aún en curso; no reenvíe mientras no se confirme el estado.</div>
-                  }
-                </td>
-                <td>
-                  <div class="adm-acciones">
-                    @for (tipo of envio.archivos; track tipo) {
-                      <button
-                        class="adm-btn adm-btn--suave"
-                        type="button"
-                        (click)="descargarBeta(envio, tipo)"
-                        [disabled]="ocupado"
-                      >
-                        {{ nombresArchivoBeta[tipo] }}
-                      </button>
+
+      <section class="adm-tarjeta" aria-labelledby="fiscal-gre-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="fiscal-gre-titulo">
+              <i class="bi bi-truck"></i> Guía de remisión remitente
+              <span class="adm-insignia" [ngClass]="cfg.estado.checklist.gre.listo ? 'adm-insignia--exito' : 'adm-insignia--aviso'">
+                {{ cfg.estado.checklist.gre.listo ? 'Preparada' : 'Pendiente' }}
+              </span>
+            </h2>
+            <p class="adm-tarjeta__sub">Los campos de partida vacíos usan los datos del emisor. La serie se configura en «Operación y series».</p>
+          </div>
+        </div>
+        <form #greForm="ngForm" (ngSubmit)="greForm.valid && guardarGre()" class="adm-tarjeta__cuerpo">
+          <fieldset [disabled]="ocupado || cargando || !!errorCarga">
+            <label class="adm-check fiscal-opcion">
+              <input name="greActiva" type="checkbox" [(ngModel)]="gre.activa" /> Activar envío de guías a SUNAT
+            </label>
+            <div class="fiscal-campos">
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="gre-correlativo">Correlativo inicial</label>
+                <input id="gre-correlativo" name="correlativo" class="adm-input" type="number" required min="1"
+                       max="99999999" step="1" [(ngModel)]="gre.correlativo_inicial" />
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="gre-ubigeo">Ubigeo de partida</label>
+                <input id="gre-ubigeo" name="partidaUbigeo" class="adm-input" pattern="[0-9]{6}" maxlength="6"
+                       [(ngModel)]="gre.partida.ubigeo" [placeholder]="cfg.emisor.ubigeo" />
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="gre-direccion">Dirección de partida</label>
+                <input id="gre-direccion" name="partidaDireccion" class="adm-input" maxlength="200"
+                       [(ngModel)]="gre.partida.direccion" [placeholder]="cfg.emisor.direccion" />
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="gre-establecimiento">Establecimiento de partida</label>
+                <input id="gre-establecimiento" name="partidaEstablecimiento" class="adm-input" pattern="[0-9]{4}"
+                       maxlength="4" [(ngModel)]="gre.partida.codigo_establecimiento"
+                       [placeholder]="cfg.emisor.codigo_establecimiento" />
+              </div>
+            </div>
+            @let pendientesGuias = pendientesGre(cfg);
+            @if (pendientesGuias.length) {
+              <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto fiscal-gre-pendientes">
+                <i class="bi bi-list-check" aria-hidden="true"></i>
+                <div>
+                  <strong class="adm-aviso__titulo">Para emitir guías electrónicas falta:</strong>
+                  <ul class="fiscal-lista">
+                    @for (item of pendientesGuias; track item.codigo) {
+                      <li><strong>{{ item.titulo }}</strong>{{ item.accion ? ': ' + item.accion : '' }}</li>
                     }
-                  </div>
-                </td>
-                <td>
-                  @if (puedeReintentarBeta(envio)) {
-                    <button
-                      class="adm-btn adm-btn--suave"
-                      type="button"
-                      (click)="reintentarBeta(envio)"
-                      [disabled]="ocupado || cargandoBeta"
-                    >
-                      Reintentar mismo ZIP
-                    </button>
-                  }
-                </td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="5">
-                  {{ cargandoBeta ? 'Consultando pruebas…' : 'Todavía no hay envíos BETA.' }}
-                </td>
-              </tr>
+                  </ul>
+                </div>
+              </div>
             }
-          </tbody>
-        </table>
-      </div>
-    </section>
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo">Bitácora fiscal</h2>
-        <button
-          class="adm-btn adm-btn--suave"
-          type="button"
-          (click)="cargarAuditoria()"
-          [disabled]="cargandoAuditoria"
-        >
-          Actualizar bitácora
-        </button>
-      </div>
-      <div class="adm-tarjeta__cuerpo">
+            <button class="adm-btn adm-btn--primario" type="submit" [disabled]="greForm.invalid">
+              Guardar configuración de guías
+            </button>
+          </fieldset>
+        </form>
+      </section>
+    </div>
+
+    <!-- Pruebas en SUNAT BETA -->
+    <div class="fiscal-panel" role="tabpanel" id="fiscal-panel-pruebas" aria-labelledby="fiscal-tab-pruebas"
+         [hidden]="seccion !== 'pruebas'">
+      <section class="adm-tarjeta" aria-labelledby="fiscal-pos-beta-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--aviso" id="fiscal-pos-beta-titulo">
+              <i class="bi bi-flask"></i> Emisión de prueba del POS en SUNAT BETA
+            </h2>
+            <p class="adm-tarjeta__sub">Las ventas del POS se envían a SUNAT BETA: sirve para probar el circuito completo.</p>
+          </div>
+        </div>
+        <div class="adm-tarjeta__cuerpo">
+          @if (errorPosBeta) {
+            <div class="adm-aviso adm-aviso--peligro" role="alert">
+              <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+              <span>{{ errorPosBeta }}</span>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargarBeta()"
+                      [disabled]="cargandoBeta">
+                Reintentar
+              </button>
+            </div>
+          } @else if (estadoPosBeta; as posBeta) {
+            <p role="status">
+              <strong>
+                {{
+                  posBeta.activo
+                    ? 'Activa solo en BETA'
+                    : posBeta.habilitado
+                      ? 'Habilitada, pero suspendida fuera del ambiente BETA'
+                      : 'Desactivada'
+                }}
+              </strong>
+              · Emisor BETA {{ posBeta.ruc_emisor_beta }} · Certificado {{ posBeta.ruc_certificado_beta || 'pendiente' }}
+            </p>
+            <p class="adm-ayuda">{{ posBeta.advertencia }}</p>
+            @if (!posBeta.listo) {
+              <div class="adm-aviso adm-aviso--aviso" role="status">
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                <span>
+                  Para activarla se requiere el esquema fiscal aplicado y un certificado BETA vigente cuyo RUC coincida
+                  con el emisor BETA.
+                </span>
+              </div>
+            }
+            <div class="adm-acciones adm-mt-3">
+              <button class="adm-btn" [class.adm-btn--primario]="!posBeta.habilitado" [class.adm-btn--suave]="posBeta.habilitado"
+                      type="button" (click)="cambiarEstadoPosBeta()"
+                      [disabled]="ocupado || cargando || cargandoBeta || (!posBeta.habilitado && !puedeActivarPosBeta)">
+                {{ posBeta.habilitado ? 'Desactivar envío BETA desde el POS' : 'Activar pruebas del POS en BETA' }}
+              </button>
+            </div>
+          } @else {
+            <p class="adm-ayuda" role="status">Consultando la emisión de prueba del POS…</p>
+          }
+        </div>
+      </section>
+
+      <section class="adm-tarjeta" aria-labelledby="fiscal-emisor-beta-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="fiscal-emisor-beta-titulo"><i class="bi bi-person-vcard"></i> Emisor separado para BETA</h2>
+            <p class="adm-tarjeta__sub">
+              Datos exclusivos de los documentos de prueba. RUC del certificado BETA: {{ rucCertificadoBeta || 'pendiente' }}.
+            </p>
+          </div>
+        </div>
+        <div class="adm-tarjeta__cuerpo">
+          @if (errorEmisorBeta) {
+            <div class="adm-aviso adm-aviso--peligro" role="alert">
+              <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+              <span>{{ errorEmisorBeta }}</span>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargarBeta()"
+                      [disabled]="cargandoBeta">
+                Reintentar
+              </button>
+            </div>
+          }
+          @if (emisorBeta; as beta) {
+            <form #betaForm="ngForm" (ngSubmit)="betaForm.valid && guardarEmisorBeta()">
+              <fieldset [disabled]="ocupado || cargando || cargandoBeta || !!errorEmisorBeta">
+                <div class="fiscal-campos">
+                  <div class="adm-campo">
+                    <label class="adm-etiqueta" for="beta-emisor-ruc">RUC de pruebas</label>
+                    <input id="beta-emisor-ruc" class="adm-input" name="betaRuc" required pattern="[0-9]{11}" maxlength="11"
+                           [(ngModel)]="beta.ruc" />
+                  </div>
+                  @for (campo of camposEmisor; track campo.clave) {
+                    <div class="adm-campo">
+                      <label class="adm-etiqueta" [for]="'beta-emisor-' + campo.clave">{{ campo.etiqueta }}</label>
+                      <input class="adm-input" [id]="'beta-emisor-' + campo.clave" [name]="campo.clave"
+                             [required]="campo.clave !== 'nombre_comercial'" [maxlength]="campo.maximo"
+                             [pattern]="campo.patron" [(ngModel)]="beta[campo.clave]" />
+                    </div>
+                  }
+                </div>
+                <button class="adm-btn adm-btn--primario" type="submit" [disabled]="betaForm.invalid">Guardar emisor BETA</button>
+              </fieldset>
+            </form>
+          }
+        </div>
+      </section>
+
+      <section class="adm-tarjeta" aria-labelledby="fiscal-validar-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="fiscal-validar-titulo"><i class="bi bi-clipboard-check"></i> Validar configuración y circuito BETA</h2>
+            <p class="adm-tarjeta__sub">En BETA genera, firma y envía un comprobante de prueba; en producción solo comprueba sin emitir.</p>
+          </div>
+        </div>
+        <div class="adm-tarjeta__cuerpo">
+          <fieldset [disabled]="ocupado || cargando || !!errorCarga">
+            <div class="adm-fila">
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="prueba-ambiente">Ambiente a comprobar</label>
+                <select id="prueba-ambiente" class="adm-select" [(ngModel)]="ambientePrueba">
+                  <option value="beta">BETA</option>
+                  <option value="produccion">Producción</option>
+                </select>
+              </div>
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="prueba-documento">Documento</label>
+                <select id="prueba-documento" class="adm-select" [(ngModel)]="documentoPrueba">
+                  <option value="cpe">Comprobantes</option>
+                  <option value="gre">Guía remitente</option>
+                </select>
+              </div>
+              @if (ambientePrueba === 'beta' && documentoPrueba === 'cpe') {
+                <div class="adm-campo">
+                  <label class="adm-etiqueta" for="prueba-tipo-cpe">Documento de prueba BETA</label>
+                  <select id="prueba-tipo-cpe" class="adm-select" [(ngModel)]="tipoCpePrueba">
+                    <option value="01">Factura (FB01)</option>
+                    <option value="03">Boleta (BB01)</option>
+                  </select>
+                </div>
+              }
+            </div>
+            <button class="adm-btn adm-btn--suave adm-mt-3" type="button" (click)="probar()" [disabled]="!puedeProbar">
+              {{
+                ambientePrueba === 'beta' && documentoPrueba === 'cpe'
+                  ? 'Generar, firmar y enviar prueba a BETA'
+                  : 'Validar configuración guardada'
+              }}
+            </button>
+          </fieldset>
+          @if (!puedeProbar) {
+            <p class="adm-ayuda">
+              Validación pendiente: se necesita el certificado del ambiente elegido y la configuración del servidor. En
+              BETA, guarde un emisor con el mismo RUC del certificado.
+            </p>
+          }
+          @if (resultadoPrueba; as prueba) {
+            <p role="status" class="adm-mt-3">
+              <strong>{{ prueba.ok ? 'Verificaciones ejecutadas correctas' : 'Hay verificaciones pendientes o fallidas' }}</strong>
+              · {{ prueba.ambiente === 'produccion' ? 'Producción' : 'BETA' }} ·
+              {{ prueba.documento === 'gre' ? 'Guía remitente' : 'Comprobantes' }} · {{ prueba.tiempo_ms }} ms
+            </p>
+            @if (!prueba.envio_disponible) {
+              <p class="adm-ayuda">
+                Resultado de comprobaciones locales. El módulo de envío todavía está pendiente de habilitar.
+              </p>
+            }
+            <ul class="fiscal-lista">
+              @for (paso of prueba.pasos; track paso.paso) {
+                <li>
+                  <strong>{{ paso.ok === null ? 'Sin ejecutar' : paso.ok ? 'Correcto' : 'Error' }} · {{ paso.paso }}</strong>
+                  <p class="adm-ayuda">{{ paso.detalle }}</p>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+    </div>
+
+    <!-- Bitácora -->
+    <div class="fiscal-panel" role="tabpanel" id="fiscal-panel-bitacora" aria-labelledby="fiscal-tab-bitacora"
+         [hidden]="seccion !== 'bitacora'">
+      <section class="adm-tarjeta" aria-labelledby="fiscal-bitacora-titulo">
+        <div class="adm-tarjeta__cabecera">
+          <div class="adm-tarjeta__encabezado">
+            <h2 class="adm-tarjeta__titulo" id="fiscal-bitacora-titulo"><i class="bi bi-journal-text"></i> Bitácora fiscal</h2>
+            <p class="adm-tarjeta__sub">Cada cambio de configuración, certificado, credenciales y confirmación manual.</p>
+          </div>
+          <div class="adm-tarjeta__extra">
+            <button class="adm-btn adm-btn--suave adm-btn--sm" type="button" (click)="cargarAuditoria()" [disabled]="cargandoAuditoria">
+              <i class="bi" [ngClass]="cargandoAuditoria ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
+              Actualizar bitácora
+            </button>
+          </div>
+        </div>
         @if (errorAuditoria) {
-          <p role="status">{{ errorAuditoria }}</p>
+          <div class="adm-tarjeta__cuerpo adm-tarjeta__cuerpo--compacto">
+            <div class="adm-aviso adm-aviso--peligro" role="alert">
+              <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+              <span>{{ errorAuditoria }}</span>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargarAuditoria()">
+                Reintentar
+              </button>
+            </div>
+          </div>
         }
-        <div class="fiscal-tabla">
-          <table class="adm-tabla">
+        <div class="adm-tabla-envoltorio">
+          <table class="adm-tabla adm-tabla--adaptable">
             <thead>
               <tr>
                 <th>Fecha</th>
@@ -847,32 +752,30 @@
             <tbody>
               @for (registro of auditoria; track registro.id_auditoria) {
                 <tr>
-                  <td>{{ registro.creado_en | date: 'short' }}</td>
-                  <td>{{ registro.accion }}</td>
-                  <td>{{ registro.id_usuario ?? 'Sistema' }}</td>
-                  <td>{{ registro.entidad || '—' }}</td>
+                  <td data-etiqueta="Fecha" class="adm-tabular">{{ registro.creado_en | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td data-etiqueta="Acción">
+                    <div class="adm-tabla__principal">{{ nombreAccion(registro.accion) }}</div>
+                    <div class="adm-tabla__mono">{{ registro.accion }}</div>
+                  </td>
+                  <td data-etiqueta="Usuario">{{ registro.id_usuario !== null ? 'Usuario #' + registro.id_usuario : 'Sistema' }}</td>
+                  <td data-etiqueta="Entidad">{{ registro.entidad || '—' }}</td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="4">
-                    {{ cargandoAuditoria ? 'Consultando…' : 'Sin registros de auditoría.' }}
-                  </td>
+                  <td colspan="4">{{ cargandoAuditoria ? 'Consultando…' : 'Sin registros de auditoría.' }}</td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
         @if (siguienteAuditoria) {
-          <button
-            class="adm-btn adm-btn--suave"
-            type="button"
-            (click)="cargarAuditoria(true)"
-            [disabled]="cargandoAuditoria"
-          >
-            Ver anteriores
-          </button>
+          <div class="adm-tarjeta__pie">
+            <button class="adm-btn adm-btn--suave" type="button" (click)="cargarAuditoria(true)" [disabled]="cargandoAuditoria">
+              Ver anteriores
+            </button>
+          </div>
         }
-      </div>
-    </section>
+      </section>
+    </div>
   }
 </div>

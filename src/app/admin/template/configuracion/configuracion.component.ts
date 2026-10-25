@@ -10,11 +10,13 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { finalize } from 'rxjs';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
 import { esRolStaff, ROL_IDS } from '../../../auth/roles.constants';
 import {
   ConfigFiscal,
   ConfiguracionFiscalService,
+  SeriesPos,
 } from '../../service/configuracion-fiscal.service';
 import { AlertService } from '../../../shared/services/alert.service';
 import { mensajeDeError } from '../../service/api-base.service';
@@ -52,7 +54,10 @@ export class AdminConfiguracionComponent implements OnInit {
     web: '',
   };
   formProforma = { condiciones: '' };
-  formSeries = { serie_boleta: 'BBB1', serie_factura: 'FFF1' };
+  /** Series vigentes del ambiente de emisión: solo lectura (se configuran en Facturación SUNAT). */
+  series: SeriesPos | null = null;
+  cargandoSeries = false;
+  errorSeries = '';
 
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
@@ -66,7 +71,10 @@ export class AdminConfiguracionComponent implements OnInit {
   ngOnInit(): void {
     this.refrescar();
     this.auth.data$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.refrescar());
-    if (this.esAdminPuro) this.cargarFiscal();
+    if (this.esAdminPuro) {
+      this.cargarFiscal();
+      this.cargarSeries();
+    }
   }
 
   get etiquetaRol(): string {
@@ -99,10 +107,6 @@ export class AdminConfiguracionComponent implements OnInit {
           web: f.emisor.web || '',
         };
         this.formProforma = { condiciones: f.proforma?.condiciones || '' };
-        this.formSeries = {
-          serie_boleta: f.series.serie_boleta || 'BBB1',
-          serie_factura: f.series.serie_factura || 'FFF1',
-        };
         this.cargandoFiscal = false;
         this.cdr.markForCheck();
       },
@@ -117,6 +121,30 @@ export class AdminConfiguracionComponent implements OnInit {
     });
   }
 
+  /** Las mismas series que usa el POS, con el ambiente y si la emisión está activa. */
+  cargarSeries(): void {
+    this.cargandoSeries = true;
+    this.errorSeries = '';
+    this.cdr.markForCheck();
+    this.fiscalApi
+      .seriesPos()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.cargandoSeries = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (series) => {
+          this.series = series;
+        },
+        error: (e) => {
+          this.errorSeries = mensajeDeError(e, 'No se pudieron leer las series vigentes');
+        },
+      });
+  }
+
   guardarFiscal(): void {
     if (!this.esAdminPuro || !this.fiscal || this.guardandoFiscal || this.cargandoFiscal) return;
     this.guardandoFiscal = true;
@@ -125,7 +153,6 @@ export class AdminConfiguracionComponent implements OnInit {
       .guardarFiscal({
         emisor: this.formEmisor,
         proforma: this.formProforma,
-        series: this.formSeries,
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -135,7 +162,7 @@ export class AdminConfiguracionComponent implements OnInit {
           this.cdr.markForCheck();
           this.alerta.toast({
             type: 'success',
-            title: 'Configuración guardada (series, emisor y proforma)',
+            title: 'Configuración guardada (emisor y proforma)',
           });
         },
         error: (e) => {

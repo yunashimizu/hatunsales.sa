@@ -11,6 +11,8 @@ export interface FiltroInventario {
   texto?: string;
   id_almacen?: number | '';
   id_categoria?: number | '';
+  /** Solo las filas de ese producto (la ficha de producto lee así su stock exacto). */
+  id_producto?: number;
   solo_alertas?: boolean;
   pagina?: number;
   por_pagina?: number;

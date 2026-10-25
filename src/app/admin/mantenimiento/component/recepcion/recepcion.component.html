@@ -471,11 +471,15 @@
               </span>
             </td>
             <td data-etiqueta="Acciones" class="adm-num rec-td-acciones">
-              <div class="adm-acciones rec-acciones" *ngIf="o.estado==='pendiente'">
-                <button type="button" class="adm-btn adm-btn--contorno adm-btn--sm" (click)="aprobar(o)">
-                  <i class="bi bi-check2" aria-hidden="true"></i> Visto bueno
+              <div class="adm-acciones rec-acciones" *ngIf="o.estado==='pendiente'"
+                   [attr.aria-busy]="revisandoObs === o.id_observacion">
+                <button type="button" class="adm-btn adm-btn--contorno adm-btn--sm" (click)="aprobar(o)"
+                        [disabled]="revisandoObs !== null">
+                  <i class="bi" [ngClass]="revisandoObs === o.id_observacion ? 'bi-arrow-repeat adm-girando' : 'bi-check2'" aria-hidden="true"></i>
+                  Visto bueno
                 </button>
-                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="rechazar(o)">
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="rechazar(o)"
+                        [disabled]="revisandoObs !== null">
                   <i class="bi bi-x-lg" aria-hidden="true"></i> Rechazar
                 </button>
               </div>

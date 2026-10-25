@@ -126,6 +126,59 @@
     @media (max-width: 1024px) { display: none; }
   }
 
+  /* Ambiente de emisión SUNAT (chip con tooltip del motivo; punto rojo si hay alerta) */
+  .tb-fiscal {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--adm-borde, #e4e8f0);
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: default;
+
+    &--beta { background: var(--adm-aviso-claro, #fffbeb); border-color: var(--adm-aviso-borde, #fde68a); color: #92400e; }
+    &--produccion { background: var(--adm-exito-claro, #ecfdf5); border-color: var(--adm-exito-borde, #a7f3d0); color: #065f46; }
+    &--detenida { background: var(--adm-peligro-claro, #fef2f2); border-color: var(--adm-peligro-borde, #fecaca); color: #991b1b; }
+
+    .tb-fiscal__punto {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    .tb-fiscal__corto { display: none; }
+
+    .tb-fiscal__alerta {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--adm-peligro, #dc2626);
+      box-shadow: 0 0 0 2px #ffffff;
+    }
+  }
+
+  a.tb-fiscal {
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.15s;
+
+    &:hover { text-decoration: none; filter: brightness(0.97); transform: translateY(-1px); }
+    &:focus-visible { outline: 2px solid var(--adm-primario, #4f46e5); outline-offset: 2px; }
+  }
+
   .tb-link-tienda {
     display: inline-flex;
     align-items: center;
@@ -381,6 +434,10 @@
     .tb-title__group { display: none; }
     .tb-title__text { font-size: 15px; }
 
+    .tb-fiscal { padding: 0 10px; }
+    .tb-fiscal .tb-fiscal__texto { display: none; }
+    .tb-fiscal .tb-fiscal__corto { display: inline; }
+
     .user-pill {
       height: 38px;
       padding: 2px;
@@ -396,5 +453,6 @@
 @media (prefers-reduced-motion: reduce) {
   .topbar .user-dropdown,
   .topbar .toggle-btn span,
-  .topbar .tb-link-tienda { transition: none; }
+  .topbar .tb-link-tienda,
+  .topbar a.tb-fiscal { transition: none; }
 }

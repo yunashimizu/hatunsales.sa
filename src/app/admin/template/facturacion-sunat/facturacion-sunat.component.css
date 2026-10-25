@@ -15,6 +15,19 @@ legend {
   font-weight: 700;
   margin: 1rem 0;
 }
+/* Pestañas: el contenido oculto sigue vivo (borradores y filtros no se pierden al cambiar). */
+.fiscal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.fiscal-panel[hidden] {
+  display: none;
+}
+.fiscal-pestanias {
+  align-self: flex-start;
+  max-width: 100%;
+}
 .fiscal-campos {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
@@ -22,29 +35,72 @@ legend {
   margin-bottom: 1rem;
 }
 .fiscal-opcion {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
   margin: 0.85rem 0;
-}
-.fiscal-opcion input {
-  margin-top: 0.2rem;
 }
 .fiscal-lista {
   list-style: none;
   margin: 0;
+  padding: 0;
 }
 .fiscal-lista li {
   padding: 0.65rem 0;
   border-bottom: 1px solid var(--adm-borde, #e2e8f0);
 }
-.fiscal-tabla {
-  overflow-x: auto;
+.fiscal-estado {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.fiscal-estado__principal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+.fiscal-estado__insignia {
+  padding: 5px 12px;
+  font-size: var(--adm-fs-etiqueta);
+}
+.fiscal-estado__texto {
+  flex: 1 1 320px;
+  margin: 0;
+  color: var(--adm-texto-2);
+}
+.fiscal-estado__carga {
+  padding: 0;
+}
+.fiscal-metrica__ver {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--adm-primario);
+  cursor: pointer;
+}
+.fiscal-metrica__ver:hover {
+  text-decoration: underline;
+}
+.fiscal-metrica__ver:focus-visible {
+  outline: 2px solid var(--adm-primario);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.fiscal-tareas p {
+  margin-top: 8px;
+}
+.fiscal-certificado__titular {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+.fiscal-gre-pendientes {
   margin-bottom: 1rem;
+}
+.fiscal-gre-pendientes .fiscal-lista li {
+  padding: 3px 0;
+  border-bottom: 0;
 }
 .adm-campo {
   margin-bottom: 0.75rem;
 }
-.adm-acciones {
+.adm-tarjeta .adm-acciones {
   margin: 0.75rem 0;
 }

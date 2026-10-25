@@ -1,0 +1,281 @@
+<section class="adm-tarjeta adm-tarjeta--acento" [class.adm-tarjeta--acento-exito]="emisionActiva"
+         aria-labelledby="activacion-titulo">
+  <div class="adm-tarjeta__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="activacion-titulo" [class.adm-tarjeta__titulo--exito]="emisionActiva">
+        <i class="bi bi-rocket-takeoff"></i> Activación en producción
+        <span class="adm-insignia"
+              [ngClass]="emisionActiva ? 'adm-insignia--exito' : config.estado.listo_para_produccion ? 'adm-insignia--info' : 'adm-insignia--aviso'">
+          {{ emisionActiva ? 'Activa' : config.estado.listo_para_produccion ? 'Lista para activar' : pendientes.length + ' pendiente(s)' }}
+        </span>
+      </h2>
+      <p class="adm-tarjeta__sub">Siga los pasos en orden: nada pasa a producción hasta que lo confirme al final.</p>
+    </div>
+  </div>
+
+  <div class="adm-tarjeta__cuerpo activacion">
+    @if (emisionActiva) {
+      <div class="adm-aviso adm-aviso--exito" role="status">
+        <i class="bi bi-check-circle" aria-hidden="true"></i>
+        <span>
+          <strong class="adm-aviso__titulo">La emisión de producción está activa</strong>
+          Las ventas con comprobante se envían a SUNAT con validez tributaria (emisor {{ config.emisor.ruc }}).
+        </span>
+      </div>
+    } @else if (enProduccion) {
+      <div class="adm-aviso adm-aviso--aviso" role="status">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+        <span>
+          <strong class="adm-aviso__titulo">Ambiente de producción sin emisión</strong>
+          Las ventas se registran sin comprobante hasta que active la emisión (paso 5) o vuelva a BETA.
+        </span>
+      </div>
+    }
+
+    <!-- 1. Requisitos -->
+    <div class="adm-bloque" id="activacion-requisitos">
+      <h3 class="adm-bloque__titulo"><i class="bi bi-list-check" aria-hidden="true"></i> 1. Requisitos</h3>
+      <div class="activacion__progreso">
+        <div class="adm-progreso" role="progressbar" aria-label="Requisitos cumplidos"
+             aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="progreso">
+          <div class="adm-progreso__barra" [style.width.%]="progreso"
+               [ngClass]="config.estado.listo_para_produccion ? 'adm-progreso__barra--exito' : 'adm-progreso__barra--aviso'"></div>
+        </div>
+        <span class="adm-ayuda adm-cifra">{{ cumplidos.length }} de {{ items.length }}</span>
+      </div>
+      @if (pendientes.length) {
+        <ul class="activacion__lista">
+          @for (item of pendientes; track item.codigo) {
+            <li class="activacion__item">
+              <i class="bi bi-x-circle adm-texto-peligro" aria-hidden="true"></i>
+              <div>
+                <strong>{{ item.titulo }}</strong>
+                @if (item.detalle) {
+                  <p class="adm-ayuda">{{ item.detalle }}</p>
+                }
+                @if (item.accion) {
+                  <p class="adm-ayuda"><strong>Qué hacer:</strong> {{ item.accion }}</p>
+                }
+              </div>
+              @if (destino(item); as lugar) {
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="irA.emit(lugar)"
+                        [attr.aria-label]="'Ir a corregir: ' + item.titulo">
+                  Ir a corregir <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="adm-ayuda adm-ayuda--exito">
+          <i class="bi bi-check-circle" aria-hidden="true"></i> Todos los requisitos están cumplidos.
+        </p>
+      }
+      @if (cumplidos.length) {
+        <details class="activacion__cumplidos">
+          <summary>Ver {{ cumplidos.length }} requisito(s) cumplido(s)</summary>
+          <ul>
+            @for (item of cumplidos; track item.codigo) {
+              <li><i class="bi bi-check-circle adm-texto-exito" aria-hidden="true"></i> {{ item.titulo }}</li>
+            }
+          </ul>
+        </details>
+      }
+    </div>
+
+    <!-- 2. Declaraciones -->
+    <form class="adm-bloque" id="activacion-declaraciones" (ngSubmit)="guardarDeclaraciones()">
+      <h3 class="adm-bloque__titulo"><i class="bi bi-patch-check" aria-hidden="true"></i> 2. Declaraciones sobre SOL</h3>
+      <p class="adm-ayuda">
+        Lo que solo se ve en SUNAT Operaciones en Línea: márquelo después de revisarlo. Cada cambio queda en la
+        bitácora con su usuario.
+      </p>
+      <fieldset [disabled]="bloqueado">
+        @for (confirmacion of confirmacionesSol; track confirmacion.clave) {
+          <label class="adm-check activacion__declaracion">
+            <input type="checkbox" [name]="confirmacion.clave" [(ngModel)]="declaraciones[confirmacion.clave]" />
+            <span>
+              <strong>{{ confirmacion.titulo }}</strong>
+              <span class="adm-ayuda">{{ confirmacion.explicacion }}</span>
+            </span>
+          </label>
+        }
+        <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto activacion__ose">
+          <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+          <span>
+            <strong class="adm-aviso__titulo">{{ config.aviso_legal_ose.titulo }}</strong>
+            {{ config.aviso_legal_ose.texto }}
+          </span>
+        </div>
+        <label class="adm-check activacion__declaracion">
+          <input type="checkbox" name="noOse" [(ngModel)]="declaraciones.no_ose" />
+          <span>
+            <strong>{{ config.aviso_legal_ose.confirmacion }}</strong>
+            @if (config.confirmacion_no_ose; as confirmada) {
+              <span class="adm-ayuda">
+                Confirmado por {{ confirmada.nombre || 'un administrador' }} el {{ confirmada.fecha | date: 'dd/MM/yyyy HH:mm' }}.
+              </span>
+            }
+          </span>
+        </label>
+        @if (certificadoSinRuc) {
+          <label class="adm-check activacion__declaracion">
+            <input type="checkbox" name="certRuc" [(ngModel)]="declaraciones.cert_ruc" />
+            <span>
+              <strong>El certificado de producción pertenece al RUC {{ config.emisor.ruc }}</strong>
+              <span class="adm-ayuda">
+                No se pudo leer el RUC dentro del certificado
+                ({{ config.certificado.produccion?.titular || 'titular no legible' }}). Confírmelo solo si es el
+                certificado de {{ config.emisor.razon_social }}: con el de otro RUC SUNAT rechaza la firma.
+              </span>
+            </span>
+          </label>
+        }
+        <div class="adm-acciones">
+          <button type="submit" class="adm-btn adm-btn--primario" [disabled]="!declaracionesSinGuardar">
+            Guardar declaraciones
+          </button>
+          @if (declaracionesSinGuardar) {
+            <span class="adm-ayuda" role="status">Tiene cambios sin guardar.</span>
+          }
+        </div>
+      </fieldset>
+    </form>
+
+    <!-- 3. Primer número de cada serie -->
+    <form class="adm-bloque" id="activacion-correlativos" (ngSubmit)="guardarCorrelativos()">
+      <h3 class="adm-bloque__titulo">
+        <i class="bi bi-123" aria-hidden="true"></i> 3. Primer número de cada serie
+        <span class="adm-insignia adm-insignia--sm"
+              [ngClass]="config.correlativo_inicial_revisado ? 'adm-insignia--exito' : 'adm-insignia--aviso'">
+          {{ config.correlativo_inicial_revisado ? 'Revisado' : 'Pendiente de revisar' }}
+        </span>
+      </h3>
+      <p class="adm-ayuda">
+        Si ya usó esta serie con otro sistema (o en SOL), indique el primer número libre; si es nueva, deje 1.
+        El sistema nunca usa un número menor ni repite uno ya emitido.
+      </p>
+      <fieldset [disabled]="bloqueado">
+        <div class="activacion__correlativos">
+          @for (correlativo of correlativos; track correlativo.serie) {
+            <div class="adm-campo">
+              <label class="adm-etiqueta" [for]="'correlativo-' + correlativo.serie">
+                {{ correlativo.etiqueta }} <span class="adm-mono">{{ correlativo.serie }}</span>
+              </label>
+              <input class="adm-input adm-input--num" type="number" inputmode="numeric" required
+                     min="1" max="99999999" step="1"
+                     [id]="'correlativo-' + correlativo.serie" [name]="'correlativo-' + correlativo.serie"
+                     [(ngModel)]="correlativo.valor" />
+            </div>
+          }
+        </div>
+        <div class="adm-acciones">
+          <button type="submit" class="adm-btn adm-btn--primario" [disabled]="!correlativosValidos">
+            Guardar primer número de cada serie
+          </button>
+          @if (!correlativosValidos) {
+            <span class="adm-ayuda adm-ayuda--error" role="alert">
+              <i class="bi bi-exclamation-circle" aria-hidden="true"></i> Use números enteros de 1 a 99 999 999.
+            </span>
+          } @else if (correlativosSinGuardar) {
+            <span class="adm-ayuda" role="status">Tiene cambios sin guardar.</span>
+          }
+        </div>
+      </fieldset>
+    </form>
+
+    <!-- 4. Credenciales SOL de producción -->
+    <div class="adm-bloque" id="activacion-credenciales">
+      <h3 class="adm-bloque__titulo"><i class="bi bi-key" aria-hidden="true"></i> 4. Probar credenciales SOL de producción</h3>
+      <p class="adm-ayuda">
+        Consulta en SUNAT una factura que no existe ({{ config.series.factura }}-99999999) con el usuario secundario
+        registrado: comprueba usuario, clave y perfil sin enviar ni numerar ningún comprobante.
+      </p>
+      <div class="adm-acciones">
+        <button type="button" class="adm-btn adm-btn--suave" (click)="probarCredenciales()"
+                [disabled]="!puedeProbarCredenciales">
+          <i class="bi" [ngClass]="probando ? 'bi-arrow-repeat adm-girando' : 'bi-plug'" aria-hidden="true"></i>
+          {{ probando ? 'Consultando a SUNAT…' : 'Probar credenciales SOL de producción' }}
+        </button>
+      </div>
+      @if (!config.sol.usuario || !config.sol.tiene_clave) {
+        <p class="adm-ayuda">Registre primero el usuario secundario SOL y su clave (pestaña Configuración).</p>
+      }
+      @if (resultadoPrueba; as resultado) {
+        <div class="adm-aviso adm-mt-3" role="status"
+             [ngClass]="resultado.ok ? 'adm-aviso--exito' : 'adm-aviso--peligro'">
+          <i class="bi" [ngClass]="resultado.ok ? 'bi-check-circle' : 'bi-x-octagon'" aria-hidden="true"></i>
+          <div>
+            <strong class="adm-aviso__titulo">
+              {{ resultado.ok ? 'Credenciales SOL de producción correctas' : 'Las credenciales SOL no funcionan' }}
+            </strong>
+            {{ resultado.mensaje }}
+            @if (resultado.detalle) {
+              <div class="adm-texto-suave">
+                SUNAT respondió: {{ resultado.detalle }}{{ resultado.codigo ? ' (código ' + resultado.codigo + ')' : '' }}
+              </div>
+            }
+            <div class="adm-texto-suave">Tiempo de respuesta: {{ resultado.tiempo_ms }} ms.</div>
+          </div>
+        </div>
+      }
+      @if (errorPrueba) {
+        <div class="adm-aviso adm-aviso--peligro adm-mt-3" role="alert">
+          <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+          <span>{{ errorPrueba }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- 5. Activar -->
+    <div class="adm-bloque" id="activacion-activar">
+      <h3 class="adm-bloque__titulo">
+        <i class="bi bi-rocket-takeoff" aria-hidden="true"></i>
+        5. {{ emisionActiva ? 'Emisión de producción' : 'Activar la emisión en producción' }}
+      </h3>
+      @if (!emisionActiva) {
+        <p class="activacion__texto">
+          Al activarla, cada venta con comprobante se firma con el certificado de producción y se envía a SUNAT con
+          validez tributaria. Antes de confirmar verá el resumen de lo que cambia y deberá escribir
+          <strong>{{ palabra }}</strong>.
+        </p>
+        <div class="adm-acciones">
+          <button type="button" class="adm-btn adm-btn--primario" (click)="activar()" [disabled]="!puedeActivar">
+            <i class="bi bi-rocket-takeoff" aria-hidden="true"></i> Activar emisión en producción
+          </button>
+        </div>
+        @if (!config.estado.listo_para_produccion) {
+          <p class="adm-ayuda">Se habilita cuando la lista de requisitos esté completa ({{ pendientes.length }} pendiente(s)).</p>
+        } @else if (declaracionesSinGuardar || correlativosSinGuardar) {
+          <p class="adm-ayuda">Guarde primero los cambios de los pasos 2 y 3.</p>
+        }
+        @if (config.emision_bloqueada.produccion; as bloqueo) {
+          <div class="adm-aviso adm-aviso--aviso adm-mt-3" role="status">
+            <i class="bi bi-sign-stop" aria-hidden="true"></i>
+            <span>
+              SUNAT detuvo la emisión de producción ({{ bloqueo.codigo }}): aunque la active, seguirá detenida hasta
+              que la reanude en «Estado de la emisión».
+            </span>
+          </div>
+        }
+      } @else {
+        <p class="activacion__texto">
+          Para detener la emisión al instante (por ejemplo, ante un problema con SUNAT), desactívela: las ventas se
+          registran sin comprobante y se emite después.
+        </p>
+        <div class="adm-acciones">
+          <button type="button" class="adm-btn adm-btn--peligro-suave" (click)="desactivar()" [disabled]="bloqueado">
+            <i class="bi bi-pause-circle" aria-hidden="true"></i> Desactivar emisión
+          </button>
+        </div>
+      }
+      @if (enProduccion) {
+        <div class="adm-acciones adm-mt-2">
+          <button type="button" class="adm-btn adm-btn--fantasma" (click)="volverABeta()" [disabled]="bloqueado">
+            <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Volver al ambiente BETA (pruebas)
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</section>

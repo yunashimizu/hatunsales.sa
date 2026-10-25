@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subject, catchError, of, takeUntil } from 'rxjs';
+import { Subject, Subscription, catchError, of, takeUntil } from 'rxjs';
 
 import { VisorImagenComponent } from '../../../../shared/components/visor-imagen/visor-imagen.component';
 import { AuthService } from '../../../../auth/service/auth.service';
@@ -74,6 +74,14 @@ export class ProductosComponent implements OnInit, OnDestroy {
   almacenes: { id_almacen: number; nombre: string; sucursal: string }[] = [];
   idAlmacenStock: number | null = null;
   stockActualEdicion = 0;
+  /**
+   * true solo cuando stockActualEdicion es el stock leído de ESTE producto en ESTE almacén.
+   * Sin eso no se guarda: el ajuste se calcula contra este valor y nunca se asume 0.
+   */
+  stockVerificado = false;
+  /** El producto no tiene fila de inventario en el almacén elegido (su stock ahí es 0). */
+  sinStockRegistrado = false;
+  private consultaStock?: Subscription;
 
   imagenes: ImagenProducto[] = [];
   cargandoImagenes = false;
@@ -110,6 +118,10 @@ export class ProductosComponent implements OnInit, OnDestroy {
     ).subscribe((almacenes) => {
       this.almacenes = almacenes;
       if (!this.idAlmacenStock) this.idAlmacenStock = almacenes[0]?.id_almacen ?? null;
+      // Si la ficha se abrió antes de que llegaran los almacenes, recién ahora se puede leer su stock.
+      if (this.panelAbierto && this.editando && !this.stockVerificado && !this.cargandoStock) {
+        this.cargarStockEdicion();
+      }
       this.cdr.markForCheck();
     });
   }
@@ -215,10 +227,14 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   abrirNuevo(): void {
     if (!this.puedeEditar) return;
+    this.consultaStock?.unsubscribe();
     this.editando = null;
     this.formulario = { ...FORMULARIO_VACIO };
     this.idAlmacenStock = this.almacenes[0]?.id_almacen ?? null;
     this.stockActualEdicion = 0;
+    this.stockVerificado = false;
+    this.sinStockRegistrado = false;
+    this.cargandoStock = false;
     this.errorStock = '';
     this.imagenes = [];
     this.panelAbierto = true;
@@ -252,22 +268,44 @@ export class ProductosComponent implements OnInit, OnDestroy {
     this.cargarStockEdicion();
   }
 
+  /**
+   * Lee el stock de ESTE producto en el almacén elegido (filtro exacto, una fila). Antes se
+   * pedían las 200 primeras filas del almacén y, si el producto no estaba entre ellas, se
+   * mostraba 0: al guardar, el ajuste se calculaba contra 0 y dejaba mal el stock.
+   */
   private cargarStockEdicion(): void {
+    this.consultaStock?.unsubscribe();
+    this.stockVerificado = false;
+    this.sinStockRegistrado = false;
     if (!this.idAlmacenStock || !this.editando) {
       this.cargandoStock = false;
       this.errorStock = this.almacenes.length ? '' : 'No hay almacenes disponibles.';
       return;
     }
+    const idProducto = Number(this.editando.id_producto);
+    const idAlmacen = Number(this.idAlmacenStock);
     this.cargandoStock = true;
     this.errorStock = '';
-    this.inventario.listar({ id_almacen: this.idAlmacenStock, por_pagina: 200 }).pipe(
+    this.cdr.markForCheck();
+    this.consultaStock = this.inventario.listar({ id_almacen: idAlmacen, id_producto: idProducto, por_pagina: 1 }).pipe(
       takeUntil(this.destruir$),
     ).subscribe({
       next: (respuesta) => {
-        const fila = respuesta.datos.find((item) => item.id_producto === this.editando?.id_producto);
-        this.stockActualEdicion = Number(fila?.stock) || 0;
-        this.formulario.stock = this.stockActualEdicion;
+        const filas = respuesta?.datos ?? [];
+        const fila = filas.find(
+          (item) => Number(item.id_producto) === idProducto && Number(item.id_almacen) === idAlmacen,
+        );
         this.cargandoStock = false;
+        if (!fila && filas.length) {
+          // Llegaron filas de otro producto (servidor sin el filtro): el stock real se desconoce.
+          this.errorStock = 'No se pudo leer el stock de este producto en el almacén. Recargue la página e intente de nuevo.';
+        } else {
+          // Sin fila, el producto nunca tuvo stock en ese almacén: ahí su stock es 0 de verdad.
+          this.sinStockRegistrado = !fila;
+          this.stockActualEdicion = fila ? Number(fila.stock) || 0 : 0;
+          this.formulario.stock = this.stockActualEdicion;
+          this.stockVerificado = true;
+        }
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -287,6 +325,8 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   cerrarPanel(): void {
     if (this.guardando || this.subiendo) return;
+    this.consultaStock?.unsubscribe();
+    this.cargandoStock = false;
     this.panelAbierto = false;
     this.editando = null;
     this.imagenes = [];
@@ -320,7 +360,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     // El stock solo se fija al crear; al editar no se toca inventario desde aquí.
     if (this.editando) {
       delete datos.stock;
-      if (!this.idAlmacenStock || this.cargandoStock || this.errorStock) {
+      if (!this.idAlmacenStock || this.cargandoStock || this.errorStock || !this.stockVerificado) {
         this.guardando = false;
         this.alerta.toast({
           type: 'warning',

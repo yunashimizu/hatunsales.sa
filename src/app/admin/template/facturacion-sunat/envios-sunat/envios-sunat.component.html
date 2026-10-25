@@ -1,0 +1,207 @@
+<section class="adm-tarjeta" aria-labelledby="envios-sunat-titulo">
+  <div class="adm-tarjeta__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="envios-sunat-titulo">
+        <i class="bi bi-send-check"></i> Envíos SUNAT
+        @if (!cargando || envios.length) {
+          <span class="adm-insignia adm-insignia--neutra">{{ total }}</span>
+        }
+      </h2>
+      <p class="adm-tarjeta__sub">
+        Facturas, boletas y notas enviadas a SUNAT BETA o a producción, con sus archivos y la constancia (CDR).
+      </p>
+    </div>
+    <div class="adm-tarjeta__extra">
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <div class="adm-tarjeta__cuerpo adm-tarjeta__cuerpo--compacto envios-filtros">
+    <div class="adm-fila" role="search" aria-label="Filtros de envíos">
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="envios-ambiente">Ambiente</label>
+        <select id="envios-ambiente" class="adm-select" name="ambiente" [(ngModel)]="filtro.ambiente" (ngModelChange)="cargar(1)">
+          <option value="">Todos</option>
+          <option value="beta">SUNAT BETA (pruebas)</option>
+          <option value="produccion">Producción</option>
+        </select>
+      </div>
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="envios-estado">Estado</label>
+        <select id="envios-estado" class="adm-select" name="estado" [(ngModel)]="filtro.estado" (ngModelChange)="cargar(1)">
+          <option value="">Todos</option>
+          @for (estado of estados; track estado) {
+            <option [value]="estado">{{ nombresEstado[estado] }}</option>
+          }
+        </select>
+      </div>
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="envios-tipo">Documento</label>
+        <select id="envios-tipo" class="adm-select" name="tipo" [(ngModel)]="filtro.tipo" (ngModelChange)="cargar(1)">
+          <option value="">Todos</option>
+          <option value="01">Facturas</option>
+          <option value="03">Boletas</option>
+          <option value="07">Notas de crédito</option>
+          <option value="08">Notas de débito</option>
+        </select>
+      </div>
+      @if (conFiltros) {
+        <div class="adm-campo adm-campo--accion">
+          <span class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</span>
+          <button type="button" class="adm-btn adm-btn--fantasma" (click)="mostrar()">
+            <i class="bi bi-eraser" aria-hidden="true"></i> Limpiar filtros
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+      <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">No se pudieron cargar los envíos</div>
+      <p>{{ error }}</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+      </button>
+    </div>
+  } @else if (cargando && !envios.length) {
+    <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando envíos">
+      <div class="adm-esqueleto adm-esqueleto--fila"></div>
+      <div class="adm-esqueleto adm-esqueleto--fila"></div>
+      <div class="adm-esqueleto adm-esqueleto--fila"></div>
+    </div>
+  } @else if (!envios.length) {
+    <div class="adm-vacio adm-vacio--compacto" role="status">
+      <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-inbox" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">
+        {{ conFiltros ? 'Ningún envío coincide con los filtros' : 'Todavía no hay envíos en este ambiente' }}
+      </div>
+      @if (conFiltros) {
+        <button type="button" class="adm-btn adm-btn--suave" (click)="mostrar()">
+          <i class="bi bi-eraser" aria-hidden="true"></i> Ver los del ambiente vigente
+        </button>
+      }
+    </div>
+  } @else {
+    <div class="adm-tabla-envoltorio">
+      <table class="adm-tabla adm-tabla--adaptable-tablet envios-tabla">
+        <thead>
+          <tr>
+            <th>Documento</th>
+            <th>Fecha</th>
+            <th>Ambiente</th>
+            <th>Estado SUNAT</th>
+            <th>Archivos</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (envio of envios; track envio.id_envio) {
+            <tr [class.envios-fila--procesando]="idEnProceso === envio.id_envio">
+              <td data-etiqueta="Documento">
+                <div class="adm-tabla__principal adm-tabular">{{ documento(envio) }}</div>
+                <div class="adm-tabla__secundario">
+                  {{ nombresTipo[envio.tipo_documento] || 'Tipo ' + envio.tipo_documento }} · envío #{{ envio.id_envio }}
+                </div>
+              </td>
+              <td data-etiqueta="Fecha" class="adm-tabular">
+                {{ envio.creado_en | date: 'dd/MM/yyyy HH:mm' }}
+                @if ((envio.intento ?? 0) > 1) {
+                  <div class="adm-tabla__secundario">Intento {{ envio.intento }}</div>
+                }
+              </td>
+              <td data-etiqueta="Ambiente">
+                <span class="adm-insignia adm-insignia--sm"
+                      [ngClass]="envio.ambiente === 'produccion' ? 'adm-insignia--exito' : 'adm-insignia--aviso'">
+                  {{ envio.ambiente === 'produccion' ? 'Producción' : 'BETA' }}
+                </span>
+              </td>
+              <td data-etiqueta="Estado SUNAT" class="envios-estado">
+                <div>
+                  <span class="adm-insignia adm-insignia--punto" [ngClass]="claseEstado(envio.estado)">
+                    {{ nombreEstado(envio.estado) }}
+                  </span>
+                  @if (envio.codigo_sunat || envio.mensaje_sunat) {
+                    <div class="adm-tabla__secundario envios-mensaje" [attr.title]="envio.mensaje_sunat">
+                      @if (envio.codigo_sunat) {
+                        <span class="adm-mono">{{ envio.codigo_sunat }}</span>
+                      }
+                      {{ envio.mensaje_sunat }}
+                    </div>
+                  }
+                  @if (indicacion(envio); as texto) {
+                    <div class="adm-tabla__secundario adm-texto-aviso">{{ texto }}</div>
+                  }
+                  @if (envio.estado === 'PENDIENTE_REENVIO' && envio.proximo_intento_en) {
+                    <div class="adm-tabla__secundario">
+                      Próximo reintento automático: {{ envio.proximo_intento_en | date: 'dd/MM HH:mm' }}
+                    </div>
+                  }
+                </div>
+              </td>
+              <td data-etiqueta="Archivos">
+                <div class="envios-botones">
+                  @for (tipo of envio.archivos; track tipo) {
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                            (click)="descargar(envio, tipo)" [disabled]="idEnProceso !== null"
+                            [attr.aria-label]="'Descargar ' + nombresArchivo[tipo] + ' de ' + documento(envio)">
+                      <i class="bi bi-download" aria-hidden="true"></i> {{ nombresArchivo[tipo] }}
+                    </button>
+                  } @empty {
+                    <span class="adm-texto-tenue">Sin archivos</span>
+                  }
+                </div>
+              </td>
+              <td data-etiqueta="Acciones">
+                <div class="envios-botones">
+                  @if (puedeReintentar(envio)) {
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                            (click)="reintentar(envio)" [disabled]="idEnProceso !== null"
+                            [attr.aria-label]="'Reintentar el envío de ' + documento(envio)">
+                      <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Reintentar
+                    </button>
+                  }
+                  @if (puedeRecuperarCdr(envio)) {
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                            (click)="recuperarCdr(envio)" [disabled]="idEnProceso !== null"
+                            [attr.aria-label]="'Recuperar CDR de ' + documento(envio) + ' en SUNAT'">
+                      <i class="bi bi-cloud-download" aria-hidden="true"></i> Recuperar CDR
+                    </button>
+                  }
+                  @if (puedeConfirmarAceptado(envio)) {
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                            (click)="confirmarAceptado(envio)" [disabled]="idEnProceso !== null"
+                            [attr.aria-label]="'Confirmar aceptado ' + documento(envio) + ' tras verificarlo en SUNAT'">
+                      <i class="bi bi-patch-check" aria-hidden="true"></i> Confirmar aceptado
+                    </button>
+                  }
+                  @if (!tieneAcciones(envio)) {
+                    <span class="adm-texto-tenue">Sin acciones</span>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (total > porPagina) {
+      <nav class="adm-paginacion" aria-label="Paginación de envíos">
+        <span><strong class="adm-tabular">{{ total }}</strong> envíos · página {{ pagina }} de {{ totalPaginas }}</span>
+        <div class="adm-paginacion__botones">
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="pagina <= 1 || cargando" (click)="irA(pagina - 1)">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
+          </button>
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="pagina >= totalPaginas || cargando" (click)="irA(pagina + 1)">
+            Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </nav>
+    }
+  }
+</section>

@@ -1,0 +1,38 @@
+:host {
+  display: block;
+}
+.envios-filtros {
+  border-bottom: 1px solid var(--adm-borde);
+}
+.envios-filtros .adm-campo {
+  flex: 1 1 170px;
+}
+.envios-estado {
+  min-width: 220px;
+}
+.envios-mensaje {
+  max-width: 340px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.envios-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.envios-fila--procesando td {
+  opacity: 0.6;
+}
+@media (max-width: 900px) {
+  .envios-estado {
+    min-width: 0;
+  }
+  .envios-botones {
+    justify-content: flex-end;
+  }
+  .envios-mensaje {
+    max-width: none;
+  }
+}

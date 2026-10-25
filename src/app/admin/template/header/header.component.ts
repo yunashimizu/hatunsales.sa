@@ -9,6 +9,7 @@ import {
   Input,
   OnInit,
   Output,
+  computed,
   inject,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -16,6 +17,8 @@ import { Title } from '@angular/platform-browser';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
+import { EstadoFiscalGlobal } from '../../models/fiscal.models';
+import { FiscalEstadoService } from '../../service/fiscal-estado.service';
 
 @Component({
   selector: 'app-header',
@@ -47,14 +50,23 @@ export class HeaderComponent implements OnInit {
     permisos: [],
     iniciales: '?',
   };
+  /** Solo con sesión de admin, vendedor o caja (otros roles ni lo ven ni lo consultan). */
+  mostrarEstadoFiscal = false;
+  /** El chip lleva al panel fiscal solo si el usuario puede abrirlo. */
+  esAdmin = false;
 
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly titleDoc = inject(Title);
+  private readonly fiscal = inject(FiscalEstadoService);
+  /** Oculto mientras el estado no se pudo leer: el servicio reintenta solo. */
+  readonly chipFiscal = computed(() => chipDeEstadoFiscal(this.fiscal.estado()));
 
   ngOnInit(): void {
+    // Fuera del panel (tienda, login) el estado fiscal no se sigue ni se reintenta.
+    this.destroyRef.onDestroy(() => this.fiscal.detener());
     this.refrescarSesion();
     this.auth.data$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.refrescarSesion();
@@ -111,6 +123,9 @@ export class HeaderComponent implements OnInit {
 
   private refrescarSesion(): void {
     this.sesion = this.auth.getSesion();
+    this.mostrarEstadoFiscal = this.auth.isLoggedIn() && this.auth.puedeVer(ROLES_ESTADO_FISCAL);
+    this.esAdmin = this.mostrarEstadoFiscal && this.auth.puedeVer(['admin']);
+    if (this.mostrarEstadoFiscal) this.fiscal.iniciar();
   }
 
   private aplicarPagina(url: string): void {
@@ -120,6 +135,68 @@ export class HeaderComponent implements OnInit {
     this.grupoActual = pagina.grupo;
     this.aplicarTituloPestana(pagina.titulo);
   }
+}
+
+/** Roles que operan ventas: ven en la cabecera en qué ambiente se emiten los comprobantes. */
+const ROLES_ESTADO_FISCAL = ['admin', 'vendedor', 'caja'];
+
+/** Chip de la cabecera con el ambiente de emisión (beta ámbar, producción verde, detenida rojo). */
+export interface ChipFiscal {
+  texto: string;
+  /** Versión corta para pantallas chicas. */
+  corto: string;
+  tono: 'beta' | 'produccion' | 'detenida' | 'neutro';
+  /** Motivo y alertas: va en el tooltip y en el texto para lectores de pantalla. */
+  detalle: string;
+  /** Punto de alerta: emisión detenida por SUNAT o comprobantes fuera de plazo. */
+  alerta: boolean;
+}
+
+export function chipDeEstadoFiscal(estado: EstadoFiscalGlobal | null): ChipFiscal | null {
+  if (!estado) return null;
+  const alertas: string[] = [];
+  if (estado.bloqueo) {
+    alertas.push(`SUNAT detuvo la emisión (${estado.bloqueo.codigo}): ${estado.bloqueo.motivo}`);
+  }
+  const vencidos = estado.plazos?.vencidos ?? 0;
+  if (vencidos > 0) {
+    alertas.push(`${vencidos} comprobante(s) fuera del plazo de envío: revíselos en Facturación SUNAT.`);
+  }
+
+  const produccion = estado.ambiente === 'produccion';
+  let chip: Omit<ChipFiscal, 'alerta'>;
+  if (estado.emision_activa === true) {
+    chip = produccion
+      ? {
+          texto: 'SUNAT PRODUCCIÓN',
+          corto: 'PROD.',
+          tono: 'produccion',
+          detalle: 'Emisión electrónica activa en SUNAT: los comprobantes tienen validez tributaria.',
+        }
+      : {
+          texto: 'SUNAT BETA - pruebas',
+          corto: 'BETA',
+          tono: 'beta',
+          detalle: 'Emisión de prueba en SUNAT BETA: los comprobantes no tienen validez tributaria.',
+        };
+  } else if (estado.emision_activa === false) {
+    chip = {
+      texto: 'Emisión detenida',
+      corto: 'Detenida',
+      tono: 'detenida',
+      detalle:
+        estado.motivo || 'La emisión electrónica no está activa: las ventas se registran sin comprobante.',
+    };
+  } else {
+    // El servidor no pudo confirmarlo: se muestra el ambiente sin color de «activa».
+    chip = {
+      texto: produccion ? 'SUNAT PRODUCCIÓN' : 'SUNAT BETA - pruebas',
+      corto: produccion ? 'PROD.' : 'BETA',
+      tono: 'neutro',
+      detalle: 'No se pudo confirmar si la emisión electrónica está activa.',
+    };
+  }
+  return { ...chip, detalle: [chip.detalle, ...alertas].join(' '), alerta: alertas.length > 0 };
 }
 
 interface PaginaPanel {
@@ -148,6 +225,7 @@ const PAGINAS: Array<{ fragmento: string; pagina: PaginaPanel }> = [
   { fragmento: '/mantenimiento/reportes', pagina: { titulo: 'Reportes', icono: 'bi-bar-chart-line', grupo: 'Reportes' } },
   { fragmento: '/mantenimiento/usuarios', pagina: { titulo: 'Usuarios', icono: 'bi-person-badge', grupo: 'Administración' } },
   { fragmento: '/mantenimiento/roles', pagina: { titulo: 'Roles', icono: 'bi-shield-check', grupo: 'Administración' } },
+  { fragmento: '/facturacion-sunat', pagina: { titulo: 'Facturación SUNAT', icono: 'bi-file-earmark-check', grupo: 'Administración' } },
   { fragmento: '/perfil', pagina: { titulo: 'Mi perfil', icono: 'bi-person-circle', grupo: 'Cuenta' } },
   { fragmento: '/configuracion', pagina: { titulo: 'Configuración', icono: 'bi-gear', grupo: 'Cuenta' } },
   { fragmento: '/dashboard/home', pagina: { titulo: 'Inicio', icono: 'bi-house-door', grupo: 'Panel' } },
