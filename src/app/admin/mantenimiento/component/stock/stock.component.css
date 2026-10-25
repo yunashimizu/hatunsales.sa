@@ -49,7 +49,8 @@
 .stk-nivel--bajo { --nc: var(--adm-aviso); }
 .stk-nivel--sin_stock { --nc: var(--adm-peligro); background: var(--adm-peligro-claro); box-shadow: inset 0 0 0 1px var(--adm-peligro-borde); }
 
-/* El nombre del almacén no se parte en palabras sueltas cuando la tabla va justa */
+/* El almacén y su sucursal van apilados; el nombre no se parte en palabras sueltas cuando la tabla va justa */
+.stk-celda { min-width: 0; overflow-wrap: anywhere; }
 @media (min-width: 641px) { .stk-td-almacen { min-width: 150px; } }
 
 /* Filas en alerta: filo de color a la izquierda */

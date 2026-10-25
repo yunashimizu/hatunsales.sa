@@ -200,8 +200,10 @@
               </div>
             </td>
             <td data-etiqueta="Almacén" class="stk-td-almacen">
-              <div class="adm-tabla__principal">{{ f.almacen || '—' }}</div>
-              <div class="adm-ayuda" *ngIf="f.sucursal">{{ f.sucursal }}</div>
+              <div class="stk-celda">
+                <div class="adm-tabla__principal">{{ f.almacen || '—' }}</div>
+                <div class="adm-ayuda" *ngIf="f.sucursal">{{ f.sucursal }}</div>
+              </div>
             </td>
             <td data-etiqueta="Stock" class="adm-num">
               <div class="stk-stock">

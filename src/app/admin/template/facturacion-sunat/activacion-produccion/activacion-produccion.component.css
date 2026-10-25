@@ -142,6 +142,11 @@ fieldset:disabled {
   gap: 12px;
   margin-bottom: 12px;
 }
+/* Etiquetas de una o dos líneas: los campos se pegan abajo para que todos los números queden alineados */
+.activacion__correlativos .adm-campo {
+  justify-content: flex-end;
+  margin-bottom: 0;
+}
 .activacion__texto {
   margin: 0 0 12px;
   max-width: 80ch;

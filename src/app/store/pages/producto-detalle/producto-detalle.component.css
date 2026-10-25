@@ -75,8 +75,7 @@
 
 .contador-fotos {
   position: absolute; right: 16px; bottom: 16px; z-index: 2; pointer-events: none; color: var(--t-texto);
-  background: color-mix(in srgb, var(--t-superficie) 86%, transparent);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  background: var(--t-superficie);
 }
 
 .miniaturas { display: flex; gap: 10px; margin-top: 14px; padding: 4px 4px 6px; overflow-x: auto; scrollbar-width: thin; }
@@ -271,6 +270,13 @@ a.marca:hover { color: var(--t-primario-texto); text-decoration: underline; text
   .miniatura { width: 68px; height: 68px; border-radius: 16px; }
   .tabla th { width: 42%; }
   .grilla { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+}
+
+/* «Consultar por WhatsApp» en su propia fila; favorito y compartir se reparten la de abajo */
+@media (max-width: 480px) {
+  .secundarias { display: grid; grid-template-columns: 1fr 1fr; }
+  .consulta { grid-column: 1 / -1; }
+  .redondo { width: 100%; }
 }
 
 @media (hover: none) { .miniatura:hover { translate: none; } }

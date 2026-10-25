@@ -79,6 +79,12 @@
 .perfil-requisito--ok i { color: var(--adm-exito); }
 
 @media (max-width: 640px) {
+  /* El rol es una palabra: en dos columnas se reduce y, si aun así no cabe, parte línea entera (no a media palabra) */
+  .perfil-metrica__texto {
+    font-size: 17px;
+    overflow-wrap: break-word;
+  }
+
   .perfil-identidad { gap: 12px; }
   .perfil-identidad .adm-avatar--xl { width: 64px; height: 64px; font-size: 22px; }
   .perfil-identidad__nombre { font-size: var(--fs-lg); }

@@ -239,7 +239,7 @@
             <span class="pedido-ic"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
             <div class="pedido-info">
               <strong class="x-numero">{{ p.codigo }}</strong>
-              <small>{{ p.creado_en | date: 'dd MMM yyyy' }} · {{ p.cantidad_items }} productos</small>
+              <small>{{ p.creado_en | date: 'dd MMM yyyy' }} · {{ p.cantidad_items }} {{ p.cantidad_items === 1 ? 'producto' : 'productos' }}</small>
             </div>
             <span class="pedido-estado" [class]="p.estado">{{ p.estado | titlecase }}</span>
             <strong class="pedido-total">S/ {{ p.total | number: '1.2-2' }}</strong>

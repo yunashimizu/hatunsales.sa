@@ -299,4 +299,15 @@ legend {
     gap: 14px;
     padding: 14px 16px;
   }
+  /* Aviso con botón de acción: el texto ocupa el ancho y el botón baja alineado con él */
+  .adm-aviso {
+    flex-wrap: wrap;
+  }
+  .adm-aviso > div,
+  .adm-aviso > span {
+    flex: 1 1 calc(100% - 30px);
+  }
+  .adm-aviso > .adm-aviso__accion {
+    margin-left: 25px;
+  }
 }

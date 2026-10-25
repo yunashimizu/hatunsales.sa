@@ -110,7 +110,7 @@
 .alm-sin-dato { font-size: 13px; color: var(--adm-texto-suave); }
 
 /* La insignia de sucursal cabe en una línea cuando la tabla tiene sitio */
-@media (min-width: 641px) { .alm-td-sucursal { min-width: 170px; } }
+@media (min-width: 641px) { .alm-td-sucursal { min-width: 190px; } }
 
 .alm-cifra { font-weight: 600; color: var(--adm-texto); }
 
