@@ -204,6 +204,8 @@ export interface FiltroHistorialVentas {
   /** 'activa' | 'anulada'. */
   estado?: string;
   tiene_comprobante?: 'si' | 'no';
+  /** 'mostrador' | 'tienda'. */
+  origen?: string;
   pagina?: number;
   por_pagina?: number;
 }

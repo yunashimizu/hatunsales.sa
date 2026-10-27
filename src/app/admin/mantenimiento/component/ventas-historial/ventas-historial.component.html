@@ -1,0 +1,545 @@
+<div class="adm-pagina">
+
+  <!-- Cabecera de página -->
+  <header class="adm-cabecera">
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-clock-history"></i></span>
+      <div>
+        <span class="adm-cabecera__eyebrow">Ventas</span>
+        <h1 class="adm-cabecera__titulo">Historial de ventas</h1>
+        <p class="adm-cabecera__sub">
+          Todas las ventas con su comprobante, notas de crédito y guías. Abra una venta para ver sus documentos, descargar el
+          comprobante o emitir lo que falte.
+        </p>
+      </div>
+    </div>
+    <div class="adm-acciones">
+      <button type="button" class="adm-btn adm-btn--suave" (click)="exportarCsv()" [disabled]="!filas.length"
+              title="Descarga en CSV las ventas de la página que se ve">
+        <i class="bi bi-filetype-csv" aria-hidden="true"></i> Exportar página
+      </button>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
+        Actualizar
+      </button>
+    </div>
+  </header>
+
+  <!-- Indicadores de lo que se ve -->
+  <section class="adm-grid adm-grid--3 vh-metricas" aria-label="Resumen del historial">
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono"><i class="bi bi-bag-check"></i></div>
+      <div>
+        <div class="adm-metrica__valor adm-tabular">
+          @if (cargando && !filas.length) {
+            <span class="adm-esqueleto vh-esqueleto-valor"></span>
+          } @else {
+            {{ total }}
+          }
+        </div>
+        <div class="adm-metrica__etiqueta">Ventas</div>
+        <div class="adm-metrica__delta">Según los filtros aplicados</div>
+      </div>
+    </div>
+
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-cash-coin"></i></div>
+      <div>
+        <div class="adm-metrica__valor adm-tabular">S/ {{ totalPagina | number: '1.2-2' }}</div>
+        <div class="adm-metrica__etiqueta">Vendido en esta página</div>
+        <div class="adm-metrica__delta">
+          Sin contar anuladas
+          @if (anuladasPagina) {
+            · {{ anuladasPagina }} anulada(s)
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="adm-metrica">
+      <div class="adm-metrica__icono" [ngClass]="sinComprobantePagina ? 'adm-metrica__icono--aviso' : 'adm-metrica__icono--exito'">
+        <i class="bi" [ngClass]="sinComprobantePagina ? 'bi-receipt' : 'bi-check2-circle'"></i>
+      </div>
+      <div>
+        <div class="adm-metrica__valor adm-tabular">{{ sinComprobantePagina }}</div>
+        <div class="adm-metrica__etiqueta">Sin comprobante en esta página</div>
+        <div class="adm-metrica__delta">
+          @if (sinComprobantePagina) {
+            <a [routerLink]="rutaDocumentos" [queryParams]="{ pestana: 'sin-comprobante' }">Emitir desde Documentos</a>
+          } @else {
+            Todas con su comprobante
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filtros -->
+  <section class="adm-filtros vh-filtros" role="search" aria-label="Filtros del historial de ventas">
+    <div class="adm-campo adm-campo--grande">
+      <label class="adm-etiqueta" for="vh-texto">Buscar</label>
+      <div class="adm-input-icono">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input id="vh-texto" class="adm-input" type="text" autocomplete="off" maxlength="100"
+               placeholder="Cliente, DNI/RUC, N.º de venta o serie-número"
+               [(ngModel)]="filtro.texto" (ngModelChange)="alFiltrar()">
+      </div>
+    </div>
+
+    <div class="adm-campo vh-campo--select">
+      <label class="adm-etiqueta" for="vh-estado">Estado</label>
+      <select id="vh-estado" class="adm-select" [(ngModel)]="filtro.estado" (ngModelChange)="cargar(1)">
+        <option value="">Todas</option>
+        <option value="activa">Activas</option>
+        <option value="anulada">Anuladas</option>
+      </select>
+    </div>
+
+    <div class="adm-campo vh-campo--select">
+      <label class="adm-etiqueta" for="vh-comprobante">Comprobante</label>
+      <select id="vh-comprobante" class="adm-select" [(ngModel)]="filtro.tiene_comprobante" (ngModelChange)="cargar(1)">
+        <option value="">Todas</option>
+        <option value="si">Con comprobante</option>
+        <option value="no">Sin comprobante</option>
+      </select>
+    </div>
+
+    <div class="adm-campo vh-campo--select">
+      <label class="adm-etiqueta" for="vh-origen">Origen</label>
+      <select id="vh-origen" class="adm-select" [(ngModel)]="filtro.origen" (ngModelChange)="cargar(1)">
+        <option value="">Todos</option>
+        <option value="mostrador">Mostrador</option>
+        <option value="tienda">Tienda web</option>
+      </select>
+    </div>
+
+    <div class="adm-campo vh-campo--fecha">
+      <label class="adm-etiqueta" for="vh-desde">Desde</label>
+      <input id="vh-desde" class="adm-input" type="date" [(ngModel)]="filtro.desde" (ngModelChange)="cargar(1)"
+             [attr.aria-invalid]="errorFechas ? true : null" [attr.aria-describedby]="errorFechas ? 'vh-error-fechas' : null">
+    </div>
+
+    <div class="adm-campo vh-campo--fecha">
+      <label class="adm-etiqueta" for="vh-hasta">Hasta</label>
+      <input id="vh-hasta" class="adm-input" type="date" [(ngModel)]="filtro.hasta" (ngModelChange)="cargar(1)"
+             [attr.aria-invalid]="errorFechas ? true : null" [attr.aria-describedby]="errorFechas ? 'vh-error-fechas' : null">
+    </div>
+
+  </section>
+
+  <div class="adm-chips" role="group" aria-label="Rangos de fechas rápidos">
+    @for (rango of rangos; track rango.valor) {
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="rangoActivo === rango.valor"
+              [attr.aria-pressed]="rangoActivo === rango.valor" (click)="elegirRango(rango.valor)">
+        {{ rango.texto }}
+      </button>
+    }
+    @if (conFiltros) {
+      <button type="button" class="adm-chip vh-limpiar" (click)="limpiarFiltros()">
+        <i class="bi bi-eraser" aria-hidden="true"></i> Limpiar filtros
+      </button>
+    }
+  </div>
+
+  <!-- Listado -->
+  <section class="adm-tarjeta adm-tarjeta--acento">
+    <div class="adm-tarjeta__cabecera">
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo">
+          <i class="bi bi-list-ul"></i> Ventas
+          @if (!(cargando && !filas.length)) {
+            <span class="adm-insignia adm-insignia--neutra">{{ total }}</span>
+          }
+        </h2>
+        <p class="adm-tarjeta__sub">Las más recientes primero. El número de venta lleva a su detalle.</p>
+      </div>
+      @if (cargando && filas.length) {
+        <div class="adm-tarjeta__extra">
+          <span class="adm-insignia adm-insignia--primaria" role="status">
+            <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Actualizando…
+          </span>
+        </div>
+      }
+    </div>
+
+    @if (errorFechas) {
+      <div class="adm-vacio adm-vacio--compacto" role="alert" id="vh-error-fechas">
+        <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-calendar-x" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">{{ errorFechas }}</div>
+        <p>Corrija el rango de fechas para ver las ventas.</p>
+      </div>
+    } @else if (error) {
+      <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+        <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">No se pudo cargar el historial de ventas</div>
+        <p>{{ error }}</p>
+        <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+          <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+        </button>
+      </div>
+    } @else if (cargando && !filas.length) {
+      <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando ventas">
+        @for (n of [1, 2, 3, 4, 5, 6]; track n) {
+          <div class="adm-esqueleto adm-esqueleto--fila"></div>
+        }
+      </div>
+    } @else if (!filas.length) {
+      <div class="adm-vacio" role="status">
+        @if (conFiltros) {
+          <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-search"></i></div>
+          <div class="adm-vacio__titulo">Ninguna venta coincide con los filtros</div>
+          <p>Pruebe con otro término, cambie el estado o amplíe el rango de fechas.</p>
+          <button type="button" class="adm-btn adm-btn--suave" (click)="limpiarFiltros()">
+            <i class="bi bi-eraser" aria-hidden="true"></i> Limpiar filtros
+          </button>
+        } @else {
+          <div class="adm-vacio__icono"><i class="bi bi-bag"></i></div>
+          <div class="adm-vacio__titulo">Todavía no hay ventas registradas</div>
+          <p>Las ventas aparecerán aquí en cuanto se cobre la primera en el punto de venta.</p>
+          <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/ventas">
+            <i class="bi bi-receipt" aria-hidden="true"></i> Ir al punto de venta
+          </a>
+        }
+      </div>
+    } @else {
+      <div class="adm-tabla-envoltorio">
+        <table class="adm-tabla adm-tabla--adaptable vh-tabla">
+          <thead>
+            <tr>
+              <th>Venta</th>
+              <th>Cliente</th>
+              <th>Pago</th>
+              <th class="adm-num">Total</th>
+              <th>Comprobante</th>
+              <th>Notas y guías</th>
+              <th class="adm-centro">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (fila of filas; track fila.id_venta) {
+              <tr [class.vh-fila--anulada]="fila.estado === 'anulada'">
+                <td data-etiqueta="Venta">
+                  <button type="button" class="vh-enlace adm-tabular" (click)="abrirVenta(fila.id_venta)"
+                          [attr.aria-label]="'Ver los documentos de la venta ' + fila.id_venta">
+                    #{{ fila.id_venta }}
+                  </button>
+                  <div class="adm-tabla__secundario adm-tabular">{{ fila.fecha | date: 'dd/MM/yyyy HH:mm' : '-0500' }}</div>
+                  @if (fila.origen === 'tienda') {
+                    <span class="adm-insignia adm-insignia--info vh-origen">Tienda web</span>
+                  }
+                </td>
+
+                <td data-etiqueta="Cliente">
+                  <div class="adm-tabla__principal vh-cliente">{{ fila.cliente_denominacion }}</div>
+                  <div class="adm-tabla__secundario">{{ fila.cantidad_items }} {{ fila.cantidad_items === 1 ? 'ítem' : 'ítems' }}</div>
+                </td>
+
+                <td data-etiqueta="Pago">
+                  <span class="vh-pago">{{ fila.metodos_pago || 'Sin pago registrado' }}</span>
+                </td>
+
+                <td data-etiqueta="Total" class="adm-num adm-tabla__principal adm-tabular">
+                  S/ {{ fila.total | number: '1.2-2' }}
+                  @if (fila.estado === 'anulada') {
+                    <div><span class="adm-insignia adm-insignia--punto" [ngClass]="claseInsignia(fila.vistaEstadoVenta.tono)">{{ fila.vistaEstadoVenta.texto }}</span></div>
+                  }
+                </td>
+
+                <td data-etiqueta="Comprobante">
+                  @if (fila.comprobante && fila.vistaComprobante; as estado) {
+                    <div class="adm-tabla__principal adm-tabular">{{ fila.comprobante }}</div>
+                    <div class="vh-estado">
+                      <span class="adm-tabla__secundario">{{ fila.nombreTipo }}</span>
+                      <span class="adm-insignia adm-insignia--punto" [ngClass]="claseInsignia(estado.tono)">{{ estado.texto }}</span>
+                    </div>
+                  } @else if (fila.estado === 'anulada') {
+                    <span class="adm-tabla__secundario">Venta anulada</span>
+                  } @else {
+                    <span class="adm-insignia adm-insignia--aviso">Sin comprobante</span>
+                  }
+                </td>
+
+                <td data-etiqueta="Notas y guías">
+                  <div class="vh-contadores">
+                    <span class="adm-tabla__secundario" [class.vh-contador--vacio]="!fila.cantidad_notas"
+                          [attr.title]="fila.cantidad_notas + ' nota(s) de crédito'">
+                      <i class="bi bi-file-earmark-minus" aria-hidden="true"></i> {{ fila.cantidad_notas }}
+                    </span>
+                    <span class="adm-tabla__secundario" [class.vh-contador--vacio]="!fila.cantidad_guias"
+                          [attr.title]="fila.cantidad_guias + ' guía(s) de remisión'">
+                      <i class="bi bi-truck" aria-hidden="true"></i> {{ fila.cantidad_guias }}
+                    </span>
+                  </div>
+                </td>
+
+                <td data-etiqueta="Acciones" class="adm-centro">
+                  <div class="adm-tabla__acciones">
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="abrirVenta(fila.id_venta)"
+                            [attr.aria-label]="'Ver los documentos de la venta ' + fila.id_venta">
+                      <i class="bi bi-eye" aria-hidden="true"></i> Ver
+                    </button>
+                    @if (fila.id_comprobante) {
+                      <button type="button" class="adm-btn-icono" title="Descargar el comprobante en PDF"
+                              [disabled]="descargando !== null"
+                              [attr.aria-label]="'Descargar el PDF del comprobante ' + fila.comprobante"
+                              (click)="descargarPdf(fila.id_comprobante, fila.comprobante ?? 'comprobante', 'a4')">
+                        <i class="bi" [ngClass]="descargando === fila.id_comprobante + '-a4' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-pdf'" aria-hidden="true"></i>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (total > porPagina) {
+        <nav class="adm-paginacion" aria-label="Paginación del historial de ventas">
+          <span><strong class="adm-tabular">{{ total }}</strong> ventas · página {{ pagina }} de {{ totalPaginas }}</span>
+          <div class="adm-paginacion__botones">
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="pagina <= 1 || cargando" (click)="irA(pagina - 1)">
+              <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
+            </button>
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="pagina >= totalPaginas || cargando" (click)="irA(pagina + 1)">
+              Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </nav>
+      }
+    }
+  </section>
+</div>
+
+<!-- Detalle de la venta: se oculta mientras se ve un comprobante o la nota de crédito, y vuelve al cerrarlos -->
+@if (idVenta !== null && idComprobante === null && idAsistente === null) {
+  <div class="adm-velo" (click)="cerrarVenta()" aria-hidden="true"></div>
+  <div class="adm-modal">
+    <div #marco class="adm-modal__marco adm-modal__marco--ancho vh-marco" role="dialog" aria-modal="true"
+         aria-labelledby="vh-titulo" tabindex="-1" (keydown.escape)="cerrarVenta()">
+      <div class="adm-modal__cabecera">
+        <div class="adm-tarjeta__encabezado">
+          <h2 class="adm-tarjeta__titulo" id="vh-titulo">
+            <i class="bi bi-bag-check"></i> Venta <span class="adm-tabular">#{{ idVenta }}</span>
+            @if (documentos; as d) {
+              <span class="adm-insignia adm-insignia--punto"
+                    [ngClass]="claseInsignia(d.venta.estado === 'anulada' ? 'neutro' : 'exito')">
+                {{ d.venta.estado === 'anulada' ? 'Anulada' : 'Activa' }}
+              </span>
+            }
+          </h2>
+          @if (documentos; as d) {
+            <p class="adm-tarjeta__sub">
+              {{ d.venta.cliente.nombre }}
+              @if (d.venta.cliente.documento) {
+                · <span class="adm-tabular">{{ d.venta.cliente.documento }}</span>
+              }
+              · <span class="adm-tabular">{{ d.venta.fecha | date: 'dd/MM/yyyy HH:mm' : '-0500' }}</span>
+            </p>
+          }
+        </div>
+        <button type="button" class="adm-btn-icono" (click)="cerrarVenta()" aria-label="Cerrar el detalle de la venta" title="Cerrar">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="adm-modal__cuerpo vh-cuerpo">
+        @if (errorDocumentos) {
+          <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+            <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+            <div class="adm-vacio__titulo">No se pudo abrir la venta</div>
+            <p>{{ errorDocumentos }}</p>
+            <button type="button" class="adm-btn adm-btn--suave" (click)="cargarDocumentos()">
+              <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+            </button>
+          </div>
+        } @else if (!documentos) {
+          <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando la venta">
+            @for (n of [1, 2, 3]; track n) {
+              <div class="adm-esqueleto adm-esqueleto--fila"></div>
+            }
+          </div>
+        } @else {
+          @let d = documentos!;
+
+          @for (aviso of d.avisos; track $index) {
+            <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto" role="status">
+              <i class="bi bi-info-circle" aria-hidden="true"></i>
+              <span>{{ aviso }}</span>
+            </div>
+          }
+
+          <!-- Cobro -->
+          <section class="vh-seccion" aria-labelledby="vh-cobro">
+            <h3 class="vh-seccion__titulo" id="vh-cobro"><i class="bi bi-cash-coin" aria-hidden="true"></i> Cobro</h3>
+            <dl class="adm-datos">
+              <div class="adm-dato">
+                <dt class="adm-dato__etiqueta">Total</dt>
+                <dd class="adm-dato__valor adm-tabular vh-total">S/ {{ d.venta.total | number: '1.2-2' }}</dd>
+              </div>
+              <div class="adm-dato">
+                <dt class="adm-dato__etiqueta">Medios de pago</dt>
+                <dd class="adm-dato__valor">
+                  @for (pago of d.venta.pagos; track $index) {
+                    <div class="adm-tabular">{{ pago.metodo }}: S/ {{ pago.monto | number: '1.2-2' }}</div>
+                  } @empty {
+                    <span class="adm-tabla__secundario">Sin pagos registrados</span>
+                  }
+                </dd>
+              </div>
+              @if (d.venta.a_credito) {
+                <div class="adm-dato">
+                  <dt class="adm-dato__etiqueta">Crédito</dt>
+                  <dd class="adm-dato__valor adm-tabular">
+                    Saldo pendiente: S/ {{ d.venta.saldo_cxc | number: '1.2-2' }}
+                    <a class="vh-enlace-texto" routerLink="/dashboard/mantenimiento/cuentas-por-cobrar">Cuentas por cobrar</a>
+                  </dd>
+                </div>
+              }
+            </dl>
+          </section>
+
+          <!-- Comprobante -->
+          <section class="vh-seccion" aria-labelledby="vh-comprobante-titulo">
+            <h3 class="vh-seccion__titulo" id="vh-comprobante-titulo"><i class="bi bi-file-earmark-text" aria-hidden="true"></i> Comprobante</h3>
+            @if (d.comprobante; as c) {
+              @let estado = estadoDe(c);
+              <div class="vh-documento">
+                <div class="vh-documento__datos">
+                  <div class="adm-tabla__principal adm-tabular">{{ c.numero_formateado }}</div>
+                  <div class="adm-tabla__secundario">{{ c.tipo_nombre }} · {{ c.fecha_de_emision }} · S/ {{ c.total | number: '1.2-2' }}</div>
+                  @if (c.mensaje) {
+                    <div class="adm-tabla__secundario vh-mensaje">{{ c.mensaje }}</div>
+                  }
+                </div>
+                <span class="adm-insignia adm-insignia--punto" [ngClass]="claseInsignia(estado.tono)">{{ estado.texto }}</span>
+              </div>
+              <div class="vh-acciones">
+                <button type="button" class="adm-btn adm-btn--primario adm-btn--sm" (click)="abrirComprobante(c.id_comprobante)">
+                  <i class="bi bi-card-text" aria-hidden="true"></i> Ver detalle y SUNAT
+                </button>
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="descargando !== null"
+                        (click)="descargarPdf(c.id_comprobante, c.numero_formateado, 'a4')">
+                  <i class="bi" [ngClass]="descargando === c.id_comprobante + '-a4' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-pdf'" aria-hidden="true"></i> PDF A4
+                </button>
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="descargando !== null"
+                        (click)="descargarPdf(c.id_comprobante, c.numero_formateado, 'ticket')">
+                  <i class="bi" [ngClass]="descargando === c.id_comprobante + '-ticket' ? 'bi-arrow-repeat adm-girando' : 'bi-receipt'" aria-hidden="true"></i> Ticket
+                </button>
+                @if (d.acciones.nota_credito.permitido) {
+                  <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="abrirAsistente(c.id_comprobante)">
+                    <i class="bi bi-file-earmark-minus" aria-hidden="true"></i> Nota de crédito
+                  </button>
+                }
+              </div>
+              @if (!d.acciones.nota_credito.permitido && d.acciones.nota_credito.motivo) {
+                <p class="vh-motivo"><i class="bi bi-info-circle" aria-hidden="true"></i> Nota de crédito: {{ d.acciones.nota_credito.motivo }}</p>
+              }
+            } @else {
+              <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto">
+                <i class="bi bi-receipt" aria-hidden="true"></i>
+                <span>
+                  <strong class="adm-aviso__titulo">Esta venta no tiene factura ni boleta vigente</strong>
+                  @if (d.acciones.emitir_comprobante.permitido) {
+                    Puede emitirla ahora desde Documentos.
+                  } @else {
+                    {{ d.acciones.emitir_comprobante.motivo || 'No se puede emitir en este momento.' }}
+                  }
+                </span>
+                @if (d.acciones.emitir_comprobante.permitido) {
+                  <a class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" [routerLink]="rutaDocumentos"
+                     [queryParams]="{ pestana: 'sin-comprobante' }">
+                    Emitir <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                  </a>
+                }
+              </div>
+            }
+
+            @if (d.comprobantes_anteriores.length) {
+              <h4 class="vh-subtitulo">Comprobantes anteriores</h4>
+              <ul class="vh-lista">
+                @for (c of d.comprobantes_anteriores; track c.id_comprobante) {
+                  @let estadoAnterior = estadoDe(c);
+                  <li>
+                    <button type="button" class="vh-enlace adm-tabular" (click)="abrirComprobante(c.id_comprobante)">{{ c.numero_formateado }}</button>
+                    <span class="adm-tabla__secundario">{{ c.tipo_nombre }} · S/ {{ c.total | number: '1.2-2' }}</span>
+                    <span class="adm-insignia adm-insignia--punto" [ngClass]="claseInsignia(estadoAnterior.tono)">{{ estadoAnterior.texto }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <!-- Notas de crédito -->
+          @if (d.notas.length) {
+            <section class="vh-seccion" aria-labelledby="vh-notas">
+              <h3 class="vh-seccion__titulo" id="vh-notas"><i class="bi bi-file-earmark-minus" aria-hidden="true"></i> Notas de crédito</h3>
+              <ul class="vh-lista">
+                @for (n of d.notas; track n.id_comprobante) {
+                  @let estadoNota = estadoDe(n);
+                  <li>
+                    <button type="button" class="vh-enlace adm-tabular" (click)="abrirComprobante(n.id_comprobante)">{{ n.numero_formateado }}</button>
+                    <span class="adm-tabla__secundario">
+                      {{ n.motivo_nombre || 'Sin motivo' }} · S/ {{ n.total | number: '1.2-2' }}
+                      @if (n.doc_modificado) {
+                        · modifica <span class="adm-tabular">{{ n.doc_modificado }}</span>
+                      }
+                    </span>
+                    <span class="adm-insignia adm-insignia--punto" [ngClass]="claseInsignia(estadoNota.tono)">{{ estadoNota.texto }}</span>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+
+          <!-- Guías de remisión -->
+          <section class="vh-seccion" aria-labelledby="vh-guias">
+            <h3 class="vh-seccion__titulo" id="vh-guias"><i class="bi bi-truck" aria-hidden="true"></i> Guías de remisión</h3>
+            @if (d.guias.length) {
+              <ul class="vh-lista">
+                @for (g of d.guias; track g.id_guia) {
+                  <li>
+                    <a class="vh-enlace adm-tabular" [routerLink]="rutaGuias" [queryParams]="{ guia: g.id_guia }">
+                      {{ g.numero_formateado || 'Borrador #' + g.id_guia }}
+                    </a>
+                    <span class="adm-tabla__secundario">{{ g.motivo_nombre || 'Venta' }}@if (g.fecha_emision) { · {{ g.fecha_emision }} }</span>
+                    <span class="adm-insignia adm-insignia--neutra">{{ g.estado_texto }}</span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="vh-vacio">Esta venta todavía no tiene guías.</p>
+            }
+            @if (d.acciones.guia.permitido) {
+              <div class="vh-acciones">
+                <a class="adm-btn adm-btn--suave adm-btn--sm" [routerLink]="rutaGuias" [queryParams]="{ venta: d.venta.id }">
+                  <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear guía de remisión
+                </a>
+              </div>
+            } @else if (d.acciones.guia.motivo) {
+              <p class="vh-motivo"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ d.acciones.guia.motivo }}</p>
+            }
+          </section>
+        }
+      </div>
+
+      <div class="adm-modal__pie">
+        <button type="button" class="adm-btn adm-btn--suave" (click)="cargarDocumentos()" [disabled]="cargandoDocumentos">
+          <i class="bi" [ngClass]="cargandoDocumentos ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i> Actualizar
+        </button>
+        <button type="button" class="adm-btn adm-btn--primario" (click)="cerrarVenta()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (idComprobante !== null) {
+  <app-comprobante-detalle [idComprobante]="idComprobante" [accionInicial]="accionComprobante"
+                           (cerrado)="cerrarComprobante()" (cambio)="alCambiarDocumentos()"
+                           (notaCredito)="abrirAsistente($event)" (abrir)="abrirComprobante($event)"></app-comprobante-detalle>
+}
+
+@if (idAsistente !== null) {
+  <app-nota-credito-asistente [idComprobante]="idAsistente" (emitida)="alEmitirNota()"
+                              (cerrado)="cerrarAsistente()"></app-nota-credito-asistente>
+}

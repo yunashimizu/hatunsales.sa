@@ -131,6 +131,18 @@ const routes: Routes = [
     loadComponent: () => import('./component/ventas/ventas.component').then((c) => c.VentasComponent),
   },
   {
+    path: 'ventas-historial',
+    canActivate: [roleGuard],
+    data: {
+      roles: ['admin', 'vendedor', 'caja'],
+      title: 'Historial de ventas',
+      subtitle: 'Ventas con su comprobante, notas de crédito y guías.',
+      icon: 'fa-clock',
+    },
+    loadComponent: () =>
+      import('./component/ventas-historial/ventas-historial.component').then((c) => c.VentasHistorialComponent),
+  },
+  {
     path: 'cotizaciones',
     canActivate: [roleGuard],
     data: {

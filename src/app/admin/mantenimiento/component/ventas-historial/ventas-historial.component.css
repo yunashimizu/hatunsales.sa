@@ -1,0 +1,134 @@
+:host { display: block; }
+
+.vh-esqueleto-valor { display: inline-block; width: 3ch; height: 1em; }
+
+/* Filtros: buscador + cinco controles en una sola fila en escritorio; en pantallas chicas envuelven */
+.vh-filtros > .adm-campo--grande { flex: 2 1 190px; }
+.vh-filtros > .vh-campo--select { flex: 1 1 130px; }
+.vh-filtros > .vh-campo--fecha { flex: 1 1 130px; }
+
+.vh-limpiar { margin-left: auto; }
+
+/* Venta anulada: sigue visible, pero se nota que ya no vale */
+.vh-fila--anulada td { color: var(--adm-texto-suave); }
+.vh-fila--anulada .vh-cliente { text-decoration: line-through; text-decoration-color: var(--adm-borde-fuerte); }
+
+.vh-cliente { max-width: 280px; overflow-wrap: anywhere; }
+.vh-pago { color: var(--adm-texto-suave); overflow-wrap: anywhere; }
+.vh-origen { margin-top: 4px; }
+
+.vh-estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.vh-contadores { display: flex; gap: 14px; }
+.vh-contador--vacio { opacity: 0.55; }
+
+/* Número de venta / de documento que abre algo: se ve como enlace */
+.vh-enlace {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--adm-primario, var(--adm-texto));
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.vh-enlace:hover { text-decoration: underline; }
+.vh-enlace:focus-visible { outline: 2px solid var(--adm-primario, currentColor); outline-offset: 2px; border-radius: 4px; }
+
+.vh-enlace-texto { margin-left: 8px; font-weight: 600; }
+
+/* ── Detalle ── */
+.vh-marco:focus { outline: none; }
+
+.vh-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.vh-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.vh-seccion__titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--adm-texto);
+  font-family: var(--adm-fuente-titulos);
+  font-size: var(--adm-fs-base, 0.9375rem);
+  font-weight: 700;
+}
+
+.vh-subtitulo {
+  margin: 6px 0 0;
+  color: var(--adm-texto-suave);
+  font-size: var(--adm-fs-etiqueta);
+  font-weight: 600;
+}
+
+.vh-total { font-size: 1.25rem; font-weight: 800; }
+
+.vh-documento {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-borde);
+  border-radius: 12px;
+  background: var(--adm-superficie-2);
+}
+
+.vh-documento__datos { min-width: 0; }
+.vh-mensaje { margin-top: 4px; overflow-wrap: anywhere; }
+
+.vh-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vh-motivo,
+.vh-vacio {
+  margin: 0;
+  color: var(--adm-texto-suave);
+  font-size: var(--adm-fs-etiqueta);
+}
+
+.vh-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vh-lista li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--adm-borde);
+  border-radius: 10px;
+}
+
+.vh-lista li > .adm-tabla__secundario { flex: 1 1 200px; min-width: 0; }
+
+@media (max-width: 640px) {
+  .vh-cliente { max-width: none; }
+  .vh-documento { flex-direction: column; }
+}

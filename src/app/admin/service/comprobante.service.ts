@@ -9,6 +9,7 @@ import {
   CatalogoMotivosNota,
   ComprobanteDetalle,
   ContextoNotaCredito,
+  FiltroHistorialVentas,
   FiltroVentasSinComprobante,
   FormatoPdfComprobante,
   NotaCreditoEmitida,
@@ -18,6 +19,8 @@ import {
   SolicitudEmitirComprobanteVenta,
   SolicitudNotaCredito,
   TipoArchivoComprobante,
+  VentaDocumentosResponse,
+  VentaHistorialFila,
   VentaSinComprobante,
 } from '../models/documentos.models';
 import { cabecerasAutenticadas, cacheCorto, opcionesHttp } from './api-base.service';
@@ -139,6 +142,19 @@ export class ComprobanteService {
    */
   anular(solicitud: SolicitudAnularComprobante): Observable<AnulacionComprobante> {
     return this.http.post<AnulacionComprobante>(urlConstants.comprobante.anular, solicitud, opcionesHttp());
+  }
+
+  /** Historial de ventas (GET /venta): cada fila con su comprobante vigente y cuántas notas y guías tiene. */
+  historialVentas(filtro: FiltroHistorialVentas = {}): Observable<Paginado<VentaHistorialFila>> {
+    return this.http.get<Paginado<VentaHistorialFila>>(urlConstants.puntoVenta.base, {
+      ...opcionesHttp(),
+      params: parametros(filtro),
+    });
+  }
+
+  /** Comprobante, notas de crédito y guías de una venta, con lo que se puede hacer y los avisos. */
+  documentosDeVenta(idVenta: number): Observable<VentaDocumentosResponse> {
+    return this.http.get<VentaDocumentosResponse>(urlConstants.puntoVenta.documentos(idVenta), opcionesHttp());
   }
 
   ventasSinComprobante(filtro: FiltroVentasSinComprobante = {}): Observable<Paginado<VentaSinComprobante>> {
