@@ -177,8 +177,70 @@
 .pv-total { align-items: center; }
 .pv-total > span:first-child { font-size: 12px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--adm-texto-suave); }
 .pv-total > .pv-total__monto { font-size: 32px; line-height: 1.1; letter-spacing: -0.03em; color: var(--adm-exito); overflow-wrap: anywhere; }
-.pv-cobrar { min-height: 54px; font-size: 16.5px; box-shadow: 0 10px 22px -10px rgba(5, 150, 105, 0.6); }
-.pv-resumen__recargo { color: var(--adm-info); }
+/* Botón de cobro: mismo lenguaje que el inicio (x-boton), en verde esmeralda con brillo */
+.pv-cobrar {
+  --b-fondo: linear-gradient(135deg, #047857 0%, #059669 48%, #10b981 100%);
+  --b-fondo-hover: linear-gradient(135deg, #059669 0%, #10b981 55%, #34d399 100%);
+  --b-texto: #ffffff;
+  --b-sombra: 0 14px 30px -12px rgba(16, 185, 129, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  width: 100%;
+  min-height: 60px;
+  gap: 0.7em;
+  font-size: 1.0625rem;
+  letter-spacing: 0.01em;
+}
+.pv-cobrar > i { font-size: 1.35em; }
+.pv-cobrar__monto {
+  margin-left: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+.pv-cobrar > span:first-of-type:not(:last-child) { margin-right: auto; }
+.pv-cobrar--lista { animation: pv-cobrar-listo 2.6s var(--x-ease-in-out, ease-in-out) infinite; }
+.pv-cobrar:disabled {
+  --b-fondo: var(--adm-superficie-3);
+  --b-texto: var(--adm-texto-suave);
+  --b-sombra: none;
+  opacity: 1;
+  border-color: var(--adm-borde);
+}
+.pv-cobrar:disabled::before { display: none; }
+.pv-cotizar { width: 100%; }
+@keyframes pv-cobrar-listo {
+  0%, 100% { box-shadow: 0 14px 30px -12px rgba(16, 185, 129, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22); }
+  50%      { box-shadow: 0 16px 38px -8px rgba(16, 185, 129, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.22); }
+}
+@media (prefers-reduced-motion: reduce) { .pv-cobrar--lista { animation: none; } }
+
+.pv-resumen__recargo { color: var(--adm-info); font-weight: 600; }
+
+/* Resultado del pago con tarjeta: el recargo por defecto, a la vista */
+.pv-recargo-resultado {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-texto);
+  background: var(--adm-info-claro);
+  border: 1px solid var(--adm-info-borde);
+  border-radius: var(--adm-r-md, 12px);
+}
+.pv-recargo-resultado__cabecera {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 2px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--adm-info);
+}
+.pv-recargo-resultado__pastilla {
+  margin-left: auto; padding: 3px 10px; border-radius: 999px;
+  font-size: 11.5px; letter-spacing: 0.02em; text-transform: none;
+  color: var(--adm-info); background: var(--adm-superficie); border: 1px solid var(--adm-info-borde);
+}
+.pv-recargo-resultado__fila { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; color: var(--adm-texto-suave); }
+.pv-recargo-resultado__fila--recargo { color: var(--adm-info); font-weight: 700; }
+.pv-recargo-resultado__fila--total {
+  margin-top: 4px; padding-top: 8px; border-top: 1px dashed var(--adm-info-borde);
+  font-size: 15px; font-weight: 800; color: var(--adm-texto);
+}
 .pv-resumen__desactualizado { opacity: 0.55; }
 .pv-total__monto--calculando { opacity: 0.75; }
 
@@ -189,6 +251,100 @@
 }
 .pv-recargo-aviso > i { margin-top: 2px; }
 .pv-recargo-aviso strong { font-variant-numeric: tabular-nums; }
+
+/* ── Pulido visual del panel de pago y cobro ─────────────────────────────── */
+.pv-pago-linea {
+  position: relative; overflow: hidden;
+  background: linear-gradient(160deg, var(--adm-superficie-2) 0%, color-mix(in srgb, var(--adm-superficie-2) 88%, #10b981) 100%);
+  border-color: color-mix(in srgb, var(--adm-borde) 80%, #10b981);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.pv-pago-linea::before {
+  content: ''; position: absolute; inset: 0 auto 0 0; width: 3px;
+  background: linear-gradient(180deg, #34d399, #059669);
+}
+.pv-pago-linea:focus-within {
+  border-color: color-mix(in srgb, #10b981 65%, var(--adm-borde));
+  box-shadow: 0 0 0 3px color-mix(in srgb, #10b981 18%, transparent);
+}
+.pv-pago-linea__titulo {
+  padding: 3px 10px; border-radius: 999px; color: #059669;
+  background: color-mix(in srgb, #10b981 14%, transparent);
+}
+:root[data-tema='oscuro'] .pv-pago-linea__titulo { color: #6ee7b7; }
+
+.pv-vuelto { border-radius: 10px; font-size: 16px; }
+.pv-vuelto--positivo { box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-exito) 14%, transparent); }
+
+/* Cobertura del pago: barra de avance */
+.pv-cobertura { position: relative; padding-bottom: 16px; border-radius: 12px; }
+.pv-cobertura__barra {
+  position: absolute; inset: auto 12px 6px 12px; height: 4px; display: block; overflow: hidden;
+  border-radius: 999px; background: color-mix(in srgb, currentColor 16%, transparent);
+}
+.pv-cobertura__barra > i {
+  display: block; height: 100%; max-width: 100%; border-radius: inherit; background: currentColor;
+  transition: width 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Resultado de tarjeta: entra con suavidad y lleva brillo */
+.pv-recargo-resultado {
+  position: relative; overflow: hidden; border-radius: 14px;
+  background:
+    radial-gradient(120% 140% at 100% -20%, color-mix(in srgb, var(--adm-info) 22%, transparent), transparent 60%),
+    var(--adm-info-claro);
+  animation: pv-subir 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) { .pv-recargo-resultado { animation: none; } }
+
+/* Tarjeta de total y cobro */
+.pv-cobro.adm-tarjeta--destacada {
+  position: relative; overflow: hidden; border-radius: 20px;
+  border-color: color-mix(in srgb, #10b981 40%, var(--adm-borde));
+  background:
+    radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, #10b981 20%, transparent), transparent 62%),
+    radial-gradient(80% 60% at 0% 100%, color-mix(in srgb, var(--adm-info) 12%, transparent), transparent 65%),
+    linear-gradient(160deg, var(--adm-superficie) 0%, var(--adm-superficie-2) 100%);
+  box-shadow: 0 24px 48px -28px rgba(16, 185, 129, 0.55);
+}
+.pv-cobro .adm-resumen__fila {
+  padding: 9px 0; font-size: 14px; color: var(--adm-texto-suave);
+  border-bottom: 1px dashed color-mix(in srgb, var(--adm-borde) 90%, transparent);
+}
+.pv-cobro .adm-resumen__fila > span:last-child { font-weight: 700; color: var(--adm-texto); }
+.pv-cobro .adm-resumen__fila--total {
+  position: relative; margin-top: 8px; padding-top: 16px; border-top: 0; border-bottom: 0;
+}
+.pv-cobro .adm-resumen__fila--total::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, #10b981 70%, transparent), transparent);
+}
+.pv-cobro .pv-total > span:first-child { font-weight: 700; letter-spacing: 0.1em; color: var(--adm-texto-suave); }
+.pv-cobro .pv-total > .pv-total__monto {
+  font-size: clamp(30px, 3.2vw, 38px); font-weight: 800; font-variant-numeric: tabular-nums;
+  background: linear-gradient(100deg, #10b981 0%, #2ee6a6 55%, #a7f3d0 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  filter: drop-shadow(0 6px 18px rgba(16, 185, 129, 0.35));
+}
+.pv-cobro .pv-resumen__recargo > span:last-child { color: var(--adm-info); }
+
+/* Desglose del total (mismo orden que la proforma) */
+.pv-resumen__nota { margin: 0; font-size: 12px; color: var(--adm-texto-suave); }
+.pv-resumen__nota strong { color: var(--adm-texto); font-variant-numeric: tabular-nums; }
+.pv-desglose { transition: opacity 200ms ease; }
+.pv-cobro .pv-desglose__sub { padding: 5px 0 5px 14px; font-size: 12.5px; border-bottom: 0; }
+.pv-cobro .pv-desglose__sub > span:last-child { font-weight: 600; }
+.pv-resumen__recargo-nota {
+  display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 12px; font-size: 12.5px;
+  color: var(--adm-info); background: var(--adm-info-claro); border: 1px solid var(--adm-info-borde); border-radius: 10px;
+}
+.pv-son {
+  margin: 0; padding: 9px 12px; font-size: 12px; line-height: 1.35; letter-spacing: 0.01em; text-transform: uppercase;
+  color: var(--adm-texto); background: color-mix(in srgb, var(--adm-superficie-3) 70%, transparent);
+  border: 1px solid var(--adm-borde); border-radius: 10px;
+}
+.pv-son strong { margin-right: 4px; }
 
 /* Barra fija con el total: solo en pantallas chicas */
 .pv-total-movil { display: none; }

@@ -939,6 +939,7 @@
           <div class="pv-cobertura pv-cobertura--ok" *ngIf="pagoUnicoSinMonto && total > 0; else coberturaPagos">
             <span>Se cobra todo en este medio</span>
             <span><strong>S/ {{ total | number:'1.2-2' }}</strong></span>
+            <i class="pv-cobertura__barra" aria-hidden="true"><i style="width: 100%"></i></i>
           </div>
           <ng-template #coberturaPagos>
             <div class="pv-cobertura"
@@ -946,32 +947,77 @@
                  [class.pv-cobertura--ok]="pagoCubierto && total > 0">
               <span>Cubierto <strong>S/ {{ sumaPagos | number:'1.2-2' }}</strong></span>
               <span>Resta <strong>S/ {{ restantePago | number:'1.2-2' }}</strong></span>
+              <i class="pv-cobertura__barra" aria-hidden="true"><i [style.width.%]="total > 0 ? (sumaPagos / total) * 100 : 0"></i></i>
             </div>
           </ng-template>
+
+          <!-- Resultado del pago con tarjeta: el recargo va por defecto y se ve aquí mismo -->
+          <div class="pv-recargo-resultado" *ngIf="hayPagoTarjeta && recargoTarjetaPct > 0" role="status" aria-live="polite">
+            <div class="pv-recargo-resultado__cabecera">
+              <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
+              <span>Pago con tarjeta</span>
+              <span class="pv-recargo-resultado__pastilla">+{{ recargoPctMostrado }}% recargo</span>
+            </div>
+            <div class="pv-recargo-resultado__fila">
+              <span>Productos</span>
+              <span>S/ {{ totalLocal | number:'1.2-2' }}</span>
+            </div>
+            <div class="pv-recargo-resultado__fila pv-recargo-resultado__fila--recargo">
+              <span>Recargo por tarjeta ({{ recargoPctMostrado }}%)</span>
+              <span>+ S/ {{ recargoMostrado | number:'1.2-2' }}</span>
+            </div>
+            <div class="pv-recargo-resultado__fila pv-recargo-resultado__fila--total">
+              <span>Total con recargo</span>
+              <span>S/ {{ total | number:'1.2-2' }}</span>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- Total y cobro -->
       <section class="adm-tarjeta adm-tarjeta--destacada pv-cobro" aria-label="Total y cobro">
         <div class="adm-tarjeta__cuerpo pv-pila">
-          <ul class="adm-resumen">
+          <!-- Desglose igual al de la proforma: ítems, subtotal sin IGV, operaciones, descuento, IGV y total -->
+          <p class="pv-resumen__nota">
+            Ítems: <strong>{{ lineas.length }}</strong>
+            <span aria-hidden="true">·</span> Unidades: <strong>{{ unidadesCarrito }}</strong>
+            <span aria-hidden="true">·</span> Precios con IGV incluido
+          </p>
+          <ul class="adm-resumen pv-desglose" [class.pv-resumen__desactualizado]="calculandoPreview && !!preview">
             <li class="adm-resumen__fila">
-              <span>Productos</span><span>{{ lineas.length }}</span>
+              <span>Subtotal (sin IGV)</span>
+              <span>S/ {{ subtotalSinIgv | number:'1.2-2' }}</span>
+            </li>
+            <li class="adm-resumen__fila pv-desglose__sub" *ngIf="!preview || (preview.totales.gravada || 0) > 0">
+              <span>Op. gravada</span><span>S/ {{ (preview?.totales?.gravada || 0) | number:'1.2-2' }}</span>
+            </li>
+            <li class="adm-resumen__fila pv-desglose__sub" *ngIf="(preview?.totales?.exonerada || 0) > 0">
+              <span>Op. exonerada</span><span>S/ {{ preview?.totales?.exonerada | number:'1.2-2' }}</span>
+            </li>
+            <li class="adm-resumen__fila pv-desglose__sub" *ngIf="(preview?.totales?.inafecta || 0) > 0">
+              <span>Op. inafecta</span><span>S/ {{ preview?.totales?.inafecta | number:'1.2-2' }}</span>
             </li>
             <li class="adm-resumen__fila" *ngIf="descuentoCarrito > 0">
-              <span>Descuentos</span><span>− S/ {{ descuentoCarrito | number:'1.2-2' }}</span>
+              <span>Descuentos (ya restados)</span><span>− S/ {{ descuentoCarrito | number:'1.2-2' }}</span>
             </li>
-            <li class="adm-resumen__fila pv-resumen__recargo" *ngIf="recargoMostrado > 0">
-              <span>Recargo por tarjeta ({{ recargoPctMostrado }}%)</span><span>+ S/ {{ recargoMostrado | number:'1.2-2' }}</span>
-            </li>
-            <li class="adm-resumen__fila" [class.pv-resumen__desactualizado]="calculandoPreview" *ngIf="preview">
-              <span>IGV incluido ({{ preview.porcentaje_igv }}%)</span><span>S/ {{ preview.totales.igv | number:'1.2-2' }}</span>
+            <li class="adm-resumen__fila">
+              <span>IGV ({{ preview?.porcentaje_igv ?? 18 }}%)</span>
+              <span>S/ {{ (preview?.totales?.igv || 0) | number:'1.2-2' }}</span>
             </li>
             <li class="adm-resumen__fila adm-resumen__fila--total pv-total">
               <span>Total a pagar</span>
               <span class="pv-total__monto" [class.pv-total__monto--calculando]="calculandoPreview">S/ {{ total | number:'1.2-2' }}</span>
             </li>
           </ul>
+
+          <p class="pv-resumen__recargo-nota" *ngIf="recargoMostrado > 0">
+            <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
+            Incluye recargo por tarjeta ({{ recargoPctMostrado }}%): S/ {{ recargoMostrado | number:'1.2-2' }}
+          </p>
+
+          <p class="pv-son" *ngIf="preview?.importe_en_letras && !calculandoPreview">
+            <strong>SON:</strong> {{ preview?.importe_en_letras }}
+          </p>
 
           <div class="adm-aviso adm-aviso--peligro" *ngIf="errorPreview">
             <i class="bi bi-x-circle" aria-hidden="true"></i><span>{{ errorPreview }}</span>
@@ -982,13 +1028,15 @@
             <span>Desde la cotización {{ codigoCotizacionCargada }}</span>
           </div>
 
-          <button type="button" class="adm-btn adm-btn--exito adm-btn--lg adm-btn--bloque pv-cobrar"
+          <button type="button" class="x-boton x-boton--lg pv-cobrar"
+                  [class.pv-cobrar--lista]="puedeEmitir && !emitiendo"
                   [disabled]="!puedeEmitir" (click)="cobrar()">
-            <i class="bi" [ngClass]="emitiendo ? 'bi-arrow-repeat adm-girando' : 'bi-cash-coin'"></i>
-            {{ emitiendo ? 'Procesando…' : 'Cobrar y emitir' }}
+            <i class="bi" [ngClass]="emitiendo ? 'bi-arrow-repeat adm-girando' : 'bi-cash-coin'" aria-hidden="true"></i>
+            <span>{{ emitiendo ? 'Procesando…' : 'Cobrar y emitir' }}</span>
+            <span class="pv-cobrar__monto" *ngIf="puedeEmitir && !emitiendo">S/ {{ total | number:'1.2-2' }}</span>
           </button>
 
-          <button type="button" class="adm-btn adm-btn--suave adm-btn--bloque"
+          <button type="button" class="x-boton x-boton--contorno x-boton--sm pv-cotizar"
                   [disabled]="!lineas.length || emitiendo" (click)="irACotizarCarrito()">
             <i class="bi bi-file-earmark-ruled" aria-hidden="true"></i> Cotizar este carrito
           </button>
