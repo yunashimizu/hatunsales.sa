@@ -169,6 +169,9 @@ export class NotaCreditoAsistenteComponent implements OnChanges {
   /** idNota: la nota en curso (409); recargar: hay que releer el contexto antes de reintentar. */
   errorEnvio: { titulo: string; mensaje: string; idNota: number | null; recargar: boolean } | null = null;
   resultado: NotaCreditoEmitida | null = null;
+  /** avisos[0] del backend resume el resultado de SUNAT (titular); el resto dice qué sigue (caja, deuda…). */
+  titularResultado: string | null = null;
+  avisosResultado: string[] = [];
   efectos: string[] = [];
   descargando: FormatoPdfComprobante | null = null;
 
@@ -393,7 +396,10 @@ export class NotaCreditoAsistenteComponent implements OnChanges {
       )
       .subscribe({
         next: (respuesta) => {
+          const avisos = respuesta.avisos ?? [];
           this.resultado = respuesta;
+          this.titularResultado = avisos[0] ?? null;
+          this.avisosResultado = avisos.slice(1);
           this.efectos = this.efectosDe(respuesta);
           this.paso = 'resultado';
           this.emitida.emit(respuesta);

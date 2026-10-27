@@ -66,7 +66,11 @@ export class GuiaDetalleComponent {
   @Output() readonly anular = new EventEmitter<GuiaRemision>();
   @Output() readonly descargar = new EventEmitter<DescargaGuia>();
 
-  readonly nombresArchivo = NOMBRE_ARCHIVO_GUIA;
+  // Getter y no campo `= NOMBRE_ARCHIVO_GUIA`: en las pruebas, Vite copia esa constante importada al
+  // cargar el módulo, antes de que se inicialice, y el campo quedaría undefined.
+  get nombresArchivo(): Readonly<Record<TipoArchivoGuia, string>> {
+    return NOMBRE_ARCHIVO_GUIA;
+  }
   readonly fecha = fechaGuia;
 
   get resumen(): ResumenSunatGuia | null {

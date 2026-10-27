@@ -46,6 +46,16 @@ function soloDigitos(texto: string | null | undefined): string {
 }
 
 /**
+ * Un backend anterior a esta consulta toma «sin-comprobante» como el id de GET /venta/:id y responde
+ * 400 (dato o id no válido) o 404: no es un problema de los filtros, falta actualizar el servidor.
+ */
+function consultaNoPublicada(error: unknown): boolean {
+  const estado = (error as { status?: unknown } | null)?.status;
+  const codigo = codigoDeError(error);
+  return estado === 404 || (estado === 400 && (codigo === 'DATO_INVALIDO' || codigo === 'ID_INVALIDO'));
+}
+
+/**
  * Ventas que quedaron registradas sin factura ni boleta (emisión detenida, SUNAT caída, datos del
  * cliente incompletos…) y su emisión posterior: POST /venta/:id/emitir-comprobante con los montos ya
  * cobrados. El comprobante se envía a SUNAT en el acto y su respuesta se muestra apenas llega.
@@ -65,9 +75,18 @@ export class VentasSinComprobanteComponent implements OnInit {
   @Output() readonly verComprobante = new EventEmitter<number>();
 
   readonly porPagina = 20;
-  readonly rutaVenta = RUTA_DOCUMENTOS_VENTA;
-  readonly TIPO_FACTURA = TIPO_FACTURA;
-  readonly TIPO_BOLETA = TIPO_BOLETA;
+  // Getters y no campos `= CONSTANTE`: en las pruebas, Vite copia la constante importada que es
+  // valor de un campo al cargar el módulo, antes de que se inicialice, y el campo quedaría undefined
+  // según el orden de los specs.
+  get rutaVenta(): string {
+    return RUTA_DOCUMENTOS_VENTA;
+  }
+  get TIPO_FACTURA(): number {
+    return TIPO_FACTURA;
+  }
+  get TIPO_BOLETA(): number {
+    return TIPO_BOLETA;
+  }
 
   ventas: VentaSinComprobante[] = [];
   total = 0;
@@ -116,6 +135,12 @@ export class VentasSinComprobanteComponent implements OnInit {
     return !!this.filtro.desde || !!this.filtro.hasta;
   }
 
+  /** Rango imposible: se avisa sin consultar (el backend respondería 400 con el mismo texto). */
+  get errorFechas(): string {
+    const { desde, hasta } = this.filtro;
+    return desde && hasta && desde > hasta ? 'La fecha «desde» no puede ser posterior a «hasta».' : '';
+  }
+
   /** Aviso ANTES de emitir: con la emisión detenida, el backend la rechazaría. */
   get emisionInactiva(): string | null {
     const estado = this.fiscal.estado();
@@ -156,8 +181,15 @@ export class VentasSinComprobanteComponent implements OnInit {
   cargar(pagina = this.pagina): void {
     this.lectura?.unsubscribe();
     this.pagina = pagina;
-    this.cargando = true;
     this.error = '';
+    if (this.errorFechas) {
+      this.ventas = [];
+      this.total = 0;
+      this.cargando = false;
+      this.cdr.markForCheck();
+      return;
+    }
+    this.cargando = true;
     this.cdr.markForCheck();
     this.lectura = this.api
       .ventasSinComprobante({ ...this.filtro, pagina, por_pagina: this.porPagina })
@@ -177,7 +209,9 @@ export class VentasSinComprobanteComponent implements OnInit {
         error: (e) => {
           this.ventas = [];
           this.total = 0;
-          this.error = mensajeDeError(e, 'No se pudieron consultar las ventas sin comprobante');
+          this.error = consultaNoPublicada(e)
+            ? 'El servidor todavía no tiene esta consulta: falta publicar la actualización del sistema. Avise a sistemas; las ventas y sus cobros no se ven afectados.'
+            : mensajeDeError(e, 'No se pudieron consultar las ventas sin comprobante');
         },
       });
   }

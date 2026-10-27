@@ -12,8 +12,14 @@
         <i class="bi bi-cone-striped" aria-hidden="true"></i> Prueba SUNAT BETA - sin validez tributaria
       </span>
     }
-    @if (vista.detalle) {
-      <p class="rs__texto">{{ vista.detalle }}</p>
+    @if (textoTitular) {
+      <p class="rs__texto rs__titular">{{ textoTitular }}</p>
+    }
+    @if (detalle; as mensaje) {
+      <p class="rs__texto">{{ mensaje }}</p>
+    }
+    @if (vista.codigo) {
+      <p class="rs__texto rs__codigo">Código de respuesta de SUNAT: <span class="adm-mono">{{ vista.codigo }}</span></p>
     }
     @if (vista.observaciones.length) {
       <ul class="rs__observaciones" aria-label="Observaciones de SUNAT">

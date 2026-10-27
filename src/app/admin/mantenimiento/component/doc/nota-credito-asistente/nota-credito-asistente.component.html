@@ -35,7 +35,7 @@
       } @else if (contexto; as c) {
         @if (paso === 'resultado' && resultado) {
           <!-- Resultado de SUNAT en el acto -->
-          <app-resultado-sunat [resultado]="resultado">
+          <app-resultado-sunat [resultado]="resultado" [titular]="titularResultado">
             @if (efectos.length) {
               <ul class="nca-efectos" aria-label="Lo que ya se aplicó">
                 @for (efecto of efectos; track efecto) {
@@ -44,12 +44,12 @@
               </ul>
             }
           </app-resultado-sunat>
-          @if (resultado.avisos.length) {
+          @if (avisosResultado.length) {
             <div class="adm-aviso adm-aviso--info">
               <i class="bi bi-info-circle" aria-hidden="true"></i>
               <div>
                 <ul class="nca-lista">
-                  @for (aviso of resultado.avisos; track $index) {
+                  @for (aviso of avisosResultado; track $index) {
                     <li>{{ aviso }}</li>
                   }
                 </ul>

@@ -23,6 +23,12 @@ describe('CountUpDirective', () => {
   const texto = (f: ComponentFixture<AnfitrionCuenta>): string =>
     (f.nativeElement.querySelector('#n') as HTMLElement).textContent ?? '';
 
+  beforeEach(() => {
+    // Otros specs (p. ej. alert.service) dejan `matchMedia` definido para siempre en el mismo worker; aquí el
+    // punto de partida es siempre «movimiento no disponible», así el resultado no depende del orden de los archivos.
+    vi.stubGlobal('matchMedia', undefined);
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });

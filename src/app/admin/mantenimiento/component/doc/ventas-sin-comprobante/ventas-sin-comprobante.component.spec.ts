@@ -75,6 +75,46 @@ describe('VentasSinComprobanteComponent', () => {
     expect(filas[0].querySelector('a')?.getAttribute('href')).toBe('/dashboard/mantenimiento/ventas-historial?venta=33');
   });
 
+  it('un rango de fechas imposible se avisa sin consultar al servidor', () => {
+    component.filtro = { desde: '2026-10-25', hasta: '2026-10-20' };
+    component.cargar(1);
+    fixture.detectChanges();
+    expect(api.ventasSinComprobante).toHaveBeenCalledTimes(1);
+    const aviso = fixture.nativeElement.querySelector('#vsc-error-fechas') as HTMLElement;
+    expect(aviso.getAttribute('role')).toBe('alert');
+    expect(aviso.textContent).toContain('La fecha «desde» no puede ser posterior a «hasta».');
+    expect(fixture.nativeElement.querySelectorAll('tbody tr').length).toBe(0);
+
+    component.filtro = { desde: '2026-10-20', hasta: '2026-10-25' };
+    component.cargar(1);
+    expect(api.ventasSinComprobante).toHaveBeenLastCalledWith(
+      expect.objectContaining({ desde: '2026-10-20', hasta: '2026-10-25', pagina: 1 }),
+    );
+  });
+
+  it('si el servidor publicado todavía no tiene la consulta lo explica en palabras, sin el texto técnico', () => {
+    // Un backend sin esta ruta la toma por GET /venta/:id con id «sin-comprobante».
+    api.ventasSinComprobante.mockReturnValueOnce(
+      throwError(() => ({
+        status: 400,
+        error: { message: 'Un dato no tiene el formato esperado (por ejemplo, un número…).', codigo: 'DATO_INVALIDO' },
+      })),
+    );
+    component.cargar(1);
+    fixture.detectChanges();
+    const aviso = fixture.nativeElement.querySelector('[role="alert"]') as HTMLElement;
+    expect(aviso.textContent).toContain('El servidor todavía no tiene esta consulta');
+    expect(aviso.textContent).not.toContain('formato esperado');
+
+    api.ventasSinComprobante.mockReturnValueOnce(
+      throwError(() => ({ status: 500, error: { message: 'Ocurrió un error interno.', codigo: 'ERROR_SERVIDOR' } })),
+    );
+    component.cargar(1);
+    fixture.detectChanges();
+    expect(texto()).not.toContain('El servidor todavía no tiene esta consulta');
+    expect(texto()).toContain('No se pudieron cargar las ventas sin comprobante');
+  });
+
   it('emite el comprobante a SUNAT y muestra en el acto su resultado con los PDF', () => {
     const respuesta: ResultadoEmisionVenta = {
       id_venta: 33,

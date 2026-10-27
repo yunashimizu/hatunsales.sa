@@ -50,7 +50,8 @@
       }
 
       @if (anulacion; as a) {
-        <div class="adm-aviso" [ngClass]="claseAviso(textoAnulacion(a.estado).tono)" role="status">
+        <div class="adm-aviso" [ngClass]="claseAviso(textoAnulacion(a.estado).tono)"
+             [attr.role]="textoAnulacion(a.estado).tono === 'peligro' ? 'alert' : 'status'">
           <i class="bi" [ngClass]="textoAnulacion(a.estado).icono" aria-hidden="true"></i>
           <div class="det-aviso__cuerpo">
             <strong class="adm-aviso__titulo">{{ textoAnulacion(a.estado).titulo }}</strong>

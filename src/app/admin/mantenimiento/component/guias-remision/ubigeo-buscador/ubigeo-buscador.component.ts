@@ -48,7 +48,8 @@ export class UbigeoBuscadorComponent implements OnInit, OnChanges {
   @Input() texto: string | null = null;
   /** Error de validación del backend para este campo. */
   @Input() error: string | null = null;
-  @Input() minimo = MINIMO_CARACTERES_UBIGEO;
+  /** Mínimo de caracteres para buscar; por defecto, el del catálogo (lo asigna el constructor). */
+  @Input() minimo: number;
   @Input() deshabilitado = false;
   @Output() readonly cambio = new EventEmitter<UbigeoElegido>();
 
@@ -65,6 +66,12 @@ export class UbigeoBuscadorComponent implements OnInit, OnChanges {
   private readonly escrito$ = new Subject<string>();
   /** Último código que este buscador avisó al formulario: su eco en `codigo` no debe borrar lo que se escribe. */
   private emitido: string | null | undefined = undefined;
+
+  constructor() {
+    // En el constructor y no como valor del campo: en las pruebas, Vite copia la constante importada
+    // que es valor de un campo al cargar el módulo, antes de que se inicialice (quedaría undefined).
+    this.minimo = MINIMO_CARACTERES_UBIGEO;
+  }
 
   get idLista(): string {
     return `${this.idCampo}-lista`;

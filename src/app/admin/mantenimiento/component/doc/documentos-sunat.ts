@@ -146,6 +146,8 @@ export interface VistaResultadoSunat {
   observaciones: ObservacionSunat[];
   /** Emitido en SUNAT BETA: sin validez tributaria. */
   beta: boolean;
+  /** Código de respuesta de SUNAT de lo no aceptado (soporte lo pide), si el mensaje no lo trae ya. */
+  codigo: string | null;
 }
 
 const ESTADOS_EN_PROCESO = new Set(['NO_ENVIADO', 'ENVIANDO', 'PENDIENTE_REENVIO', 'TICKET_PENDIENTE']);
@@ -174,12 +176,16 @@ export function describirResultadoSunat(r: ResultadoComprobante): VistaResultado
   const observaciones = Array.isArray(r.sunat_observaciones) ? r.sunat_observaciones : [];
   const beta = r.ambiente_fiscal === 'beta';
   const mensaje = texto(r.error) ?? texto(r.sunat_description);
-  const base = { observaciones, beta };
+  const respuesta = texto(r.sunat_responsecode);
+  const codigo = respuesta && respuesta !== '0' && !mensaje?.includes(respuesta) ? respuesta : null;
+  const base = { observaciones, beta, codigo };
 
   if (r.aceptada_sunat === true || estadoSunat === 'ACEPTADO' || estadoSunat === 'ACEPTADO_OBS') {
     const conObservaciones = estadoSunat === 'ACEPTADO_OBS' || observaciones.length > 0;
     return {
       ...base,
+      // Aceptado: un código >= 4000 es una observación (ya listada), no un motivo de rechazo.
+      codigo: null,
       tono: 'exito',
       icono: 'bi-patch-check',
       titulo: conObservaciones ? 'Aceptado por SUNAT con observaciones' : 'Aceptado por SUNAT',

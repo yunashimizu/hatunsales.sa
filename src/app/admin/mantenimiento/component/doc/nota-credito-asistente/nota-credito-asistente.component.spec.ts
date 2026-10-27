@@ -76,11 +76,34 @@ describe('NotaCreditoAsistenteComponent', () => {
     return (fixture.nativeElement as HTMLElement).textContent ?? '';
   }
 
-  /** Elige el motivo y pasa al detalle. */
+  /** Elige el motivo y pasa al detalle (solo el estado: la vista OnPush no se refresca sin un evento). */
   function aDetalle(codigo: string): void {
     const motivo = component.contexto!.motivos.find((m) => m.codigo === codigo)!;
     component.elegirMotivo(motivo);
     component.continuar();
+    fixture.detectChanges();
+  }
+
+  function botonDelPie(texto: string): HTMLButtonElement {
+    return Array.from(fixture.nativeElement.querySelectorAll('.adm-modal__pie button') as NodeListOf<HTMLButtonElement>).find(
+      (b) => b.textContent?.includes(texto),
+    )!;
+  }
+
+  /** Como el usuario: marca el motivo y pulsa «Continuar»; los eventos refrescan la vista. */
+  async function elegirEnPantalla(codigo: string): Promise<void> {
+    (fixture.nativeElement.querySelector(`input[name="nca-motivo"][value="${codigo}"]`) as HTMLInputElement).click();
+    fixture.detectChanges();
+    botonDelPie('Continuar').click();
+    fixture.detectChanges();
+    // NgForm registra los campos del paso 2 en una promesa: antes de eso, escribir no llega al modelo.
+    await fixture.whenStable();
+  }
+
+  function escribirSustento(valor: string): void {
+    const campo = fixture.nativeElement.querySelector('#nca-sustento') as HTMLTextAreaElement;
+    campo.value = valor;
+    campo.dispatchEvent(new Event('input'));
     fixture.detectChanges();
   }
 
@@ -163,15 +186,19 @@ describe('NotaCreditoAsistenteComponent', () => {
 
   it('exige el sustento de 3 a 250 caracteres y lo cuenta', async () => {
     await crear();
-    aDetalle('09');
+    await elegirEnPantalla('09');
+    expect(texto()).toContain('Paso 2 de 2');
     component.monto = 10;
     component.recalcular();
     expect(component.pendiente).toContain('sustento');
 
-    component.sustento = 'ab';
+    escribirSustento('ab');
     expect(component.errorSustento).toContain('al menos 3');
-    component.sustento = 'Ajuste de precio acordado';
-    fixture.detectChanges();
+    expect(texto()).toContain('El sustento debe tener al menos 3 caracteres.');
+    expect(texto()).toContain('2/250');
+
+    escribirSustento('Ajuste de precio acordado');
+    await fixture.whenStable();
     expect(component.pendiente).toBe('');
     expect(texto()).toContain(`${'Ajuste de precio acordado'.length}/250`);
   });
@@ -224,9 +251,65 @@ describe('NotaCreditoAsistenteComponent', () => {
     expect(emitidas.length).toBe(1);
     expect(texto()).toContain('Aceptado por SUNAT');
     expect(texto()).toContain('FC01-00000004');
+    // avisos[0] del backend es el titular del resultado.
+    expect(fixture.nativeElement.querySelector('.rs__titular')?.textContent).toContain('la deuda de la venta 33 baja S/ 50.00');
     expect(texto()).toContain('Stock reingresado al almacén');
     expect(texto()).toContain('Cuenta por cobrar actualizada');
     expect(texto()).toContain('PDF A4');
+  });
+
+  it('rechazada: el titular y el motivo con su código SUNAT, sin efectos ni PDF; en envío: qué pasará', async () => {
+    api.emitirNotaCredito.mockReturnValueOnce(
+      of({
+        id_comprobante: 81,
+        numero_formateado: 'FC01-00000005',
+        estado: 'error',
+        estado_sunat: 'RECHAZADO',
+        aceptada_sunat: false,
+        error: 'El dato ingresado en el tipo de documento de identidad del receptor no es válido',
+        sunat_responsecode: '2800',
+        accion_sunat: 'EMITIR_NUEVO',
+        ambiente_fiscal: 'produccion',
+        efecto: 'ninguno',
+        efectos_aplicados: false,
+        avisos: ['SUNAT no aceptó la nota FC01-00000005: no se aplicó nada al stock ni a la deuda.'],
+      }),
+    );
+    await crear();
+    aDetalle('09');
+    component.monto = 10;
+    component.sustento = 'Ajuste de precio';
+    component.recalcular();
+    await component.emitir();
+    fixture.detectChanges();
+
+    expect(texto()).toContain('Rechazado por SUNAT');
+    expect(fixture.nativeElement.querySelector('.rs__titular')?.textContent).toContain('SUNAT no aceptó la nota FC01-00000005');
+    expect(texto()).toContain('El dato ingresado en el tipo de documento');
+    expect(fixture.nativeElement.querySelector('.rs__codigo')?.textContent).toContain('2800');
+    expect(component.efectos).toEqual([]);
+    expect(texto()).not.toContain('PDF A4');
+
+    api.emitirNotaCredito.mockReturnValueOnce(
+      of({
+        id_comprobante: 82,
+        numero_formateado: 'FC01-00000006',
+        estado: 'pendiente',
+        estado_sunat: 'PENDIENTE_REENVIO',
+        aceptada_sunat: false,
+        accion_sunat: 'REINTENTAR',
+        ambiente_fiscal: 'produccion',
+        efecto: 'ninguno',
+        efectos_aplicados: false,
+        avisos: ['La nota FC01-00000006 quedó en envío: SUNAT no respondió a tiempo.'],
+      }),
+    );
+    component.paso = 'detalle';
+    await component.emitir();
+    fixture.detectChanges();
+    expect(texto()).toContain('En proceso: SUNAT todavía no lo confirma');
+    expect(texto()).toContain('El sistema lo reintentará solo');
+    expect(texto()).toContain('La nota FC01-00000006 quedó en envío');
   });
 
   it('muestra el 409 con la nota en curso (y deja abrirla) y el 503 sin migración en palabras', async () => {

@@ -154,7 +154,8 @@
 
 /* Inactiva: el logo se apaga; el nombre baja a gris suave (con opacidad el texto no llega a 4,5:1) */
 .mar-tarjeta--inactiva .mar-logo { opacity: 0.6; }
-.mar-tarjeta--inactiva .mar-nombre { color: var(--adm-texto-suave); }
+.mar-tarjeta--inactiva .mar-nombre,
+.mar-tarjeta--inactiva .mar-slug { color: var(--adm-texto-suave); }
 
 .mar-tarjeta__info { min-width: 0; }
 

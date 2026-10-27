@@ -18,6 +18,11 @@
   overflow-wrap: anywhere;
 }
 
+/* El resumen del backend se lee primero; el código es para soporte */
+.rs__titular { font-weight: var(--fw-medio, 500); }
+
+.rs__codigo { font-size: 0.85em; }
+
 /* El siguiente paso es lo que el usuario debe leer: va en su propia línea, con flecha */
 .rs__siguiente {
   display: flex;

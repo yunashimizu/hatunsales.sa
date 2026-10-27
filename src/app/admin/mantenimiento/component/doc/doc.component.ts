@@ -103,7 +103,11 @@ function idDeParametro(params: ParamMap, clave: string): number | null | undefin
 export class DocComponent implements OnInit {
 
   readonly porPagina = 20;
-  readonly rutaVenta = RUTA_DOCUMENTOS_VENTA;
+  // Getter y no campo `= RUTA_DOCUMENTOS_VENTA`: en las pruebas, Vite copia esa constante importada
+  // al cargar el módulo, antes de que se inicialice, y el enlace a la venta quedaría sin ruta.
+  get rutaVenta(): string {
+    return RUTA_DOCUMENTOS_VENTA;
+  }
   readonly claseInsignia = claseInsignia;
   readonly fechaLegible = fechaYmdLegible;
   readonly tipos = [

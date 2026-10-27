@@ -263,18 +263,23 @@ describe('ComprobanteDetalleComponent', () => {
 
   it('descarga el PDF y la constancia con nombres claros', () => {
     const nombres: string[] = [];
-    const crearUrl = vi.fn(() => 'blob:prueba');
-    Object.assign(URL, { createObjectURL: crearUrl, revokeObjectURL: vi.fn() });
+    // jsdom no trae createObjectURL: se simula solo aquí y luego se devuelve lo que había (los specs
+    // comparten globales con isolate:false).
+    const originales = { createObjectURL: URL.createObjectURL, revokeObjectURL: URL.revokeObjectURL };
+    Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:prueba'), revokeObjectURL: vi.fn() });
     const clic = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
       nombres.push(this.download);
     });
-    crear();
-
-    component.descargarPdf('ticket');
-    component.descargarArchivoEnvio('cdr_xml');
-    expect(api.descargarPdf).toHaveBeenCalledWith(10, 'ticket');
-    expect(api.descargarArchivo).toHaveBeenCalledWith(10, 'cdr_xml');
-    expect(nombres).toEqual(['FB01-00000012-ticket.pdf', 'R-FB01-00000012.xml']);
-    clic.mockRestore();
+    try {
+      crear();
+      component.descargarPdf('ticket');
+      component.descargarArchivoEnvio('cdr_xml');
+      expect(api.descargarPdf).toHaveBeenCalledWith(10, 'ticket');
+      expect(api.descargarArchivo).toHaveBeenCalledWith(10, 'cdr_xml');
+      expect(nombres).toEqual(['FB01-00000012-ticket.pdf', 'R-FB01-00000012.xml']);
+    } finally {
+      clic.mockRestore();
+      Object.assign(URL, originales);
+    }
   });
 });

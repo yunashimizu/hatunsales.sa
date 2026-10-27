@@ -29,6 +29,7 @@ describe('documentos-sunat: la respuesta de SUNAT en palabras', () => {
       estado: 'error',
       estado_sunat: 'RECHAZADO',
       error: '2800 - El dato ingresado en el tipo de documento de identidad del receptor no es válido',
+      sunat_responsecode: '2800',
       ambiente_fiscal: 'beta',
     });
     expect(vista.tono).toBe('peligro');
@@ -36,6 +37,20 @@ describe('documentos-sunat: la respuesta de SUNAT en palabras', () => {
     expect(vista.detalle).toContain('2800');
     expect(vista.siguiente).toContain('emita un documento nuevo');
     expect(vista.beta).toBe(true);
+    // El código ya viene en el mensaje: no se repite.
+    expect(vista.codigo).toBeNull();
+  });
+
+  it('el código de SUNAT acompaña a lo no aceptado cuando el mensaje no lo trae (nunca a un aceptado)', () => {
+    expect(
+      describirResultadoSunat({ estado: 'error', estado_sunat: 'RECHAZADO', error: 'El RUC del receptor no existe', sunat_responsecode: '2017' })
+        .codigo,
+    ).toBe('2017');
+    expect(describirResultadoSunat({ estado: 'error', estado_sunat: 'ERROR_CONFIG', sunat_responsecode: '0102' }).codigo).toBe('0102');
+    expect(
+      describirResultadoSunat({ aceptada_sunat: true, estado_sunat: 'ACEPTADO_OBS', sunat_responsecode: '4252' }).codigo,
+    ).toBeNull();
+    expect(describirResultadoSunat({ aceptada_sunat: true, estado_sunat: 'ACEPTADO', sunat_responsecode: '0' }).codigo).toBeNull();
   });
 
   it('en proceso: con RECUPERAR_CDR pide no reenviar; sin respuesta, reintentar es seguro', () => {

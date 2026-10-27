@@ -117,9 +117,19 @@ export class ComprobanteDetalleComponent implements OnChanges {
   /** Pide abrir otro comprobante (el que modifica esta nota, una nota enlazada o la de anulación). */
   @Output() readonly abrir = new EventEmitter<number>();
 
-  readonly rutaVenta = RUTA_DOCUMENTOS_VENTA;
-  readonly rutaGuias = RUTA_GUIAS;
-  readonly nombresArchivo = NOMBRE_ARCHIVO;
+  // Getters y no campos `= CONSTANTE`: en las pruebas, Vite copia la constante importada que es
+  // valor de un campo al cargar el módulo, antes de que se inicialice, y el campo quedaría undefined
+  // según el orden de los specs.
+  get rutaVenta(): string {
+    return RUTA_DOCUMENTOS_VENTA;
+  }
+  get rutaGuias(): string {
+    return RUTA_GUIAS;
+  }
+  get nombresArchivo(): Readonly<Record<TipoArchivoComprobante, string>> {
+    return NOMBRE_ARCHIVO;
+  }
+
   readonly claseInsignia = claseInsignia;
   readonly claseAviso = claseAviso;
   readonly estadoDe = estadoDeComprobante;

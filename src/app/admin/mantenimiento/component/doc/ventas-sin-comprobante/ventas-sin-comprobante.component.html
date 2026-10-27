@@ -35,11 +35,13 @@
     <div class="adm-fila" role="search" aria-label="Filtros de ventas sin comprobante">
       <div class="adm-campo">
         <label class="adm-etiqueta" for="vsc-desde">Desde</label>
-        <input id="vsc-desde" class="adm-input" type="date" [(ngModel)]="filtro.desde" (ngModelChange)="cargar(1)">
+        <input id="vsc-desde" class="adm-input" type="date" [(ngModel)]="filtro.desde" (ngModelChange)="cargar(1)"
+               [attr.aria-invalid]="errorFechas ? true : null" [attr.aria-describedby]="errorFechas ? 'vsc-error-fechas' : null">
       </div>
       <div class="adm-campo">
         <label class="adm-etiqueta" for="vsc-hasta">Hasta</label>
-        <input id="vsc-hasta" class="adm-input" type="date" [(ngModel)]="filtro.hasta" (ngModelChange)="cargar(1)">
+        <input id="vsc-hasta" class="adm-input" type="date" [(ngModel)]="filtro.hasta" (ngModelChange)="cargar(1)"
+               [attr.aria-invalid]="errorFechas ? true : null" [attr.aria-describedby]="errorFechas ? 'vsc-error-fechas' : null">
       </div>
       @if (conFiltros) {
         <div class="adm-campo adm-campo--accion">
@@ -52,7 +54,13 @@
     </div>
   </div>
 
-  @if (error) {
+  @if (errorFechas) {
+    <div class="adm-vacio adm-vacio--compacto" role="alert" id="vsc-error-fechas">
+      <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-calendar-x" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">{{ errorFechas }}</div>
+      <p>Corrija el rango de fechas para ver las ventas sin comprobante.</p>
+    </div>
+  } @else if (error) {
     <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
       <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
       <div class="adm-vacio__titulo">No se pudieron cargar las ventas sin comprobante</div>
