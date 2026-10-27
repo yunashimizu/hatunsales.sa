@@ -27,6 +27,20 @@ export class ProductoImagenService {
     });
   }
 
+  /**
+   * Cambia el archivo de una imagen que ya existe, sin mover su lugar en la galería ni su condición
+   * de principal. Devuelve la galería completa.
+   */
+  reemplazar(idProducto: number, idImagen: number, archivo: File): Observable<ImagenProducto[]> {
+    const cuerpo = new FormData();
+    cuerpo.append('file', archivo, archivo.name);
+
+    return this.http.put<ImagenProducto[]>(urlConstants.producto.imageArchivo(idProducto, idImagen), cuerpo, {
+      headers: cabecerasAutenticadas(),
+      withCredentials: true,
+    });
+  }
+
   marcarPrincipal(idProducto: number, idImagen: number): Observable<ImagenProducto[]> {
     return this.http.patch<ImagenProducto[]>(
       urlConstants.producto.imagePrimary(idProducto, idImagen),

@@ -535,3 +535,144 @@ describe('ProductosComponent · fotos al crear', () => {
     expect(revocadas).toContain('blob:foto-3');
   });
 });
+
+describe('ProductosComponent · corregir y subir varias fotos (producto existente)', () => {
+  let component: ProductosComponent;
+  let puntoVenta: PuntoVentaService;
+  const existente: any = {
+    id_producto: 8, nombre: 'Cemento', sku: 'CEM', codigo_barras: '', categoria: 'Obra', marca: '',
+    id_categoria: 7, estado: true, stock_total: 5, total_imagenes: 3, imagen_url: 'a.jpg', thumb_url: 'a.jpg',
+  };
+  const galeria = (...nombres: string[]) =>
+    nombres.map((n, i) => ({ id_imagen: i + 1, url: n, thumb_url: n, is_primary: i === 0 }));
+  const productos = {
+    listar: vi.fn(() => of([existente])),
+    categorias: vi.fn(() => of([])),
+    marcas: vi.fn(() => of([])),
+    actualizar: vi.fn(() => of(existente)),
+  };
+  const imagenes = {
+    listar: vi.fn((_id: number) => of(galeria('a.jpg', 'b.jpg', 'c.jpg'))),
+    subir: vi.fn((_id: number, archivos: File[]) => of(galeria(...archivos.map((a) => a.name)))),
+    reemplazar: vi.fn((_id: number, _img: number, archivo: File) => of(galeria('a.jpg', archivo.name, 'c.jpg'))),
+  };
+  const alerta = { toast: vi.fn(), error: vi.fn(), confirm: vi.fn() };
+
+  const foto = (nombre: string, tipo = 'image/jpeg') => new File(['x'], nombre, { type: tipo });
+  const fotos = (n: number) => Array.from({ length: n }, (_, i) => foto(`f${i + 1}.jpg`));
+  const nombresSubidos = (llamada: number) => (imagenes.subir.mock.calls[llamada][1] as File[]).map((a) => a.name);
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await TestBed.configureTestingModule({
+      imports: [ProductosComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ProductoAdminService, useValue: productos },
+        { provide: ProductoImagenService, useValue: imagenes },
+        { provide: AlertService, useValue: alerta },
+        { provide: AuthService, useValue: { puedeEditarCatalogo: () => true } },
+      ],
+    })
+      .overrideComponent(ProductosComponent, { set: { template: '' } })
+      .compileComponents();
+    puntoVenta = TestBed.inject(PuntoVentaService);
+    vi.spyOn(puntoVenta, 'invalidarCatalogo');
+    const fixture = TestBed.createComponent(ProductosComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.abrirEdicion(existente);
+    vi.clearAllMocks();
+  });
+
+  it('reemplazar llama al servicio con la foto preparada, refresca la galería y la lista, e invalida el POS', async () => {
+    await component.reemplazarImagen(component.imagenes[1], foto('nueva.jpg'));
+
+    expect(imagenes.reemplazar).toHaveBeenCalledTimes(1);
+    expect(imagenes.reemplazar.mock.calls[0].slice(0, 2)).toEqual([8, 2]);
+    expect((imagenes.reemplazar.mock.calls[0][2] as File).name).toBe('nueva.jpg');
+    expect(component.imagenes.map((i) => i.url)).toEqual(['a.jpg', 'nueva.jpg', 'c.jpg']);
+    expect(component.imagenes[0].is_primary).toBe(true);
+    expect(puntoVenta.invalidarCatalogo).toHaveBeenCalled();
+    expect(component.productos.find((p) => p.id_producto === 8)).toEqual(
+      expect.objectContaining({ imagen_url: 'a.jpg', total_imagenes: 3 }),
+    );
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success', title: 'Foto reemplazada' }));
+    expect(component.reemplazandoId).toBeNull();
+  });
+
+  it('reemplazar con un formato no admitido avisa por nombre y no llama al servicio', async () => {
+    await component.reemplazarImagen(component.imagenes[0], foto('iphone.heic', 'image/heic'));
+
+    expect(imagenes.reemplazar).not.toHaveBeenCalled();
+    expect(alerta.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warning', title: 'iphone.heic: formato HEIC no admitido, use JPG o PNG' }),
+    );
+    expect(component.reemplazandoId).toBeNull();
+  });
+
+  it('si el reemplazo falla avisa, recarga la galería y deja libre el botón', async () => {
+    imagenes.reemplazar.mockReturnValueOnce(throwError(() => new Error('red caída')));
+
+    await component.reemplazarImagen(component.imagenes[1], foto('nueva.jpg'));
+
+    expect(alerta.error).toHaveBeenCalledWith(expect.objectContaining({ title: 'No se pudo reemplazar la foto' }));
+    expect(imagenes.listar).toHaveBeenCalledWith(8);
+    expect(component.reemplazandoId).toBeNull();
+  });
+
+  it('subir varias valida cada foto, las parte en lotes de 10 y muestra «Subiendo 1–10 de 23…»', async () => {
+    const textos: string[] = [];
+    imagenes.subir.mockImplementation((_id: number, archivos: File[]) => {
+      textos.push(component.textoSubida);
+      return of(galeria(...archivos.map((a) => a.name)));
+    });
+
+    await component.subirArchivos([...fotos(23), foto('raro.bmp', 'image/bmp')]);
+
+    expect(imagenes.subir).toHaveBeenCalledTimes(3);
+    expect([0, 1, 2].map((i) => nombresSubidos(i).length)).toEqual([10, 10, 3]);
+    expect(textos).toEqual(['Subiendo 1–10 de 23…', 'Subiendo 11–20 de 23…', 'Subiendo 21–23 de 23…']);
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'warning' }));
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success', title: '23 imágenes subidas' }));
+    expect(component.subiendo).toBe(false);
+    expect(component.progresoSubida).toBeNull();
+    expect(puntoVenta.invalidarCatalogo).toHaveBeenCalled();
+  });
+
+  it('con una foto el avance dice «Subiendo 1 de 1…»', async () => {
+    let texto = '';
+    imagenes.subir.mockImplementation((_id: number, archivos: File[]) => {
+      texto = component.textoSubida;
+      return of(galeria(...archivos.map((a) => a.name)));
+    });
+
+    await component.subirArchivos([foto('sola.jpg')]);
+
+    expect(texto).toBe('Subiendo 1 de 1…');
+  });
+
+  it('si un lote falla, recarga la galería para mostrar lo que sí quedó guardado y no sigue con los demás', async () => {
+    imagenes.subir
+      .mockImplementationOnce((_id: number, archivos: File[]) => of(galeria(...archivos.map((a) => a.name))))
+      .mockImplementationOnce(() => throwError(() => new Error('Cloudinary caído')));
+
+    await component.subirArchivos(fotos(25));
+
+    expect(imagenes.subir).toHaveBeenCalledTimes(2);
+    expect(alerta.error).toHaveBeenCalledWith(expect.objectContaining({ title: 'Se subieron 10 de 25; el resto no' }));
+    expect(imagenes.listar).toHaveBeenCalledWith(8);
+    expect(component.imagenes.map((i) => i.url)).toEqual(['a.jpg', 'b.jpg', 'c.jpg']);
+    expect(component.subiendo).toBe(false);
+    expect(component.progresoSubida).toBeNull();
+  });
+
+  it('si todas las fotos elegidas son inválidas no sube nada', async () => {
+    await component.subirArchivos([foto('a.heic', 'image/heic')]);
+
+    expect(imagenes.subir).not.toHaveBeenCalled();
+    expect(component.subiendo).toBe(false);
+    expect(component.preparandoFotos).toBe(false);
+  });
+});

@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subject, Subscription, catchError, concatMap, from, of, takeUntil, tap } from 'rxjs';
+import { Subject, Subscription, catchError, concatMap, finalize, from, of, takeUntil, tap } from 'rxjs';
 
 import { VisorImagenComponent } from '../../../../shared/components/visor-imagen/visor-imagen.component';
 import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
@@ -116,6 +116,10 @@ export class ProductosComponent implements OnInit, OnDestroy {
   fotosPendientes: FotoPendiente[] = [];
   /** Comprimiendo/validando las fotos recién elegidas. */
   preparandoFotos = false;
+  /** Avance de la subida en lotes: «Subiendo 2 de 5…». null cuando no se está subiendo. */
+  progresoSubida: { desde: number; hasta: number; total: number } | null = null;
+  /** Imagen de la galería cuyo archivo se está cambiando. */
+  reemplazandoId: number | null = null;
   indiceFotoArrastrada: number | null = null;
   private destruido = false;
 
@@ -378,7 +382,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
   }
 
   cerrarPanel(): void {
-    if (this.guardando || this.subiendo) return;
+    if (this.guardando || this.subiendo || this.reemplazandoId !== null) return;
     this.consultaStock?.unsubscribe();
     this.cargandoStock = false;
     this.panelAbierto = false;
@@ -621,7 +625,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
   private recibirArchivos(archivos: File[]): void {
     if (!this.puedeEditar || this.guardando || !archivos.length) return;
     if (this.editando) {
-      this.subirArchivos(archivos);
+      void this.subirArchivos(archivos);
     } else {
       void this.agregarFotosPendientes(archivos);
     }
@@ -635,29 +639,38 @@ export class ProductosComponent implements OnInit, OnDestroy {
     this.preparandoFotos = true;
     this.cdr.markForCheck();
 
+    const { listas, rechazos } = await this.prepararFotos(archivos);
+    if (this.destruido) return;
+
+    this.fotosPendientes = [
+      ...this.fotosPendientes,
+      ...listas.map((archivo) => ({ archivo, vista: URL.createObjectURL(archivo) })),
+    ];
+    this.preparandoFotos = false;
+    this.cdr.markForCheck();
+    this.avisarRechazos(rechazos);
+  }
+
+  /** Pasa cada archivo por validar + comprimir; devuelve los que sirven y los motivos de los que no. */
+  private async prepararFotos(archivos: File[]): Promise<{ listas: File[]; rechazos: string[] }> {
+    const listas: File[] = [];
     const rechazos: string[] = [];
     for (const archivo of archivos) {
       const resultado = await prepararImagen(archivo);
-      if (this.destruido) return;
-      if (resultado.archivo) {
-        this.fotosPendientes = [
-          ...this.fotosPendientes,
-          { archivo: resultado.archivo, vista: URL.createObjectURL(resultado.archivo) },
-        ];
-      } else if (resultado.error) {
-        rechazos.push(resultado.error);
-      }
+      if (this.destruido) break;
+      if (resultado.archivo) listas.push(resultado.archivo);
+      else if (resultado.error) rechazos.push(resultado.error);
     }
+    return { listas, rechazos };
+  }
 
-    this.preparandoFotos = false;
-    this.cdr.markForCheck();
-    if (rechazos.length) {
-      const resto = rechazos.length - 2;
-      this.alerta.toast({
-        type: 'warning',
-        title: rechazos.slice(0, 2).join(' · ') + (resto > 0 ? ` · y ${resto} más` : ''),
-      });
-    }
+  private avisarRechazos(rechazos: string[]): void {
+    if (!rechazos.length) return;
+    const resto = rechazos.length - 2;
+    this.alerta.toast({
+      type: 'warning',
+      title: rechazos.slice(0, 2).join(' · ') + (resto > 0 ? ` · y ${resto} más` : ''),
+    });
   }
 
   quitarFotoPendiente(indice: number): void {
@@ -779,37 +792,133 @@ export class ProductosComponent implements OnInit, OnDestroy {
     this.indiceFotoArrastrada = null;
   }
 
-  private subirArchivos(archivos: File[]): void {
-    if (!this.editando || !archivos.length) return;
+  /**
+   * Producto ya guardado: valida y comprime cada foto, la sube en trozos de 10 (límite del backend)
+   * con avance «Subiendo 2 de 5…» y, si algo falla, recarga la galería real: un trozo fallido puede
+   * haber llegado a medias y lo que sí quedó guardado tiene que verse.
+   */
+  async subirArchivos(archivos: File[]): Promise<void> {
+    const producto = this.editando;
+    if (!producto || !archivos.length || this.subiendo || this.preparandoFotos || this.reemplazandoId !== null) return;
 
-    const imagenes = archivos.filter((archivo) => archivo.type.startsWith('image/'));
-    if (imagenes.length !== archivos.length) {
-      this.alerta.toast({ type: 'warning', title: 'Se omitieron archivos que no son imágenes' });
+    this.preparandoFotos = true;
+    this.cdr.markForCheck();
+    const { listas, rechazos } = await this.prepararFotos(archivos);
+    if (this.destruido) return;
+    this.preparandoFotos = false;
+    this.avisarRechazos(rechazos);
+    // Si se cerró o cambió el panel mientras se preparaban, no se sube a un producto que ya no se ve.
+    if (!listas.length || this.editando !== producto) {
+      this.cdr.markForCheck();
+      return;
     }
-    if (!imagenes.length) return;
+
+    const lotes = partirEnLotes(listas);
+    const total = listas.length;
+    let subidas = 0;
+    let galeria: ImagenProducto[] | null = null;
 
     this.subiendo = true;
+    this.progresoSubida = { desde: 1, hasta: Math.min(lotes[0].length, total), total };
     this.cdr.markForCheck();
 
-    this.imagenService.subir(this.editando.id_producto, imagenes)
-      .pipe(takeUntil(this.destruir$))
-      .subscribe({
-        next: (galeria) => {
-          this.subiendo = false;
-          this.imagenes = galeria;
-          this.sincronizarImagenEnLista();
-          this.cdr.markForCheck();
-          this.alerta.toast({
-            type: 'success',
-            title: `${imagenes.length} ${imagenes.length === 1 ? 'imagen subida' : 'imágenes subidas'}`,
-          });
-        },
-        error: (error) => {
-          this.subiendo = false;
-          this.cdr.markForCheck();
-          this.alerta.error({ title: 'No se pudieron subir', message: mensajeDeError(error) });
-        },
-      });
+    from(lotes).pipe(
+      concatMap((lote) => {
+        this.progresoSubida = { desde: subidas + 1, hasta: subidas + lote.length, total };
+        this.cdr.markForCheck();
+        return this.imagenService.subir(producto.id_producto, lote).pipe(
+          tap((resultado) => {
+            galeria = resultado;
+            subidas += lote.length;
+          }),
+        );
+      }),
+      takeUntil(this.destruir$),
+    ).subscribe({
+      complete: () => {
+        this.subiendo = false;
+        this.progresoSubida = null;
+        if (galeria) this.imagenes = galeria;
+        this.sincronizarImagenEnLista();
+        this.cdr.markForCheck();
+        this.alerta.toast({
+          type: 'success',
+          title: `${subidas} ${subidas === 1 ? 'imagen subida' : 'imágenes subidas'}`,
+        });
+      },
+      error: (error) => {
+        this.subiendo = false;
+        this.progresoSubida = null;
+        this.cdr.markForCheck();
+        this.alerta.error({
+          title: subidas
+            ? `Se subieron ${subidas} de ${total}; el resto no`
+            : 'No se pudieron subir',
+          message: mensajeDeError(error),
+        });
+        // Refleja lo que sí quedó guardado (y la foto/total de la lista y el POS).
+        this.cargarImagenes(producto.id_producto, () => this.sincronizarImagenEnLista());
+      },
+    });
+  }
+
+  /** Texto de la zona de soltar mientras se prepara o se sube. */
+  get textoSubida(): string {
+    if (this.preparandoFotos) return 'Preparando fotos…';
+    const p = this.progresoSubida;
+    if (!p) return 'Subiendo…';
+    return p.desde === p.hasta
+      ? `Subiendo ${p.desde} de ${p.total}…`
+      : `Subiendo ${p.desde}–${p.hasta} de ${p.total}…`;
+  }
+
+  alElegirReemplazo(imagen: ImagenProducto, evento: Event): void {
+    const entrada = evento.target as HTMLInputElement;
+    const archivo = entrada.files?.[0];
+    entrada.value = '';
+    if (archivo) void this.reemplazarImagen(imagen, archivo);
+  }
+
+  /**
+   * Cambia el archivo de una foto ya subida (por ejemplo una equivocada). Mantiene su posición y si
+   * es la principal. Valida/comprime antes de enviar; si falla, la foto vieja sigue ahí.
+   */
+  async reemplazarImagen(imagen: ImagenProducto, archivo: File): Promise<void> {
+    const producto = this.editando;
+    if (!producto || !this.puedeEditar || this.subiendo || this.preparandoFotos || this.reemplazandoId !== null) return;
+
+    this.reemplazandoId = imagen.id_imagen;
+    this.cdr.markForCheck();
+
+    const resultado = await prepararImagen(archivo);
+    if (this.destruido) return;
+    if (!resultado.archivo || this.editando !== producto) {
+      this.reemplazandoId = null;
+      this.cdr.markForCheck();
+      if (!resultado.archivo) this.alerta.toast({ type: 'warning', title: resultado.error ?? 'No se pudo preparar la foto' });
+      return;
+    }
+
+    this.imagenService.reemplazar(producto.id_producto, imagen.id_imagen, resultado.archivo).pipe(
+      finalize(() => {
+        this.reemplazandoId = null;
+        this.cdr.markForCheck();
+      }),
+      takeUntil(this.destruir$),
+    ).subscribe({
+      next: (galeria) => {
+        this.imagenes = galeria;
+        // Pasa por aquí para heredar la invalidación del catálogo del POS y refrescar la fila de la lista.
+        this.sincronizarImagenEnLista();
+        this.cdr.markForCheck();
+        this.alerta.toast({ type: 'success', title: 'Foto reemplazada' });
+      },
+      error: (error) => {
+        this.cdr.markForCheck();
+        this.alerta.error({ title: 'No se pudo reemplazar la foto', message: mensajeDeError(error) });
+        this.cargarImagenes(producto.id_producto, () => this.sincronizarImagenEnLista());
+      },
+    });
   }
 
   marcarPrincipal(imagen: ImagenProducto): void {

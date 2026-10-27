@@ -587,7 +587,7 @@
                  role="button" tabindex="0" aria-label="Subir imágenes">
               <i class="bi" [ngClass]="subiendo || preparandoFotos ? 'bi-arrow-repeat adm-girando' : 'bi-cloud-arrow-up'"></i>
               <span class="prod-soltar__texto">{{
-                subiendo ? 'Subiendo…' : preparandoFotos ? 'Preparando fotos…' : 'Arrastre las imágenes o haga clic para elegirlas'
+                subiendo || preparandoFotos ? textoSubida : 'Arrastre las imágenes o haga clic para elegirlas'
               }}</span>
               <span class="adm-ayuda">JPG, PNG o WEBP · hasta 5 MB cada una (las más pesadas se reducen solas)</span>
             </div>
@@ -653,17 +653,31 @@
                        (click)="abrirVistaImagen(imagen.url || imagen.thumb_url, $event)">
                   <span class="prod-galeria__orden" aria-hidden="true">{{ i + 1 }}</span>
                   <span class="adm-galeria__cinta" *ngIf="imagen.is_primary"><i class="bi bi-star-fill" aria-hidden="true"></i> Principal</span>
+                  <div class="prod-galeria__ocupada" *ngIf="reemplazandoId === imagen.id_imagen" role="status">
+                    <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Reemplazando…
+                  </div>
                   <div class="adm-galeria__acciones">
                     <button type="button" class="adm-galeria__accion" *ngIf="!imagen.is_primary"
                             (click)="marcarPrincipal(imagen); $event.stopPropagation()"
+                            [disabled]="subiendo || reemplazandoId !== null"
                             title="Usar como principal" aria-label="Usar como principal">
                       <i class="bi bi-star"></i>
                     </button>
+                    <button type="button" class="adm-galeria__accion"
+                            (click)="reemplazo.click(); $event.stopPropagation()"
+                            [disabled]="subiendo || preparandoFotos || reemplazandoId !== null"
+                            title="Reemplazar foto" aria-label="Reemplazar foto">
+                      <i class="bi bi-arrow-repeat"></i>
+                    </button>
                     <button type="button" class="adm-galeria__accion adm-galeria__accion--peligro"
                             (click)="eliminarImagen(imagen); $event.stopPropagation()"
+                            [disabled]="subiendo || reemplazandoId !== null"
                             title="Eliminar" aria-label="Eliminar imagen">
                       <i class="bi bi-trash"></i>
                     </button>
+                    <input #reemplazo type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" hidden
+                           (click)="$event.stopPropagation()"
+                           (change)="alElegirReemplazo(imagen, $event)">
                   </div>
                 </div>
               </div>

@@ -53,6 +53,7 @@ export const urlConstants = {
     imagesOrden: (id: string | number) => `${dominio}producto/${id}/images/orden`,
     imagePrimary: (id: string | number, imgId: string | number) => `${dominio}producto/${id}/images/${imgId}/primary`,
     imageDelete: (id: string | number, imgId: string | number) => `${dominio}producto/${id}/images/${imgId}`,
+    imageArchivo: (id: string | number, imgId: string | number) => `${dominio}producto/${id}/images/${imgId}/archivo`,
   },
 
   inventario: {
