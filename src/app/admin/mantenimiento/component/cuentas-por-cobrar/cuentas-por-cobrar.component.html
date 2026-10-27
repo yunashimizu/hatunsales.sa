@@ -379,14 +379,14 @@
                 </div>
               </td>
               <td *ngIf="esAdmin" class="cxc-td-accion">
-                <div class="adm-acciones">
-                  <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="editarCuenta(c)"
-                          [attr.aria-label]="'Editar la cuenta de ' + c.banco">
-                    <i class="bi bi-pencil" aria-hidden="true"></i> Editar
+                <div class="adm-tabla__acciones">
+                  <button type="button" class="adm-btn-icono adm-btn-icono--primario" (click)="editarCuenta(c)"
+                          title="Editar" [attr.aria-label]="'Editar la cuenta de ' + c.banco">
+                    <i class="bi bi-pencil" aria-hidden="true"></i>
                   </button>
-                  <button type="button" class="adm-btn adm-btn--peligro-suave adm-btn--sm" *ngIf="c.activo !== false" (click)="desactivarCuenta(c)"
-                          [attr.aria-label]="'Desactivar la cuenta de ' + c.banco">
-                    Desactivar
+                  <button type="button" class="adm-btn-icono adm-btn-icono--peligro" *ngIf="c.activo !== false" (click)="desactivarCuenta(c)"
+                          title="Desactivar" [attr.aria-label]="'Desactivar la cuenta de ' + c.banco">
+                    <i class="bi bi-slash-circle" aria-hidden="true"></i>
                   </button>
                 </div>
               </td>

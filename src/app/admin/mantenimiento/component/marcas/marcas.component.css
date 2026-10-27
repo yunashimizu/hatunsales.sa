@@ -215,12 +215,11 @@
 .mar-acciones {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 4px;
   padding-top: 10px;
   border-top: 1px dashed var(--adm-borde);
 }
-
-.mar-acciones .adm-btn { flex: 1; }
 
 /* Carga */
 .mar-tarjeta--esqueleto { box-shadow: none; }

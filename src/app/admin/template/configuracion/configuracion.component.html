@@ -209,14 +209,14 @@
               </div>
             </div>
             <div class="adm-campo">
-              <label class="adm-etiqueta" for="cfg-logo">Logo para proformas</label>
+              <label class="adm-etiqueta" for="cfg-logo">Logo para documentos <span class="adm-etiqueta__opcional">opcional</span></label>
               <div class="adm-input-icono">
                 <i class="bi bi-image" aria-hidden="true"></i>
                 <input id="cfg-logo" class="adm-input" type="text" autocomplete="off"
                        aria-describedby="cfg-logo-ayuda"
-                       [(ngModel)]="formEmisor.logo_url" placeholder="/uploads/hatunsales.png">
+                       [(ngModel)]="formEmisor.logo_url" placeholder="/uploads/logo-hatunsales.png">
               </div>
-              <span class="adm-ayuda" id="cfg-logo-ayuda">Ruta o dirección web de la imagen que se imprime en la cabecera de la proforma.</span>
+              <span class="adm-ayuda" id="cfg-logo-ayuda">Déjelo vacío para usar el logo oficial de HatunSales. Se imprime en proformas, comprobantes, guías de remisión y arqueos de caja (PNG o JPEG de hasta 2 MB). Si la imagen no se puede leer, se usa el logo oficial.</span>
             </div>
           </div>
         </div>

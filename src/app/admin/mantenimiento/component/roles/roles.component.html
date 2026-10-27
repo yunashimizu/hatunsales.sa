@@ -110,7 +110,7 @@
             <th class="adm-num">Usuarios</th>
             <th>Destino</th>
             <th>Protegido</th>
-            <th></th>
+            <th class="adm-centro">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -138,14 +138,17 @@
                 {{ r.protegido ? 'Sí' : 'No' }}
               </span>
             </td>
-            <td data-etiqueta="Acciones">
-              <div class="adm-acciones">
-                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="editar(r)">
-                  <i class="bi bi-pencil" aria-hidden="true"></i> Editar
+            <td data-etiqueta="Acciones" class="adm-centro">
+              <div class="adm-tabla__acciones">
+                <button type="button" class="adm-btn-icono adm-btn-icono--primario" (click)="editar(r)"
+                        title="Editar" [attr.aria-label]="'Editar el rol ' + r.nombre">
+                  <i class="bi bi-pencil" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="adm-btn adm-btn--peligro-suave adm-btn--sm" (click)="eliminar(r)"
-                        [disabled]="r.protegido">
-                  <i class="bi bi-trash" aria-hidden="true"></i> Eliminar
+                <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="eliminar(r)"
+                        [disabled]="r.protegido"
+                        [title]="r.protegido ? 'Un rol protegido no se puede eliminar' : 'Eliminar'"
+                        [attr.aria-label]="'Eliminar el rol ' + r.nombre">
+                  <i class="bi bi-trash" aria-hidden="true"></i>
                 </button>
               </div>
             </td>

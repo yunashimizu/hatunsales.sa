@@ -364,7 +364,7 @@
                             [disabled]="ocupado || cargando">
                       <i class="bi bi-download" aria-hidden="true"></i> Descargar .cer público
                     </button>
-                    <button class="adm-btn adm-btn--suave" type="button" (click)="eliminarCertificado(ambiente)"
+                    <button class="adm-btn adm-btn--peligro-suave" type="button" (click)="eliminarCertificado(ambiente)"
                             [disabled]="ocupado || cargando">
                       Eliminar
                     </button>
@@ -443,7 +443,7 @@
               </div>
               <div class="adm-acciones">
                 <button class="adm-btn adm-btn--primario" type="submit" [disabled]="solForm.invalid">Guardar SOL</button>
-                <button class="adm-btn adm-btn--suave" type="button" (click)="eliminarCredenciales('sol')"
+                <button class="adm-btn adm-btn--peligro-suave" type="button" (click)="eliminarCredenciales('sol')"
                         [disabled]="!cfg.sol.tiene_clave">
                   Eliminar clave
                 </button>
@@ -480,7 +480,7 @@
                 <button class="adm-btn adm-btn--primario" type="submit" [disabled]="credGreForm.invalid">
                   Guardar credenciales API
                 </button>
-                <button class="adm-btn adm-btn--suave" type="button" (click)="eliminarCredenciales('gre')"
+                <button class="adm-btn adm-btn--peligro-suave" type="button" (click)="eliminarCredenciales('gre')"
                         [disabled]="!cfg.gre.credenciales.tiene_credenciales">
                   Eliminar credenciales
                 </button>

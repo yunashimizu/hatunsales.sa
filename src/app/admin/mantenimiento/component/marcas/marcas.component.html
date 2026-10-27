@@ -205,13 +205,13 @@
             </div>
 
             <div class="mar-acciones" *ngIf="puedeEditar">
-              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="editar(m)"
-                      [attr.aria-label]="'Editar ' + m.nombre">
-                <i class="bi bi-pencil" aria-hidden="true"></i> Editar
+              <button type="button" class="adm-btn-icono adm-btn-icono--primario" (click)="editar(m)"
+                      title="Editar" [attr.aria-label]="'Editar ' + m.nombre">
+                <i class="bi bi-pencil" aria-hidden="true"></i>
               </button>
               <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="eliminar(m)"
                       title="Eliminar" [attr.aria-label]="'Eliminar ' + m.nombre">
-                <i class="bi bi-trash"></i>
+                <i class="bi bi-trash" aria-hidden="true"></i>
               </button>
             </div>
           </li>

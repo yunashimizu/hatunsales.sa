@@ -172,9 +172,7 @@
   .cxc-chips { justify-content: flex-end; }
 
   .adm-tabla--adaptable tbody td.cxc-td-accion { display: block; padding-top: 6px; }
-  .cxc-td-accion .adm-btn,
-  .cxc-td-accion .adm-acciones { width: 100%; }
-  .cxc-td-accion .adm-acciones .adm-btn { flex: 1 1 auto; }
+  .cxc-td-accion .adm-tabla__acciones { justify-content: flex-start; }
 
   /* Las fichas de las cuentas ocupan todo el ancho de la tarjeta (compensan su relleno) */
   .cxc-bancos .adm-tabla-envoltorio { margin-inline: -14px; width: auto; }

@@ -1,17 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="HatunSales">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="HatunSales">
   <defs>
-    <linearGradient id="g" x1="8" y1="2" x2="56" y2="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#323943"/>
-      <stop offset="1" stop-color="#12151A"/>
+    <linearGradient id="base" x1="60" y1="0" x2="460" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3a414c"/><stop offset=".55" stop-color="#1a1e25"/><stop offset="1" stop-color="#0b0d11"/>
     </linearGradient>
-    <linearGradient id="o" x1="0" y1="27" x2="0" y2="37" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FB923C"/>
-      <stop offset="1" stop-color="#EA580C"/>
+    <radialGradient id="luz" cx="28%" cy="12%" r="75%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".30"/><stop offset=".55" stop-color="#ffffff" stop-opacity=".04"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="plata" x1="90" y1="188" x2="645" y2="985" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".32" stop-color="#dfe3e8"/><stop offset=".68" stop-color="#b9bfc7"/><stop offset="1" stop-color="#8f969f"/>
     </linearGradient>
+    <linearGradient id="plata2" x1="298" y1="65" x2="432" y2="528" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c9ced5"/>
+    </linearGradient>
+    <linearGradient id="oro" x1="518" y1="248" x2="655" y2="1015" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fbe9a6"/><stop offset=".4" stop-color="#dcb862"/><stop offset="1" stop-color="#a17829"/>
+    </linearGradient>
+    <linearGradient id="brillo" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/><stop offset=".78" stop-color="#ffffff" stop-opacity=".22"/><stop offset="1" stop-color="#ffffff" stop-opacity=".55"/>
+    </linearGradient>
+    <linearGradient id="ext" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8b919b"/><stop offset=".5" stop-color="#4a4f58"/><stop offset="1" stop-color="#1b1d21"/>
+    </linearGradient>
+    <filter id="sombra" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="16"/></filter>
+    <clipPath id="tile"><rect width="512" height="512" rx="128"/></clipPath>
   </defs>
-  <rect width="64" height="64" rx="16" fill="url(#g)"/>
-  <rect x=".75" y=".75" width="62.5" height="62.5" rx="15.3" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="1.5"/>
-  <rect x="15" y="14" width="10" height="36" rx="2.6" fill="#fff"/>
-  <rect x="39" y="14" width="10" height="36" rx="2.6" fill="#fff"/>
-  <rect x="20" y="26.5" width="24" height="11" rx="2.4" fill="url(#o)"/>
+  <g clip-path="url(#tile)">
+    <rect width="512" height="512" fill="url(#base)"/>
+    <rect width="512" height="512" fill="url(#luz)"/>
+    <ellipse cx="256" cy="470" rx="190" ry="34" fill="#000" opacity=".35" filter="url(#sombra)"/>
+    <g transform="translate(124.88,52.56) scale(0.375)">
+      <g transform="translate(-30,42)" fill="#000" opacity=".55" filter="url(#sombra)">
+        <polygon points="90,278 232,188 232,650 433,541 433,660 645,840 645,985 300,722 232,758 232,892 90,978"/><polygon points="298,155 432,65 432,448 298,528"/><polygon points="518,248 655,372 655,1015 645,985 645,842 530,742 518,735"/>
+      </g>
+      <g transform="translate(-3,2)" fill="url(#ext)" stroke="url(#ext)" stroke-width="3" stroke-linejoin="round"><polygon points="90,278 232,188 232,650 433,541 433,660 645,840 645,985 300,722 232,758 232,892 90,978"/><polygon points="298,155 432,65 432,448 298,528"/><polygon points="518,248 655,372 655,1015 645,985 645,842 530,742 518,735"/></g><g transform="translate(-6,4)" fill="url(#ext)" stroke="url(#ext)" stroke-width="3" stroke-linejoin="round"><polygon points="90,278 232,188 232,650 433,541 433,660 645,840 645,985 300,722 232,758 232,892 90,978"/><polygon points="298,155 432,65 432,448 298,528"/><polygon points="518,248 655,372 655,1015 645,985 645,842 530,742 518,735"/></g><g transform="translate(-9,7)" fill="url(#ext)" stroke="url(#ext)" stroke-width="3" stroke-linejoin="round"><polygon points="90,278 232,188 232,650 433,541 433,660 645,840 645,985 300,722 232,758 232,892 90,978"/><polygon points="298,155 432,65 432,448 298,528"/><polygon points="518,248 655,372 655,1015 645,985 645,842 530,742 518,735"/></g><g transform="translate(-12,9)" fill="url(#ext)" stroke="url(#ext)" stroke-width="3" stroke-linejoin="round"><polygon points="90,278 232,188 232,650 433,541 433,660 645,840 645,985 300,722 232,758 232,892 90,978"/><polygon points="298,155 432,65 432,448 298,528"/><polygon points="518,248 655,372 655,1015 645,985 645,842 530,742 518,735"/></g><g transform="translate(-14,11)" fill="url(#ext)" stroke="url(#ext)" stroke-width="3" stroke-linejoin="round"><polygon points="90,278 232,188 232,650 433,541 433,660 645,840 645,985 300,722 232,758 232,892 90,978"/><polygon points="298,155 432,65 432,448 298,528"/><polygon points="518,248 655,372 655,1015 645,985 645,842 530,742 518,735"/></g>
+      <polygon points="90,278 232,188 232,650 433,541 433,660 645,840 645,985 300,722 232,758 232,892 90,978" fill="url(#plata)"/>
+      <polygon points="298,155 432,65 432,448 298,528" fill="url(#plata2)"/>
+      <polygon points="518,248 655,372 655,1015 645,985 645,842 530,742 518,735" fill="url(#oro)"/>
+      <polygon points="90,278 232,188 232,650 433,541 433,660 645,840 645,985 300,722 232,758 232,892 90,978" fill="url(#brillo)"/>
+      <polygon points="518,248 655,372 655,1015 645,985 645,842 530,742 518,735" fill="url(#brillo)" opacity=".7"/>
+      <g fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2.6" stroke-linejoin="round">
+        <polyline points="90,278 232,188 232,650"/>
+        <polyline points="298,155 432,65 432,448"/>
+        <polyline points="518,248 655,372 655,1015"/>
+      </g>
+    </g>
+  </g>
+  <rect x="1.5" y="1.5" width="509" height="509" rx="126.5" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="3"/>
 </svg>
