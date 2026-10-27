@@ -184,7 +184,7 @@ function textoBoton(texto: string | undefined, porDefecto: string): string {
  */
 const TEMA_RESPALDO = `
 .swal2-container{z-index:2000}
-.swal2-container{--swal2-confirm-button-background-color:#4f46e5;--swal2-border-radius:16px;--swal2-width:min(30em,calc(100vw - 32px))}
+.swal2-container{--swal2-confirm-button-background-color:#2563eb;--swal2-border-radius:16px;--swal2-width:min(30em,calc(100vw - 32px))}
 .swal2-popup{font-family:'Inter','Segoe UI',Roboto,sans-serif}
 .swal2-confirm.hs-swal-peligro{--swal2-confirm-button-background-color:#dc2626}
 .swal2-html-container small{display:block;margin-top:.6rem;color:#64748b;font-size:.85em}

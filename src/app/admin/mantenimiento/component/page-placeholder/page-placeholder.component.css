@@ -24,10 +24,10 @@
   display: grid;
   place-items: center;
   border-radius: 22px;
-  background: var(--adm-gradiente, #4f46e5);
+  background: var(--adm-gradiente, #2563eb);
   color: #fff;
   font-size: 1.9rem;
-  box-shadow: var(--adm-sombra-primario, 0 6px 16px -4px rgba(79, 70, 229, 0.45));
+  box-shadow: var(--adm-sombra-primario, 0 6px 16px -4px rgba(37, 99, 235, 0.45));
 }
 
 h2 {

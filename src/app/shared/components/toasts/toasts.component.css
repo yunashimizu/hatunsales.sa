@@ -29,7 +29,7 @@ app-toasts {
   --nt-texto-2: #475569;
   --nt-texto-3: #64748b;
   --nt-hover: #f1f5f9;
-  --nt-foco: #4f46e5;
+  --nt-foco: #2563eb;
   --nt-sombra: 0 1px 2px rgb(15 23 42 / 0.06), 0 12px 32px -12px rgb(15 23 42 / 0.28);
   --nt-fuente: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   /* Dirección de entrada/salida: desde arriba en escritorio */
@@ -56,7 +56,7 @@ app-toasts {
   --nt-radio: var(--t-r-md, 16px);
   --nt-borde: var(--t-borde, #e6e9f2);
   --nt-texto: var(--t-texto, #0d1220);
-  --nt-foco: var(--t-primario, #4f46e5);
+  --nt-foco: var(--t-primario, #2563eb);
   --nt-sombra: 0 1px 2px rgb(13 18 32 / 0.05), 0 18px 40px -14px rgb(13 18 32 / 0.26);
 }
 
@@ -109,9 +109,9 @@ app-toasts {
   --nt-fondo-icono: #fef3c7;
 }
 .nt-aviso[data-tipo='cargando'] {
-  --nt-acento: #4f46e5;
-  --nt-acento-texto: #4338ca;
-  --nt-fondo-icono: #e0e7ff;
+  --nt-acento: #2563eb;
+  --nt-acento-texto: #1d4ed8;
+  --nt-fondo-icono: #dbeafe;
 }
 
 .nt-aviso__icono {

@@ -51,7 +51,7 @@
 .seguir { margin-top: 20px; }
 
 /* resumen: escenario oscuro fijo */
-.resumen { position: sticky; top: calc(var(--t-cabecera-alto, 124px) + 16px); display: flex; flex-direction: column; padding: clamp(22px, 2.4vw, 30px); overflow: hidden; border: 1px solid var(--x-lienzo-linea); border-radius: var(--t-r-lg); background: radial-gradient(70% 46% at 100% 0%, rgba(99, 102, 241, 0.4), transparent 70%), var(--x-lienzo); color: var(--x-lienzo-texto); }
+.resumen { position: sticky; top: calc(var(--t-cabecera-alto, 124px) + 16px); display: flex; flex-direction: column; padding: clamp(22px, 2.4vw, 30px); overflow: hidden; border: 1px solid var(--x-lienzo-linea); border-radius: var(--t-r-lg); background: radial-gradient(70% 46% at 100% 0%, rgba(59, 130, 246, 0.4), transparent 70%), var(--x-lienzo); color: var(--x-lienzo-texto); }
 .resumen > * { position: relative; z-index: 1; }
 .resumen .x-etiqueta { color: var(--x-lienzo-tenue); }
 .resumen h2 { margin: 12px 0 18px; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.04em; color: var(--x-lienzo-texto); }
@@ -93,7 +93,7 @@
 .garantias i { flex: none; font-size: 1.125rem; color: var(--x-ambar); }
 
 /* vacío: escenario con la tuerca y el dial */
-.vacio { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: center; gap: 32px; padding: clamp(28px, 5vw, 72px); overflow: hidden; border: 1px solid var(--x-lienzo-linea); border-radius: clamp(26px, 3.4vw, 44px); background: radial-gradient(60% 80% at 100% 0%, rgba(99, 102, 241, 0.5), transparent 65%), var(--x-lienzo); color: var(--x-lienzo-texto); }
+.vacio { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: center; gap: 32px; padding: clamp(28px, 5vw, 72px); overflow: hidden; border: 1px solid var(--x-lienzo-linea); border-radius: clamp(26px, 3.4vw, 44px); background: radial-gradient(60% 80% at 100% 0%, rgba(59, 130, 246, 0.5), transparent 65%), var(--x-lienzo); color: var(--x-lienzo-texto); }
 .vacio-texto, .vacio-arte { position: relative; z-index: 1; }
 .vacio-texto { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; }
 .vacio .x-sticker { --x-rot: -3deg; }

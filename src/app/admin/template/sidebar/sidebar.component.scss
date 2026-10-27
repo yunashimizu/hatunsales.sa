@@ -12,23 +12,26 @@
   --sb-icon: 20px;
   --sb-gap: 12px;
 
-  /* Tema del menú (navy profundo). */
-  --sb-bg: #0b1222;
-  --sb-bg-2: #0f172a;
-  --sb-borde: rgba(148, 163, 184, 0.12);
-  --sb-texto: #e2e8f0;
-  --sb-texto-suave: #94a3b8;
-  --sb-texto-tenue: #64748b;
-  --sb-hover: rgba(148, 163, 184, 0.10);
-  --sb-activo-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.95), rgba(79, 70, 229, 0.95));
-  --sb-acento: #818cf8;
+  /* Tema del menú: grafito (la marca) con acento naranja. El naranja marca dónde estás;
+     los botones de acción del panel son azules, así nunca se confunden. */
+  --sb-bg: #14171c;
+  --sb-bg-2: #1b1f26;
+  --sb-borde: rgba(255, 255, 255, 0.08);
+  --sb-texto: #eceef2;
+  --sb-texto-suave: #a7adb9;
+  --sb-texto-tenue: #8a91a0;
+  --sb-hover: rgba(255, 255, 255, 0.07);
+  --sb-activo-bg: linear-gradient(135deg, rgba(249, 115, 22, 0.24), rgba(249, 115, 22, 0.10));
+  --sb-acento: #fb923c;
+  /* Color de cada sección (lo pone data-tono): ayuda a reconocer el área de un vistazo. */
+  --sb-tono: #94a3b8;
 
   width: var(--sb-width);
   min-width: var(--sb-width);
   height: 100%;
   min-height: 0;
   background:
-    radial-gradient(520px 260px at -10% -10%, rgba(99, 102, 241, 0.22), transparent 60%),
+    radial-gradient(520px 260px at -10% -10%, rgba(249, 115, 22, 0.16), transparent 60%),
     linear-gradient(180deg, var(--sb-bg) 0%, var(--sb-bg-2) 100%);
   color: var(--sb-texto);
   display: flex;
@@ -63,10 +66,10 @@
     height: 38px;
     flex-shrink: 0;
     border-radius: 12px;
-    background: linear-gradient(135deg, #818cf8 0%, #4f46e5 55%, #7c3aed 100%);
-    color: #ffffff;
-    font-size: 18px;
-    box-shadow: 0 6px 18px -4px rgba(99, 102, 241, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    background: none;
+    box-shadow: 0 6px 18px -6px rgba(249, 115, 22, 0.55);
+
+    .logo-img { display: block; width: 100%; height: 100%; border-radius: inherit; }
   }
 
   .brand-text {
@@ -125,6 +128,13 @@
   }
 
   .sb-section { margin: 0; }
+  .sb-section[data-tono='Navegación'] { --sb-tono: #fb923c; }
+  .sb-section[data-tono='Ventas'] { --sb-tono: #fb923c; }
+  .sb-section[data-tono='Catálogo'] { --sb-tono: #60a5fa; }
+  .sb-section[data-tono='Almacén'] { --sb-tono: #34d399; }
+  .sb-section[data-tono='Reportes'] { --sb-tono: #fbbf24; }
+  .sb-section[data-tono='Administración'] { --sb-tono: #c4b5fd; }
+
   .sb-section--cuenta { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--sb-borde); }
 
   .sb-section-toggle {
@@ -201,9 +211,9 @@
         gap: var(--sb-gap);
         margin: 0 8px;
         min-height: 40px;
-        padding: 8px calc(var(--sb-pad-x) - 6px);
+        padding: 5px calc(var(--sb-pad-x) - 6px);
         border-radius: 10px;
-        color: #cbd5e1;
+        color: #d6d9e0;
         font-size: 14px;
         font-weight: 500;
         text-decoration: none;
@@ -215,14 +225,17 @@
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: var(--sb-icon);
-          min-width: var(--sb-icon);
-          height: var(--sb-icon);
-          font-size: 17px;
+          width: 28px;
+          min-width: 28px;
+          height: 28px;
+          margin-left: -4px;
+          border-radius: 9px;
+          font-size: 16px;
           line-height: 1;
           flex-shrink: 0;
-          color: #7c8aa5;
-          transition: color 0.15s, transform 0.4s var(--x-resorte, cubic-bezier(0.16, 1, 0.3, 1));
+          color: var(--sb-tono);
+          background: color-mix(in srgb, var(--sb-tono) 14%, transparent);
+          transition: color 0.15s, background 0.15s, transform 0.4s var(--x-resorte, cubic-bezier(0.16, 1, 0.3, 1));
         }
 
         .sb-nav-text {
@@ -236,7 +249,7 @@
         .sb-nav-ext {
           margin-left: auto;
           font-size: 11px;
-          color: #475569;
+          color: #6b7280;
         }
 
         .sb-badge {
@@ -261,7 +274,7 @@
         &:hover {
           background: var(--sb-hover);
           color: #ffffff;
-          .sb-nav-icon { color: #e2e8f0; transform: translateX(2px) scale(1.08); }
+          .sb-nav-icon { background: color-mix(in srgb, var(--sb-tono) 24%, transparent); transform: translateX(2px) scale(1.06); }
         }
 
         &:focus-visible { outline: 2px solid var(--sb-acento); outline-offset: -2px; }
@@ -275,19 +288,19 @@
         bottom: 9px;
         width: 3px;
         border-radius: 0 3px 3px 0;
-        background: #c7d2fe;
-        box-shadow: 0 0 12px 1px rgba(165, 180, 252, 0.85);
+        background: #fb923c;
+        box-shadow: 0 0 12px 1px rgba(251, 146, 60, 0.7);
       }
 
       &.active a {
         background: var(--sb-activo-bg);
         color: #ffffff;
         font-weight: 600;
-        box-shadow: 0 8px 20px -8px rgba(79, 70, 229, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+        box-shadow: inset 0 0 0 1px rgba(251, 146, 60, 0.35);
 
-        .sb-nav-icon { color: #ffffff; }
+        .sb-nav-icon { color: #ffffff; background: linear-gradient(135deg, #f97316, #c2410c); box-shadow: 0 4px 12px -3px rgba(249, 115, 22, 0.7); }
         .sb-nav-ext { color: rgba(255, 255, 255, 0.7); }
-        .sb-badge { box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.9); }
+        .sb-badge { box-shadow: 0 0 0 2px rgba(20, 23, 28, 0.9); }
       }
     }
   }
@@ -316,12 +329,12 @@
       height: 36px;
       flex-shrink: 0;
       border-radius: 50%;
-      background: linear-gradient(135deg, #6366f1, #7c3aed);
+      background: linear-gradient(135deg, #ea580c, #9a3412);
       color: #ffffff;
       font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.02em;
-      box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.35);
+      box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.45);
     }
 
     .sb-footer-text {

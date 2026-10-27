@@ -25,10 +25,10 @@
   --hs-texto: #e9edf7;
   --hs-texto-suave: #a7b1c8;
   --hs-texto-tenue: #8893ad;
-  --hs-foco: #a5a1ff;
-  --hs-enlace: #a5a1ff;
-  --hs-enlace-hover: #c4c1ff;
-  --hs-seleccion: rgba(129, 140, 248, 0.38);
+  --hs-foco: #93c5fd;
+  --hs-enlace: #93c5fd;
+  --hs-enlace-hover: #bfdbfe;
+  --hs-seleccion: rgba(96, 165, 250, 0.38);
 
   /* ── Tienda: carbón cálido ───────────────────────────────────── */
   --t-fondo: #121110;
@@ -43,10 +43,10 @@
   --t-texto-suave: #b9b3a8;
   --t-texto-tenue: #99938a;
 
-  --t-primario: #5b52f0;
-  --t-primario-osc: #4f46e5;
-  --t-primario-claro: #24224f;
-  --t-primario-texto: #a5a1ff;
+  --t-primario: #2563eb;
+  --t-primario-osc: #2563eb;
+  --t-primario-claro: #172554;
+  --t-primario-texto: #93c5fd;
 
   --t-acento: #fb923c;
   --t-acento-texto: #ff9a5c;
@@ -86,11 +86,11 @@
   --adm-texto-suave: #a7b1c8;
   --adm-texto-tenue: #8893ad;
 
-  --adm-primario: #9a95ff;
-  --adm-primario-osc: #b3afff;
-  --adm-primario-claro: #1b1f45;
-  --adm-primario-suave: #242a63;
-  --adm-primario-borde: #3a41a0;
+  --adm-primario: #60a5fa;
+  --adm-primario-osc: #93c5fd;
+  --adm-primario-claro: #12244d;
+  --adm-primario-suave: #1a3a7a;
+  --adm-primario-borde: #2c56b0;
   --adm-violeta: #b79cff;
 
   --adm-exito: #34d399;
@@ -114,8 +114,8 @@
   --adm-sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px -4px rgba(0, 0, 0, 0.5);
   --adm-sombra-md: 0 8px 22px -4px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
   --adm-sombra-lg: 0 26px 60px -14px rgba(0, 0, 0, 0.7), 0 8px 20px -8px rgba(0, 0, 0, 0.45);
-  --adm-sombra-primario: 0 8px 20px -6px rgba(99, 102, 241, 0.55);
-  --adm-anillo: 0 0 0 4px rgba(129, 140, 248, 0.3);
+  --adm-sombra-primario: 0 8px 20px -6px rgba(59, 130, 246, 0.55);
+  --adm-anillo: 0 0 0 4px rgba(96, 165, 250, 0.3);
 
   /* Tokens del panel que en claro eran colores sueltos */
   --adm-borde-hover: #3d4a72;
@@ -179,10 +179,10 @@
 :root[data-tema='oscuro'] .auth-card .bg-emerald-50 { background-color: var(--t-exito-claro); }
 :root[data-tema='oscuro'] .auth-card .text-emerald-700,
 :root[data-tema='oscuro'] .auth-card .text-emerald-600 { color: var(--t-exito-texto); }
-:root[data-tema='oscuro'] .auth-card .bg-indigo-100 { background-color: var(--t-primario-claro); }
-:root[data-tema='oscuro'] .auth-card .text-indigo-700,
-:root[data-tema='oscuro'] .auth-card .text-indigo-600 { color: var(--t-primario-texto); }
-:root[data-tema='oscuro'] .auth-card .hover\:text-indigo-700:hover { color: var(--t-primario-texto); }
+:root[data-tema='oscuro'] .auth-card .bg-blue-100 { background-color: var(--t-primario-claro); }
+:root[data-tema='oscuro'] .auth-card .text-blue-700,
+:root[data-tema='oscuro'] .auth-card .text-blue-600 { color: var(--t-primario-texto); }
+:root[data-tema='oscuro'] .auth-card .hover\:text-blue-700:hover { color: var(--t-primario-texto); }
 :root[data-tema='oscuro'] .auth-card input::placeholder { color: var(--t-texto-tenue); }
 
 /* ---------------------------------------------------------------------------
@@ -192,8 +192,8 @@
 
 /* Estados inline: vacío, error, aviso, éxito y cargando */
 :root[data-tema='oscuro'] .hs-estado {
-  --hs-estado-fondo-icono: rgba(129, 140, 248, 0.16);
-  --hs-estado-borde-icono: rgba(129, 140, 248, 0.38);
+  --hs-estado-fondo-icono: rgba(96, 165, 250, 0.16);
+  --hs-estado-borde-icono: rgba(96, 165, 250, 0.38);
   --hs-estado-linea: var(--adm-borde-fuerte);
   --hs-estado-superficie: var(--adm-superficie);
 }
@@ -260,7 +260,7 @@
   --nt-texto-2: #c4cde3;
   --nt-texto-3: #9aa6c2;
   --nt-hover: #1f2845;
-  --nt-foco: #a5a1ff;
+  --nt-foco: #93c5fd;
   --nt-sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 40px -14px rgba(0, 0, 0, 0.7);
 }
 
@@ -279,7 +279,7 @@
 :root[data-tema='oscuro'] .nt-aviso[data-tipo='exito'] { --nt-acento: #34d399; --nt-acento-texto: #4ade9d; --nt-fondo-icono: rgba(16, 185, 129, 0.18); }
 :root[data-tema='oscuro'] .nt-aviso[data-tipo='error'] { --nt-acento: #f87171; --nt-acento-texto: #fca5a5; --nt-fondo-icono: rgba(239, 68, 68, 0.18); }
 :root[data-tema='oscuro'] .nt-aviso[data-tipo='advertencia'] { --nt-acento: #fbbf24; --nt-acento-texto: #fcd34d; --nt-fondo-icono: rgba(245, 158, 11, 0.18); }
-:root[data-tema='oscuro'] .nt-aviso[data-tipo='cargando'] { --nt-acento: #818cf8; --nt-acento-texto: #a5a1ff; --nt-fondo-icono: rgba(99, 102, 241, 0.2); }
+:root[data-tema='oscuro'] .nt-aviso[data-tipo='cargando'] { --nt-acento: #60a5fa; --nt-acento-texto: #93c5fd; --nt-fondo-icono: rgba(59, 130, 246, 0.2); }
 
 /* Modales de SweetAlert */
 :root[data-tema='oscuro'] .swal2-container {
@@ -288,7 +288,7 @@
   --swal2-cancel-button-background-color: var(--adm-superficie-2);
   --swal2-input-box-shadow: none;
   --swal2-input-hover-box-shadow: none;
-  --swal2-outline: 0 0 0 4px rgba(129, 140, 248, 0.3);
+  --swal2-outline: 0 0 0 4px rgba(96, 165, 250, 0.3);
 }
 
 :root[data-tema='oscuro'] .swal2-container.hs-swal-contenedor--tienda {

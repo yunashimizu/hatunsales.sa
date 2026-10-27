@@ -9,6 +9,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../auth/service/auth.service';
 import { GestionService } from '../../service/gestion.service';
+import { AlertService } from '../../../../shared/services/alert.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { CatalogoService } from '../../../../store/service/catalogo.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
@@ -31,10 +32,11 @@ export class CategoriasComponent implements OnInit {
   guardando = false;
   idDestacado: number | null = null;
 
-  modelo: any = { nombre: '', descripcion: '', color: '#4f46e5' };
+  modelo: any = { nombre: '', descripcion: '', color: '#2563eb' };
   editandoId: number | null = null;
 
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly alerta = inject(AlertService);
 
   constructor(
     private gestion: GestionService,
@@ -151,18 +153,24 @@ export class CategoriasComponent implements OnInit {
     this.modelo = {
       nombre: c.nombre,
       descripcion: c.descripcion,
-      color: c.color?.trim() || '#4f46e5',
+      color: c.color?.trim() || '#2563eb',
     };
   }
 
   cancelarEdicion(): void {
     this.editandoId = null;
-    this.modelo = { nombre: '', descripcion: '', color: '#4f46e5' };
+    this.modelo = { nombre: '', descripcion: '', color: '#2563eb' };
   }
 
-  eliminar(id: number): void {
+  async eliminar(id: number): Promise<void> {
     if (!this.puedeEditar) return;
-    if (!confirm('¿Eliminar categoría?')) return;
+    const nombre = this.categorias.find((c) => c.id_categoria === id)?.nombre;
+    const ok = await this.alerta.confirm({
+      title: nombre ? `¿Eliminar la categoría "${nombre}"?` : '¿Eliminar la categoría?',
+      message: 'Esta acción no se puede deshacer.',
+      confirmText: 'Sí, eliminar',
+    });
+    if (!ok.isConfirmed) return;
     this.gestion.eliminarCategoria(id).subscribe({
       next: () => {
         this.categorias = this.categorias.filter((c) => c.id_categoria !== id);

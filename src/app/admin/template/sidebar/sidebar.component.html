@@ -1,7 +1,7 @@
 <nav class="sidebar" [class.collapsed]="collapsed" aria-label="Menú principal">
 
   <a class="sb-brand" routerLink="/dashboard/home" title="Ir al inicio del panel">
-    <span class="sb-logo" aria-hidden="true"><i class="bi bi-tools"></i></span>
+    <span class="sb-logo" aria-hidden="true"><img class="logo-img" src="/assets/img/logo-mark.svg" alt="" width="64" height="64"></span>
     <span class="brand-text">
       <span class="brand-name">HatunSales</span>
       <span class="brand-suffix">S.A.C · Panel</span>
@@ -10,7 +10,7 @@
 
   <div class="sb-menu-wrap">
 
-    <div class="sb-section" *ngFor="let seccion of secciones" [hidden]="!seccionVisible(seccion)">
+    <div class="sb-section" *ngFor="let seccion of secciones" [attr.data-tono]="seccion.titulo" [hidden]="!seccionVisible(seccion)">
       <button
         type="button"
         class="sb-section-label sb-section-toggle"
