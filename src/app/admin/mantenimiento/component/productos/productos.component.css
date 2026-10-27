@@ -404,6 +404,26 @@
 .prod-galeria__ayuda { display: flex; align-items: center; gap: 6px; }
 .prod-galeria__ayuda > i { color: var(--adm-primario); }
 
+.prod-pendientes__aviso { align-items: center; flex-wrap: wrap; gap: 8px; }
+.prod-pendientes__aviso > span { flex: 1 1 200px; }
+
+.prod-pendientes { margin-top: 12px; }
+.prod-pendientes__pieza--error { outline: 2px solid var(--adm-peligro); outline-offset: -2px; }
+.prod-pendientes__error {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--adm-peligro);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .prod-galeria-esqueleto {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));

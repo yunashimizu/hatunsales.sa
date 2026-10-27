@@ -9,13 +9,14 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subject, Subscription, catchError, of, takeUntil } from 'rxjs';
+import { Subject, Subscription, catchError, concatMap, from, of, takeUntil, tap } from 'rxjs';
 
 import { VisorImagenComponent } from '../../../../shared/components/visor-imagen/visor-imagen.component';
 import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
 import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { prepararImagen, partirEnLotes } from '../../../../shared/utils/imagen-cliente.util';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { mensajeDeError } from '../../../service/api-base.service';
 import { ProductoAdminService, ProductoFormulario } from '../../../service/producto-admin.service';
@@ -28,6 +29,15 @@ import { UnidadMedidaPipe } from '../../../../shared/ui/unidad-medida.pipe';
 import {
   ImagenProducto, OpcionCategoria, OpcionMarca, ProductoAdmin,
 } from '../../../models/admin.models';
+
+/** Foto elegida que aún no está en el servidor. */
+export interface FotoPendiente {
+  archivo: File;
+  /** objectURL de la miniatura; se libera con URL.revokeObjectURL. */
+  vista: string;
+  /** Motivo por el que no se pudo subir (queda en la cola para reintentar). */
+  error?: string;
+}
 
 const FORMULARIO_VACIO: ProductoFormulario = {
   nombre: '',
@@ -98,6 +108,17 @@ export class ProductosComponent implements OnInit, OnDestroy {
   zonaActiva = false;
   indiceArrastrado: number | null = null;
 
+  /**
+   * Fotos elegidas que todavía no están en el servidor. En «Nuevo producto» esperan a que se cree
+   * el producto; si la subida falla, siguen aquí (con `error`) para reintentar sin duplicar nada.
+   * La primera es la principal. `vista` es un objectURL que hay que liberar al quitarla.
+   */
+  fotosPendientes: FotoPendiente[] = [];
+  /** Comprimiendo/validando las fotos recién elegidas. */
+  preparandoFotos = false;
+  indiceFotoArrastrada: number | null = null;
+  private destruido = false;
+
   /** Fila que acaba de guardarse: se resalta unos segundos para ubicarla. */
   idDestacado: number | null = null;
 
@@ -137,6 +158,8 @@ export class ProductosComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destruido = true;
+    this.liberarFotosPendientes();
     this.destruir$.next();
     this.destruir$.complete();
   }
@@ -266,11 +289,13 @@ export class ProductosComponent implements OnInit, OnDestroy {
     this.cargandoStock = false;
     this.errorStock = '';
     this.imagenes = [];
+    this.liberarFotosPendientes();
     this.panelAbierto = true;
     this.cargarMarcas();
   }
 
   abrirEdicion(producto: ProductoAdmin): void {
+    this.liberarFotosPendientes();
     this.editando = producto;
     this.formulario = {
       nombre: producto.nombre,
@@ -359,10 +384,15 @@ export class ProductosComponent implements OnInit, OnDestroy {
     this.panelAbierto = false;
     this.editando = null;
     this.imagenes = [];
+    this.liberarFotosPendientes();
   }
 
   guardar(): void {
     if (!this.puedeEditar) return;
+    if (this.preparandoFotos) {
+      this.alerta.toast({ type: 'warning', title: 'Espere a que terminen de prepararse las fotos' });
+      return;
+    }
     const nombre = this.formulario.nombre?.trim();
     if (!nombre) {
       this.alerta.toast({ type: 'warning', title: 'El nombre es obligatorio' });
@@ -457,13 +487,19 @@ export class ProductosComponent implements OnInit, OnDestroy {
           });
           return;
         }
-        this.guardando = false;
         const esNuevo = !this.editando;
+        const conFotos = esNuevo && this.fotosPendientes.length > 0;
+        // Con fotos en cola el guardado sigue hasta que termine la subida (bloquea cerrar y reintentar «Crear»).
+        this.guardando = conFotos;
 
         this.reflejarEnLista(producto);
         this.asegurarVisibleEnLista(producto.id_producto);
         this.destacar(producto.id_producto);
         this.cdr.markForCheck();
+        if (conFotos) {
+          this.subirFotosPendientes(producto, { alCrear: true, sinStock: datos.stock === 0 });
+          return;
+        }
         if (esNuevo && datos.stock === 0) {
           this.alerta.toast({
             type: 'info',
@@ -545,7 +581,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   // ── Imágenes ─────────────────────────────────────────────────
 
-  private cargarImagenes(idProducto: number): void {
+  private cargarImagenes(idProducto: number, alCargar?: () => void): void {
     this.cargandoImagenes = true;
     this.cdr.markForCheck();
 
@@ -553,6 +589,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
       next: (imagenes) => {
         this.cargandoImagenes = false;
         this.imagenes = imagenes;
+        alCargar?.();
         this.cdr.markForCheck();
       },
       error: () => {
@@ -565,7 +602,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   alSeleccionarArchivos(evento: Event): void {
     const entrada = evento.target as HTMLInputElement;
-    this.subirArchivos(Array.from(entrada.files ?? []));
+    this.recibirArchivos(Array.from(entrada.files ?? []));
     entrada.value = '';
   }
 
@@ -577,7 +614,169 @@ export class ProductosComponent implements OnInit, OnDestroy {
   alSoltarArchivos(evento: DragEvent): void {
     evento.preventDefault();
     this.zonaActiva = false;
-    this.subirArchivos(Array.from(evento.dataTransfer?.files ?? []));
+    this.recibirArchivos(Array.from(evento.dataTransfer?.files ?? []));
+  }
+
+  /** Producto ya guardado: sube de inmediato. Producto nuevo: las deja en cola hasta crearlo. */
+  private recibirArchivos(archivos: File[]): void {
+    if (!this.puedeEditar || this.guardando || !archivos.length) return;
+    if (this.editando) {
+      this.subirArchivos(archivos);
+    } else {
+      void this.agregarFotosPendientes(archivos);
+    }
+  }
+
+  // ── Fotos en cola (producto nuevo) ───────────────────────────
+
+  /** Valida y comprime cada foto; las que no sirven se avisan por nombre y no entran a la cola. */
+  async agregarFotosPendientes(archivos: File[]): Promise<void> {
+    if (!archivos.length) return;
+    this.preparandoFotos = true;
+    this.cdr.markForCheck();
+
+    const rechazos: string[] = [];
+    for (const archivo of archivos) {
+      const resultado = await prepararImagen(archivo);
+      if (this.destruido) return;
+      if (resultado.archivo) {
+        this.fotosPendientes = [
+          ...this.fotosPendientes,
+          { archivo: resultado.archivo, vista: URL.createObjectURL(resultado.archivo) },
+        ];
+      } else if (resultado.error) {
+        rechazos.push(resultado.error);
+      }
+    }
+
+    this.preparandoFotos = false;
+    this.cdr.markForCheck();
+    if (rechazos.length) {
+      const resto = rechazos.length - 2;
+      this.alerta.toast({
+        type: 'warning',
+        title: rechazos.slice(0, 2).join(' · ') + (resto > 0 ? ` · y ${resto} más` : ''),
+      });
+    }
+  }
+
+  quitarFotoPendiente(indice: number): void {
+    if (this.guardando || this.subiendo) return;
+    const [quitada] = this.fotosPendientes.splice(indice, 1);
+    if (quitada) URL.revokeObjectURL(quitada.vista);
+    this.fotosPendientes = [...this.fotosPendientes];
+  }
+
+  /** La principal es la primera de la cola: se sube primero y el backend la marca principal. */
+  hacerPrincipalPendiente(indice: number): void {
+    if (this.guardando || this.subiendo || indice <= 0) return;
+    this.moverFotoPendiente(indice, 0);
+  }
+
+  alIniciarArrastreFoto(indice: number): void {
+    this.indiceFotoArrastrada = indice;
+  }
+
+  alSoltarFotoEn(indice: number): void {
+    const origen = this.indiceFotoArrastrada;
+    this.indiceFotoArrastrada = null;
+    if (origen === null || origen === indice || this.guardando || this.subiendo) return;
+    this.moverFotoPendiente(origen, indice);
+  }
+
+  private moverFotoPendiente(origen: number, destino: number): void {
+    const lista = [...this.fotosPendientes];
+    const [movida] = lista.splice(origen, 1);
+    if (!movida) return;
+    lista.splice(destino, 0, movida);
+    this.fotosPendientes = lista;
+  }
+
+  /** Reintenta subir las fotos que quedaron en cola (el producto ya existe). */
+  reintentarFotosPendientes(): void {
+    if (!this.editando || this.guardando || this.subiendo || !this.fotosPendientes.length) return;
+    this.subirFotosPendientes(this.editando, { alCrear: false, sinStock: false });
+  }
+
+  /**
+   * Sube la cola en trozos de 10 (límite del backend). Cada trozo que llega bien sale de la cola;
+   * si uno falla, el resto queda marcado y el panel se queda en modo edición: el producto ya
+   * existe y reintentar nunca vuelve a crearlo.
+   */
+  private subirFotosPendientes(
+    producto: ProductoAdmin,
+    opciones: { alCrear: boolean; sinStock: boolean },
+  ): void {
+    // Se limpian los errores de un intento anterior ANTES de partir en lotes: los lotes guardan estas mismas referencias.
+    this.fotosPendientes = this.fotosPendientes.map((f) => ({ archivo: f.archivo, vista: f.vista }));
+    const lotes = partirEnLotes(this.fotosPendientes);
+    const total = this.fotosPendientes.length;
+    let subidas = 0;
+    let galeria: ImagenProducto[] = [];
+
+    this.subiendo = true;
+    this.cdr.markForCheck();
+
+    from(lotes).pipe(
+      concatMap((lote) => this.imagenService.subir(producto.id_producto, lote.map((f) => f.archivo)).pipe(
+        tap((resultado) => {
+          galeria = resultado;
+          subidas += lote.length;
+          lote.forEach((f) => URL.revokeObjectURL(f.vista));
+          this.fotosPendientes = this.fotosPendientes.filter((f) => !lote.includes(f));
+        }),
+      )),
+      takeUntil(this.destruir$),
+    ).subscribe({
+      complete: () => {
+        if (this.destruido) return;
+        this.subiendo = false;
+        this.guardando = false;
+        // La fila de la lista y el POS pasan a mostrar la foto principal recién subida.
+        this.editando = producto;
+        this.imagenes = galeria;
+        this.sincronizarImagenEnLista();
+        this.cdr.markForCheck();
+        const etiqueta = `${total} ${total === 1 ? 'foto' : 'fotos'}`;
+        if (opciones.alCrear) {
+          this.alerta.toast({ type: 'success', title: `Producto creado con ${etiqueta}` });
+          if (opciones.sinStock) {
+            this.alerta.toast({
+              type: 'info',
+              title: 'Creado sin stock: no se podrá vender hasta ingresar stock',
+            });
+          }
+          this.cerrarPanel();
+        } else {
+          this.alerta.toast({ type: 'success', title: `${etiqueta} ${total === 1 ? 'subida' : 'subidas'}` });
+        }
+      },
+      error: (error) => {
+        this.subiendo = false;
+        this.guardando = false;
+        const quedan = this.fotosPendientes.length;
+        this.fotosPendientes = this.fotosPendientes.map((f) => ({ ...f, error: mensajeDeError(error) }));
+        // El producto existe: el panel pasa a edición con la cola para reintentar (nunca se vuelve a crear).
+        this.editando = producto;
+        this.imagenes = galeria;
+        if (subidas) this.sincronizarImagenEnLista();
+        // Lo que sí quedó guardado en el servidor, por si el trozo fallido llegó a medias.
+        this.cargarImagenes(producto.id_producto, () => this.sincronizarImagenEnLista());
+        this.cdr.markForCheck();
+        this.alerta.error({
+          title: opciones.alCrear
+            ? `Producto creado; ${quedan} ${quedan === 1 ? 'foto no se subió' : 'fotos no se subieron'}`
+            : 'No se pudieron subir las fotos',
+          message: mensajeDeError(error),
+        });
+      },
+    });
+  }
+
+  private liberarFotosPendientes(): void {
+    this.fotosPendientes.forEach((f) => URL.revokeObjectURL(f.vista));
+    this.fotosPendientes = [];
+    this.indiceFotoArrastrada = null;
   }
 
   private subirArchivos(archivos: File[]): void {
@@ -843,5 +1042,9 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   identificarImagen(_indice: number, imagen: ImagenProducto): number {
     return imagen.id_imagen;
+  }
+
+  identificarFotoPendiente(_indice: number, foto: FotoPendiente): string {
+    return foto.vista;
   }
 }

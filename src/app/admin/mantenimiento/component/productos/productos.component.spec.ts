@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { ProductosComponent } from './productos.component';
 import { urlConstants } from '../../../../constants/urlConstants';
@@ -330,5 +330,208 @@ describe('ProductosComponent · unidad de medida', () => {
     component.guardar();
 
     expect(productos.actualizar).toHaveBeenCalledWith(9, expect.objectContaining({ unidad_medida: 'NIU' }));
+  });
+});
+
+/**
+ * Fotos al crear: quedan en cola local y se suben (en trozos de 10) recién cuando el producto
+ * existe. Si la subida falla el producto NO se vuelve a crear: el panel pasa a edición con la cola.
+ */
+describe('ProductosComponent · fotos al crear', () => {
+  let component: ProductosComponent;
+  let puntoVenta: PuntoVentaService;
+  const nuevo: any = {
+    id_producto: 2, nombre: 'Cinta', sku: 'CIN', codigo_barras: '', categoria: 'Otros',
+    marca: '', id_categoria: 7, estado: true, stock_total: 0, total_imagenes: 0,
+  };
+  const productos = {
+    listar: vi.fn(() => of([])),
+    categorias: vi.fn(() => of([])),
+    marcas: vi.fn(() => of([])),
+    crear: vi.fn(() => of(nuevo)),
+    actualizar: vi.fn(() => of(nuevo)),
+  };
+  const imagenes = {
+    listar: vi.fn(() => of([])),
+    subir: vi.fn((_id: number, archivos: File[]) =>
+      of(archivos.map((a, i) => ({ id_imagen: i + 1, url: a.name, thumb_url: a.name, is_primary: i === 0 })))),
+  };
+  const alerta = { toast: vi.fn(), error: vi.fn(), confirm: vi.fn() };
+  let revocadas: string[];
+  let contador: number;
+
+  const foto = (nombre: string, tipo = 'image/jpeg') => new File(['x'], nombre, { type: tipo });
+  const fotos = (n: number) => Array.from({ length: n }, (_, i) => foto(`f${i + 1}.jpg`));
+  const nombresSubidos = (llamada: number) => (imagenes.subir.mock.calls[llamada][1] as File[]).map((a) => a.name);
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    revocadas = [];
+    contador = 0;
+    (URL as any).createObjectURL = vi.fn(() => `blob:foto-${++contador}`);
+    (URL as any).revokeObjectURL = vi.fn((url: string) => revocadas.push(url));
+    await TestBed.configureTestingModule({
+      imports: [ProductosComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ProductoAdminService, useValue: productos },
+        { provide: ProductoImagenService, useValue: imagenes },
+        { provide: AlertService, useValue: alerta },
+        { provide: AuthService, useValue: { puedeEditarCatalogo: () => true } },
+      ],
+    })
+      .overrideComponent(ProductosComponent, { set: { template: '' } })
+      .compileComponents();
+    puntoVenta = TestBed.inject(PuntoVentaService);
+    vi.spyOn(puntoVenta, 'invalidarCatalogo');
+    const fixture = TestBed.createComponent(ProductosComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.abrirNuevo();
+    component.formulario.nombre = 'Cinta';
+    component.formulario.precio_venta = 3;
+    component.formulario.stock = 4;
+  });
+
+  it('las fotos válidas entran a la cola (la primera es la principal) y las inválidas se avisan por nombre', async () => {
+    await component.agregarFotosPendientes([foto('a.jpg'), foto('b.heic', 'image/heic'), foto('c.png', 'image/png')]);
+
+    expect(component.fotosPendientes.map((f) => f.archivo.name)).toEqual(['a.jpg', 'c.png']);
+    expect(component.fotosPendientes.every((f) => f.vista.startsWith('blob:'))).toBe(true);
+    expect(alerta.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warning', title: 'b.heic: formato HEIC no admitido, use JPG o PNG' }),
+    );
+    expect(imagenes.subir).not.toHaveBeenCalled();
+  });
+
+  it('quitar y marcar principal reordenan la cola y quitar libera la miniatura', async () => {
+    await component.agregarFotosPendientes(fotos(3));
+    const vistas = component.fotosPendientes.map((f) => f.vista);
+
+    component.hacerPrincipalPendiente(2);
+    expect(component.fotosPendientes.map((f) => f.archivo.name)).toEqual(['f3.jpg', 'f1.jpg', 'f2.jpg']);
+
+    component.alIniciarArrastreFoto(0);
+    component.alSoltarFotoEn(2);
+    expect(component.fotosPendientes.map((f) => f.archivo.name)).toEqual(['f1.jpg', 'f2.jpg', 'f3.jpg']);
+
+    component.quitarFotoPendiente(1);
+    expect(component.fotosPendientes.map((f) => f.archivo.name)).toEqual(['f1.jpg', 'f3.jpg']);
+    expect(revocadas).toEqual([vistas[1]]);
+  });
+
+  it('crea el producto y luego sube las fotos en orden (principal primero); cierra con «Producto creado con N fotos»', async () => {
+    await component.agregarFotosPendientes(fotos(3));
+    component.hacerPrincipalPendiente(2);
+
+    component.guardar();
+
+    expect(productos.crear).toHaveBeenCalledTimes(1);
+    expect(imagenes.subir).toHaveBeenCalledTimes(1);
+    expect(productos.crear.mock.invocationCallOrder[0]).toBeLessThan(imagenes.subir.mock.invocationCallOrder[0]);
+    expect(imagenes.subir.mock.calls[0][0]).toBe(2);
+    expect(nombresSubidos(0)).toEqual(['f3.jpg', 'f1.jpg', 'f2.jpg']);
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success', title: 'Producto creado con 3 fotos' }));
+    expect(alerta.toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'Producto creado' }));
+    expect(component.panelAbierto).toBe(false);
+    expect(component.guardando).toBe(false);
+    expect(component.fotosPendientes).toEqual([]);
+    expect(revocadas.length).toBe(3);
+    expect(puntoVenta.invalidarCatalogo).toHaveBeenCalled();
+    expect(component.productos[0]).toEqual(expect.objectContaining({ id_producto: 2, total_imagenes: 3, imagen_url: 'f3.jpg' }));
+  });
+
+  it('sin fotos mantiene el flujo de antes (queda en edición, toast «Producto creado»)', () => {
+    component.guardar();
+
+    expect(imagenes.subir).not.toHaveBeenCalled();
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Producto creado' }));
+    expect(component.editando).toBe(nuevo);
+    expect(component.panelAbierto).toBe(true);
+  });
+
+  it('respeta el límite del backend: 23 fotos se suben en lotes de 10, 10 y 3', async () => {
+    await component.agregarFotosPendientes(fotos(23));
+
+    component.guardar();
+
+    expect(imagenes.subir).toHaveBeenCalledTimes(3);
+    expect([0, 1, 2].map((i) => nombresSubidos(i).length)).toEqual([10, 10, 3]);
+    expect(nombresSubidos(1)[0]).toBe('f11.jpg');
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Producto creado con 23 fotos' }));
+  });
+
+  it('creación OK y subida fallida: no duplica el producto, pasa a edición con la cola y se puede reintentar', async () => {
+    await component.agregarFotosPendientes(fotos(2));
+    imagenes.subir.mockReturnValueOnce(throwError(() => new Error('red caída')));
+
+    component.guardar();
+
+    expect(productos.crear).toHaveBeenCalledTimes(1);
+    expect(component.panelAbierto).toBe(true);
+    expect(component.editando).toBe(nuevo);
+    expect(component.guardando).toBe(false);
+    expect(component.subiendo).toBe(false);
+    expect(component.fotosPendientes.map((f) => f.archivo.name)).toEqual(['f1.jpg', 'f2.jpg']);
+    expect(component.fotosPendientes.every((f) => !!f.error)).toBe(true);
+    expect(alerta.error).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Producto creado; 2 fotos no se subieron' }),
+    );
+    expect(revocadas).toEqual([]);
+
+    component.reintentarFotosPendientes();
+
+    expect(productos.crear).toHaveBeenCalledTimes(1);
+    expect(imagenes.subir).toHaveBeenCalledTimes(2);
+    expect(imagenes.subir.mock.calls[1][0]).toBe(2);
+    expect(nombresSubidos(1)).toEqual(['f1.jpg', 'f2.jpg']);
+    expect(component.fotosPendientes).toEqual([]);
+    expect(component.imagenes.length).toBe(2);
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success', title: '2 fotos subidas' }));
+  });
+
+  it('si falla el segundo lote, el primero ya no está en la cola y solo se reintenta el resto', async () => {
+    await component.agregarFotosPendientes(fotos(12));
+    imagenes.subir
+      .mockReturnValueOnce(of(fotos(10).map((a, i) => ({ id_imagen: i + 1, url: a.name, is_primary: i === 0 })) as any))
+      .mockReturnValueOnce(throwError(() => new Error('timeout')));
+
+    component.guardar();
+
+    expect(component.fotosPendientes.map((f) => f.archivo.name)).toEqual(['f11.jpg', 'f12.jpg']);
+    expect(alerta.error).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Producto creado; 2 fotos no se subieron' }),
+    );
+
+    component.reintentarFotosPendientes();
+
+    expect(nombresSubidos(2)).toEqual(['f11.jpg', 'f12.jpg']);
+    expect(productos.crear).toHaveBeenCalledTimes(1);
+    expect(component.fotosPendientes).toEqual([]);
+  });
+
+  it('no deja crear mientras se preparan las fotos', async () => {
+    const preparando = component.agregarFotosPendientes(fotos(1));
+    expect(component.preparandoFotos).toBe(true);
+
+    component.guardar();
+    expect(productos.crear).not.toHaveBeenCalled();
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'warning' }));
+
+    await preparando;
+    expect(component.preparandoFotos).toBe(false);
+  });
+
+  it('cancelar el panel y destruir el componente liberan las miniaturas', async () => {
+    await component.agregarFotosPendientes(fotos(2));
+    component.cerrarPanel();
+    expect(component.fotosPendientes).toEqual([]);
+    expect(revocadas.sort()).toEqual(['blob:foto-1', 'blob:foto-2']);
+
+    component.abrirNuevo();
+    await component.agregarFotosPendientes(fotos(1));
+    component.ngOnDestroy();
+    expect(revocadas).toContain('blob:foto-3');
   });
 });

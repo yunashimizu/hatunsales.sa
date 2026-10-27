@@ -553,31 +553,85 @@
         <div class="adm-bloque">
           <h3 class="adm-bloque__titulo">
             <i class="bi bi-images"></i> Imágenes
-            <span class="adm-insignia adm-insignia--neutra adm-insignia--sm" *ngIf="imagenes.length">{{ imagenes.length }}</span>
+            <span class="adm-insignia adm-insignia--neutra adm-insignia--sm" *ngIf="imagenes.length || fotosPendientes.length">{{ imagenes.length + fotosPendientes.length }}</span>
           </h3>
           <div class="prod-bloque__cuerpo">
 
             <div class="adm-aviso adm-aviso--info adm-aviso--compacto" *ngIf="!editando">
               <i class="bi bi-info-circle" aria-hidden="true"></i>
-              <span>Guarde el producto y aquí mismo podrá subir las fotos.</span>
+              <span>Puede adjuntar fotos ahora; se subirán al crear el producto.</span>
             </div>
 
-            <ng-container *ngIf="editando">
-              <div class="adm-soltar prod-soltar" [class.adm-soltar--encima]="zonaActiva" [class.prod-soltar--subiendo]="subiendo"
-                   (dragover)="alArrastrarSobreZona($event, true)"
-                   (dragleave)="alArrastrarSobreZona($event, false)"
-                   (drop)="alSoltarArchivos($event)"
-                   (click)="selector.click()"
-                   (keydown.enter)="selector.click()"
-                   (keydown.space)="selector.click(); $event.preventDefault()"
-                   role="button" tabindex="0" aria-label="Subir imágenes">
-                <i class="bi" [ngClass]="subiendo ? 'bi-arrow-repeat adm-girando' : 'bi-cloud-arrow-up'"></i>
-                <span class="prod-soltar__texto">{{ subiendo ? 'Subiendo…' : 'Arrastre las imágenes o haga clic para elegirlas' }}</span>
-                <span class="adm-ayuda">JPG, PNG o WEBP · hasta 10 por vez</span>
-              </div>
-              <input #selector type="file" accept="image/*" multiple hidden
-                     (change)="alSeleccionarArchivos($event)">
+            <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto prod-pendientes__aviso"
+                 *ngIf="editando && fotosPendientes.length" role="alert">
+              <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+              <span>
+                Producto creado; {{ fotosPendientes.length }}
+                {{ fotosPendientes.length === 1 ? 'foto no se subió' : 'fotos no se subieron' }}.
+              </span>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                      (click)="reintentarFotosPendientes()" [disabled]="subiendo || guardando">
+                <i class="bi" [ngClass]="subiendo ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
+                Reintentar
+              </button>
+            </div>
 
+            <div class="adm-soltar prod-soltar" [class.adm-soltar--encima]="zonaActiva"
+                 [class.prod-soltar--subiendo]="subiendo || preparandoFotos"
+                 (dragover)="alArrastrarSobreZona($event, true)"
+                 (dragleave)="alArrastrarSobreZona($event, false)"
+                 (drop)="alSoltarArchivos($event)"
+                 (click)="selector.click()"
+                 (keydown.enter)="selector.click()"
+                 (keydown.space)="selector.click(); $event.preventDefault()"
+                 role="button" tabindex="0" aria-label="Subir imágenes">
+              <i class="bi" [ngClass]="subiendo || preparandoFotos ? 'bi-arrow-repeat adm-girando' : 'bi-cloud-arrow-up'"></i>
+              <span class="prod-soltar__texto">{{
+                subiendo ? 'Subiendo…' : preparandoFotos ? 'Preparando fotos…' : 'Arrastre las imágenes o haga clic para elegirlas'
+              }}</span>
+              <span class="adm-ayuda">JPG, PNG o WEBP · hasta 5 MB cada una (las más pesadas se reducen solas)</span>
+            </div>
+            <input #selector type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" multiple hidden
+                   (change)="alSeleccionarArchivos($event)">
+
+            <!-- Fotos en cola: se suben al crear el producto (o al reintentar). -->
+            <div class="adm-galeria prod-galeria prod-pendientes" *ngIf="fotosPendientes.length">
+              <div class="adm-galeria__pieza"
+                   *ngFor="let foto of fotosPendientes; let i = index; trackBy: identificarFotoPendiente"
+                   [class.adm-galeria__pieza--principal]="i === 0"
+                   [class.adm-galeria__pieza--arrastrando]="indiceFotoArrastrada === i"
+                   [class.prod-pendientes__pieza--error]="foto.error"
+                   [attr.title]="foto.error || null"
+                   draggable="true"
+                   (dragstart)="alIniciarArrastreFoto(i)"
+                   (dragover)="alArrastrarSobre($event)"
+                   (drop)="alSoltarFotoEn(i)">
+                <img [src]="foto.vista" [alt]="'Foto pendiente ' + (i + 1)">
+                <span class="prod-galeria__orden" aria-hidden="true">{{ i + 1 }}</span>
+                <span class="adm-galeria__cinta" *ngIf="i === 0"><i class="bi bi-star-fill" aria-hidden="true"></i> Principal</span>
+                <span class="prod-pendientes__error" *ngIf="foto.error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> No se subió</span>
+                <div class="adm-galeria__acciones">
+                  <button type="button" class="adm-galeria__accion" *ngIf="i > 0"
+                          (click)="hacerPrincipalPendiente(i); $event.stopPropagation()"
+                          [disabled]="guardando || subiendo"
+                          title="Usar como principal" aria-label="Usar como principal">
+                    <i class="bi bi-star"></i>
+                  </button>
+                  <button type="button" class="adm-galeria__accion adm-galeria__accion--peligro"
+                          (click)="quitarFotoPendiente(i); $event.stopPropagation()"
+                          [disabled]="guardando || subiendo"
+                          title="Quitar" aria-label="Quitar foto">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p class="adm-ayuda prod-galeria__ayuda" *ngIf="fotosPendientes.length > 1">
+              <i class="bi bi-arrows-move" aria-hidden="true"></i>
+              Arrastre las miniaturas para cambiar el orden. La n.º 1 es la principal.
+            </p>
+
+            <ng-container *ngIf="editando">
               <div class="prod-galeria-esqueleto" *ngIf="cargandoImagenes" aria-busy="true" aria-label="Cargando imágenes">
                 <div class="adm-esqueleto prod-galeria-esqueleto__pieza" *ngFor="let n of [1,2,3]"></div>
               </div>
