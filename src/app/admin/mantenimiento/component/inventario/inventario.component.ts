@@ -21,6 +21,7 @@ import { ProductoImagenService } from '../../../service/producto-imagen.service'
 import {
   Almacen, FilaInventario, MovimientoInventario, ResumenInventario,
 } from '../../../models/admin.models';
+import { UnidadMedidaPipe } from '../../../../shared/ui/unidad-medida.pipe';
 
 type ModoPanel = 'ajuste' | 'transferencia' | 'movimientos';
 
@@ -38,7 +39,7 @@ const MOTIVOS = [
   selector: 'app-inventario',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, VisorImagenComponent, CountUpDirective, RevealDirective],
+  imports: [CommonModule, FormsModule, VisorImagenComponent, CountUpDirective, RevealDirective, UnidadMedidaPipe],
   templateUrl: './inventario.component.html',
   styleUrl: './inventario.component.css',
 })

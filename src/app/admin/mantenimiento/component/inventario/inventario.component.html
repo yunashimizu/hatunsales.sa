@@ -223,7 +223,7 @@
 
             <td data-etiqueta="Stock" class="adm-num adm-tabla__principal">
               <div class="inv-stock">
-                <span>{{ fila.stock }} <small class="inv-unidad">{{ fila.unidad_medida }}</small></span>
+                <span>{{ fila.stock }} <small class="inv-unidad">{{ fila.unidad_medida | unidadMedida }}</small></span>
                 <!-- Barra de nivel: el stock frente al doble del mínimo (la marca central es el mínimo) -->
                 <span class="inv-nivel" [ngClass]="'inv-nivel--' + fila.estado"
                       [class.inv-nivel--sin-minimo]="!(fila.stock_minimo > 0)"
@@ -350,7 +350,7 @@
       </div>
       <div class="inv-ficha__stock">
         <strong class="adm-tabular">{{ seleccionada.stock }}</strong>
-        <span>{{ seleccionada.unidad_medida }} disponibles</span>
+        <span>{{ seleccionada.unidad_medida | unidadMedida }} disponibles</span>
       </div>
       <div class="inv-ficha__nivel">
         <span class="inv-nivel inv-nivel--ancho" [ngClass]="'inv-nivel--' + seleccionada.estado"
@@ -397,7 +397,7 @@
               <label class="adm-etiqueta adm-etiqueta--requerida" for="inv-cantidad">Cantidad</label>
               <div class="adm-input-grupo">
                 <input id="inv-cantidad" class="adm-input adm-input--num" type="number" min="1" [(ngModel)]="ajuste.cantidad">
-                <span class="adm-input-grupo__afijo" *ngIf="seleccionada.unidad_medida">{{ seleccionada.unidad_medida }}</span>
+                <span class="adm-input-grupo__afijo" *ngIf="seleccionada.unidad_medida">{{ seleccionada.unidad_medida | unidadMedida }}</span>
               </div>
             </div>
             <div class="adm-campo">
@@ -420,9 +420,9 @@
       <div class="inv-proyeccion" [class.inv-proyeccion--negativa]="stockResultante < 0" aria-live="polite">
         <div class="inv-proyeccion__texto">
           <span>Stock después del ajuste</span>
-          <small>Actual: {{ seleccionada.stock }} {{ seleccionada.unidad_medida }}</small>
+          <small>Actual: {{ seleccionada.stock }} {{ seleccionada.unidad_medida | unidadMedida }}</small>
         </div>
-        <strong>{{ stockResultante }} {{ seleccionada.unidad_medida }}</strong>
+        <strong>{{ stockResultante }} {{ seleccionada.unidad_medida | unidadMedida }}</strong>
         <span class="inv-nivel inv-nivel--ancho inv-proyeccion__barra"
               [ngClass]="'inv-nivel--' + estadoNivel(stockResultante, seleccionada.stock_minimo)"
               [class.inv-nivel--sin-minimo]="!(seleccionada.stock_minimo > 0)"

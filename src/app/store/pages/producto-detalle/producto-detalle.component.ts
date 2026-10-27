@@ -19,6 +19,7 @@ import { FormularioResenaComponent } from './formulario-resena.component';
 import { NivelStockComponent } from './nivel-stock.component';
 import { OpinionesProductoComponent } from './opiniones-producto.component';
 import { StockSucursalesComponent } from './stock-sucursales.component';
+import { UnidadMedidaPipe } from '../../../shared/ui/unidad-medida.pipe';
 
 @Component({
   selector: 'app-producto-detalle',
@@ -26,7 +27,7 @@ import { StockSucursalesComponent } from './stock-sucursales.component';
   imports: [
     CommonModule, FormsModule, RouterLink, EstrellasComponent, ProductoCardComponent,
     RevealDirective, SpotlightDirective, ConfianzaProductoComponent, FichaEsqueletoComponent, FormularioResenaComponent,
-    NivelStockComponent, OpinionesProductoComponent, StockSucursalesComponent,
+    NivelStockComponent, OpinionesProductoComponent, StockSucursalesComponent, UnidadMedidaPipe,
   ],
   templateUrl: './producto-detalle.component.html',
   styleUrl: './producto-detalle.component.css',

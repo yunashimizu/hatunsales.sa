@@ -46,6 +46,7 @@ export const urlConstants = {
     base: `${dominio}producto`,
     byId: (id: string | number) => `${dominio}producto/${id}`,
     barcode: `${dominio}producto/barcode`,
+    unidades: `${dominio}producto/unidades`,
     barcodeByCode: (codigo: string) => `${dominio}producto/barcode/${codigo}`,
     images: (id: string | number) => `${dominio}producto/${id}/images`,
     imagesLote: (id: string | number) => `${dominio}producto/${id}/images/lote`,

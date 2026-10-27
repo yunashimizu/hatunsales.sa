@@ -10,6 +10,7 @@ import { AlertService } from '../../../../shared/services/alert.service';
 import { ProductoAdminService } from '../../../service/producto-admin.service';
 import { ProductoImagenService } from '../../../service/producto-imagen.service';
 import { PuntoVentaService } from '../../../service/punto-venta.service';
+import { UnidadMedidaService } from '../../../service/unidad-medida.service';
 
 /**
  * Ficha de producto: el stock que se edita es el de ESE producto en ESE almacén. Antes se
@@ -237,5 +238,97 @@ describe('ProductosComponent · visibilidad del producto nuevo', () => {
 
     await component.eliminar(existente);
     expect(puntoVenta.invalidarCatalogo).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * Unidad de medida: un producto cargado con un valor antiguo (UND, kg) se guarda con su código
+ * y uno que no es ninguna unidad conocida no se envía (el selector lo marca inválido).
+ */
+describe('ProductosComponent · unidad de medida', () => {
+  let http: HttpTestingController;
+  let component: ProductosComponent;
+  const base: any = {
+    id_producto: 9, nombre: 'Plancha', descripcion: '', descripcion_corta: '', codigo_barras: '', sku: 'PL',
+    precio_compra: 1, precio_venta: 2, descuento: 0, unidad_medida: 'UND', estado: true, destacado: false,
+    stock_total: 3, total_imagenes: 0,
+  };
+  const productos = {
+    listar: vi.fn(() => of([base])),
+    categorias: vi.fn(() => of([])),
+    marcas: vi.fn(() => of([])),
+    actualizar: vi.fn(() => of(base)),
+  };
+  const alerta = { toast: vi.fn(), error: vi.fn(), confirm: vi.fn() };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await TestBed.configureTestingModule({
+      imports: [ProductosComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ProductoAdminService, useValue: productos },
+        { provide: ProductoImagenService, useValue: { listar: vi.fn(() => of([])) } },
+        { provide: AlertService, useValue: alerta },
+        { provide: AuthService, useValue: { puedeEditarCatalogo: () => true } },
+      ],
+    })
+      .overrideComponent(ProductosComponent, { set: { template: '' } })
+      .compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(ProductosComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    http.expectOne(urlConstants.inventario.almacenes).flush([{ id_almacen: 1, nombre: 'Principal', sucursal: 'Lurín' }]);
+  });
+
+  afterEach(() => http.verify());
+
+  /** Carga el catálogo del servidor para que una unidad desconocida cuente como inválida. */
+  const conCatalogoDelServidor = () => {
+    TestBed.inject(UnidadMedidaService).cargar().subscribe();
+    http.expectOne(urlConstants.producto.unidades).flush({
+      grupos: ['Conteo'],
+      unidades: [{ codigo: 'NIU', nombre: 'Unidad', abreviatura: 'und', grupo: 'Conteo', frecuente: true, visible: true }],
+      alias: { UND: 'NIU' },
+    });
+  };
+
+  const abrirYVerificarStock = (producto: any) => {
+    component.abrirEdicion(producto);
+    http.expectOne((r) => r.url === urlConstants.inventario.detallado)
+      .flush({ datos: [{ id_inventario: 1, id_producto: 9, id_almacen: 1, stock: 3 }], total: 1, pagina: 1, por_pagina: 1 });
+  };
+
+  it('editar un producto con UND se puede guardar y envía NIU', () => {
+    conCatalogoDelServidor();
+    abrirYVerificarStock(base);
+    expect(component.formulario.unidad_medida).toBe('UND');
+
+    component.guardar();
+
+    expect(productos.actualizar).toHaveBeenCalledWith(9, expect.objectContaining({ unidad_medida: 'NIU' }));
+  });
+
+  it('una unidad que no es ninguna conocida corta el guardado con un aviso', () => {
+    conCatalogoDelServidor();
+    abrirYVerificarStock({ ...base, unidad_medida: 'Plancha X' });
+
+    component.guardar();
+
+    expect(productos.actualizar).not.toHaveBeenCalled();
+    expect(alerta.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warning', title: expect.stringContaining('Plancha X') }),
+    );
+  });
+
+  it('un producto sin unidad se guarda como NIU', () => {
+    conCatalogoDelServidor();
+    abrirYVerificarStock({ ...base, unidad_medida: '' });
+
+    component.guardar();
+
+    expect(productos.actualizar).toHaveBeenCalledWith(9, expect.objectContaining({ unidad_medida: 'NIU' }));
   });
 });

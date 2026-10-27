@@ -256,7 +256,7 @@
                       [ngClass]="p.stock_total > 0 ? 'adm-insignia--neutra' : 'adm-insignia--peligro'">
                   {{ p.stock_total }}
                 </span>
-                <span class="prod-unidad" *ngIf="p.stock_total > 0; else prodAgotado">{{ p.unidad_medida }}</span>
+                <span class="prod-unidad" *ngIf="p.stock_total > 0; else prodAgotado">{{ p.unidad_medida | unidadMedida }}</span>
                 <ng-template #prodAgotado><span class="prod-unidad prod-unidad--agotado">agotado</span></ng-template>
               </div>
             </td>
@@ -341,7 +341,7 @@
           </span>
           <span class="adm-insignia adm-insignia--sm" *ngIf="stockVerificado"
                 [ngClass]="stockActualEdicion > 0 ? 'adm-insignia--neutra' : 'adm-insignia--peligro'">
-            {{ stockActualEdicion }} {{ formulario.unidad_medida }} en el almacén
+            {{ stockActualEdicion }} {{ formulario.unidad_medida | unidadMedida }} en el almacén
           </span>
         </div>
       </div>
@@ -441,10 +441,7 @@
               </div>
               <div class="adm-campo">
                 <label class="adm-etiqueta" for="f-unidad">Unidad de medida</label>
-                <select id="f-unidad" class="adm-select" [(ngModel)]="formulario.unidad_medida">
-                  <option *ngFor="let u of unidades" [value]="u">{{ u }}</option>
-                </select>
-                <p class="adm-ayuda">Código SUNAT: NIU = unidad, KGM = kilo, MTR = metro.</p>
+                <app-selector-unidad idCampo="f-unidad" [(ngModel)]="formulario.unidad_medida" name="unidad_medida"></app-selector-unidad>
               </div>
             </div>
 

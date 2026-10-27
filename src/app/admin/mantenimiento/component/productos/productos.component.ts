@@ -22,6 +22,9 @@ import { ProductoAdminService, ProductoFormulario } from '../../../service/produ
 import { ProductoImagenService } from '../../../service/producto-imagen.service';
 import { InventarioAdminService } from '../../../service/inventario-admin.service';
 import { PuntoVentaService } from '../../../service/punto-venta.service';
+import { UnidadMedidaService } from '../../../service/unidad-medida.service';
+import { SelectorUnidadComponent } from '../../../../shared/components/selector-unidad/selector-unidad.component';
+import { UnidadMedidaPipe } from '../../../../shared/ui/unidad-medida.pipe';
 import {
   ImagenProducto, OpcionCategoria, OpcionMarca, ProductoAdmin,
 } from '../../../models/admin.models';
@@ -43,13 +46,14 @@ const FORMULARIO_VACIO: ProductoFormulario = {
   stock: 0,
 };
 
-const UNIDADES = ['NIU', 'ZZ', 'KGM', 'MTR', 'LTR', 'GLL', 'BX', 'PK', 'SET'];
-
 @Component({
   selector: 'app-productos',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, VisorImagenComponent, CountUpDirective, RevealDirective],
+  imports: [
+    CommonModule, FormsModule, RouterLink, VisorImagenComponent, CountUpDirective, RevealDirective,
+    SelectorUnidadComponent, UnidadMedidaPipe,
+  ],
   templateUrl: './productos.component.html',
   styleUrl: './productos.component.css',
 })
@@ -97,7 +101,6 @@ export class ProductosComponent implements OnInit, OnDestroy {
   /** Fila que acaba de guardarse: se resalta unos segundos para ubicarla. */
   idDestacado: number | null = null;
 
-  readonly unidades = UNIDADES;
   private readonly destruir$ = new Subject<void>();
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -108,6 +111,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     private readonly alerta: AlertService,
     private readonly auth: AuthService,
     private readonly puntoVenta: PuntoVentaService,
+    private readonly unidadesMedida: UnidadMedidaService,
   ) {}
 
   /** false = rol consulta (solo lectura). */
@@ -370,9 +374,19 @@ export class ProductosComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const unidad = this.unidadesMedida.resolver(this.formulario.unidad_medida);
+    if (unidad.estado === 'invalida') {
+      this.alerta.toast({
+        type: 'warning',
+        title: `La unidad «${unidad.original}» no es válida: elija una de la lista`,
+      });
+      return;
+    }
+
     const datos: ProductoFormulario = {
       ...this.formulario,
       nombre,
+      unidad_medida: unidad.codigo,
       codigo_barras: this.formulario.codigo_barras?.trim() || undefined,
       sku: this.formulario.sku?.trim() || undefined,
       precio_compra: Number(this.formulario.precio_compra) || 0,
