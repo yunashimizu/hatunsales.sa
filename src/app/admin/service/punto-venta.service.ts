@@ -19,6 +19,8 @@ export interface SolicitudVenta {
   id_moneda?: number;
   emitir_comprobante?: boolean;
   enviar_cliente?: boolean;
+  /** Correo escrito en el POS cuando el cliente no tiene uno registrado. */
+  correo_cliente?: string;
   id_almacen?: number;
   descontar_stock?: boolean;
   id_proforma?: number;

@@ -373,6 +373,71 @@
         </a>
       }
 
+      @if (d.correo; as correo) {
+        <section class="det-seccion" aria-labelledby="det-correo">
+          <h3 class="det-seccion__titulo" id="det-correo">
+            <i class="bi bi-envelope" aria-hidden="true"></i> Correo al cliente
+            <span class="adm-insignia adm-insignia--sm" [ngClass]="claseInsignia(textoCorreo(correo).tono)">
+              <i class="bi" [ngClass]="textoCorreo(correo).icono" aria-hidden="true"></i> {{ textoCorreo(correo).titulo }}
+            </span>
+          </h3>
+          @switch (correo.estado) {
+            @case ('ENVIADO') {
+              <p class="det-correo__linea">
+                Enviado a <strong>{{ correo.destino }}</strong>
+                @if (correo.enviado_en) { el <span class="adm-tabular">{{ correo.enviado_en | date: 'dd/MM/yyyy HH:mm' }}</span> }
+              </p>
+            }
+            @case ('PENDIENTE') {
+              <p class="det-correo__linea">Se enviará {{ correo.destino ? 'a ' + correo.destino + ' ' : '' }}en cuanto SUNAT acepte el comprobante y el envío automático esté activo.</p>
+            }
+            @case ('ERROR') {
+              <p class="det-correo__linea" role="alert">{{ correo.ultimo_error || 'El proveedor de correo rechazó el envío.' }}</p>
+            }
+            @case ('OMITIDO') {
+              <p class="det-correo__linea">{{ correo.motivo_omision || 'No se envió.' }}</p>
+            }
+          }
+          @if (correo.puede_reenviar) {
+            <div class="det-correo__reenvio">
+              <label class="adm-etiqueta" for="det-correo-destino">Correo de destino</label>
+              <div class="det-botones">
+                <input id="det-correo-destino" class="adm-input adm-input--chico det-correo__input" type="email"
+                       autocomplete="off" maxlength="254" placeholder="cliente@ejemplo.pe"
+                       [value]="destinoCorreo" (input)="cambiarDestinoCorreo($any($event.target).value)" />
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="reenviarCorreo()"
+                        [disabled]="enProceso !== null || !destinoCorreoValido">
+                  <i class="bi" [ngClass]="enProceso === 'correo' ? 'bi-arrow-repeat adm-girando' : 'bi-send'" aria-hidden="true"></i>
+                  Reenviar por correo
+                </button>
+              </div>
+              <p class="adm-ayuda">Se envían el PDF y el XML firmado. Máximo 3 reenvíos por hora.</p>
+            </div>
+          }
+          <details class="det-correo__historial" (toggle)="alternarHistorialCorreo($any($event.target).open)">
+            <summary>Historial de correos</summary>
+            @if (cargandoHistorial) {
+              <p class="adm-ayuda">Cargando…</p>
+            } @else if (historialCorreo && historialCorreo.length) {
+              <ul class="det-enlaces">
+                @for (fila of historialCorreo; track fila.id_correo) {
+                  <li class="det-enlaces__fila">
+                    <span class="adm-insignia adm-insignia--sm" [ngClass]="claseInsignia(tonoCorreo(fila.estado))">{{ fila.estado }}</span>
+                    <span>{{ fila.destino || 'sin destino' }} · {{ fila.origen === 'manual' ? 'reenvío' : 'automático' }}</span>
+                    <span class="adm-tabular adm-texto-suave">{{ (fila.enviado_en || fila.creado_en) | date: 'dd/MM/yyyy HH:mm' }}</span>
+                    @if (fila.ultimo_error || fila.motivo_omision) {
+                      <span class="adm-texto-suave">{{ fila.ultimo_error || fila.motivo_omision }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+            } @else if (historialCorreo) {
+              <p class="adm-ayuda">Todavía no hay correos registrados para este comprobante.</p>
+            }
+          </details>
+        </section>
+      }
+
       <section class="det-seccion" aria-labelledby="det-descargas">
         <h3 class="det-seccion__titulo" id="det-descargas"><i class="bi bi-download" aria-hidden="true"></i> Descargas</h3>
         <div class="det-botones">

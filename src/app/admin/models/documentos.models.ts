@@ -326,6 +326,34 @@ export interface GuiaEnlazada {
   fecha_emision: string | null;
 }
 
+/** Estado del correo del comprobante en el detalle ('SIN_SOLICITAR': no se pidió enviarlo). */
+export type EstadoCorreo = 'SIN_SOLICITAR' | 'PENDIENTE' | 'ENVIANDO' | 'ENVIADO' | 'ERROR' | 'OMITIDO';
+
+/** Resumen del correo al cliente dentro de GET /comprobante/:id/detalle. */
+export interface CorreoComprobante {
+  estado: EstadoCorreo;
+  destino: string | null;
+  enviado_en: string | null;
+  ultimo_error: string | null;
+  motivo_omision: string | null;
+  /** Aceptado por SUNAT, de envío directo y no anulado. */
+  puede_reenviar: boolean;
+}
+
+/** Una fila de GET /comprobante/:id/correos. */
+export interface CorreoHistorial {
+  id_correo: number;
+  id_comprobante: number;
+  destino: string | null;
+  estado: Exclude<EstadoCorreo, 'SIN_SOLICITAR'>;
+  origen: 'automatico' | 'manual';
+  intentos: number;
+  ultimo_error: string | null;
+  motivo_omision: string | null;
+  creado_en: string;
+  enviado_en: string | null;
+}
+
 /** GET /comprobante/:id/detalle */
 export interface ComprobanteDetalle {
   /** Emisor con el que se firmó el documento (en BETA, el de pruebas). */
@@ -418,6 +446,8 @@ export interface ComprobanteDetalle {
   puede_confirmar_manual: boolean;
   puede_nota_credito: boolean;
   puede_anular: boolean;
+  /** Envío del comprobante por correo al cliente (ausente en un backend anterior). */
+  correo?: CorreoComprobante;
 }
 
 /** Cómo arma el asistente cada motivo: todo el comprobante, unidades, descuento por línea o un importe. */

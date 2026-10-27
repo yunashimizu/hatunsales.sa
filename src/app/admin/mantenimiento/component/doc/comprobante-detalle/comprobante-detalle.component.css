@@ -99,6 +99,11 @@
 
 .det-venta { align-self: flex-start; }
 
+.det-correo__linea { margin: 0; overflow-wrap: anywhere; }
+.det-correo__reenvio { display: flex; flex-direction: column; gap: 6px; }
+.det-correo__input { flex: 1 1 220px; min-width: 0; }
+.det-correo__historial summary { cursor: pointer; font-size: 0.85rem; }
+
 .det-botones {
   display: flex;
   flex-wrap: wrap;

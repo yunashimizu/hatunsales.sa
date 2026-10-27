@@ -169,6 +169,8 @@ export const urlConstants = {
     consultarAnulacion: `${dominio}comprobante/consultar-anulacion`,
     archivo: (id: string | number, tipo: string) => `${dominio}comprobante/${id}/archivos/${tipo}`,
     recuperarCdr: (id: string | number) => `${dominio}comprobante/${id}/recuperar-cdr`,
+    correo: (id: string | number) => `${dominio}comprobante/${id}/correo`,
+    correos: (id: string | number) => `${dominio}comprobante/${id}/correos`,
     confirmarAceptado: (id: string | number) => `${dominio}comprobante/${id}/confirmar-aceptado`,
     contextoNotaCredito: (id: string | number) => `${dominio}comprobante/${id}/nota-credito/contexto`,
     notaCredito: (id: string | number) => `${dominio}comprobante/${id}/nota-credito`,
