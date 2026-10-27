@@ -532,7 +532,7 @@
               <div class="adm-campo adm-autocompletar">
                 <label class="adm-etiqueta" for="gre-buscar-producto">Agregar un producto</label>
                 <input id="gre-buscar-producto" class="adm-input" type="text" autocomplete="off" placeholder="Nombre, código o código de barras"
-                       [ngModel]="busquedaProducto" (ngModelChange)="buscarProducto($event)" aria-describedby="gre-producto-ayuda">
+                       [ngModel]="busquedaProducto" (ngModelChange)="buscarProducto($event)" (keydown.enter)="alEnterBuscarProducto($event)" aria-describedby="gre-producto-ayuda">
                 @if (productosEncontrados.length) {
                   <ul class="adm-sugerencias" aria-label="Productos encontrados">
                     @for (p of productosEncontrados; track p.id_producto) {

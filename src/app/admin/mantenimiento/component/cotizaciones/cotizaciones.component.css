@@ -77,6 +77,10 @@
 /* Buscadores de cliente y producto: icono a la izquierda, giro de carga a la derecha. */
 .cot-buscador > .adm-input { padding-right: 38px; }
 
+.cot-buscador__pie { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.cot-buscador__ayuda { flex: 1; min-width: 0; }
+.cot-buscador__sonido { flex-shrink: 0; }
+
 .cot-buscador__estado {
   left: auto;
   right: 12px;

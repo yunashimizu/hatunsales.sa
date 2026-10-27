@@ -505,3 +505,9 @@
   .prod-opciones .adm-switch { transition: none; }
   .prod-foto--clic:hover { transform: none; }
 }
+
+/* ── Código de barras + «Generar código» ─────────────────────── */
+
+.prod-barras { display: flex; gap: 8px; align-items: stretch; }
+.prod-barras .adm-input-icono { flex: 1 1 auto; min-width: 0; }
+.prod-barras__generar { flex: none; white-space: nowrap; }

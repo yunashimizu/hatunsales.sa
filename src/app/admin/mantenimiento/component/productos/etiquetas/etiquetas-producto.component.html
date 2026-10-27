@@ -1,0 +1,42 @@
+<section class="eti" aria-label="Etiquetas del producto">
+  <div class="eti-controles">
+    <div class="adm-campo eti-campo">
+      <label class="adm-etiqueta" for="eti-copias">Copias</label>
+      <input id="eti-copias" class="adm-input" type="number" inputmode="numeric"
+             [min]="minimo" [max]="maximo" step="1"
+             [ngModel]="copiasActuales" (ngModelChange)="cambiarCopias($event)">
+    </div>
+    <button type="button" class="adm-btn adm-btn--primario eti-imprimir"
+            (click)="imprimir()" [disabled]="!imprimible">
+      <i class="bi bi-printer" aria-hidden="true"></i> Imprimir
+    </button>
+  </div>
+
+  <p class="adm-ayuda eti-ayuda" *ngIf="imprimible">
+    Se imprimen {{ copiasActuales }} {{ copiasActuales === 1 ? 'etiqueta' : 'etiquetas' }} (máximo {{ maximo }}).
+    En el cuadro de impresión desactive «Encabezados y pies de página» para que salgan limpias.
+  </p>
+
+  <div class="eti-no-imprimible" *ngIf="!imprimible" role="status">
+    <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+    <div>
+      <strong *ngIf="codigo">{{ codigo }}</strong>
+      <strong *ngIf="!codigo">Sin código de barras</strong>
+      <span class="eti-no-imprimible__motivo" *ngIf="codigo"> · formato no imprimible</span>
+      <p class="adm-ayuda" *ngIf="codigo">
+        Solo se dibujan códigos EAN-13 válidos (13 dígitos con verificador correcto).
+      </p>
+      <p class="adm-ayuda" *ngIf="!codigo">
+        Edite el producto y use «Generar código» para crear uno interno.
+      </p>
+    </div>
+  </div>
+
+  <div class="eti-impresion" *ngIf="imprimible">
+    <article class="eti-etiqueta" *ngFor="let n of indices">
+      <div class="eti-etiqueta__nombre">{{ producto.nombre }}</div>
+      <div class="eti-etiqueta__codigo" [innerHTML]="codigoSvg"></div>
+      <div class="eti-etiqueta__precio">S/ {{ precio | number:'1.2-2' }}</div>
+    </article>
+  </div>
+</section>

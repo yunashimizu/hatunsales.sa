@@ -233,7 +233,7 @@
               <div class="adm-aviso adm-aviso--peligro" *ngIf="errorBusquedaProducto" role="alert">
                 <span>{{ errorBusquedaProducto }}</span>
                 <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
-                        (click)="alEnfocarProducto()">Reintentar</button>
+                        (click)="reintentarBusquedaProducto()">Reintentar</button>
               </div>
 
               <ul class="adm-sugerencias" *ngIf="sugerenciasProducto.length">
@@ -289,9 +289,19 @@
               </div>
             </div>
 
-            <p class="adm-ayuda pv-buscador__ayuda">
-              Con lector USB: deje el cursor aquí y escanee; el producto entra al carrito (todavía no se emite nada).
-            </p>
+            <div class="pv-buscador__pie">
+              <p class="adm-ayuda pv-buscador__ayuda">
+                Con lector USB: deje el cursor aquí y escanee; el producto entra al carrito (todavía no se emite nada). Puede escanear varios seguidos sin esperar, suena al leer y, para varias unidades, escriba <kbd class="adm-kbd">5*</kbd> y escanee.
+              </p>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm pv-buscador__sonido"
+                      [attr.aria-pressed]="sonido.activo()"
+                      [title]="sonido.activo() ? 'Sonido del lector activado: clic para silenciar' : 'Sonido del lector silenciado: clic para activar'"
+                      aria-label="Sonido del lector"
+                      (click)="sonido.alternar()">
+                <i class="bi" [ngClass]="sonido.activo() ? 'bi-volume-up-fill' : 'bi-volume-mute-fill'" aria-hidden="true"></i>
+                <span class="pv-buscador__sonido-texto">Sonido</span>
+              </button>
+            </div>
             <div class="pv-teclas" aria-hidden="true">
               <span><kbd class="adm-kbd">Enter</kbd> agregar</span>
               <span><kbd class="adm-kbd">↑</kbd><kbd class="adm-kbd">↓</kbd> elegir de la lista</span>

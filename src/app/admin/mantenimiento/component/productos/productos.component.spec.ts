@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 
 import { ProductosComponent } from './productos.component';
 import { urlConstants } from '../../../../constants/urlConstants';
@@ -674,5 +674,93 @@ describe('ProductosComponent · corregir y subir varias fotos (producto existent
     expect(imagenes.subir).not.toHaveBeenCalled();
     expect(component.subiendo).toBe(false);
     expect(component.preparandoFotos).toBe(false);
+  });
+});
+
+describe('ProductosComponent · código interno y etiquetas', () => {
+  let component: ProductosComponent;
+  const productos = {
+    listar: vi.fn(() => of([])),
+    categorias: vi.fn(() => of([])),
+    marcas: vi.fn(() => of([])),
+    generarCodigoInterno: vi.fn(),
+  };
+  const alerta = { toast: vi.fn(), error: vi.fn(), confirm: vi.fn() };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    productos.generarCodigoInterno.mockReturnValue(of({ codigo: '2000000000015' }));
+    await TestBed.configureTestingModule({
+      imports: [ProductosComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ProductoAdminService, useValue: productos },
+        { provide: ProductoImagenService, useValue: { listar: vi.fn(() => of([])) } },
+        { provide: AlertService, useValue: alerta },
+        { provide: AuthService, useValue: { puedeEditarCatalogo: () => true } },
+      ],
+    })
+      .overrideComponent(ProductosComponent, { set: { template: '' } })
+      .compileComponents();
+    const fixture = TestBed.createComponent(ProductosComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('generar código escribe el código del servidor en el campo de barras', () => {
+    component.abrirNuevo();
+    component.generarCodigoInterno();
+
+    expect(productos.generarCodigoInterno).toHaveBeenCalledTimes(1);
+    expect(component.formulario.codigo_barras).toBe('2000000000015');
+    expect(component.generandoCodigo).toBe(false);
+  });
+
+  it('si el campo ya tiene valor no pide nada ni lo pisa', () => {
+    component.abrirNuevo();
+    component.formulario.codigo_barras = '7501234567893';
+    component.generarCodigoInterno();
+
+    expect(productos.generarCodigoInterno).not.toHaveBeenCalled();
+    expect(component.formulario.codigo_barras).toBe('7501234567893');
+  });
+
+  it('mientras pide no lanza una segunda petición; si el usuario escribió, no lo pisa', () => {
+    const respuesta = new Subject<{ codigo: string }>();
+    productos.generarCodigoInterno.mockReturnValue(respuesta);
+    component.abrirNuevo();
+
+    component.generarCodigoInterno();
+    component.generarCodigoInterno();
+    expect(productos.generarCodigoInterno).toHaveBeenCalledTimes(1);
+    expect(component.generandoCodigo).toBe(true);
+
+    component.formulario.codigo_barras = 'ESCANEADO-1';
+    respuesta.next({ codigo: '2000000000015' });
+    respuesta.complete();
+
+    expect(component.formulario.codigo_barras).toBe('ESCANEADO-1');
+    expect(component.generandoCodigo).toBe(false);
+  });
+
+  it('si el servidor falla avisa con el mensaje y deja el campo vacío', () => {
+    productos.generarCodigoInterno.mockReturnValue(
+      throwError(() => ({ status: 500, error: { message: 'Falta correr sql/codigo_interno_secuencia.sql' } })),
+    );
+    component.abrirNuevo();
+    component.generarCodigoInterno();
+
+    expect(alerta.error).toHaveBeenCalledWith(expect.objectContaining({ title: 'No se pudo generar el código' }));
+    expect(component.formulario.codigo_barras).toBe('');
+    expect(component.generandoCodigo).toBe(false);
+  });
+
+  it('abrir y cerrar etiquetas guarda y limpia el producto', () => {
+    const producto: any = { id_producto: 1, nombre: 'Martillo', precio_venta: 10, codigo_barras: '2000000000015' };
+    component.abrirEtiquetas(producto);
+    expect(component.etiquetasProducto).toBe(producto);
+    component.cerrarEtiquetas();
+    expect(component.etiquetasProducto).toBeNull();
   });
 });

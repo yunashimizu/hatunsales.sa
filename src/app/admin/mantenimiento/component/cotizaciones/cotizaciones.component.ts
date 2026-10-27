@@ -23,7 +23,10 @@ import {
 } from 'rxjs';
 
 import { AlertService } from '../../../../shared/services/alert.service';
+import { SonidoCajaService } from '../../../../shared/services/sonido-caja.service';
 import { telefonoValidoPe, urlWhatsappCliente } from '../../../../shared/utils/whatsapp.util';
+import { extraerMultiplicador, normalizarCodigo, pareceCodigoExacto } from '../../../../shared/utils/codigo-barras.util';
+import { ColaEscaneos } from '../../../../shared/utils/cola-escaneos';
 import {
   errorOperativo,
   escapeHtmlAlerta,
@@ -39,6 +42,13 @@ import {
 import { AlmacenPos, PuntoVentaService } from '../../../service/punto-venta.service';
 import { ReceptorService } from '../../../service/receptor.service';
 import { ProductoVenta, Receptor, SugerenciaReceptor } from '../../../models/admin.models';
+
+/** Un escaneo en cola: código normalizado, cantidad del multiplicador `5*código` y la sugerencia única visible. */
+interface EscaneoPendiente {
+  codigo: string;
+  cantidad: number;
+  sugerida: ProductoVenta | null;
+}
 
 type LineaCot = {
   id_producto: number;
@@ -107,6 +117,8 @@ function errorLocal(message: string, codigo = 'COTIZACION_DOCUMENTO_ERROR') {
 })
 export class CotizacionesComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
+  /** Pitidos del lector (ok / error) con interruptor junto al campo. */
+  readonly sonido = inject(SonidoCajaService);
   private readonly destruir$ = new Subject<void>();
   private readonly buscarProd$ = new Subject<string>();
   private readonly buscarCli$ = new Subject<string>();
@@ -159,7 +171,17 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
 
   cotizacionActual: Cotizacion | null = null;
 
-  private escaneandoCodigo = false;
+  /**
+   * Cola serial de escaneos (igual que el POS): el Enter del lector vacía el campo y encola el
+   * código; se procesan de a uno y un fallo no detiene los siguientes.
+   */
+  private readonly colaEscaneos = new ColaEscaneos<EscaneoPendiente>(
+    (escaneo) => this.resolverEscaneo(escaneo),
+    () => {
+      this.buscandoProd = false;
+      this.refrescar();
+    },
+  );
   private ultimoDocumentoAuto = '';
   private destruido = false;
   /** Guardado en vuelo: si llegan dos clics (Guardar + PDF) se reutiliza el mismo POST. */
@@ -215,6 +237,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destruido = true;
+    this.colaEscaneos.vaciar();
     this.destruir$.next();
     this.destruir$.complete();
   }
@@ -696,11 +719,15 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     this.refrescar();
   }
 
-  agregarProducto(p: ProductoVenta): void {
+  /**
+   * `limpiarBuscador = false`: la cola del lector no debe borrar el principio del siguiente escaneo.
+   * `cantidad` (multiplicador `5*código`) se suma una sola vez; por defecto 1.
+   */
+  agregarProducto(p: ProductoVenta, limpiarBuscador = true, cantidad = 1): void {
     if (this.soloLectura) return;
     const existente = this.lineas.find((l) => l.id_producto === p.id_producto);
     if (existente) {
-      existente.cantidad += 1;
+      existente.cantidad += cantidad;
     } else {
       this.lineas = [
         ...this.lineas,
@@ -708,15 +735,17 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
           id_producto: p.id_producto,
           descripcion: p.nombre,
           sku: p.sku || '',
-          cantidad: 1,
+          cantidad,
           precio_unitario: Number(p.precio_final) || 0,
           stock_disponible: Number(p.stock_disponible) || 0,
         },
       ];
     }
-    this.textoProducto = '';
-    this.sugerenciasProd = [];
-    this.origenSugerencias = 'ninguno';
+    if (limpiarBuscador) {
+      this.textoProducto = '';
+      this.sugerenciasProd = [];
+      this.origenSugerencias = 'ninguno';
+    }
     this.refrescar();
   }
 
@@ -724,49 +753,90 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
   alPresionarEnProducto(evento: KeyboardEvent): void {
     if (evento.key !== 'Enter') return;
     evento.preventDefault();
-    if (this.escaneandoCodigo || this.soloLectura) return;
+    if (this.soloLectura) return;
 
-    const codigo = this.textoProducto.trim();
-    if (!codigo) return;
+    // Orden fijo: normalizar → multiplicador (`5*código`) → ¿parece código?
+    const texto = normalizarCodigo(this.textoProducto);
+    if (!texto) return;
+    const { cantidad, codigo } = extraerMultiplicador(texto);
 
-    const local = this.pv.porCodigoLocal(codigo);
-    if (local) {
-      this.agregarProducto(local);
-      this.alerta.toast({ type: 'success', title: local.nombre, timer: 1200 });
-      return;
-    }
-
-    if (!this.pareceCodigoExacto(codigo)) {
+    // Un nombre ("acero") no va por código: se agrega solo si hay una única sugerencia.
+    if (!pareceCodigoExacto(codigo) && !this.pv.porCodigoLocal(codigo)) {
       if (this.sugerenciasProd.length === 1) this.agregarProducto(this.sugerenciasProd[0]);
       return;
     }
 
-    this.escaneandoCodigo = true;
-    this.buscandoProd = true;
-    this.refrescar();
-    this.pv.porCodigoBarras(codigo, this.buscarTodasLasSedes ? null : this.idAlmacen).pipe(
-      takeUntil(this.destruir$),
-      catchError(() => of(null as ProductoVenta | null)),
-    ).subscribe((producto) => {
-      this.escaneandoCodigo = false;
-      this.buscandoProd = false;
-      if (producto) {
-        this.agregarProducto(producto);
-        this.alerta.toast({ type: 'success', title: producto.nombre, timer: 1200 });
-      } else if (this.sugerenciasProd.length === 1) {
-        this.agregarProducto(this.sugerenciasProd[0]);
-      } else {
-        this.alerta.toast({ type: 'warning', title: `No hay producto con el código ${codigo}` });
-      }
-      this.refrescar();
-    });
+    // Única sugerencia visible al pulsar Enter: se usa si el código no existe exacto (tecleo parcial).
+    const sugerida = this.sugerenciasProd.length === 1 ? this.sugerenciasProd[0] : null;
+    this.encolarEscaneo({ codigo, cantidad, sugerida });
   }
 
-  private pareceCodigoExacto(texto: string): boolean {
-    const t = texto.trim();
-    if (!t || /\s/.test(t)) return false;
-    if (/^\d{4,}$/.test(t)) return true;
-    return /^[A-Za-z0-9][A-Za-z0-9\-_.]*$/.test(t) && /\d/.test(t);
+  /** Vacía el campo en el acto (el siguiente escaneo no se concatena) y encola el código. */
+  private encolarEscaneo(escaneo: EscaneoPendiente): void {
+    this.textoProducto = '';
+    this.sugerenciasProd = [];
+    this.origenSugerencias = 'ninguno';
+    this.buscarProd$.next(''); // cancela una búsqueda por texto en vuelo o pendiente
+    this.colaEscaneos.encolar(escaneo);
+    this.refrescar();
+  }
+
+  /** Resuelve un código de la cola. Nunca falla: cada resultado avisa por separado. */
+  private resolverEscaneo({ codigo, cantidad, sugerida }: EscaneoPendiente): Observable<void> | void {
+    const local = this.pv.porCodigoLocal(codigo);
+    if (local) {
+      this.agregarDeEscaneo(local, cantidad);
+      return;
+    }
+
+    this.buscandoProd = true;
+    this.refrescar();
+    return this.pv.porCodigoBarras(codigo, this.buscarTodasLasSedes ? null : this.idAlmacen).pipe(
+      takeUntil(this.destruir$),
+      map((producto) => {
+        this.agregarDeEscaneo(producto, cantidad);
+        this.refrescar();
+      }),
+      catchError((error) => {
+        if (error?.status === 404) {
+          if (sugerida) this.agregarDeEscaneo(sugerida, cantidad);
+          else {
+            this.sonido.error();
+            this.alerta.toast({ type: 'warning', title: `No hay producto con el código ${codigo}` });
+          }
+        } else if (error?.status === 409) {
+          // Conflicto del servidor (p. ej. producto inactivo): su mensaje dice qué pasó.
+          this.sonido.error();
+          this.alerta.toast({
+            type: 'warning',
+            title: error?.error?.message || `El código ${codigo} tiene un conflicto`,
+          });
+        } else {
+          this.sonido.error();
+          this.alerta.toast({
+            type: 'error',
+            title: mensajeDeError(error, `No se pudo verificar el código ${codigo}`),
+          });
+        }
+        this.refrescar();
+        return of(undefined);
+      }),
+    );
+  }
+
+  /** Agrega el producto leído y avisa: toast con el nombre («· ahora N» si la línea ya estaba) y pitido. */
+  private agregarDeEscaneo(producto: ProductoVenta, cantidad: number): void {
+    const antes = this.lineas.find((l) => l.id_producto === producto.id_producto)?.cantidad;
+    this.agregarProducto(producto, false, cantidad);
+    const linea = this.lineas.find((l) => l.id_producto === producto.id_producto);
+    if (!linea || linea.cantidad === antes) {
+      // agregarProducto() sale sin cambios si la cotización es de solo lectura: no se simula un éxito.
+      this.sonido.aviso();
+      return;
+    }
+    this.sonido.ok();
+    const titulo = antes !== undefined ? `${producto.nombre} · ahora ${linea.cantidad}` : producto.nombre;
+    this.alerta.toast({ type: 'success', title: titulo, timer: 1200 });
   }
 
   /** Cantidad entera >= 1 (misma regla que el POS y la columna INTEGER). */

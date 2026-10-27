@@ -34,6 +34,8 @@ describe('RecepcionComponent · revisiones y confirmación sin duplicados', () =
     close: vi.fn(),
   };
 
+  const puntoVenta = { porCodigoBarras: vi.fn(), resolverCodigo: vi.fn() };
+
   beforeEach(async () => {
     vi.clearAllMocks();
     await TestBed.configureTestingModule({
@@ -41,7 +43,7 @@ describe('RecepcionComponent · revisiones y confirmación sin duplicados', () =
       providers: [
         { provide: RecepcionService, useValue: api },
         { provide: GestionService, useValue: { getAlmacenesAdmin: vi.fn(() => of([{ id_almacen: 1, nombre: 'Principal' }])) } },
-        { provide: PuntoVentaService, useValue: { porCodigoBarras: vi.fn() } },
+        { provide: PuntoVentaService, useValue: puntoVenta },
         { provide: NotificationService, useValue: { error: vi.fn() } },
         { provide: AlertService, useValue: alerta },
       ],
@@ -155,5 +157,93 @@ describe('RecepcionComponent · revisiones y confirmación sin duplicados', () =
     await component.confirmar();
 
     expect(alerta.success).toHaveBeenCalledWith(expect.objectContaining({ title: 'Recepción ya registrada' }));
+  });
+
+  describe('escaneo con el lector', () => {
+    const enter = () => ({ key: 'Enter', preventDefault: vi.fn() }) as unknown as KeyboardEvent;
+    const escanear = (texto: string) => {
+      component.textoProducto = texto;
+      component.alPresionarProducto(enter());
+    };
+    const cemento = { id_producto: 1, nombre: 'CEMENTO', sku: 'CEM-01', codigo_barras: '7501234567890' };
+    const clavo = { id_producto: 2, nombre: 'CLAVO', sku: 'CLA-2', codigo_barras: '7509999999999' };
+    const titulos = () => alerta.toast.mock.calls.map((c: any[]) => c[0].title);
+
+    it('dos escaneos seguidos con el primero esperando al servidor entran ambos, en orden, y el campo queda libre', () => {
+      const primero = new Subject<any>();
+      puntoVenta.resolverCodigo.mockImplementation((codigo: string) =>
+        codigo === cemento.codigo_barras ? primero : of({ estado: 'ok', producto: clavo }),
+      );
+
+      escanear(cemento.codigo_barras);
+      expect(component.textoProducto).toBe('');
+      expect(component.escaneando).toBe(true);
+      escanear(clavo.codigo_barras);
+      expect(component.textoProducto).toBe('');
+      // El segundo espera su turno: aún no se pidió al servicio.
+      expect(puntoVenta.resolverCodigo).toHaveBeenCalledTimes(1);
+
+      primero.next({ estado: 'ok', producto: cemento });
+      primero.complete();
+
+      expect(puntoVenta.resolverCodigo.mock.calls.map((c: any[]) => c[0])).toEqual([
+        cemento.codigo_barras,
+        clavo.codigo_barras,
+      ]);
+      // La recepción pone la línea nueva arriba: el último escaneado queda primero.
+      expect(component.lineas.map((l) => l.nombre)).toEqual(['CLAVO', 'CEMENTO']);
+      expect(component.escaneando).toBe(false);
+    });
+
+    it('pasa el almacén de la recepción y suma al repetir con «ahora N» y el multiplicador', () => {
+      component.idAlmacen = 1;
+      puntoVenta.resolverCodigo.mockReturnValue(of({ estado: 'ok', producto: cemento }));
+
+      escanear(cemento.codigo_barras);
+      escanear(`4*${cemento.codigo_barras}`);
+
+      expect(puntoVenta.resolverCodigo).toHaveBeenCalledWith(cemento.codigo_barras, 1);
+      expect(component.lineas).toHaveLength(1);
+      expect(component.lineas[0].cantidad_ok).toBe(5);
+      expect(titulos()).toEqual(['CEMENTO', 'CEMENTO · ahora 5']);
+    });
+
+    it('un producto inactivo avisa con el mensaje del servidor y no agrega; el siguiente escaneo sigue', () => {
+      puntoVenta.resolverCodigo
+        .mockReturnValueOnce(of({ estado: 'inactivo', mensaje: 'El producto "TUBO" existe pero está inactivo' }))
+        .mockReturnValueOnce(of({ estado: 'ok', producto: clavo }));
+
+      escanear('555666777');
+      expect(component.lineas).toHaveLength(0);
+      expect(titulos()).toEqual(['El producto "TUBO" existe pero está inactivo']);
+
+      escanear(clavo.codigo_barras);
+      expect(component.lineas.map((l) => l.nombre)).toEqual(['CLAVO']);
+    });
+
+    it('distingue «no existe» de un fallo de red', () => {
+      puntoVenta.resolverCodigo
+        .mockReturnValueOnce(of({ estado: 'no_existe' }))
+        .mockReturnValueOnce(of({ estado: 'error', mensaje: 'Sin conexión con el servidor' }));
+
+      escanear('000111222');
+      escanear('333444555');
+
+      expect(component.lineas).toHaveLength(0);
+      const [noExiste, red] = titulos();
+      expect(noExiste).toBe('No hay producto con el código 000111222');
+      expect(red).toContain('No se pudo verificar el código 333444555');
+      expect(red).toContain('Sin conexión con el servidor');
+    });
+
+    it('un nombre escrito no llama al servicio, avisa y conserva el texto', () => {
+      escanear('cemento sol');
+
+      expect(puntoVenta.resolverCodigo).not.toHaveBeenCalled();
+      expect(puntoVenta.porCodigoBarras).not.toHaveBeenCalled();
+      expect(titulos()).toEqual(['Escriba o escanee un código']);
+      expect(component.textoProducto).toBe('cemento sol');
+      expect(component.lineas).toHaveLength(0);
+    });
   });
 });

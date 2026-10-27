@@ -1,12 +1,20 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
-import { catchError, shareReplay, tap } from 'rxjs/operators';
+import { catchError, map, shareReplay, tap } from 'rxjs/operators';
 import { urlConstants } from '../../constants/urlConstants';
 import {
   Paginado, PreviewComprobante, ProductoVenta, VentaRegistrada,
 } from '../models/admin.models';
-import { cabecerasAutenticadas, opcionesHttp } from './api-base.service';
+import { normalizarCodigo } from '../../shared/utils/codigo-barras.util';
+import { cabecerasAutenticadas, mensajeDeError, opcionesHttp } from './api-base.service';
+
+/** Resultado de `resolverCodigo`: el llamador distingue «no existe», «inactivo» y «fallo de red/servidor». */
+export interface ResultadoCodigo {
+  estado: 'ok' | 'no_existe' | 'inactivo' | 'error';
+  producto?: ProductoVenta;
+  mensaje?: string;
+}
 
 export interface SolicitudVenta {
   documento?: string;
@@ -210,7 +218,7 @@ export class PuntoVentaService {
 
   /** Match exacto local (lector / SKU). */
   porCodigoLocal(codigo: string): ProductoVenta | null {
-    const valor = (codigo ?? '').trim();
+    const valor = normalizarCodigo(codigo);
     if (!valor || !this.catalogo.length) return null;
 
     const porBarcode = this.catalogo.find((p) => (p.codigo_barras || '') === valor);
@@ -301,14 +309,38 @@ export class PuntoVentaService {
   }
 
   porCodigoBarras(codigo: string, idAlmacen?: number | null): Observable<ProductoVenta> {
-    let params = new HttpParams();
+    let params = new HttpParams().set('codigo', normalizarCodigo(codigo));
     if (idAlmacen != null && Number(idAlmacen) > 0) {
       params = params.set('id_almacen', String(idAlmacen));
     }
-    return this.http.get<ProductoVenta>(urlConstants.puntoVenta.porCodigoBarras(codigo), {
+    return this.http.get<ProductoVenta>(urlConstants.puntoVenta.porCodigoBarras, {
       ...opcionesHttp(),
       params,
     });
+  }
+
+  /**
+   * Resuelve un código leído (lector o teclado): primero el catálogo en memoria, luego el servidor.
+   * Nunca emite error: 404 = `no_existe`; 409 `PRODUCTO_INACTIVO` = `inactivo` (con el mensaje del
+   * servidor); cualquier otro fallo (red, 5xx) = `error`. Así el llamador distingue los tres casos.
+   */
+  resolverCodigo(codigo: string, idAlmacen?: number | null): Observable<ResultadoCodigo> {
+    const local = this.porCodigoLocal(codigo);
+    if (local) return of<ResultadoCodigo>({ estado: 'ok', producto: local });
+
+    return this.porCodigoBarras(codigo, idAlmacen).pipe(
+      map((producto): ResultadoCodigo => ({ estado: 'ok', producto })),
+      catchError((error): Observable<ResultadoCodigo> => {
+        if (error?.status === 404) return of({ estado: 'no_existe' });
+        if (error?.status === 409 && error?.error?.codigo === 'PRODUCTO_INACTIVO') {
+          return of({
+            estado: 'inactivo',
+            mensaje: error?.error?.message || 'El producto existe pero está inactivo',
+          });
+        }
+        return of({ estado: 'error', mensaje: mensajeDeError(error) });
+      }),
+    );
   }
 
   metodosPago(): Observable<{ id_metodo: number; nombre: string; tipo?: string }[]> {

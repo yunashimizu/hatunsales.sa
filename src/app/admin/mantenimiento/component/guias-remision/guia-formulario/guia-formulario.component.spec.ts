@@ -125,14 +125,19 @@ describe('GuiaFormularioComponent', () => {
     emitir: vi.fn(),
   };
   const alerta = { confirmar: vi.fn(async () => true), errorHttp: vi.fn(async () => undefined) };
-  const avisos = { exito: vi.fn(), advertencia: vi.fn() };
+  const avisos = { exito: vi.fn(), advertencia: vi.fn(), error: vi.fn() };
+  const ventasApi = {
+    listar: vi.fn(() => of({ datos: [] })),
+    buscarProductos: vi.fn(() => of([])),
+    resolverCodigo: vi.fn(),
+  };
 
   async function crear(entradas: { idVenta?: number | null; idGuia?: number | null } = {}): Promise<void> {
     await TestBed.configureTestingModule({
       imports: [GuiaFormularioComponent],
       providers: [
         { provide: GuiaRemisionService, useValue: api },
-        { provide: PuntoVentaService, useValue: { listar: vi.fn(() => of({ datos: [] })), buscarProductos: vi.fn(() => of([])) } },
+        { provide: PuntoVentaService, useValue: ventasApi },
         { provide: GestionService, useValue: { getSunatRuc: vi.fn(() => of({ nombre: 'TRANSPORTES SAC', estado: 'ACTIVO', condicion: 'HABIDO' })) } },
         { provide: UbigeoService, useValue: { buscar: vi.fn(() => of([])), obtener: vi.fn() } },
         { provide: AlertService, useValue: alerta },
@@ -389,5 +394,57 @@ describe('GuiaFormularioComponent', () => {
     await componente.emitirASunat();
     expect(alerta.errorHttp).toHaveBeenCalledWith(expect.objectContaining({ status: 503 }), 'No se pudo emitir la guía a SUNAT');
     expect(api.modo).toHaveBeenLastCalledWith(true);
+  });
+
+  describe('escaneo en el buscador de bienes', () => {
+    const cemento = { id_producto: 3, nombre: 'Cemento 42.5 kg', sku: 'CEM-01', codigo_barras: '7501234567890', unidad_medida: 'NIU' } as any;
+    const enter = () => ({ preventDefault: vi.fn() }) as unknown as Event;
+
+    function escanear(texto: string): Event {
+      componente.busquedaProducto = texto;
+      const evento = enter();
+      componente.alEnterBuscarProducto(evento);
+      return evento;
+    }
+
+    it('un código leído agrega la línea, vacía el campo y no envía el formulario', async () => {
+      ventasApi.resolverCodigo.mockReturnValue(of({ estado: 'ok', producto: cemento }));
+      await crear();
+
+      const evento = escanear('7501234567890');
+
+      expect(evento.preventDefault).toHaveBeenCalled();
+      expect(ventasApi.resolverCodigo).toHaveBeenCalledWith('7501234567890');
+      expect(componente.f.items.map((i) => [i.id_producto, i.descripcion, i.cantidad])).toEqual([[3, 'Cemento 42.5 kg', 1]]);
+      expect(componente.busquedaProducto).toBe('');
+
+      // Repetirlo avisa «ya está en la guía» y no duplica la línea.
+      escanear('7501234567890');
+      expect(componente.f.items).toHaveLength(1);
+      expect(avisos.advertencia).toHaveBeenCalledWith('Ese producto ya está en la guía', expect.anything());
+    });
+
+    it('un código inexistente avisa y no agrega', async () => {
+      ventasApi.resolverCodigo.mockReturnValue(of({ estado: 'no_existe' }));
+      await crear();
+
+      escanear('000111222');
+
+      expect(componente.f.items).toHaveLength(0);
+      expect(avisos.advertencia).toHaveBeenCalledWith('No hay producto con el código 000111222');
+    });
+
+    it('un nombre no llama al servicio; con un único resultado lo agrega, y con varios no hace nada', async () => {
+      await crear();
+
+      componente.productosEncontrados = [cemento, { ...cemento, id_producto: 4 }];
+      escanear('cemento');
+      expect(componente.f.items).toHaveLength(0);
+
+      componente.productosEncontrados = [cemento];
+      escanear('cemento');
+      expect(componente.f.items.map((i) => i.id_producto)).toEqual([3]);
+      expect(ventasApi.resolverCodigo).not.toHaveBeenCalled();
+    });
   });
 });

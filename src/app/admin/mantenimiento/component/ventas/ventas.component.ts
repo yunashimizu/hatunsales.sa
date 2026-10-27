@@ -14,12 +14,15 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   Subject, debounceTime, distinctUntilChanged, of, switchMap, takeUntil,
-  catchError, EMPTY, finalize, tap, timer,
+  catchError, EMPTY, finalize, map, tap, timer, Observable,
 } from 'rxjs';
 
 import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { SonidoCajaService } from '../../../../shared/services/sonido-caja.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
+import { extraerMultiplicador, normalizarCodigo, pareceCodigoExacto } from '../../../../shared/utils/codigo-barras.util';
+import { ColaEscaneos } from '../../../../shared/utils/cola-escaneos';
 import { ReceptorService } from '../../../service/receptor.service';
 import { AlmacenPos, PuntoVentaService, SolicitudVenta } from '../../../service/punto-venta.service';
 import { CajaSesionService } from '../../../service/caja-sesion.service';
@@ -35,6 +38,12 @@ import {
 } from './producto-rapido/producto-rapido.component';
 
 const LS_ALMACEN = 'pos_id_almacen';
+
+/** Un escaneo en cola: código ya normalizado y cantidad del multiplicador `5*código` (1 si no hay). */
+interface EscaneoPendiente {
+  codigo: string;
+  cantidad: number;
+}
 
 /**
  * Punto de venta de mostrador.
@@ -59,6 +68,8 @@ export class VentasComponent implements OnInit, OnDestroy {
   @ViewChild('inputProducto') private inputProducto?: ElementRef<HTMLInputElement>;
 
   private readonly cdr = inject(ChangeDetectorRef);
+  /** Pitidos del lector (ok / error / aviso) con interruptor junto al campo. */
+  readonly sonido = inject(SonidoCajaService);
 
   /** Fuerza repaint bajo shell OnPush (mismo patrón que Productos/Clientes). */
   private refrescarVista(): void {
@@ -68,8 +79,25 @@ export class VentasComponent implements OnInit, OnDestroy {
   readonly TIPO_FACTURA = TIPO_FACTURA;
   readonly TIPO_BOLETA = TIPO_BOLETA;
 
-  /** Evita doble Enter del lector mientras llega la respuesta exacta. */
-  private escaneandoCodigo = false;
+  /**
+   * Cola serial de escaneos: el Enter del lector vacía el campo y encola el código, así dos
+   * productos seguidos nunca se concatenan ni se pierden aunque el primero espere al servidor.
+   */
+  private readonly colaEscaneos = new ColaEscaneos<EscaneoPendiente>(
+    (escaneo) => this.resolverEscaneo(escaneo),
+    () => {
+      this.buscandoProducto = false;
+      this.refrescarVista();
+    },
+  );
+
+  /** Verdadero mientras haya un escaneo en curso o esperando turno. */
+  private get escaneandoCodigo(): boolean {
+    return this.colaEscaneos.ocupada;
+  }
+
+  /** Código cuya verificación falló por red/servidor (no 404): «Reintentar» lo vuelve a encolar. */
+  private codigoParaReintentar: EscaneoPendiente | null = null;
 
   idTipo: number = TIPO_BOLETA;
   /** Serie fiscal solo lectura: la asigna el sistema según boleta/factura. */
@@ -111,7 +139,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   buscandoProducto = false;
   errorBusquedaProducto = '';
   /** Último intento explícito (Enter / lector) que no encontró nada; habilita la tarjeta «Sin resultados». */
-  busquedaFallida: { texto: string; esCodigo: boolean } | null = null;
+  busquedaFallida: { texto: string; esCodigo: boolean; desdeLector?: boolean } | null = null;
 
   // ── Alta rápida de producto ───────────────────────────────────
   /** Admin/vendedor: los únicos roles que pueden crear productos e ingresar stock (se lee una vez). */
@@ -424,6 +452,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.colaEscaneos.vaciar();
     this.destruir$.next();
     this.destruir$.complete();
   }
@@ -1016,69 +1045,116 @@ export class VentasComponent implements OnInit, OnDestroy {
     if (evento.key !== 'Enter') return;
 
     evento.preventDefault();
-    if (this.escaneandoCodigo) return;
 
     if (this.indiceProducto >= 0 && this.sugerenciasProducto[this.indiceProducto]) {
       this.agregarProducto(this.sugerenciasProducto[this.indiceProducto]);
       return;
     }
 
-    const codigo = this.textoProducto.trim();
-    if (!codigo) return;
+    // Orden fijo: normalizar → multiplicador (`5*código`) → ¿parece código?
+    const texto = normalizarCodigo(this.textoProducto);
+    if (!texto) return;
+    const { cantidad, codigo } = extraerMultiplicador(texto);
 
     // Lector USB / SKU: lookup exacto. Nombres ("acero") van por búsqueda, no por barcode.
-    if (this.pareceCodigoExacto(codigo)) {
-      this.consultarCodigoExacto(codigo);
+    if (pareceCodigoExacto(codigo)) {
+      this.encolarEscaneo({ codigo, cantidad });
       return;
     }
 
-    this.resolverBusquedaPorNombre(codigo);
+    this.resolverBusquedaPorNombre(texto);
   }
 
-  /** Códigos de barras / SKU: numéricos o alfanuméricos con dígito, sin espacios. */
-  private pareceCodigoExacto(texto: string): boolean {
-    const t = texto.trim();
-    if (!t || /\s/.test(t)) return false;
-    if (/^\d{4,}$/.test(t)) return true;
-    return /^[A-Za-z0-9][A-Za-z0-9\-_.]*$/.test(t) && /\d/.test(t);
+  /**
+   * Captura el código, vacía el campo en el acto (el siguiente escaneo no se concatena) y lo
+   * encola. Se procesa de a uno, en orden: local o servidor; un fallo no detiene los siguientes.
+   */
+  private encolarEscaneo(escaneo: EscaneoPendiente): void {
+    this.busquedaProductoId++; // descarta una búsqueda por texto en vuelo: ya no hay texto que mostrar
+    this.textoProducto = '';
+    this.sugerenciasProducto = [];
+    this.indiceProducto = -1;
+    this.busquedaFallida = null;
+    this.colaEscaneos.encolar(escaneo);
+    this.refrescarVista();
   }
 
-  private consultarCodigoExacto(codigo: string): void {
+  /** Resuelve un código de la cola. Nunca falla: cada resultado avisa por separado. */
+  private resolverEscaneo({ codigo, cantidad }: EscaneoPendiente): Observable<void> | void {
     const local = this.puntoVenta.porCodigoLocal(codigo);
     if (local) {
-      this.agregarProducto(local);
-      this.alerta.toast({ type: 'success', title: local.nombre, timer: 1200 });
+      this.agregarDeEscaneo(local, cantidad);
+      this.refrescarVista();
       return;
     }
 
-    this.escaneandoCodigo = true;
     this.buscandoProducto = true;
-    this.errorBusquedaProducto = '';
     this.refrescarVista();
-    this.puntoVenta.porCodigoBarras(codigo, this.idAlmacen).subscribe({
-      next: (producto) => {
-        this.escaneandoCodigo = false;
-        this.buscandoProducto = false;
-        this.agregarProducto(producto);
-        this.alerta.toast({ type: 'success', title: producto.nombre, timer: 1200 });
+    return this.puntoVenta.porCodigoBarras(codigo, this.idAlmacen).pipe(
+      takeUntil(this.destruir$),
+      tap((producto) => {
+        this.agregarDeEscaneo(producto, cantidad);
         this.refrescarVista();
-      },
-      error: (error) => {
-        this.escaneandoCodigo = false;
-        this.buscandoProducto = false;
-        this.refrescarVista();
+      }),
+      catchError((error) => {
         // Solo un 404 prueba que el código no existe; con un corte de red no se ofrece crearlo.
+        this.sonido.error();
         if (error?.status === 404) {
-          this.errorBusquedaProducto = '';
           this.alerta.toast({ type: 'warning', title: `No hay producto con el código ${codigo}` });
-          this.marcarBusquedaFallida(codigo);
+          // Con el campo ya libre para el siguiente escaneo, la tarjeta «Crear producto» sale del propio fallo.
+          if (!this.textoProducto.trim()) this.marcarBusquedaFallida(codigo, true);
+        } else if (error?.status === 409) {
+          // Producto inactivo (PRODUCTO_INACTIVO) u otro conflicto: el código SÍ existe, así que se
+          // muestra el mensaje del servidor y no se ofrece «Crear producto» ni «Reintentar».
+          this.busquedaFallida = null;
+          this.alerta.toast({
+            type: 'warning',
+            title: error?.error?.message || `El código ${codigo} tiene un conflicto`,
+          });
         } else {
-          this.errorBusquedaProducto = mensajeDeError(error, 'No se pudo verificar el código');
+          this.errorBusquedaProducto = `${mensajeDeError(error, 'No se pudo verificar el código')} (código ${codigo})`;
+          this.codigoParaReintentar = { codigo, cantidad };
           this.alerta.toast({ type: 'error', title: this.errorBusquedaProducto });
         }
+        this.refrescarVista();
         this.enfocarBuscadorProducto();
-      },
-    });
+        return EMPTY;
+      }),
+      map(() => undefined),
+    );
+  }
+
+  /**
+   * Agrega el producto leído por el lector y avisa: toast con el nombre (y «· ahora N» si la línea
+   * ya estaba) y pitido (`aviso` si la línea queda por encima del stock, `ok` si no).
+   */
+  private agregarDeEscaneo(producto: ProductoVenta, cantidad: number): void {
+    const antes = this.lineas.find((l) => l.id_producto === producto.id_producto)?.cantidad;
+    this.agregarProducto(producto, false, cantidad);
+    const linea = this.lineas.find((l) => l.id_producto === producto.id_producto);
+    if (!linea || linea.cantidad === antes) {
+      // agregarProducto() sale sin cambios si hay un cobro en curso: no se simula un éxito.
+      this.sonido.aviso();
+      this.alerta.toast({ type: 'warning', title: 'No se agregó el producto: hay un cobro en curso' });
+      return;
+    }
+    const excede = (antes !== undefined || cantidad > 1) && linea.cantidad > linea.stock_disponible;
+    if (excede) this.sonido.aviso();
+    else this.sonido.ok();
+    const titulo = antes !== undefined ? `${producto.nombre} · ahora ${linea.cantidad}` : producto.nombre;
+    this.alerta.toast({ type: 'success', title: titulo, timer: 1200 });
+  }
+
+  /** «Reintentar» del aviso de error de búsqueda: repite el último código que falló por red. */
+  reintentarBusquedaProducto(): void {
+    const codigo = this.codigoParaReintentar;
+    if (codigo && !this.textoProducto.trim()) {
+      this.codigoParaReintentar = null;
+      this.errorBusquedaProducto = '';
+      this.encolarEscaneo(codigo);
+      return;
+    }
+    this.alEnfocarProducto();
   }
 
   private resolverBusquedaPorNombre(termino: string): void {
@@ -1155,17 +1231,24 @@ export class VentasComponent implements OnInit, OnDestroy {
     }
   }
 
-  agregarProducto(producto: ProductoVenta): void {
+  /**
+   * `limpiarBuscador = false` lo usa la cola del lector: la respuesta puede llegar cuando el campo ya
+   * trae el principio del siguiente escaneo y no debe borrarlo. `cantidad` (multiplicador `5*código`)
+   * se suma una sola vez; por defecto 1.
+   */
+  agregarProducto(producto: ProductoVenta, limpiarBuscador = true, cantidad = 1): void {
     if (this.emitiendo) return;
-    this.busquedaFallida = null;
-    this.textoProducto = '';
-    this.sugerenciasProducto = [];
-    this.indiceProducto = -1;
+    if (limpiarBuscador) {
+      this.busquedaFallida = null;
+      this.textoProducto = '';
+      this.sugerenciasProducto = [];
+      this.indiceProducto = -1;
+    }
 
     const existente = this.lineas.find((l) => l.id_producto === producto.id_producto);
 
     if (existente) {
-      existente.cantidad += 1;
+      existente.cantidad += cantidad;
       this.avisarSiExcedeStock(existente);
     } else {
       this.lineas = [
@@ -1175,12 +1258,14 @@ export class VentasComponent implements OnInit, OnDestroy {
           descripcion: producto.nombre,
           sku: producto.sku,
           unidad_medida: producto.unidad_medida,
-          cantidad: 1,
+          cantidad,
           precio_unitario: producto.precio_venta,
           descuento: Number(producto.descuento) || 0,
           stock_disponible: producto.stock_disponible,
         },
       ];
+      // Con cantidad 1 no se avisa (como siempre: la tarjeta ya marca «sin stock»); el multiplicador sí.
+      if (cantidad > 1) this.avisarSiExcedeStock(this.lineas[this.lineas.length - 1]);
     }
 
     this.pedirRecalculo();
@@ -1452,6 +1537,8 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
   get puedeEmitir(): boolean {
+    // Con escaneos en cola el carrito aún puede cambiar: el cobro espera a que terminen.
+    if (this.escaneandoCodigo) return false;
     if (this.pideCorreoManual && !this.correoClienteValido) return false;
     if (!this.lineas.length || this.emitiendo || this.calculandoPreview || this.errorPreview || !this.preview) return false;
     if (this.errorReceptorCotizacion) return false;
@@ -2009,6 +2096,8 @@ export class VentasComponent implements OnInit, OnDestroy {
     const texto = this.textoProducto.trim();
     const fallida = this.busquedaFallida;
     const tieneBusquedaActiva = !!texto && !this.sugerenciasProducto.length;
+    // Código del lector que no existe: el campo quedó vacío para el siguiente escaneo.
+    const fallidoPorLector = !!fallida?.desdeLector && !texto && !this.escaneandoCodigo;
     return !!fallida
       && this.puedeCrearRapido
       && !this.panelAltaRapida
@@ -2016,16 +2105,15 @@ export class VentasComponent implements OnInit, OnDestroy {
       && !this.buscandoProducto
       && !this.cambiandoAlmacen
       && !this.cargandoContextoPos
-      && tieneBusquedaActiva
-      && texto === fallida.texto;
+      && (fallidoPorLector || (tieneBusquedaActiva && texto === fallida.texto));
   }
 
   sinStock(producto: ProductoVenta): boolean {
     return Number(producto.stock_disponible ?? 0) <= 0;
   }
 
-  private marcarBusquedaFallida(texto: string): void {
-    this.busquedaFallida = { texto, esCodigo: this.pareceCodigoExacto(texto) };
+  private marcarBusquedaFallida(texto: string, desdeLector = false): void {
+    this.busquedaFallida = { texto, esCodigo: pareceCodigoExacto(texto), ...(desdeLector ? { desdeLector } : {}) };
     this.refrescarVista();
   }
 
@@ -2036,8 +2124,9 @@ export class VentasComponent implements OnInit, OnDestroy {
     if (this.emitiendo || this.cambiandoAlmacen || this.buscandoProducto || this.escaneandoCodigo) return;
 
     // Se captura ANTES de nada: agregarProducto() limpia el texto del buscador.
-    const texto = this.textoProducto.trim();
-    const esCodigo = !!texto && this.pareceCodigoExacto(texto);
+    const texto = this.textoProducto.trim()
+      || (this.busquedaFallida?.desdeLector ? this.busquedaFallida.texto : '');
+    const esCodigo = !!texto && pareceCodigoExacto(texto);
     this.modoAltaRapida = 'crear';
     this.productoIngresoAlta = null;
     this.textoInicialAlta = esCodigo ? '' : texto;

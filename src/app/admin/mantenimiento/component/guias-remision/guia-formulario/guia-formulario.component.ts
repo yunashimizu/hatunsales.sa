@@ -15,6 +15,9 @@ import { FormsModule } from '@angular/forms';
 import { Observable, Subject, catchError, debounceTime, finalize, forkJoin, map, of, switchMap, tap } from 'rxjs';
 import { AlertService } from '../../../../../shared/services/alert.service';
 import { NotificationService } from '../../../../../shared/services/notification.service';
+import { SonidoCajaService } from '../../../../../shared/services/sonido-caja.service';
+import { normalizarCodigo, pareceCodigoExacto } from '../../../../../shared/utils/codigo-barras.util';
+import { ColaEscaneos } from '../../../../../shared/utils/cola-escaneos';
 import { ProductoVenta } from '../../../../models/admin.models';
 import { esErrorDeRed, mensajeDeError } from '../../../../service/api-base.service';
 import {
@@ -291,6 +294,10 @@ export class GuiaFormularioComponent implements OnInit {
   private readonly avisos = inject(NotificationService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly sonido = inject(SonidoCajaService);
+
+  /** Escaneos del lector en el buscador de bienes: se resuelven de a uno, en orden. */
+  private readonly colaEscaneos = new ColaEscaneos<string>((codigo) => this.resolverEscaneo(codigo));
 
   get titulo(): string {
     if (!this.idGuardada) return 'Nueva guía de remisión';
@@ -518,6 +525,54 @@ export class GuiaFormularioComponent implements OnInit {
   buscarProducto(valor: string): void {
     this.busquedaProducto = valor ?? '';
     this.productos$.next(this.busquedaProducto);
+  }
+
+  /**
+   * Enter en el buscador de bienes (lector USB o teclado). Nunca envía el formulario. Si el texto
+   * parece un código se resuelve exacto (local → servidor); si es un nombre y la búsqueda dejó un
+   * único resultado, se agrega; en otro caso no hace nada.
+   */
+  alEnterBuscarProducto(evento: Event): void {
+    evento.preventDefault();
+    const texto = normalizarCodigo(this.busquedaProducto);
+    if (!texto) return;
+
+    if (pareceCodigoExacto(texto)) {
+      // Se vacía el campo en el acto para que el siguiente escaneo no se concatene.
+      this.busquedaProducto = '';
+      this.productosEncontrados = [];
+      this.productos$.next('');
+      this.colaEscaneos.encolar(texto);
+      this.cdr.markForCheck();
+      return;
+    }
+
+    if (this.productosEncontrados.length === 1) this.agregarProducto(this.productosEncontrados[0]);
+  }
+
+  /** Resuelve un código de la cola. Nunca falla: cada resultado avisa por separado. */
+  private resolverEscaneo(codigo: string): Observable<unknown> {
+    return this.ventasApi.resolverCodigo(codigo).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      tap((r) => {
+        if (r.estado === 'ok' && r.producto) {
+          const antes = this.f.items.length;
+          this.agregarProducto(r.producto);
+          if (this.f.items.length > antes) this.sonido.ok();
+          else this.sonido.aviso(); // ya estaba: agregarProducto avisó
+        } else if (r.estado === 'no_existe') {
+          this.sonido.error();
+          this.avisos.advertencia(`No hay producto con el código ${codigo}`);
+        } else if (r.estado === 'inactivo') {
+          this.sonido.error();
+          this.avisos.advertencia(r.mensaje || `El producto con el código ${codigo} está inactivo`);
+        } else {
+          this.sonido.error();
+          this.avisos.error(`No se pudo verificar el código ${codigo}`, { mensaje: r.mensaje });
+        }
+        this.cdr.markForCheck();
+      }),
+    );
   }
 
   agregarProducto(producto: ProductoVenta): void {

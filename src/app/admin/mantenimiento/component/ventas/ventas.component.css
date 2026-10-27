@@ -50,6 +50,9 @@
 .pv-buscador__estado { left: auto; right: 14px; color: var(--adm-primario); }
 .pv-buscador__tecla { margin-left: 2px; padding: 0 5px; font-size: 10.5px; color: inherit; background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.4); }
 .pv-buscador__ayuda { margin: 0; }
+.pv-buscador__pie { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.pv-buscador__pie .pv-buscador__ayuda { flex: 1; min-width: 0; }
+.pv-buscador__sonido { flex-shrink: 0; }
 .pv-teclas { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--adm-texto-suave); }
 .pv-teclas > span { display: inline-flex; align-items: center; gap: 4px; }
 .pv-sugerencia__stock { flex-shrink: 0; }

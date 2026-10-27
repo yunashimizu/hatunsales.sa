@@ -1,9 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 
 import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { SonidoCajaService } from '../../../../shared/services/sonido-caja.service';
 import { ReceptorService } from '../../../service/receptor.service';
 import { PuntoVentaService } from '../../../service/punto-venta.service';
 import { CajaSesionService } from '../../../service/caja-sesion.service';
@@ -18,6 +19,7 @@ describe('VentasComponent', () => {
   let component: VentasComponent;
   let previewServicio: ReturnType<typeof vi.fn>;
   let puntoVentaMock: Record<string, any>;
+  let sonidoMock: { ok: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn>; aviso: ReturnType<typeof vi.fn>; activo: () => boolean; alternar: ReturnType<typeof vi.fn> };
 
   function crearPreview(descuento: number): PreviewComprobante {
     return {
@@ -121,10 +123,12 @@ describe('VentasComponent', () => {
         recargo_tarjeta: 0.59,
       })),
     };
+    sonidoMock = { ok: vi.fn(), error: vi.fn(), aviso: vi.fn(), activo: () => true, alternar: vi.fn() };
     await TestBed.configureTestingModule({
       imports: [VentasComponent],
       providers: [
         provideRouter([]),
+        { provide: SonidoCajaService, useValue: sonidoMock },
         { provide: ReceptorService, useValue: {} },
         { provide: PuntoVentaService, useValue: puntoVentaMock },
         { provide: AlertService, useValue: {
@@ -605,5 +609,221 @@ describe('VentasComponent', () => {
     await new Promise((resolve) => setTimeout(resolve, 80));
 
     expect(component.sugerenciasProducto).toEqual([]);
+  });
+
+  describe('lector de código: cola de escaneos', () => {
+    const producto = (id: number, nombre: string) => ({
+      id_producto: id, nombre, sku: `SKU-${id}`, codigo_barras: String(id).repeat(6), unidad_medida: 'NIU',
+      precio_venta: 10, descuento: 0, precio_final: 10, stock_disponible: 5, imagen_url: '',
+    });
+    const ENTER = () => new KeyboardEvent('keydown', { key: 'Enter' });
+    function escanear(codigo: string): void {
+      component.textoProducto = codigo;
+      component.alPresionarEnProducto(ENTER());
+    }
+
+    beforeEach(() => {
+      puntoVentaMock['porCodigoLocal'] = vi.fn(() => null);
+      component.idAlmacen = 1;
+      (component as any).editaCatalogo = true;
+      component.cargandoContextoPos = false;
+    });
+
+    it('dos códigos seguidos que no están en el catálogo entran los dos, en orden y de a uno', () => {
+      const respuestas = [new Subject<any>(), new Subject<any>()];
+      puntoVentaMock['porCodigoBarras'].mockImplementation((codigo: string) => respuestas[codigo === '111111' ? 0 : 1]);
+
+      escanear('111111');
+      expect(component.textoProducto).toBe('');
+      escanear('222222');
+      expect(component.textoProducto).toBe('');
+
+      expect(puntoVentaMock['porCodigoBarras']).toHaveBeenCalledTimes(1);
+      expect(component.puedeEmitir).toBe(false);
+
+      respuestas[0].next(producto(1, 'CEMENTO'));
+      respuestas[0].complete();
+      expect(puntoVentaMock['porCodigoBarras']).toHaveBeenCalledTimes(2);
+      expect(puntoVentaMock['porCodigoBarras']).toHaveBeenLastCalledWith('222222', 1);
+
+      respuestas[1].next(producto(2, 'ARENA'));
+      respuestas[1].complete();
+
+      expect(component.lineas.map((l) => l.descripcion)).toEqual(['CEMENTO', 'ARENA']);
+      expect(component.textoProducto).toBe('');
+      expect((component as any).escaneandoCodigo).toBe(false);
+    });
+
+    it('la respuesta tardía no borra el principio del siguiente escaneo', () => {
+      const r = new Subject<any>();
+      puntoVentaMock['porCodigoBarras'].mockReturnValue(r);
+
+      escanear('111111');
+      component.textoProducto = '2222'; // el lector sigue escribiendo el segundo código
+      r.next(producto(1, 'CEMENTO'));
+      r.complete();
+
+      expect(component.textoProducto).toBe('2222');
+      expect(component.lineas).toHaveLength(1);
+    });
+
+    it('si el primero da 404 el segundo igual entra y cada uno avisa por separado', () => {
+      const toast = vi.spyOn(TestBed.inject(AlertService), 'toast');
+      puntoVentaMock['porCodigoBarras'].mockImplementation((codigo: string) =>
+        codigo === '111111'
+          ? throwError(() => ({ status: 404 }))
+          : of(producto(2, 'ARENA')));
+
+      escanear('111111');
+      escanear('222222');
+
+      expect(component.lineas.map((l) => l.descripcion)).toEqual(['ARENA']);
+      const titulos = toast.mock.calls.map(([t]) => (t as { title: string }).title);
+      expect(titulos).toContain('No hay producto con el código 111111');
+      expect(titulos).toContain('ARENA');
+    });
+
+    it('un 404 con el campo libre deja el campo vacío y ofrece crear el producto con ese código', () => {
+      puntoVentaMock['porCodigoBarras'].mockReturnValue(throwError(() => ({ status: 404 })));
+
+      escanear('999999');
+
+      expect(component.textoProducto).toBe('');
+      expect(component.busquedaFallida).toMatchObject({ texto: '999999', esCodigo: true, desdeLector: true });
+      expect(component.mostrarTarjetaSinResultados).toBe(true);
+    });
+
+    it('un 409 PRODUCTO_INACTIVO muestra el mensaje del servidor, no ofrece crear ni reintentar y no detiene al siguiente', () => {
+      const toast = vi.spyOn(TestBed.inject(AlertService), 'toast');
+      const mensaje = 'El producto "CLAVO" existe pero está inactivo';
+      puntoVentaMock['porCodigoBarras'].mockImplementation((codigo: string) =>
+        codigo === '111111'
+          ? throwError(() => ({ status: 409, error: { codigo: 'PRODUCTO_INACTIVO', id_producto: 5, message: mensaje } }))
+          : of(producto(2, 'ARENA')));
+
+      escanear('111111');
+      escanear('222222');
+
+      expect(component.lineas.map((l) => l.descripcion)).toEqual(['ARENA']);
+      const titulos = toast.mock.calls.map(([t]) => (t as { title: string }).title);
+      expect(titulos).toContain(mensaje);
+      expect(component.busquedaFallida).toBeNull();
+      expect(component.mostrarTarjetaSinResultados).toBe(false);
+      expect(component.errorBusquedaProducto).toBe('');
+      expect(component.textoProducto).toBe('');
+    });
+
+    it('un corte de red no ofrece crear, no detiene al siguiente y «Reintentar» repite el código', () => {
+      let caido = true;
+      puntoVentaMock['porCodigoBarras'].mockImplementation((codigo: string) =>
+        codigo === '111111' && caido ? throwError(() => ({ status: 0 })) : of(producto(Number(codigo[0]), `P${codigo[0]}`)));
+
+      escanear('111111');
+      escanear('222222');
+
+      expect(component.lineas.map((l) => l.descripcion)).toEqual(['P2']);
+      expect(component.errorBusquedaProducto).toContain('111111');
+      expect(component.busquedaFallida).toBeNull();
+
+      caido = false;
+      component.reintentarBusquedaProducto();
+
+      expect(component.lineas.map((l) => l.descripcion)).toEqual(['P2', 'P1']);
+      expect(component.errorBusquedaProducto).toBe('');
+    });
+
+    it('un producto en el catálogo en memoria entra al instante y vacía el campo', () => {
+      puntoVentaMock['porCodigoLocal'] = vi.fn(() => producto(1, 'CEMENTO'));
+
+      escanear('111111\r\n');
+
+      expect(puntoVentaMock['porCodigoLocal']).toHaveBeenCalledWith('111111');
+      expect(puntoVentaMock['porCodigoBarras']).not.toHaveBeenCalled();
+      expect(component.lineas).toHaveLength(1);
+      expect(component.textoProducto).toBe('');
+    });
+
+    it('«5*CODIGO» agrega cantidad 5 una sola vez y consulta solo el código', () => {
+      puntoVentaMock['porCodigoBarras'].mockReturnValue(of(producto(1, 'CEMENTO')));
+
+      escanear('5*111111');
+
+      expect(puntoVentaMock['porCodigoBarras']).toHaveBeenCalledTimes(1);
+      expect(puntoVentaMock['porCodigoBarras']).toHaveBeenCalledWith('111111', 1);
+      expect(component.lineas).toHaveLength(1);
+      expect(component.lineas[0].cantidad).toBe(5);
+      expect(component.textoProducto).toBe('');
+    });
+
+    it('«3*CODIGO» sobre una línea existente suma 3 (catálogo en memoria) y «2x4» no multiplica', () => {
+      puntoVentaMock['porCodigoLocal'] = vi.fn(() => producto(1, 'CEMENTO'));
+
+      escanear('111111');
+      escanear('3*111111');
+
+      expect(component.lineas).toHaveLength(1);
+      expect(component.lineas[0].cantidad).toBe(4);
+
+      puntoVentaMock['porCodigoLocal'].mockClear();
+      escanear('2x4');
+      expect(puntoVentaMock['porCodigoLocal']).not.toHaveBeenCalled();
+    });
+
+    it('un escaneo exitoso suena ok() y el toast lleva solo el nombre la primera vez', () => {
+      const toast = vi.spyOn(TestBed.inject(AlertService), 'toast');
+      puntoVentaMock['porCodigoBarras'].mockReturnValue(of(producto(1, 'CEMENTO SOL')));
+
+      escanear('111111');
+
+      expect(sonidoMock.ok).toHaveBeenCalledTimes(1);
+      expect(sonidoMock.error).not.toHaveBeenCalled();
+      expect(sonidoMock.aviso).not.toHaveBeenCalled();
+      expect(toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success', title: 'CEMENTO SOL' }));
+    });
+
+    it('un 404, un 409 y un corte de red suenan error() y no ok()', () => {
+      puntoVentaMock['porCodigoBarras']
+        .mockReturnValueOnce(throwError(() => ({ status: 404 })))
+        .mockReturnValueOnce(throwError(() => ({ status: 409, error: { message: 'inactivo' } })))
+        .mockReturnValueOnce(throwError(() => ({ status: 0 })));
+
+      escanear('111111');
+      escanear('222222');
+      escanear('333333');
+
+      expect(sonidoMock.error).toHaveBeenCalledTimes(3);
+      expect(sonidoMock.ok).not.toHaveBeenCalled();
+    });
+
+    it('al repetir el mismo producto el toast dice «ahora N»', () => {
+      const toast = vi.spyOn(TestBed.inject(AlertService), 'toast');
+      puntoVentaMock['porCodigoLocal'] = vi.fn(() => producto(1, 'CEMENTO SOL'));
+
+      escanear('111111');
+      escanear('111111');
+      escanear('111111');
+
+      const titulos = toast.mock.calls.map(([t]) => (t as { title: string }).title);
+      expect(titulos).toEqual(['CEMENTO SOL', 'CEMENTO SOL · ahora 2', 'CEMENTO SOL · ahora 3']);
+      expect(sonidoMock.ok).toHaveBeenCalledTimes(3);
+    });
+
+    it('si la línea queda por encima del stock suena aviso() en lugar de ok()', () => {
+      puntoVentaMock['porCodigoLocal'] = vi.fn(() => ({ ...producto(1, 'CEMENTO SOL'), stock_disponible: 1 }));
+
+      escanear('111111'); // línea nueva con cantidad 1: sin aviso de stock (comportamiento de siempre)
+      escanear('111111'); // 2 > 1
+
+      expect(sonidoMock.ok).toHaveBeenCalledTimes(1);
+      expect(sonidoMock.aviso).toHaveBeenCalledTimes(1);
+    });
+
+    it('un texto con espacios internos va por la búsqueda de nombre, no por código', () => {
+      escanear('cemento sol');
+
+      expect(puntoVentaMock['porCodigoBarras']).not.toHaveBeenCalled();
+      expect(puntoVentaMock['porCodigoLocal']).not.toHaveBeenCalled();
+      expect((component as any).escaneandoCodigo).toBe(false);
+    });
   });
 });

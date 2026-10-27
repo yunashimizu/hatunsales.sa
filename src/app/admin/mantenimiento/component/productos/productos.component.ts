@@ -26,6 +26,7 @@ import { PuntoVentaService } from '../../../service/punto-venta.service';
 import { UnidadMedidaService } from '../../../service/unidad-medida.service';
 import { SelectorUnidadComponent } from '../../../../shared/components/selector-unidad/selector-unidad.component';
 import { UnidadMedidaPipe } from '../../../../shared/ui/unidad-medida.pipe';
+import { EtiquetasProductoComponent } from './etiquetas/etiquetas-producto.component';
 import {
   ImagenProducto, OpcionCategoria, OpcionMarca, ProductoAdmin,
 } from '../../../models/admin.models';
@@ -62,7 +63,7 @@ const FORMULARIO_VACIO: ProductoFormulario = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule, FormsModule, RouterLink, VisorImagenComponent, CountUpDirective, RevealDirective,
-    SelectorUnidadComponent, UnidadMedidaPipe,
+    SelectorUnidadComponent, UnidadMedidaPipe, EtiquetasProductoComponent,
   ],
   templateUrl: './productos.component.html',
   styleUrl: './productos.component.css',
@@ -101,6 +102,11 @@ export class ProductosComponent implements OnInit, OnDestroy {
   /** El producto no tiene fila de inventario en el almacén elegido (su stock ahí es 0). */
   sinStockRegistrado = false;
   private consultaStock?: Subscription;
+
+  /** Se está pidiendo un código interno al servidor (deshabilita «Generar código»). */
+  generandoCodigo = false;
+  /** Producto cuyas etiquetas están abiertas en el panel de impresión (null = cerrado). */
+  etiquetasProducto: ProductoAdmin | null = null;
 
   imagenes: ImagenProducto[] = [];
   cargandoImagenes = false;
@@ -379,6 +385,39 @@ export class ProductosComponent implements OnInit, OnDestroy {
     if (!Number.isInteger(almacen) || almacen <= 0 || almacen === this.idAlmacenStock || !this.editando) return;
     this.idAlmacenStock = almacen;
     this.cargarStockEdicion();
+  }
+
+  /** Pide al servidor un código EAN-13 interno y lo deja en el campo de barras (solo si está vacío). */
+  generarCodigoInterno(): void {
+    if (this.generandoCodigo || String(this.formulario.codigo_barras ?? '').trim()) return;
+    this.generandoCodigo = true;
+    this.cdr.markForCheck();
+    this.service.generarCodigoInterno().pipe(
+      finalize(() => {
+        this.generandoCodigo = false;
+        this.cdr.markForCheck();
+      }),
+      takeUntil(this.destruir$),
+    ).subscribe({
+      next: ({ codigo }) => {
+        // El usuario pudo escribir o escanear algo mientras tanto: no se lo pisamos.
+        if (!String(this.formulario.codigo_barras ?? '').trim()) this.formulario.codigo_barras = codigo;
+      },
+      error: (error) => this.alerta.error({
+        title: 'No se pudo generar el código',
+        message: mensajeDeError(error),
+      }),
+    });
+  }
+
+  abrirEtiquetas(producto: ProductoAdmin): void {
+    this.etiquetasProducto = producto;
+    this.cdr.markForCheck();
+  }
+
+  cerrarEtiquetas(): void {
+    this.etiquetasProducto = null;
+    this.cdr.markForCheck();
   }
 
   cerrarPanel(): void {

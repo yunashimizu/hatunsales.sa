@@ -47,6 +47,7 @@ export const urlConstants = {
     byId: (id: string | number) => `${dominio}producto/${id}`,
     barcode: `${dominio}producto/barcode`,
     unidades: `${dominio}producto/unidades`,
+    codigoInterno: `${dominio}producto/codigo-interno`,
     barcodeByCode: (codigo: string) => `${dominio}producto/barcode/${codigo}`,
     images: (id: string | number) => `${dominio}producto/${id}/images`,
     imagesLote: (id: string | number) => `${dominio}producto/${id}/images/lote`,
@@ -89,7 +90,8 @@ export const urlConstants = {
     byId: (id: string | number) => `${dominio}venta/${id}`,
     productos: `${dominio}venta/productos`,
     catalogoProductos: `${dominio}venta/productos/catalogo`,
-    porCodigoBarras: (codigo: string) => `${dominio}venta/productos/barcode/${codigo}`,
+    // El código viaja como parámetro `codigo` (HttpParams lo codifica): Code 39/128 admiten / ? # %.
+    porCodigoBarras: `${dominio}venta/productos/barcode`,
     metodosPago: `${dominio}venta/metodos-pago`,
     preview: `${dominio}venta/preview`,
     anular: (id: string | number) => `${dominio}venta/${id}/anular`,

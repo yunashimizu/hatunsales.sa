@@ -50,6 +50,11 @@ export class ProductoAdminService {
     return this.http.delete(urlConstants.producto.byId(id), opcionesHttp());
   }
 
+  /** Pide al servidor un código EAN-13 interno libre («2…») para un producto sin código de fábrica. */
+  generarCodigoInterno(): Observable<{ codigo: string }> {
+    return this.http.post<{ codigo: string }>(urlConstants.producto.codigoInterno, {}, opcionesHttp());
+  }
+
   categorias(): Observable<OpcionCategoria[]> {
     return this.http.get<any>(urlConstants.categoria, opcionesHttp())
       .pipe(map((respuesta) => (Array.isArray(respuesta) ? respuesta : respuesta?.data ?? [])));

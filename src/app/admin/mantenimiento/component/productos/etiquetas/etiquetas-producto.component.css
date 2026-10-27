@@ -1,0 +1,93 @@
+/* Etiquetas de producto. Encapsulation.None: todas las clases llevan el prefijo eti-. */
+
+.eti { display: flex; flex-direction: column; gap: 14px; }
+
+.eti-controles { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.eti-campo { flex: 0 1 140px; max-width: 168px; }
+.eti-ayuda { margin: 0; }
+
+.eti-no-imprimible {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px dashed var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  color: var(--adm-texto);
+}
+.eti-no-imprimible .adm-ayuda { margin: 4px 0 0; }
+.eti-no-imprimible__motivo { color: var(--adm-texto-suave); }
+
+/* Vista previa en pantalla: las etiquetas se ven como se imprimirán (60 x 40 mm). */
+.eti-impresion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.eti-etiqueta {
+  box-sizing: border-box;
+  width: 60mm;
+  height: 40mm;
+  padding: 2mm 3mm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  overflow: hidden;
+  background: #fff;
+  color: #000;
+  border: 1px solid #999;
+  border-radius: 2px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.eti-etiqueta__nombre {
+  width: 100%;
+  text-align: center;
+  font: 600 3.4mm/1.15 sans-serif;
+  max-height: 8mm;
+  overflow: hidden;
+}
+
+.eti-etiqueta__codigo { width: 100%; display: flex; justify-content: center; }
+.eti-etiqueta__codigo svg { width: 100%; height: auto; max-height: 20mm; display: block; }
+
+.eti-etiqueta__precio { font: 700 4.4mm/1 sans-serif; }
+
+@media print {
+  @page { margin: 6mm; }
+
+  /* Solo la hoja de etiquetas: se ocultan todos los elementos que no la contienen ni están dentro. */
+  html.eti-imprimiendo body *:not(.eti-impresion):not(:has(.eti-impresion)):not(.eti-impresion *) {
+    display: none !important;
+  }
+
+  /* Los contenedores que la rodean (panel fijo con scroll) dejan de recortarla. */
+  html.eti-imprimiendo,
+  html.eti-imprimiendo body,
+  html.eti-imprimiendo body *:has(.eti-impresion) {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    animation: none !important;
+    background: #fff !important;
+    transform: none !important;
+  }
+
+  html.eti-imprimiendo .eti-impresion {
+    display: flex !important;
+    gap: 2mm;
+  }
+
+  html.eti-imprimiendo .eti-etiqueta { border-color: #000; }
+}

@@ -282,6 +282,10 @@
                         [attr.aria-label]="puedeEditar ? 'Editar ' + p.nombre : 'Ver ' + p.nombre">
                   <i class="bi" [ngClass]="puedeEditar ? 'bi-pencil' : 'bi-eye'"></i>
                 </button>
+                <button type="button" class="adm-btn-icono" (click)="abrirEtiquetas(p)"
+                        title="Etiquetas con código de barras" [attr.aria-label]="'Etiquetas de ' + p.nombre">
+                  <i class="bi bi-upc"></i>
+                </button>
                 <button type="button" class="adm-btn-icono" (click)="alternarEstado(p)" *ngIf="puedeEditar"
                         [title]="p.estado ? 'Desactivar' : 'Activar'"
                         [attr.aria-label]="(p.estado ? 'Desactivar ' : 'Activar ') + p.nombre">
@@ -370,14 +374,23 @@
               </div>
               <div class="adm-campo">
                 <label class="adm-etiqueta" for="f-barras">Código de barras <span class="adm-etiqueta__opcional">opcional</span></label>
-                <div class="adm-input-icono">
-                  <i class="bi bi-upc-scan" aria-hidden="true"></i>
-                  <input id="f-barras" class="adm-input" type="text" autocomplete="off"
-                         placeholder="Escanee aquí con el lector USB"
-                         [(ngModel)]="formulario.codigo_barras"
-                         (keydown.enter)="$event.preventDefault()">
+                <div class="prod-barras">
+                  <div class="adm-input-icono">
+                    <i class="bi bi-upc-scan" aria-hidden="true"></i>
+                    <input id="f-barras" class="adm-input" type="text" autocomplete="off"
+                           placeholder="Escanee aquí con el lector USB"
+                           [(ngModel)]="formulario.codigo_barras"
+                           (keydown.enter)="$event.preventDefault()">
+                  </div>
+                  <button type="button" class="adm-btn adm-btn--suave prod-barras__generar" *ngIf="puedeEditar"
+                          (click)="generarCodigoInterno()"
+                          [disabled]="generandoCodigo || !!(formulario.codigo_barras || '').trim()"
+                          title="Crea un código EAN-13 interno para productos sin código de fábrica">
+                    <i class="bi" [ngClass]="generandoCodigo ? 'bi-arrow-repeat adm-girando' : 'bi-magic'" aria-hidden="true"></i>
+                    Generar código
+                  </button>
                 </div>
-                <p class="adm-ayuda">El que lee el lector. Debe coincidir con la etiqueta del producto.</p>
+                <p class="adm-ayuda">El que lee el lector. Debe coincidir con la etiqueta del producto. Si no trae código de fábrica, genere uno interno e imprima su etiqueta.</p>
               </div>
             </div>
 
@@ -703,6 +716,26 @@
       <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
       {{ editando ? 'Guardar cambios' : 'Crear producto' }}
     </button>
+  </div>
+</aside>
+
+<!-- Panel de etiquetas imprimibles -->
+<div class="adm-velo" *ngIf="etiquetasProducto" (click)="cerrarEtiquetas()"></div>
+
+<aside class="adm-panel adm-panel--ancho" *ngIf="etiquetasProducto" role="dialog" aria-modal="true" aria-labelledby="prod-etiquetas-titulo">
+  <div class="adm-panel__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="prod-etiquetas-titulo">
+        <i class="bi bi-upc" aria-hidden="true"></i> Etiquetas
+      </h2>
+      <p class="adm-panel__sub">{{ etiquetasProducto.nombre }}</p>
+    </div>
+    <button type="button" class="adm-btn-icono" (click)="cerrarEtiquetas()" aria-label="Cerrar" title="Cerrar">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+  <div class="adm-panel__cuerpo">
+    <app-etiquetas-producto [producto]="etiquetasProducto" [copias]="1" />
   </div>
 </aside>
 

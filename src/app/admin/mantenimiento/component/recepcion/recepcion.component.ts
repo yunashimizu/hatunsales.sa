@@ -3,17 +3,23 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   ElementRef,
+  OnDestroy,
   OnInit,
   ViewChild,
   inject,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { finalize, firstValueFrom } from 'rxjs';
+import { Observable, finalize, firstValueFrom, tap } from 'rxjs';
 import { VisorImagenComponent } from '../../../../shared/components/visor-imagen/visor-imagen.component';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
+import { SonidoCajaService } from '../../../../shared/services/sonido-caja.service';
+import { extraerMultiplicador, normalizarCodigo, pareceCodigoExacto } from '../../../../shared/utils/codigo-barras.util';
+import { ColaEscaneos } from '../../../../shared/utils/cola-escaneos';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
 import { esErrorDeRed } from '../../../../shared/utils/errores-http.util';
@@ -36,6 +42,12 @@ interface LineaRecepcion {
   fotoPreview?: string;
 }
 
+/** Código ya normalizado y cantidad del multiplicador (`5*código`), esperando turno. */
+interface EscaneoRecepcion {
+  codigo: string;
+  cantidad: number;
+}
+
 @Component({
   selector: 'app-recepcion',
   standalone: true,
@@ -44,7 +56,7 @@ interface LineaRecepcion {
   templateUrl: './recepcion.component.html',
   styleUrl: './recepcion.component.css',
 })
-export class RecepcionComponent implements OnInit {
+export class RecepcionComponent implements OnInit, OnDestroy {
   @ViewChild('inputProducto') private inputProducto?: ElementRef<HTMLInputElement>;
 
   pestana: 'nueva' | 'historial' | 'observaciones' = 'nueva';
@@ -62,7 +74,6 @@ export class RecepcionComponent implements OnInit {
 
   textoProducto = '';
   lineas: LineaRecepcion[] = [];
-  escaneando = false;
   confirmando = false;
 
   /** Estados de carga y error de las listas (solo para mostrarlos en pantalla). */
@@ -150,6 +161,26 @@ export class RecepcionComponent implements OnInit {
   }
 
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly sonido = inject(SonidoCajaService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /**
+   * Cola serial de escaneos (igual que el POS): el Enter vacía el campo y encola el código, así dos
+   * productos seguidos no se concatenan ni se pierden aunque el primero espere al servidor.
+   */
+  private readonly colaEscaneos = new ColaEscaneos<EscaneoRecepcion>(
+    (escaneo) => this.resolverEscaneo(escaneo),
+    () => this.cdr.markForCheck(),
+  );
+
+  /** Verdadero mientras haya un escaneo en curso o esperando turno (lo mira la plantilla). */
+  get escaneando(): boolean {
+    return this.colaEscaneos.ocupada;
+  }
+
+  ngOnDestroy(): void {
+    this.colaEscaneos.vaciar();
+  }
 
   constructor(
     private readonly api: RecepcionService,
@@ -305,42 +336,79 @@ export class RecepcionComponent implements OnInit {
   alPresionarProducto(evento: KeyboardEvent): void {
     if (evento.key !== 'Enter') return;
     evento.preventDefault();
-    if (this.escaneando) return;
 
-    const codigo = this.textoProducto.trim();
-    if (!codigo) return;
+    // Orden fijo: normalizar → multiplicador (`5*código`) → ¿parece código?
+    const texto = normalizarCodigo(this.textoProducto);
+    if (!texto) return;
+    const { cantidad, codigo } = extraerMultiplicador(texto);
 
-    this.escaneando = true;
+    // Un nombre escrito no es un código: no va al servidor y se deja el texto para corregirlo.
+    if (!pareceCodigoExacto(codigo)) {
+      this.sonido.aviso();
+      this.alerta.toast({ type: 'info', title: 'Escriba o escanee un código' });
+      this.enfocar();
+      return;
+    }
+
+    // Se vacía el campo en el acto para que el siguiente escaneo no se concatene.
+    this.textoProducto = '';
+    this.colaEscaneos.encolar({ codigo, cantidad });
     this.cdr.markForCheck();
-    this.puntoVenta.porCodigoBarras(codigo).subscribe({
-      next: (producto) => {
-        this.escaneando = false;
-        this.agregarProducto({
-          id_producto: producto.id_producto,
-          nombre: producto.nombre,
-          sku: producto.sku,
-          codigo_barras: producto.codigo_barras,
-        });
-        this.textoProducto = '';
-        this.cdr.markForCheck();
-        this.alerta.toast({ type: 'success', title: producto.nombre, timer: 1000 });
-        this.enfocar();
-      },
-      error: () => {
-        this.escaneando = false;
-        this.cdr.markForCheck();
-        this.alerta.toast({ type: 'warning', title: `No hay producto con el código ${codigo}` });
-        this.enfocar();
-      },
-    });
   }
 
-  private agregarProducto(p: {
-    id_producto: number; nombre: string; sku: string; codigo_barras: string;
-  }): void {
+  /** Resuelve un código de la cola. Nunca falla: cada resultado avisa por separado. */
+  private resolverEscaneo({ codigo, cantidad }: EscaneoRecepcion): Observable<unknown> {
+    return this.puntoVenta.resolverCodigo(codigo, this.idAlmacen).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      tap((r) => {
+        if (r.estado === 'ok' && r.producto) {
+          const producto = r.producto;
+          const antes = this.lineas.find((l) => l.id_producto === producto.id_producto)?.cantidad_ok;
+          this.agregarProducto(
+            {
+              id_producto: producto.id_producto,
+              nombre: producto.nombre,
+              sku: producto.sku,
+              codigo_barras: producto.codigo_barras,
+            },
+            cantidad,
+          );
+          const ahora = this.lineas.find((l) => l.id_producto === producto.id_producto)?.cantidad_ok;
+          this.sonido.ok();
+          this.alerta.toast({
+            type: 'success',
+            title: antes !== undefined ? `${producto.nombre} · ahora ${ahora}` : producto.nombre,
+            timer: 1000,
+          });
+        } else if (r.estado === 'inactivo') {
+          this.sonido.error();
+          this.alerta.toast({
+            type: 'warning',
+            title: r.mensaje || `El producto con el código ${codigo} está inactivo`,
+          });
+        } else if (r.estado === 'no_existe') {
+          this.sonido.error();
+          this.alerta.toast({ type: 'warning', title: `No hay producto con el código ${codigo}` });
+        } else {
+          this.sonido.error();
+          this.alerta.toast({
+            type: 'error',
+            title: `No se pudo verificar el código ${codigo}: ${r.mensaje || 'error de conexión'}`,
+          });
+        }
+        this.cdr.markForCheck();
+        this.enfocar();
+      }),
+    );
+  }
+
+  private agregarProducto(
+    p: { id_producto: number; nombre: string; sku: string; codigo_barras: string },
+    cantidad = 1,
+  ): void {
     const existente = this.lineas.find((l) => l.id_producto === p.id_producto);
     if (existente) {
-      existente.cantidad_ok += 1;
+      existente.cantidad_ok += cantidad;
       return;
     }
     this.lineas = [
@@ -349,7 +417,7 @@ export class RecepcionComponent implements OnInit {
         nombre: p.nombre,
         sku: p.sku,
         codigo_barras: p.codigo_barras,
-        cantidad_ok: 1,
+        cantidad_ok: cantidad,
         cantidad_observada: 0,
         motivo_observacion: '',
         precio_compra: null,

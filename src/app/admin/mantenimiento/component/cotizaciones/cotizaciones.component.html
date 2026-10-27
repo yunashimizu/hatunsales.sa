@@ -321,9 +321,19 @@
                     </li>
                   </ul>
                 </div>
-                <span class="adm-ayuda">
-                  Escanee el código de barras o escríbalo y presione <kbd class="adm-kbd">Enter</kbd> para agregarlo al instante.
+                <div class="cot-buscador__pie">
+                  <span class="adm-ayuda cot-buscador__ayuda">
+                  Escanee el código de barras o escríbalo y presione <kbd class="adm-kbd">Enter</kbd> para agregarlo al instante. Puede escanear varios seguidos, suena al leer y, para varias unidades, escriba <kbd class="adm-kbd">5*</kbd> y escanee.
                 </span>
+                  <button type="button" class="adm-btn adm-btn--suave adm-btn--sm cot-buscador__sonido"
+                          [attr.aria-pressed]="sonido.activo()"
+                          [title]="sonido.activo() ? 'Sonido del lector activado: clic para silenciar' : 'Sonido del lector silenciado: clic para activar'"
+                          aria-label="Sonido del lector"
+                          (click)="sonido.alternar()">
+                    <i class="bi" [ngClass]="sonido.activo() ? 'bi-volume-up-fill' : 'bi-volume-mute-fill'" aria-hidden="true"></i>
+                    Sonido
+                  </button>
+                </div>
               </div>
 
               <p class="adm-ayuda cot-cargando" *ngIf="cargandoProductos" role="status">
