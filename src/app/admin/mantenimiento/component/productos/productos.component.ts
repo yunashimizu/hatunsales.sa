@@ -21,6 +21,7 @@ import { mensajeDeError } from '../../../service/api-base.service';
 import { ProductoAdminService, ProductoFormulario } from '../../../service/producto-admin.service';
 import { ProductoImagenService } from '../../../service/producto-imagen.service';
 import { InventarioAdminService } from '../../../service/inventario-admin.service';
+import { PuntoVentaService } from '../../../service/punto-venta.service';
 import {
   ImagenProducto, OpcionCategoria, OpcionMarca, ProductoAdmin,
 } from '../../../models/admin.models';
@@ -106,6 +107,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     private readonly inventario: InventarioAdminService,
     private readonly alerta: AlertService,
     private readonly auth: AuthService,
+    private readonly puntoVenta: PuntoVentaService,
   ) {}
 
   /** false = rol consulta (solo lectura). */
@@ -403,6 +405,8 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
     enCurso.pipe(takeUntil(this.destruir$)).subscribe({
       next: (producto) => {
+        // El producto ya quedó guardado: el catálogo del POS (caché de 3 min) debe recargarse.
+        this.puntoVenta.invalidarCatalogo();
         const editado = this.editando;
         if (editado && this.idAlmacenStock && Number(this.formulario.stock) !== this.stockActualEdicion) {
           const diferencia = Math.trunc(Number(this.formulario.stock)) - this.stockActualEdicion;
@@ -423,6 +427,9 @@ export class ProductosComponent implements OnInit, OnDestroy {
                 stock_total: stockAnteriorTotal + diferencia,
               });
               this.destacar(producto.id_producto);
+              this.asegurarVisibleEnLista(producto.id_producto);
+              // El ajuste de stock también cambia lo que ve el POS.
+              this.puntoVenta.invalidarCatalogo();
               this.cdr.markForCheck();
               this.alerta.toast({ type: 'success', title: 'Cambios y stock guardados' });
               this.cerrarPanel();
@@ -440,12 +447,20 @@ export class ProductosComponent implements OnInit, OnDestroy {
         const esNuevo = !this.editando;
 
         this.reflejarEnLista(producto);
+        this.asegurarVisibleEnLista(producto.id_producto);
         this.destacar(producto.id_producto);
         this.cdr.markForCheck();
-        this.alerta.toast({
-          type: 'success',
-          title: esNuevo ? 'Producto creado' : 'Cambios guardados',
-        });
+        if (esNuevo && datos.stock === 0) {
+          this.alerta.toast({
+            type: 'info',
+            title: 'Creado sin stock: no se podrá vender hasta ingresar stock',
+          });
+        } else {
+          this.alerta.toast({
+            type: 'success',
+            title: esNuevo ? 'Producto creado' : 'Cambios guardados',
+          });
+        }
 
         // Tras crearlo se queda abierto en modo edición para poder subir las
         // fotos de inmediato, que es lo que sigue casi siempre.
@@ -478,6 +493,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     this.service.eliminar(producto.id_producto).pipe(takeUntil(this.destruir$)).subscribe({
       next: () => {
         this.productos = this.productos.filter((p) => p.id_producto !== producto.id_producto);
+        this.puntoVenta.invalidarCatalogo();
         this.cdr.markForCheck();
         this.alerta.toast({ type: 'success', title: 'Producto eliminado' });
       },
@@ -499,6 +515,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (actualizado) => {
           this.reflejarEnLista(actualizado);
+          this.puntoVenta.invalidarCatalogo();
           this.cdr.markForCheck();
           this.alerta.toast({
             type: 'success',
@@ -682,7 +699,20 @@ export class ProductosComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Si los filtros activos esconden el producto recién guardado, los limpia para que
+   * no «desaparezca» de la lista (el aviso del toast ya confirma que se guardó).
+   */
+  private asegurarVisibleEnLista(idProducto: number): void {
+    if (this.productosFiltrados.some((p) => p.id_producto === idProducto)) return;
+    this.filtro = '';
+    this.filtroCategoria = '';
+    this.filtroEstado = '';
+  }
+
   private sincronizarImagenEnLista(): void {
+    // Subir, quitar, reordenar o cambiar la principal altera la foto que muestra el POS.
+    this.puntoVenta.invalidarCatalogo();
     if (!this.editando) return;
 
     const principal = this.imagenes.find((i) => i.is_primary) ?? this.imagenes[0];

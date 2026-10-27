@@ -9,6 +9,7 @@ import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { ProductoAdminService } from '../../../service/producto-admin.service';
 import { ProductoImagenService } from '../../../service/producto-imagen.service';
+import { PuntoVentaService } from '../../../service/punto-venta.service';
 
 /**
  * Ficha de producto: el stock que se edita es el de ESE producto en ESE almacén. Antes se
@@ -135,5 +136,106 @@ describe('ProductosComponent · stock de la ficha', () => {
     expect(consulta.request.params.get('id_producto')).toBe('9');
     consulta.flush({ datos: [filaInventario(9, 12)], total: 1, pagina: 1, por_pagina: 1 });
     expect(component.stockActualEdicion).toBe(12);
+  });
+});
+
+/**
+ * Un producto nuevo debe verse siempre: el POS no puede quedarse con su caché de 3 min
+ * y la lista no debe esconderlo por filtros que había activos.
+ */
+describe('ProductosComponent · visibilidad del producto nuevo', () => {
+  let component: ProductosComponent;
+  let puntoVenta: PuntoVentaService;
+  const existente: any = {
+    id_producto: 1, nombre: 'Martillo', sku: 'MAR', codigo_barras: '', categoria: 'Herramientas',
+    marca: '', id_categoria: 5, estado: true, stock_total: 10, total_imagenes: 1,
+  };
+  const nuevo: any = {
+    id_producto: 2, nombre: 'Cinta', sku: 'CIN', codigo_barras: '', categoria: 'Otros',
+    marca: '', id_categoria: 7, estado: true, stock_total: 0, total_imagenes: 0,
+  };
+  const productos = {
+    listar: vi.fn(() => of([existente])),
+    categorias: vi.fn(() => of([])),
+    marcas: vi.fn(() => of([])),
+    crear: vi.fn(() => of(nuevo)),
+    actualizar: vi.fn(() => of(existente)),
+    eliminar: vi.fn(() => of(undefined)),
+  };
+  const alerta = { toast: vi.fn(), error: vi.fn(), confirm: vi.fn() };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await TestBed.configureTestingModule({
+      imports: [ProductosComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ProductoAdminService, useValue: productos },
+        { provide: ProductoImagenService, useValue: { listar: vi.fn(() => of([])) } },
+        { provide: AlertService, useValue: alerta },
+        { provide: AuthService, useValue: { puedeEditarCatalogo: () => true } },
+      ],
+    })
+      .overrideComponent(ProductosComponent, { set: { template: '' } })
+      .compileComponents();
+    puntoVenta = TestBed.inject(PuntoVentaService);
+    vi.spyOn(puntoVenta, 'invalidarCatalogo');
+    const fixture = TestBed.createComponent(ProductosComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  const llenarNuevo = (stock: number) => {
+    component.abrirNuevo();
+    component.formulario.nombre = 'Cinta';
+    component.formulario.precio_venta = 3;
+    component.formulario.stock = stock;
+  };
+
+  it('crear con filtros activos que lo esconden: limpia los filtros e invalida el catálogo del POS', () => {
+    component.filtroCategoria = 5;
+    component.filtroEstado = 'activos';
+    component.filtro = 'martillo';
+    llenarNuevo(4);
+
+    component.guardar();
+
+    expect(component.productosFiltrados.map((p) => p.id_producto)).toContain(2);
+    expect(component.filtro).toBe('');
+    expect(component.filtroCategoria).toBe('');
+    expect(component.filtroEstado).toBe('');
+    expect(puntoVenta.invalidarCatalogo).toHaveBeenCalled();
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success', title: 'Producto creado' }));
+  });
+
+  it('crear con filtros que sí lo muestran: no toca los filtros', () => {
+    component.filtroEstado = 'activos';
+    llenarNuevo(4);
+
+    component.guardar();
+
+    expect(component.filtroEstado).toBe('activos');
+  });
+
+  it('crear con stock 0 avisa que no se podrá vender hasta ingresar stock', () => {
+    llenarNuevo(0);
+
+    component.guardar();
+
+    expect(alerta.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Creado sin stock: no se podrá vender hasta ingresar stock' }),
+    );
+  });
+
+  it('eliminar y alternar estado invalidan el catálogo del POS', async () => {
+    alerta.confirm.mockResolvedValue({ isConfirmed: true });
+    (puntoVenta.invalidarCatalogo as any).mockClear();
+
+    component.alternarEstado(existente);
+    expect(puntoVenta.invalidarCatalogo).toHaveBeenCalledTimes(1);
+
+    await component.eliminar(existente);
+    expect(puntoVenta.invalidarCatalogo).toHaveBeenCalledTimes(2);
   });
 });
