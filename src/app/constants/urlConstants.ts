@@ -46,12 +46,14 @@ export const urlConstants = {
     base: `${dominio}producto`,
     byId: (id: string | number) => `${dominio}producto/${id}`,
     barcode: `${dominio}producto/barcode`,
+    unidades: `${dominio}producto/unidades`,
     barcodeByCode: (codigo: string) => `${dominio}producto/barcode/${codigo}`,
     images: (id: string | number) => `${dominio}producto/${id}/images`,
     imagesLote: (id: string | number) => `${dominio}producto/${id}/images/lote`,
     imagesOrden: (id: string | number) => `${dominio}producto/${id}/images/orden`,
     imagePrimary: (id: string | number, imgId: string | number) => `${dominio}producto/${id}/images/${imgId}/primary`,
     imageDelete: (id: string | number, imgId: string | number) => `${dominio}producto/${id}/images/${imgId}`,
+    imageArchivo: (id: string | number, imgId: string | number) => `${dominio}producto/${id}/images/${imgId}/archivo`,
   },
 
   inventario: {
@@ -169,6 +171,8 @@ export const urlConstants = {
     consultarAnulacion: `${dominio}comprobante/consultar-anulacion`,
     archivo: (id: string | number, tipo: string) => `${dominio}comprobante/${id}/archivos/${tipo}`,
     recuperarCdr: (id: string | number) => `${dominio}comprobante/${id}/recuperar-cdr`,
+    correo: (id: string | number) => `${dominio}comprobante/${id}/correo`,
+    correos: (id: string | number) => `${dominio}comprobante/${id}/correos`,
     confirmarAceptado: (id: string | number) => `${dominio}comprobante/${id}/confirmar-aceptado`,
     contextoNotaCredito: (id: string | number) => `${dominio}comprobante/${id}/nota-credito/contexto`,
     notaCredito: (id: string | number) => `${dominio}comprobante/${id}/nota-credito`,

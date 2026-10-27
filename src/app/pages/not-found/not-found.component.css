@@ -34,7 +34,7 @@
   border: 1px solid var(--x-lienzo-linea);
   border-radius: 36px;
   background:
-    radial-gradient(70% 60% at 100% 0%, rgba(99, 102, 241, 0.46), transparent 66%),
+    radial-gradient(70% 60% at 100% 0%, rgba(249, 115, 22, 0.46), transparent 66%),
     radial-gradient(60% 50% at 0% 100%, rgba(255, 125, 54, 0.28), transparent 64%),
     var(--x-lienzo);
   color: var(--x-lienzo-texto);

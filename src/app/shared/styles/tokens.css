@@ -79,10 +79,10 @@
   --hs-texto-tenue: #667085;
 
   /* Fondo del documento (el panel y el login lo ven; la tienda pinta el suyo). */
-  --hs-pagina-fondo: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  --hs-pagina-fondo: linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%);
   --hs-pagina-solido: #f7f8fb;
   --hs-pagina-texto: #0f172a;
-  --hs-seleccion: rgba(79, 70, 229, 0.18);
+  --hs-seleccion: rgba(37, 99, 235, 0.18);
 
   /* ── Espaciado (escala 4/8/12/16/24/32) ─────────────────────── */
   --hs-esp-1: 4px;
@@ -93,14 +93,14 @@
   --hs-esp-6: 32px;
 
   /* ── Interacción ────────────────────────────────────────────── */
-  --hs-foco: #4f46e5;              /* anillo de foco (6,3:1 sobre blanco) */
+  --hs-foco: #2563eb;              /* anillo de foco (6,3:1 sobre blanco) */
   --hs-foco-ancho: 2px;
   --hs-foco-separacion: 2px;
   --hs-tactil: 44px;               /* objetivo táctil mínimo en puntero grueso */
 
   /* Enlaces */
-  --hs-enlace: #4f46e5;
-  --hs-enlace-hover: #4338ca;
+  --hs-enlace: #2563eb;
+  --hs-enlace-hover: #1d4ed8;
 
   /* Alto útil de la pantalla: 100dvh donde existe (la barra de Safari/Chrome
      móvil no tapa el pie de cajones y modales); 100vh como respaldo. */
@@ -157,10 +157,10 @@
   --t-texto-suave: #5a554c;        /* 7,4:1 sobre blanco · 6,3:1 sobre --t-superficie-2 */
   --t-texto-tenue: #6a655b;        /* 5,8:1 sobre blanco · 4,95:1 sobre --t-superficie-2 */
 
-  --t-primario: #4f46e5;           /* relleno (texto blanco encima: 6,3:1) */
-  --t-primario-osc: #4338ca;
-  --t-primario-claro: #eeedff;
-  --t-primario-texto: #4f46e5;     /* letras e iconos sobre superficie (en oscuro se aclara) */
+  --t-primario: #2563eb;           /* relleno (texto blanco encima: 6,3:1) */
+  --t-primario-osc: #1d4ed8;
+  --t-primario-claro: #eff6ff;
+  --t-primario-texto: #2563eb;     /* letras e iconos sobre superficie (en oscuro se aclara) */
 
   /* Naranja de marca: vivo solo con texto oscuro o sobre fondo oscuro (6,7:1
      contra #0d1220). Para texto naranja sobre claro, --t-acento-texto. */

@@ -145,9 +145,7 @@
         <div class="adm-fila pvr-espaciado">
           <div class="adm-campo">
             <label class="adm-etiqueta" for="pvr-unidad">Unidad</label>
-            <select id="pvr-unidad" class="adm-select" [disabled]="guardando" [(ngModel)]="formulario.unidad_medida">
-              <option *ngFor="let u of unidades" [value]="u">{{ u }}</option>
-            </select>
+            <app-selector-unidad idCampo="pvr-unidad" [disabled]="guardando" [(ngModel)]="formulario.unidad_medida" name="unidad_medida"></app-selector-unidad>
           </div>
           <div class="adm-campo">
             <label class="adm-etiqueta" for="pvr-codigo">Código de barras</label>

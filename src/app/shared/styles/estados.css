@@ -23,9 +23,9 @@
    --------------------------------------------------------------------------- */
 
 .hs-estado {
-  --hs-estado-acento: var(--hs-enlace, #4f46e5);
-  --hs-estado-fondo-icono: #eef2ff;
-  --hs-estado-borde-icono: #c7d2fe;
+  --hs-estado-acento: var(--hs-enlace, #2563eb);
+  --hs-estado-fondo-icono: #eff6ff;
+  --hs-estado-borde-icono: #bfdbfe;
   --hs-estado-titulo: var(--hs-texto, #0f172a);
   --hs-estado-texto: var(--hs-texto-suave, #5b6578);
   --hs-estado-linea: #d3d8e8;
@@ -121,20 +121,20 @@
 }
 
 .hs-estado__boton:focus-visible {
-  outline: 2px solid var(--hs-foco, #4f46e5);
+  outline: 2px solid var(--hs-foco, #2563eb);
   outline-offset: 2px;
 }
 
 /* Botón principal (una sola acción recomendada) */
 .hs-estado__boton--primario {
   border-color: transparent;
-  background: var(--hs-enlace, #4f46e5);
+  background: var(--hs-enlace, #2563eb);
   color: #ffffff;
 }
 
 .hs-estado__boton--primario:hover {
   border-color: transparent;
-  background: var(--hs-enlace-hover, #4338ca);
+  background: var(--hs-enlace-hover, #1d4ed8);
   color: #ffffff;
 }
 
@@ -216,11 +216,11 @@
 }
 
 .hs-estado--tienda .hs-estado__boton--primario {
-  background: var(--t-primario, #4f46e5);
+  background: var(--t-primario, #2563eb);
 }
 
 .hs-estado--tienda .hs-estado__boton--primario:hover {
-  background: var(--t-primario-osc, #4338ca);
+  background: var(--t-primario-osc, #1d4ed8);
 }
 
 /* El tono de error manda sobre el título de la tienda */

@@ -71,7 +71,7 @@ export class AuthShellComponent implements AfterViewInit, OnDestroy {
 
   readonly beneficios = [
     { icono: 'bi-truck', titulo: 'Envíos rápidos', texto: 'A todo el Perú', tono: 'bg-sky-100 text-sky-700' },
-    { icono: 'bi-shield-check', titulo: 'Compra segura', texto: 'Datos cifrados', tono: 'bg-indigo-100 text-indigo-700' },
+    { icono: 'bi-shield-check', titulo: 'Compra segura', texto: 'Datos cifrados', tono: 'bg-blue-100 text-blue-700' },
     { icono: 'bi-star', titulo: 'Calidad', texto: 'Marcas top', tono: 'bg-amber-100 text-amber-700' },
     { icono: 'bi-headset', titulo: 'Soporte', texto: 'Te ayudamos', tono: 'bg-emerald-100 text-emerald-700' },
   ];

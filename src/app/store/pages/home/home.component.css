@@ -152,7 +152,7 @@
   padding: clamp(32px, 6vw, 84px);
   border-radius: clamp(26px, 3.4vw, 44px);
   background:
-    radial-gradient(60% 80% at 100% 0%, rgba(99, 102, 241, 0.5), transparent 65%),
+    radial-gradient(60% 80% at 100% 0%, rgba(249, 115, 22, 0.5), transparent 65%),
     radial-gradient(50% 70% at 0% 100%, rgba(255, 125, 54, 0.3), transparent 62%),
     var(--x-lienzo);
   color: var(--x-lienzo-texto);

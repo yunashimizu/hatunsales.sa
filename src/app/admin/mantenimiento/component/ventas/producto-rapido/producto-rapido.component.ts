@@ -25,6 +25,7 @@ import { errorOperativo, escapeHtmlAlerta, mensajeDeError } from '../../../../se
 import { InventarioAdminService } from '../../../../service/inventario-admin.service';
 import { ProductoAdminService, ProductoFormulario } from '../../../../service/producto-admin.service';
 import { PuntoVentaService } from '../../../../service/punto-venta.service';
+import { SelectorUnidadComponent } from '../../../../../shared/components/selector-unidad/selector-unidad.component';
 import {
   CampoAltaRapida,
   MAX_LARGO_CODIGO,
@@ -88,9 +89,6 @@ const FORMULARIO_VACIO: FormularioRapido = {
   se_lleva: 1,
 };
 
-/** Copia de UNIDADES de productos.component.ts (no se importa para no acoplar las dos pantallas). */
-const UNIDADES = ['NIU', 'ZZ', 'KGM', 'MTR', 'LTR', 'GLL', 'BX', 'PK', 'SET'];
-
 /**
  * Alta rápida de producto desde el punto de venta.
  *
@@ -107,7 +105,7 @@ const UNIDADES = ['NIU', 'ZZ', 'KGM', 'MTR', 'LTR', 'GLL', 'BX', 'PK', 'SET'];
   selector: 'app-producto-rapido',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SelectorUnidadComponent],
   templateUrl: './producto-rapido.component.html',
   styleUrl: './producto-rapido.component.css',
 })
@@ -153,7 +151,6 @@ export class ProductoRapidoComponent implements OnInit, OnChanges, OnDestroy {
   motivoFallo = '';
   parecidos: ProductoVenta[] = [];
 
-  readonly unidades = UNIDADES;
   readonly maxLargoNombre = MAX_LARGO_NOMBRE;
   readonly maxLargoCodigo = MAX_LARGO_CODIGO;
 

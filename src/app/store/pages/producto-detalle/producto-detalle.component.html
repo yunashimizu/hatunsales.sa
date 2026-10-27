@@ -177,7 +177,7 @@
                 </tr>
                 <tr *ngIf="producto.unidad_medida">
                   <th scope="row">Unidad de medida</th>
-                  <td>{{ producto.unidad_medida }}</td>
+                  <td>{{ producto.unidad_medida | unidadMedida:'nombre' }}</td>
                 </tr>
                 <tr *ngIf="producto.codigo_barras">
                   <th scope="row">Código de barras</th>

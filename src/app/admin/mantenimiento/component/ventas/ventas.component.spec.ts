@@ -386,6 +386,40 @@ describe('VentasComponent', () => {
       expect((component as any).armarSolicitud(false).items[0]).toMatchObject({ cantidad: 2, descuento: 10 });
     });
 
+    it('correo al cliente: sin correo registrado viaja el escrito en el POS; con uno registrado, el del cliente manda', () => {
+      cargarCarrito(0);
+      component.enviarPorCorreo = true;
+      component.correoCliente = ' caja@cliente.pe ';
+      let solicitud = (component as any).armarSolicitud(false);
+      expect(solicitud).toMatchObject({ enviar_cliente: true, correo_cliente: 'caja@cliente.pe' });
+
+      component.receptor = { numero_documento: '00000000', email: 'registrado@cliente.pe' } as any;
+      expect(component.correoRegistrado).toBe('registrado@cliente.pe');
+      solicitud = (component as any).armarSolicitud(false);
+      expect(solicitud.enviar_cliente).toBe(true);
+      expect(solicitud.correo_cliente).toBeUndefined();
+    });
+
+    it('correo al cliente: sin comprobante electrónico no se envía nada y un correo mal escrito bloquea el cobro', () => {
+      cargarCarrito(0);
+      component.preview = crearPreview(0);
+      component.lineasPago = [pago(EFECTIVO, null)];
+      component.enviarPorCorreo = true;
+      component.emitirComprobante = false;
+      let solicitud = (component as any).armarSolicitud(false);
+      expect(solicitud.enviar_cliente).toBe(false);
+      expect(solicitud.correo_cliente).toBeUndefined();
+
+      component.emitirComprobante = true;
+      component.correoCliente = 'sin-arroba';
+      expect(component.correoClienteValido).toBe(false);
+      expect(component.puedeEmitir).toBe(false);
+      component.correoCliente = '';
+      expect(component.puedeEmitir).toBe(true);
+      solicitud = (component as any).armarSolicitud(false);
+      expect(solicitud.correo_cliente).toBeUndefined();
+    });
+
     it('un descuento vacío o negativo cuenta como cero', () => {
       cargarCarrito(null);
       expect(component.descuentoTotalLinea(component.lineas[0])).toBe(0);

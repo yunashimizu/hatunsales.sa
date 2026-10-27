@@ -46,18 +46,18 @@
   --swal2-input-border-radius: var(--adm-r-sm, 9px);
   --swal2-input-box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   --swal2-input-hover-box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --swal2-input-focus-border: 1px solid var(--adm-primario, #4f46e5);
-  --swal2-input-focus-box-shadow: var(--adm-anillo, 0 0 0 4px rgba(79, 70, 229, 0.14));
+  --swal2-input-focus-border: 1px solid var(--adm-primario, #2563eb);
+  --swal2-input-focus-box-shadow: var(--adm-anillo, 0 0 0 4px rgba(37, 99, 235, 0.14));
   --swal2-input-background: var(--adm-superficie, #ffffff);
   --swal2-validation-message-background: var(--adm-peligro-claro, #fef2f2);
   --swal2-validation-message-color: var(--adm-peligro-texto, #b91c1c);
-  --swal2-timer-progress-bar-background: rgba(79, 70, 229, 0.45);
+  --swal2-timer-progress-bar-background: rgba(37, 99, 235, 0.45);
   --swal2-show-animation: hs-swal-entrar 220ms cubic-bezier(0.16, 1, 0.3, 1);
   --swal2-hide-animation: hs-swal-salir 160ms cubic-bezier(0.4, 0, 1, 1) forwards;
-  --swal2-outline: 0 0 0 4px rgba(79, 70, 229, 0.18);
+  --swal2-outline: 0 0 0 4px rgba(37, 99, 235, 0.18);
 
   /* Colores de botones (también los usa el hover de Swal con color-mix) */
-  --swal2-confirm-button-background-color: var(--adm-primario, #4f46e5);
+  --swal2-confirm-button-background-color: var(--adm-primario, #2563eb);
   --swal2-confirm-button-color: #ffffff;
   --swal2-deny-button-background-color: #ffffff;
   --swal2-deny-button-color: var(--adm-texto-2, #1e293b);
@@ -144,7 +144,7 @@
 /* ── Iconos: mismo dibujo de Swal, más pequeño y con la paleta del sistema ── */
 
 .swal2-container .swal2-icon {
-  --hs-icono: var(--adm-primario, #4f46e5);
+  --hs-icono: var(--adm-primario, #2563eb);
   margin: 0 auto 18px;
   border-color: color-mix(in srgb, var(--hs-icono) 30%, transparent);
   color: var(--hs-icono);
@@ -163,7 +163,7 @@
   --hs-icono: var(--adm-info, #0284c7);
 }
 .swal2-container .swal2-icon.swal2-question {
-  --hs-icono: var(--adm-primario, #4f46e5);
+  --hs-icono: var(--adm-primario, #2563eb);
 }
 
 .swal2-container .swal2-icon.swal2-success .swal2-success-ring {
@@ -209,20 +209,20 @@
 }
 
 .swal2-container .swal2-actions .swal2-styled:focus-visible {
-  outline: 2px solid var(--hs-foco, #4f46e5);
+  outline: 2px solid var(--hs-foco, #2563eb);
   outline-offset: 2px;
   box-shadow: none;
 }
 
 .swal2-container .swal2-actions .swal2-confirm {
-  background: var(--adm-gradiente, linear-gradient(135deg, #6366f1 0%, #4f46e5 60%, #4338ca 100%));
+  background: var(--adm-gradiente, linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%));
   color: #ffffff;
-  box-shadow: 0 1px 2px rgba(67, 56, 202, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  box-shadow: 0 1px 2px rgba(29, 78, 216, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .swal2-container .swal2-actions .swal2-confirm:hover:not([disabled]) {
-  background: var(--adm-gradiente, linear-gradient(135deg, #6366f1 0%, #4f46e5 60%, #4338ca 100%));
-  box-shadow: var(--adm-sombra-primario, 0 6px 16px -4px rgba(79, 70, 229, 0.45)), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  background: var(--adm-gradiente, linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%));
+  box-shadow: var(--adm-sombra-primario, 0 6px 16px -4px rgba(37, 99, 235, 0.45)), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 /* Acción destructiva (confirmarPeligro / danger): rojo sólido, foco en Cancelar */
@@ -262,7 +262,7 @@
 
 /* Spinner de alerta.loading / conCarga */
 .swal2-container .swal2-loader {
-  border-color: var(--adm-primario, #4f46e5) transparent var(--adm-primario, #4f46e5) transparent;
+  border-color: var(--adm-primario, #2563eb) transparent var(--adm-primario, #2563eb) transparent;
 }
 
 /* ── Campos (pedirTexto / prompt) ───────────────────────────────────────── */
@@ -345,12 +345,12 @@
 
 .swal2-container .hs-swal--tienda .swal2-actions .swal2-confirm:not(.hs-swal-peligro),
 .swal2-container .hs-swal--tienda .swal2-actions .swal2-confirm:not(.hs-swal-peligro):hover:not([disabled]) {
-  background: var(--t-primario, #4f46e5);
-  box-shadow: 0 6px 16px -6px rgba(79, 70, 229, 0.5);
+  background: var(--t-primario, #2563eb);
+  box-shadow: 0 6px 16px -6px rgba(37, 99, 235, 0.5);
 }
 
 .swal2-container .hs-swal--tienda .swal2-actions .swal2-confirm:not(.hs-swal-peligro):hover:not([disabled]) {
-  background: var(--t-primario-osc, #4338ca);
+  background: var(--t-primario-osc, #1d4ed8);
 }
 
 .swal2-container .hs-swal--tienda .swal2-actions .swal2-cancel,

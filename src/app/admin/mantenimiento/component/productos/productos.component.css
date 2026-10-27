@@ -401,8 +401,46 @@
   line-height: 1;
 }
 
+/* Las acciones (principal · reemplazar · eliminar) se ven siempre, no solo al pasar el mouse:
+   el estilo base las oculta hasta :hover y en celular/tablet «nunca» hay hover. */
+.prod-galeria .adm-galeria__acciones { opacity: 1; }
+
+.prod-galeria__ocupada {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--adm-texto);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .prod-galeria__ayuda { display: flex; align-items: center; gap: 6px; }
 .prod-galeria__ayuda > i { color: var(--adm-primario); }
+
+.prod-pendientes__aviso { align-items: center; flex-wrap: wrap; gap: 8px; }
+.prod-pendientes__aviso > span { flex: 1 1 200px; }
+
+.prod-pendientes { margin-top: 12px; }
+.prod-pendientes__pieza--error { outline: 2px solid var(--adm-peligro); outline-offset: -2px; }
+.prod-pendientes__error {
+  position: absolute;
+  left: 6px;
+  bottom: 44px; /* por encima de los botones de acción, que ahora se ven siempre */
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--adm-peligro);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
 
 .prod-galeria-esqueleto {
   display: grid;

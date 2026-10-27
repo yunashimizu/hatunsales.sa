@@ -79,6 +79,8 @@ export class VentasComponent implements OnInit, OnDestroy {
   avisoEmisionFiscal = '';
   observaciones = '';
   enviarPorCorreo = false;
+  /** Correo escrito en el POS cuando el cliente elegido no tiene uno registrado. */
+  correoCliente = '';
   emitirComprobante = true;
 
   /** Almacén activo del POS (caja → almacén; se puede cambiar). */
@@ -1433,7 +1435,24 @@ export class VentasComponent implements OnInit, OnDestroy {
       && !(Number(this.lineasPago[0].monto) > 0);
   }
 
+  /** Correo registrado del cliente elegido (al que llegaría el comprobante). */
+  get correoRegistrado(): string {
+    return this.receptor?.email?.trim() ?? '';
+  }
+
+  /** El comprobante se manda por correo: marcado, con comprobante electrónico y sin correo registrado que baste. */
+  get pideCorreoManual(): boolean {
+    return this.enviarPorCorreo && this.emitirComprobante && !this.correoRegistrado;
+  }
+
+  /** El correo escrito, si lo hay, tiene un formato razonable (vacío es válido: el envío queda omitido). */
+  get correoClienteValido(): boolean {
+    const texto = this.correoCliente.trim();
+    return !texto || (texto.length <= 254 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(texto));
+  }
+
   get puedeEmitir(): boolean {
+    if (this.pideCorreoManual && !this.correoClienteValido) return false;
     if (!this.lineas.length || this.emitiendo || this.calculandoPreview || this.errorPreview || !this.preview) return false;
     if (this.errorReceptorCotizacion) return false;
     if (this.idTipo === TIPO_FACTURA && this.receptor?.tipo_documento !== 6) return false;
@@ -1465,7 +1484,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       id_tipo: this.idTipo,
       serie: this.serie.trim() || undefined,
       emitir_comprobante: this.emitirComprobante,
-      enviar_cliente: this.enviarPorCorreo,
+      enviar_cliente: this.enviarPorCorreo && this.emitirComprobante,
       observaciones: this.observaciones.trim() || undefined,
       items: this.lineas.map((l) => ({
         id_producto: l.id_producto,
@@ -1474,6 +1493,10 @@ export class VentasComponent implements OnInit, OnDestroy {
         descuento: this.descuentoUnitarioEfectivo(l),
       })),
     };
+
+    if (this.pideCorreoManual && this.correoCliente.trim() && this.correoClienteValido) {
+      solicitud.correo_cliente = this.correoCliente.trim();
+    }
 
     if (this.idAlmacen) solicitud.id_almacen = this.idAlmacen;
     if (paraRegistrar && this.idCotizacionCargada) {
@@ -1856,6 +1879,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.textoReceptor = '';
     this.textoProducto = '';
     this.observaciones = '';
+    this.correoCliente = '';
     this.idCotizacionCargada = null;
     this.codigoCotizacionCargada = '';
     this.idAlmacenCotizacion = null;

@@ -702,12 +702,35 @@
 
           <div class="pv-opciones">
             <label class="adm-switch pv-opcion">
-              <input type="checkbox" [(ngModel)]="enviarPorCorreo">
+              <input type="checkbox" [(ngModel)]="enviarPorCorreo" [disabled]="!emitirComprobante">
               <span class="pv-opcion__texto">
                 <span class="pv-opcion__titulo">Enviar por correo</span>
-                <span class="pv-opcion__desc">El comprobante llega al correo registrado del cliente.</span>
+                <span class="pv-opcion__desc">
+                  @if (!emitirComprobante) {
+                    Requiere comprobante electrónico.
+                  } @else {
+                    El comprobante llega al correo del cliente cuando SUNAT lo acepta.
+                  }
+                </span>
               </span>
             </label>
+            @if (enviarPorCorreo && emitirComprobante) {
+              @if (correoRegistrado) {
+                <p class="adm-ayuda pv-correo" id="pv-correo-destino">Se enviará a: <strong>{{ correoRegistrado }}</strong></p>
+              } @else {
+                <div class="adm-campo pv-correo">
+                  <label class="adm-etiqueta" for="pv-correo-cliente">Correo del cliente</label>
+                  <input id="pv-correo-cliente" class="adm-input" type="email" autocomplete="off" maxlength="254"
+                         placeholder="cliente@ejemplo.pe" [(ngModel)]="correoCliente"
+                         [attr.aria-invalid]="!correoClienteValido">
+                  @if (!correoClienteValido) {
+                    <p class="adm-ayuda adm-ayuda--error" role="alert">Escriba un correo con el formato nombre@dominio.pe.</p>
+                  } @else {
+                    <p class="adm-ayuda">Este cliente no tiene correo registrado. Sin uno, el comprobante no se envía.</p>
+                  }
+                </div>
+              }
+            }
             <label class="adm-switch pv-opcion">
               <input type="checkbox" [(ngModel)]="emitirComprobante">
               <span class="pv-opcion__texto">

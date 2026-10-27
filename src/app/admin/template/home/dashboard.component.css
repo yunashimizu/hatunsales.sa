@@ -20,7 +20,7 @@
   border: 1px solid var(--x-lienzo-linea);
   border-radius: var(--adm-r-xl);
   background:
-    radial-gradient(60% 120% at 92% -10%, rgba(99, 102, 241, 0.5), transparent 62%),
+    radial-gradient(60% 120% at 92% -10%, rgba(249, 115, 22, 0.5), transparent 62%),
     radial-gradient(46% 90% at 0% 120%, rgba(255, 125, 54, 0.3), transparent 62%),
     var(--x-lienzo);
   color: var(--x-lienzo-texto);

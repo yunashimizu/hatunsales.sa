@@ -87,12 +87,15 @@ describe('ComprobanteDetalleComponent', () => {
     anular: vi.fn(),
     descargarPdf: vi.fn(() => of(new Blob(['%PDF']))),
     descargarArchivo: vi.fn(() => of(new Blob(['<xml/>']))),
+    reenviarCorreo: vi.fn(),
+    historialCorreos: vi.fn(),
   };
   const alerta = {
     pedirTexto: vi.fn(async (): Promise<string | null> => null),
     confirm: vi.fn(),
     error: vi.fn(),
     toast: vi.fn(),
+    confirmar: vi.fn(async (): Promise<boolean> => true),
   };
 
   function crear(accion: ComprobanteDetalleComponent['accionInicial'] = null): void {
@@ -281,5 +284,88 @@ describe('ComprobanteDetalleComponent', () => {
       clic.mockRestore();
       Object.assign(URL, originales);
     }
+  });
+
+  describe('correo al cliente', () => {
+    const correo = (cambios: Partial<NonNullable<ComprobanteDetalle['correo']>> = {}) => ({
+      estado: 'PENDIENTE' as const, destino: 'ana@ejemplo.pe', enviado_en: null, ultimo_error: null, motivo_omision: null,
+      puede_reenviar: true, ...cambios,
+    });
+
+    it('muestra el estado del correo, precarga el destino y no ofrece nada sin el bloque del backend', () => {
+      crear();
+      expect(texto()).not.toContain('Correo al cliente');
+
+      api.detalle.mockImplementation(() => of(detalle({ correo: correo({ estado: 'ENVIADO', enviado_en: '2026-10-27T15:30:00Z' }) })));
+      crear();
+      expect(texto()).toContain('Correo al cliente');
+      expect(texto()).toContain('Enviado');
+      expect(texto()).toContain('ana@ejemplo.pe');
+      expect((fixture.nativeElement.querySelector('#det-correo-destino') as HTMLInputElement).value).toBe('ana@ejemplo.pe');
+    });
+
+    it('muestra el motivo cuando el correo falló o se omitió, y oculta el reenvío si no corresponde', () => {
+      api.detalle.mockImplementation(() => of(detalle({ correo: correo({ estado: 'ERROR', ultimo_error: 'Brevo respondió 400', puede_reenviar: false }) })));
+      crear();
+      expect(texto()).toContain('No se pudo enviar');
+      expect(texto()).toContain('Brevo respondió 400');
+      expect(fixture.nativeElement.querySelector('#det-correo-destino')).toBeNull();
+
+      api.detalle.mockImplementation(() => of(detalle({ correo: correo({ estado: 'OMITIDO', motivo_omision: 'ambiente beta sin correo de pruebas', puede_reenviar: false }) })));
+      crear();
+      expect(texto()).toContain('ambiente beta sin correo de pruebas');
+    });
+
+    it('reenviar confirma el destino, llama al backend, avisa y vuelve a leer el comprobante', async () => {
+      api.detalle.mockImplementation(() => of(detalle({ correo: correo() })));
+      api.reenviarCorreo.mockReturnValue(of({ id_correo: 31, id_comprobante: 10, destino: 'otro@ejemplo.pe', estado: 'ENVIADO' }));
+      crear();
+      component.cambiarDestinoCorreo(' otro@ejemplo.pe ');
+      await component.reenviarCorreo();
+
+      expect(alerta.confirmar).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('otro@ejemplo.pe') }));
+      expect(api.reenviarCorreo).toHaveBeenCalledWith(10, 'otro@ejemplo.pe');
+      expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success', title: 'Correo enviado' }));
+      expect(api.detalle).toHaveBeenCalledTimes(2);
+    });
+
+    it('no envía con un correo inválido ni si el usuario cancela la confirmación', async () => {
+      api.detalle.mockImplementation(() => of(detalle({ correo: correo() })));
+      crear();
+      component.cambiarDestinoCorreo('sin-arroba');
+      await component.reenviarCorreo();
+      expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'warning' }));
+      expect(api.reenviarCorreo).not.toHaveBeenCalled();
+
+      component.cambiarDestinoCorreo('ok@ejemplo.pe');
+      alerta.confirmar.mockResolvedValueOnce(false);
+      await component.reenviarCorreo();
+      expect(api.reenviarCorreo).not.toHaveBeenCalled();
+    });
+
+    it('un error del backend (por ejemplo el límite por hora) se muestra y no rompe el panel', async () => {
+      api.detalle.mockImplementation(() => of(detalle({ correo: correo() })));
+      api.reenviarCorreo.mockReturnValue(throwError(() => ({ status: 429, error: { message: 'máximo 3 por hora' } })));
+      crear();
+      await component.reenviarCorreo();
+      expect(alerta.error).toHaveBeenCalled();
+      expect(component.enProceso).toBeNull();
+    });
+
+    it('el historial se pide solo la primera vez que se abre', () => {
+      api.detalle.mockImplementation(() => of(detalle({ correo: correo() })));
+      api.historialCorreos.mockReturnValue(of([
+        { id_correo: 31, id_comprobante: 10, destino: 'ana@ejemplo.pe', estado: 'ENVIADO', origen: 'manual', intentos: 1,
+          ultimo_error: null, motivo_omision: null, creado_en: '2026-10-27T15:30:00Z', enviado_en: '2026-10-27T15:30:05Z' },
+      ]));
+      crear();
+      expect(api.historialCorreos).not.toHaveBeenCalled();
+      component.alternarHistorialCorreo(true);
+      component.alternarHistorialCorreo(false);
+      component.alternarHistorialCorreo(true);
+      expect(api.historialCorreos).toHaveBeenCalledTimes(1);
+      expect(api.historialCorreos).toHaveBeenCalledWith(10);
+      expect(component.historialCorreo).toHaveLength(1);
+    });
   });
 });

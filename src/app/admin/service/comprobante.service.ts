@@ -9,6 +9,7 @@ import {
   CatalogoMotivosNota,
   ComprobanteDetalle,
   ContextoNotaCredito,
+  CorreoHistorial,
   FiltroHistorialVentas,
   FiltroVentasSinComprobante,
   FormatoPdfComprobante,
@@ -110,6 +111,17 @@ export class ComprobanteService {
   /** Pide a SUNAT la constancia (CDR) sin reenviar nada. */
   recuperarCdr(id: number): Observable<ResultadoComprobante> {
     return this.http.post<ResultadoComprobante>(urlConstants.comprobante.recuperarCdr(id), {}, opcionesHttp());
+  }
+
+  /** Reenvía el comprobante (PDF y XML) por correo; sin destino usa el del comprobante. Máximo 3 por hora. */
+  reenviarCorreo(id: number, destino?: string): Observable<CorreoHistorial> {
+    const cuerpo = destino?.trim() ? { destino: destino.trim() } : {};
+    return this.http.post<CorreoHistorial>(urlConstants.comprobante.correo(id), cuerpo, opcionesHttp());
+  }
+
+  /** Historial de correos del comprobante (automáticos y reenvíos), el más reciente primero. */
+  historialCorreos(id: number): Observable<CorreoHistorial[]> {
+    return this.http.get<CorreoHistorial[]>(urlConstants.comprobante.correos(id), opcionesHttp());
   }
 
   /** Solo admin: verificó en SUNAT Operaciones en Línea que el comprobante fue aceptado (queda auditado). */

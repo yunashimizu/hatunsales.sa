@@ -327,7 +327,7 @@
       width: 34px;
       height: 34px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #6366f1, #7c3aed);
+      background: linear-gradient(135deg, #ea580c, #9a3412);
       color: #ffffff;
       font-size: 11.5px;
       font-weight: 700;
@@ -336,7 +336,7 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      box-shadow: 0 0 0 2px var(--adm-superficie), 0 0 0 3px rgba(99, 102, 241, 0.35);
+      box-shadow: 0 0 0 2px var(--adm-superficie), 0 0 0 3px rgba(59, 130, 246, 0.35);
     }
 
     .user-info {
@@ -404,7 +404,7 @@
         height: 42px;
         flex-shrink: 0;
         border-radius: 13px;
-        background: linear-gradient(135deg, #6366f1, #7c3aed);
+        background: linear-gradient(135deg, #ea580c, #9a3412);
         color: #fff;
         font-size: 13px;
         font-weight: 700;

@@ -23,6 +23,9 @@ import { descargarArchivo } from '../../../../../shared/utils/descargar-archivo'
 import {
   AnulacionComprobante,
   ComprobanteDetalle,
+  CorreoComprobante,
+  CorreoHistorial,
+  EstadoCorreo,
   FormatoPdfComprobante,
   ResultadoComprobante,
   SolicitudAnularComprobante,
@@ -65,6 +68,22 @@ const TIPO_DOCUMENTO: Readonly<Record<number, string>> = {
   6: 'RUC',
   7: 'Pasaporte',
 };
+
+/** Cómo se rotula cada estado del correo al cliente. */
+const TEXTO_CORREO: Readonly<Record<EstadoCorreo, { titulo: string; tono: TonoEstado; icono: string }>> = {
+  SIN_SOLICITAR: { titulo: 'No se pidió enviarlo', tono: 'neutro', icono: 'bi-envelope' },
+  PENDIENTE: { titulo: 'Pendiente de envío', tono: 'aviso', icono: 'bi-hourglass-split' },
+  ENVIANDO: { titulo: 'Enviando', tono: 'info', icono: 'bi-send' },
+  ENVIADO: { titulo: 'Enviado', tono: 'exito', icono: 'bi-envelope-check' },
+  ERROR: { titulo: 'No se pudo enviar', tono: 'peligro', icono: 'bi-envelope-exclamation' },
+  OMITIDO: { titulo: 'Omitido', tono: 'neutro', icono: 'bi-envelope-slash' },
+};
+
+/** Formato razonable de correo (la validación real es la del backend). */
+export function correoPlausible(texto: string): boolean {
+  const limpio = texto.trim();
+  return limpio.length <= 254 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(limpio);
+}
 
 /** guias_remision.estado en palabras. */
 const ESTADO_GUIA: Readonly<Record<string, string>> = {
@@ -149,6 +168,12 @@ export class ComprobanteDetalleComponent implements OnChanges {
   anulacion: AnulacionComprobante | null = null;
   /** Resultado de SUNAT de la nota con la que se anuló. */
   resultadoNotaAnulacion: ResultadoComprobante | null = null;
+  /** Destino del reenvío por correo (precargado con el del comprobante). */
+  destinoCorreo = '';
+  /** Historial de correos; null mientras el bloque plegable no se abrió. */
+  historialCorreo: CorreoHistorial[] | null = null;
+  cargandoHistorial = false;
+  historialAbierto = false;
 
   readonly esAdmin: boolean;
   /** El backend emite notas de crédito para admin y vendedor (caja solo las consulta). */
@@ -180,6 +205,8 @@ export class ComprobanteDetalleComponent implements OnChanges {
       this.resultado = null;
       this.anulacion = null;
       this.resultadoNotaAnulacion = null;
+      this.historialCorreo = null;
+      this.historialAbierto = false;
       this.accionPendiente = this.accionInicial;
       this.cargar();
     } else if (cambios['accionInicial'] && this.accionInicial) {
@@ -221,6 +248,7 @@ export class ComprobanteDetalleComponent implements OnChanges {
           this.estado = estadoDeComprobante(detalle);
           this.ambiente = chipAmbiente(detalle.proveedor_fiscal, detalle.ambiente_fiscal);
           this.archivos = archivosDescargables(detalle.archivos);
+          this.destinoCorreo = detalle.correo?.destino || detalle.receptor.email || '';
           this.ejecutarPendiente();
         },
         error: (e) => {
@@ -295,6 +323,101 @@ export class ComprobanteDetalleComponent implements OnChanges {
 
   pedirNotaCredito(): void {
     if (this.detalle?.puede_nota_credito && this.puedeEmitirNota) this.notaCredito.emit(this.idComprobante);
+  }
+
+  // ── Correo al cliente ────────────────────────────────────────
+
+  textoCorreo(c: CorreoComprobante): { titulo: string; tono: TonoEstado; icono: string } {
+    return TEXTO_CORREO[c.estado] ?? TEXTO_CORREO.SIN_SOLICITAR;
+  }
+
+  tonoCorreo(estado: EstadoCorreo): TonoEstado {
+    return TEXTO_CORREO[estado]?.tono ?? 'neutro';
+  }
+
+  get destinoCorreoValido(): boolean {
+    return correoPlausible(this.destinoCorreo);
+  }
+
+  cambiarDestinoCorreo(valor: string): void {
+    this.destinoCorreo = valor;
+    this.cdr.markForCheck();
+  }
+
+  /** Confirma el destino y reenvía el PDF y el XML; muestra el resultado en un aviso y refresca el estado. */
+  async reenviarCorreo(): Promise<void> {
+    const d = this.detalle;
+    if (!d || this.enProceso || !d.correo?.puede_reenviar) return;
+    if (!this.destinoCorreoValido) {
+      this.alerta.toast({ type: 'warning', title: 'Correo no válido', message: 'Escriba un correo de destino con el formato nombre@dominio.pe.' });
+      return;
+    }
+    const destino = this.destinoCorreo.trim();
+    const confirmado = await this.alerta.confirmar({
+      title: `¿Enviar ${d.numero_formateado} por correo?`,
+      message: `Se enviarán el PDF y el XML a ${destino}.`,
+      confirmText: 'Enviar',
+      type: 'question',
+    });
+    if (!confirmado || this.destroyRef.destroyed) return;
+    this.enProceso = 'correo';
+    this.cdr.markForCheck();
+    this.api
+      .reenviarCorreo(d.id_comprobante, destino)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.enProceso = null;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (fila) => {
+          const enviado = fila.estado === 'ENVIADO';
+          this.alerta.toast({
+            type: enviado ? 'success' : 'warning',
+            title: enviado ? 'Correo enviado' : 'Correo en cola',
+            message: enviado
+              ? `${d.numero_formateado} se envió a ${fila.destino ?? destino}.`
+              : `${d.numero_formateado} quedó ${fila.estado.toLowerCase()}${fila.ultimo_error ? `: ${fila.ultimo_error}` : ''}.`,
+          });
+          this.historialCorreo = null;
+          if (this.historialAbierto) this.cargarHistorialCorreo();
+          this.cargar();
+        },
+        error: (e) => {
+          void this.alerta.error(errorOperativo(e, 'No se pudo enviar el correo'));
+          this.cargar();
+        },
+      });
+  }
+
+  /** El bloque plegable del historial pide las filas la primera vez que se abre. */
+  alternarHistorialCorreo(abierto: boolean): void {
+    this.historialAbierto = abierto;
+    if (abierto && this.historialCorreo === null) this.cargarHistorialCorreo();
+  }
+
+  private cargarHistorialCorreo(): void {
+    if (!this.detalle || this.cargandoHistorial) return;
+    this.cargandoHistorial = true;
+    this.cdr.markForCheck();
+    this.api
+      .historialCorreos(this.detalle.id_comprobante)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.cargandoHistorial = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (filas) => (this.historialCorreo = filas),
+        error: (e) => {
+          this.historialCorreo = [];
+          void this.alerta.error(errorOperativo(e, 'No se pudo leer el historial de correos'));
+        },
+      });
   }
 
   // ── Anulación (PLAN V3, D9) ──────────────────────────────────
