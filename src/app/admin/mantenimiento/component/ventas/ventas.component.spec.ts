@@ -826,24 +826,4 @@ describe('VentasComponent', () => {
       expect((component as any).escaneandoCodigo).toBe(false);
     });
   });
-
-  describe('desglose del total (como la proforma)', () => {
-    it('sin carrito ni cálculo todo está en cero', () => {
-      expect(component.unidadesCarrito).toBe(0);
-      expect(component.subtotalSinIgv).toBe(0);
-    });
-
-    it('cuenta unidades y suma gravada + exonerada + inafecta como subtotal sin IGV', () => {
-      component.lineas = [
-        { id_producto: 1, descripcion: 'A', unidad_medida: 'NIU', cantidad: 2, precio_unitario: 10, descuento: 0 },
-        { id_producto: 2, descripcion: 'B', unidad_medida: 'NIU', cantidad: 3, precio_unitario: 5, descuento: 0 },
-      ] as any;
-      const preview = crearPreview(0);
-      preview.totales = { gravada: 42.37, exonerada: 5, inafecta: 2.5, descuento: 0, igv: 7.63, total: 57.5 };
-      component.preview = preview;
-
-      expect(component.unidadesCarrito).toBe(5);
-      expect(component.subtotalSinIgv).toBe(49.87);
-    });
-  });
 });

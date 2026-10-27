@@ -451,65 +451,126 @@
           </div>
           <div class="adm-tarjeta__cuerpo">
             <article class="adm-ticket cot-ticket" aria-label="Vista previa de la proforma">
-              <div class="adm-ticket__cabecera">
+              <!-- Encabezado: emisor a la izquierda, recuadro con RUC y número de proforma a la derecha -->
+              <div class="adm-ticket__cabecera cot-ticket__cabecera">
                 <div class="adm-ticket__emisor">
-                  <strong>HatunSales S.A.C</strong>
-                  <span class="cot-ticket__lema">Proforma de venta</span>
+                  <strong>{{ emisor?.razon_social || 'HatunSales S.A.C.' }}</strong>
+                  <span class="cot-ticket__emisor-linea" *ngIf="emisor?.direccion">{{ emisor?.direccion }}</span>
+                  <span class="cot-ticket__emisor-linea" *ngIf="emisor?.ubicacion">{{ emisor?.ubicacion }}</span>
                 </div>
-                <div class="adm-ticket__recuadro">
-                  <small>COTIZACIÓN</small>
-                  <div class="adm-ticket__numero">{{ cotizacionActual?.codigo || 'Sin guardar' }}</div>
-                </div>
-              </div>
-
-              <div class="adm-ticket__seccion cot-ticket__datos">
-                <div class="adm-ticket__dato">
-                  <span>Cliente</span>
-                  <span>{{ receptor?.denominacion || clienteNombreManual || '—' }}</span>
-                </div>
-                <div class="adm-ticket__dato" *ngIf="documentoCliente">
-                  <span>DNI/RUC</span>
-                  <span>{{ documentoCliente }}</span>
-                </div>
-                <div class="adm-ticket__dato">
-                  <span>Vigencia</span>
-                  <span>{{ fechaVigenciaPreview }}</span>
-                </div>
-                <div class="adm-ticket__dato">
-                  <span>Despacho</span>
-                  <span>{{ nombreAlmacenDespacho }}</span>
+                <div class="cot-ticket__recuadro">
+                  <span class="cot-ticket__ruc" *ngIf="emisor?.ruc">R.U.C. {{ emisor?.ruc }}</span>
+                  <span class="cot-ticket__tipo">PROFORMA</span>
+                  <strong class="cot-ticket__codigo">{{ cotizacionActual?.codigo || 'Sin guardar' }}</strong>
                 </div>
               </div>
 
-              <div class="adm-ticket__seccion" *ngIf="lineas.length">
-                <table class="adm-ticket__tabla cot-ticket__tabla">
+              <!-- Datos del cliente | datos de la proforma -->
+              <div class="adm-ticket__seccion cot-ticket__datos cot-ticket__datos--doble">
+                <div class="cot-ticket__bloque">
+                  <h4 class="cot-ticket__titulo">Datos del cliente</h4>
+                  <div class="adm-ticket__dato">
+                    <span>Cliente</span>
+                    <span>{{ receptor?.denominacion || clienteNombreManual || '—' }}</span>
+                  </div>
+                  <div class="adm-ticket__dato" *ngIf="documentoCliente">
+                    <span>{{ documentoCliente.length === 11 ? 'RUC' : 'DNI' }}</span>
+                    <span>{{ documentoCliente }}</span>
+                  </div>
+                  <div class="adm-ticket__dato" *ngIf="telefono">
+                    <span>Teléfono</span>
+                    <span>{{ telefono }}</span>
+                  </div>
+                  <div class="adm-ticket__dato" *ngIf="receptor?.direccion || cotizacionActual?.cliente_direccion">
+                    <span>Dirección</span>
+                    <span>{{ receptor?.direccion || cotizacionActual?.cliente_direccion }}</span>
+                  </div>
+                </div>
+                <div class="cot-ticket__bloque">
+                  <h4 class="cot-ticket__titulo">Datos de la proforma</h4>
+                  <div class="adm-ticket__dato">
+                    <span>Fecha de emisión</span>
+                    <span>{{ fechaEmisionPreview }}</span>
+                  </div>
+                  <div class="adm-ticket__dato">
+                    <span>Válida hasta</span>
+                    <span>{{ fechaVigenciaPreview }}</span>
+                  </div>
+                  <div class="adm-ticket__dato">
+                    <span>Moneda</span>
+                    <span>Soles (PEN)</span>
+                  </div>
+                  <div class="adm-ticket__dato">
+                    <span>Estado</span>
+                    <span>{{ estadoPreview }}</span>
+                  </div>
+                  <div class="adm-ticket__dato">
+                    <span>Almacén de despacho</span>
+                    <span>{{ nombreAlmacenDespacho }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Detalle: N°, código, unidad, precio, cantidad, descripción, importe -->
+              <div class="adm-ticket__seccion cot-ticket__tabla-caja" *ngIf="lineas.length">
+                <table class="adm-ticket__tabla cot-ticket__tabla cot-ticket__tabla--detalle">
                   <thead>
                     <tr>
-                      <th>Descripción</th>
-                      <th>Importe</th>
+                      <th class="cot-col-n">N°</th>
+                      <th>Código</th>
+                      <th>Und.</th>
+                      <th class="cot-col-num">P. Unit.</th>
+                      <th class="cot-col-num">Cant.</th>
+                      <th class="cot-col-desc">Descripción</th>
+                      <th class="cot-col-num">Importe</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let l of lineas">
-                      <td>{{ l.descripcion }} <span class="cot-ticket__cantidad">× {{ l.cantidad }}</span></td>
-                      <td>S/ {{ subtotalLinea(l) | number:'1.2-2' }}</td>
+                    <tr *ngFor="let l of lineas; let n = index">
+                      <td class="cot-col-n">{{ n + 1 }}</td>
+                      <td>{{ l.sku || '—' }}</td>
+                      <td>{{ l.unidad_medida || 'NIU' }}</td>
+                      <td class="cot-col-num">S/ {{ l.precio_unitario | number:'1.2-2' }}</td>
+                      <td class="cot-col-num">{{ l.cantidad }}</td>
+                      <td class="cot-col-desc">{{ l.descripcion }}</td>
+                      <td class="cot-col-num"><strong>S/ {{ subtotalLinea(l) | number:'1.2-2' }}</strong></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
               <p class="cot-ticket__vacio" *ngIf="!lineas.length">Aún no hay productos en la proforma.</p>
 
-              <ul class="adm-resumen cot-ticket__totales">
-                <li class="adm-resumen__fila">
-                  <span>Subtotal sin IGV</span><span>S/ {{ gravada | number:'1.2-2' }}</span>
-                </li>
-                <li class="adm-resumen__fila">
-                  <span>IGV {{ porcentajeIgv }}%</span><span>S/ {{ igv | number:'1.2-2' }}</span>
-                </li>
-                <li class="adm-resumen__fila adm-resumen__fila--total">
-                  <span>Total</span><span>S/ {{ total | number:'1.2-2' }}</span>
-                </li>
-              </ul>
+              <!-- Resumen a la izquierda, cuadro de totales a la derecha (apilados en pantallas angostas) -->
+              <div class="cot-ticket__pie">
+                <p class="cot-ticket__resumen">
+                  Ítems: <strong>{{ lineas.length }}</strong>
+                  <span aria-hidden="true">·</span> Unidades: <strong>{{ unidadesTotales }}</strong><br>
+                  Precios unitarios con IGV incluido.
+                </p>
+                <ul class="adm-resumen cot-ticket__totales">
+                  <li class="adm-resumen__fila">
+                    <span>Subtotal</span><span>S/ {{ gravada | number:'1.2-2' }}</span>
+                  </li>
+                  <li class="adm-resumen__fila">
+                    <span>Op. gravada</span><span>S/ {{ gravada | number:'1.2-2' }}</span>
+                  </li>
+                  <li class="adm-resumen__fila">
+                    <span>IGV ({{ porcentajeIgv }}%)</span><span>S/ {{ igv | number:'1.2-2' }}</span>
+                  </li>
+                  <li class="adm-resumen__fila adm-resumen__fila--total cot-ticket__total">
+                    <span>TOTAL</span><span>S/ {{ total | number:'1.2-2' }}</span>
+                  </li>
+                </ul>
+              </div>
+
+              <p class="cot-ticket__son" *ngIf="lineas.length"><strong>SON:</strong> {{ totalEnLetras }}</p>
+
+              <section class="cot-ticket__condiciones" *ngIf="lineas.length" aria-label="Condiciones comerciales">
+                <h4 class="cot-ticket__titulo">Condiciones comerciales</h4>
+                <ul>
+                  <li *ngFor="let c of condicionesPreview">{{ c }}</li>
+                </ul>
+              </section>
             </article>
 
             <div class="cot-acciones">

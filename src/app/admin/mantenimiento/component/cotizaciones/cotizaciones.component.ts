@@ -27,6 +27,8 @@ import { SonidoCajaService } from '../../../../shared/services/sonido-caja.servi
 import { telefonoValidoPe, urlWhatsappCliente } from '../../../../shared/utils/whatsapp.util';
 import { extraerMultiplicador, normalizarCodigo, pareceCodigoExacto } from '../../../../shared/utils/codigo-barras.util';
 import { ColaEscaneos } from '../../../../shared/utils/cola-escaneos';
+import { montoEnLetras } from '../../../../shared/utils/importe-en-letras.util';
+import { ConfigFiscal, ConfiguracionFiscalService } from '../../../service/configuracion-fiscal.service';
 import {
   errorOperativo,
   escapeHtmlAlerta,
@@ -54,6 +56,8 @@ type LineaCot = {
   id_producto: number;
   descripcion: string;
   sku: string;
+  /** Unidad de medida (catálogo SUNAT) del producto; en la vista previa se muestra como en el PDF. */
+  unidad_medida?: string;
   /** Entero >= 1: la columna en BD es INTEGER, igual que en ventas/stock. */
   cantidad: number;
   precio_unitario: number;
@@ -161,6 +165,9 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
   textoCliente = '';
   sugerenciasCli: SugerenciaReceptor[] = [];
   buscandoCliente = false;
+  /** Emisor y condiciones que imprime la proforma (se leen de la configuración fiscal). */
+  emisor: ConfigFiscal['emisor'] | null = null;
+  private condicionesPropias = '';
   receptor: Receptor | null = null;
   clienteNombreManual = '';
   telefono = '';
@@ -196,12 +203,14 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     private readonly alerta: AlertService,
     private readonly router: Router,
     private readonly route: ActivatedRoute,
+    private readonly fiscal: ConfiguracionFiscalService,
   ) {}
 
   ngOnInit(): void {
     this.escucharBusquedas();
     this.cargarLista();
     this.cargarContexto();
+    this.cargarEmisor();
     if (this.route.snapshot.queryParamMap.get('desdePos') === '1') {
       this.cargarBorradorDesdePos();
     }
@@ -220,6 +229,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
             id_producto: l.id_producto,
             descripcion: l.descripcion,
             sku: l.sku || '',
+            unidad_medida: l.unidad_medida || undefined,
             cantidad: this.normalizarCantidad(l.cantidad),
             precio_unitario: Number(l.precio_unitario) || 0,
             stock_disponible: Number(l.stock_disponible) || 0,
@@ -296,6 +306,54 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
   /** Hay una operación con el servidor en curso sobre la cotización abierta. */
   get ocupado(): boolean {
     return this.guardando || this.generandoPdf || this.generandoExcel || this.enviandoWa;
+  }
+
+  private cargarEmisor(): void {
+    this.fiscal.fiscal().pipe(
+      takeUntil(this.destruir$),
+      catchError(() => of(null as ConfigFiscal | null)),
+    ).subscribe((config) => {
+      this.emisor = config?.emisor ?? null;
+      this.condicionesPropias = String(config?.proforma?.condiciones ?? '');
+      this.refrescar();
+    });
+  }
+
+  /** Unidades totales de la proforma (suma de cantidades), como "Unidades: N" del PDF. */
+  get unidadesTotales(): number {
+    return this.lineas.reduce((suma, l) => suma + (Number(l.cantidad) || 0), 0);
+  }
+
+  /** Importe en letras del total ("SON: CINCUENTA Y 00/100 SOLES"). */
+  get totalEnLetras(): string {
+    return montoEnLetras(this.total);
+  }
+
+  /** Fecha de emisión: la de creación si ya se guardó; si no, hoy. */
+  get fechaEmisionPreview(): string {
+    const guardada = this.cotizacionActual?.creado_en;
+    const fecha = guardada ? new Date(guardada) : new Date();
+    if (Number.isNaN(fecha.getTime())) return '—';
+    const d = String(fecha.getDate()).padStart(2, '0');
+    const m = String(fecha.getMonth() + 1).padStart(2, '0');
+    return `${d}/${m}/${fecha.getFullYear()}`;
+  }
+
+  get estadoPreview(): string {
+    const estado = String(this.cotizacionActual?.estado || '').trim();
+    if (!estado) return 'Sin guardar';
+    return estado.charAt(0).toUpperCase() + estado.slice(1);
+  }
+
+  /** Condiciones comerciales: las estándar de la proforma y las propias de la empresa, una por línea. */
+  get condicionesPreview(): string[] {
+    const propias = this.condicionesPropias.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    return [
+      `Proforma válida hasta el ${this.fechaVigenciaPreview}. Pasada esa fecha, los precios pueden variar.`,
+      'Los precios están expresados en Soles (PEN) e incluyen IGV.',
+      'Sujeto a disponibilidad de stock al momento de confirmar la compra.',
+      ...propias,
+    ];
   }
 
   get documentoCliente(): string {
@@ -536,6 +594,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
       id_producto: l.id_producto,
       descripcion: l.descripcion,
       sku: l.sku,
+      unidad_medida: l.unidad_medida,
       cantidad: this.normalizarCantidad(l.cantidad),
       precio_unitario: l.precio_unitario,
       stock_disponible: l.stock_disponible,
@@ -735,6 +794,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
           id_producto: p.id_producto,
           descripcion: p.nombre,
           sku: p.sku || '',
+          unidad_medida: p.unidad_medida || undefined,
           cantidad,
           precio_unitario: Number(p.precio_final) || 0,
           stock_disponible: Number(p.stock_disponible) || 0,
@@ -1032,6 +1092,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
         id_producto: id,
         descripcion: i.descripcion || local?.descripcion || 'Producto',
         sku: i.sku || local?.sku || '',
+        unidad_medida: local?.unidad_medida,
         cantidad: this.normalizarCantidad(i.cantidad),
         precio_unitario: redondear2(Number(i.precio_unitario) || 0),
         subtotal: numeroOpcional(i.subtotal),

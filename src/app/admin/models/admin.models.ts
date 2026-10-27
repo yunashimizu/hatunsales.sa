@@ -97,6 +97,8 @@ export interface PreviewComprobante {
   observaciones: string;
   nota?: { motivo_codigo: string; motivo_texto: string; documento_modificado: string };
   advertencias: string[];
+  /** Solo si ya hay medios de pago elegidos: lo que dirá el comprobante (igual que su PDF). */
+  forma_pago?: 'Contado' | 'Credito';
   proveedor_fiscal?: 'sunat_directo';
   ambiente_fiscal?: 'beta' | 'produccion';
   /** Solo si algún pago es con tarjeta: el recargo ya va como línea en `items` y dentro de `totales.total`. */

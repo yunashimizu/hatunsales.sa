@@ -329,23 +329,6 @@
 }
 .pv-cobro .pv-resumen__recargo > span:last-child { color: var(--adm-info); }
 
-/* Desglose del total (mismo orden que la proforma) */
-.pv-resumen__nota { margin: 0; font-size: 12px; color: var(--adm-texto-suave); }
-.pv-resumen__nota strong { color: var(--adm-texto); font-variant-numeric: tabular-nums; }
-.pv-desglose { transition: opacity 200ms ease; }
-.pv-cobro .pv-desglose__sub { padding: 5px 0 5px 14px; font-size: 12.5px; border-bottom: 0; }
-.pv-cobro .pv-desglose__sub > span:last-child { font-weight: 600; }
-.pv-resumen__recargo-nota {
-  display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 12px; font-size: 12.5px;
-  color: var(--adm-info); background: var(--adm-info-claro); border: 1px solid var(--adm-info-borde); border-radius: 10px;
-}
-.pv-son {
-  margin: 0; padding: 9px 12px; font-size: 12px; line-height: 1.35; letter-spacing: 0.01em; text-transform: uppercase;
-  color: var(--adm-texto); background: color-mix(in srgb, var(--adm-superficie-3) 70%, transparent);
-  border: 1px solid var(--adm-borde); border-radius: 10px;
-}
-.pv-son strong { margin-right: 4px; }
-
 /* Barra fija con el total: solo en pantallas chicas */
 .pv-total-movil { display: none; }
 

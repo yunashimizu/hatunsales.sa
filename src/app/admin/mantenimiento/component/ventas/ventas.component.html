@@ -460,6 +460,15 @@
               <div class="adm-ticket__dato">
                 <span>Emisión</span><span>{{ preview.fecha_de_emision }}</span>
               </div>
+              <div class="adm-ticket__dato">
+                <span>Moneda</span><span>{{ preview.moneda.nombre }}</span>
+              </div>
+              <div class="adm-ticket__dato" *ngIf="preview.forma_pago">
+                <span>Forma de pago</span><span>{{ preview.forma_pago === 'Credito' ? 'Crédito' : 'Contado' }}</span>
+              </div>
+              <div class="adm-ticket__dato" *ngIf="preview.observaciones">
+                <span>Observaciones</span><span>{{ preview.observaciones }}</span>
+              </div>
             </div>
 
             <div class="adm-ticket__seccion">
@@ -502,21 +511,17 @@
                 <span>Op. inafecta</span>
                 <span>{{ preview.moneda.simbolo }} {{ preview.totales.inafecta | number:'1.2-2' }}</span>
               </div>
-              <div class="adm-ticket__total-fila">
-                <span>Subtotal</span>
-                <span>{{ preview.moneda.simbolo }} {{ subtotalPreview(preview) | number:'1.2-2' }}</span>
-              </div>
               <div class="adm-ticket__total-fila" *ngIf="preview.totales.descuento">
                 <span>Descuentos</span>
                 <span>− {{ preview.moneda.simbolo }} {{ preview.totales.descuento | number:'1.2-2' }}</span>
               </div>
-              <div class="adm-ticket__total-fila pv-ticket__recargo" *ngIf="preview.recargo_tarjeta as recargo">
-                <span>Incluye recargo por tarjeta ({{ recargo.porcentaje }}%)</span>
-                <span>{{ preview.moneda.simbolo }} {{ recargo.monto | number:'1.2-2' }}</span>
-              </div>
               <div class="adm-ticket__total-fila">
                 <span>IGV ({{ preview.porcentaje_igv }}%)</span>
                 <span>{{ preview.moneda.simbolo }} {{ preview.totales.igv | number:'1.2-2' }}</span>
+              </div>
+              <div class="adm-ticket__total-fila pv-ticket__recargo" *ngIf="preview.recargo_tarjeta as recargo">
+                <span>Incluye recargo por tarjeta ({{ recargo.porcentaje }}%)</span>
+                <span>{{ preview.moneda.simbolo }} {{ recargo.monto | number:'1.2-2' }}</span>
               </div>
               <div class="adm-ticket__total-fila adm-ticket__total-fila--destacada">
                 <span>Importe total</span>
@@ -977,47 +982,24 @@
       <!-- Total y cobro -->
       <section class="adm-tarjeta adm-tarjeta--destacada pv-cobro" aria-label="Total y cobro">
         <div class="adm-tarjeta__cuerpo pv-pila">
-          <!-- Desglose igual al de la proforma: ítems, subtotal sin IGV, operaciones, descuento, IGV y total -->
-          <p class="pv-resumen__nota">
-            Ítems: <strong>{{ lineas.length }}</strong>
-            <span aria-hidden="true">·</span> Unidades: <strong>{{ unidadesCarrito }}</strong>
-            <span aria-hidden="true">·</span> Precios con IGV incluido
-          </p>
-          <ul class="adm-resumen pv-desglose" [class.pv-resumen__desactualizado]="calculandoPreview && !!preview">
+          <ul class="adm-resumen">
             <li class="adm-resumen__fila">
-              <span>Subtotal (sin IGV)</span>
-              <span>S/ {{ subtotalSinIgv | number:'1.2-2' }}</span>
-            </li>
-            <li class="adm-resumen__fila pv-desglose__sub" *ngIf="!preview || (preview.totales.gravada || 0) > 0">
-              <span>Op. gravada</span><span>S/ {{ (preview?.totales?.gravada || 0) | number:'1.2-2' }}</span>
-            </li>
-            <li class="adm-resumen__fila pv-desglose__sub" *ngIf="(preview?.totales?.exonerada || 0) > 0">
-              <span>Op. exonerada</span><span>S/ {{ preview?.totales?.exonerada | number:'1.2-2' }}</span>
-            </li>
-            <li class="adm-resumen__fila pv-desglose__sub" *ngIf="(preview?.totales?.inafecta || 0) > 0">
-              <span>Op. inafecta</span><span>S/ {{ preview?.totales?.inafecta | number:'1.2-2' }}</span>
+              <span>Productos</span><span>{{ lineas.length }}</span>
             </li>
             <li class="adm-resumen__fila" *ngIf="descuentoCarrito > 0">
-              <span>Descuentos (ya restados)</span><span>− S/ {{ descuentoCarrito | number:'1.2-2' }}</span>
+              <span>Descuentos</span><span>− S/ {{ descuentoCarrito | number:'1.2-2' }}</span>
             </li>
-            <li class="adm-resumen__fila">
-              <span>IGV ({{ preview?.porcentaje_igv ?? 18 }}%)</span>
-              <span>S/ {{ (preview?.totales?.igv || 0) | number:'1.2-2' }}</span>
+            <li class="adm-resumen__fila pv-resumen__recargo" *ngIf="recargoMostrado > 0">
+              <span>Recargo por tarjeta ({{ recargoPctMostrado }}%)</span><span>+ S/ {{ recargoMostrado | number:'1.2-2' }}</span>
+            </li>
+            <li class="adm-resumen__fila" [class.pv-resumen__desactualizado]="calculandoPreview" *ngIf="preview">
+              <span>IGV incluido ({{ preview.porcentaje_igv }}%)</span><span>S/ {{ preview.totales.igv | number:'1.2-2' }}</span>
             </li>
             <li class="adm-resumen__fila adm-resumen__fila--total pv-total">
               <span>Total a pagar</span>
               <span class="pv-total__monto" [class.pv-total__monto--calculando]="calculandoPreview">S/ {{ total | number:'1.2-2' }}</span>
             </li>
           </ul>
-
-          <p class="pv-resumen__recargo-nota" *ngIf="recargoMostrado > 0">
-            <i class="bi bi-credit-card-2-front" aria-hidden="true"></i>
-            Incluye recargo por tarjeta ({{ recargoPctMostrado }}%): S/ {{ recargoMostrado | number:'1.2-2' }}
-          </p>
-
-          <p class="pv-son" *ngIf="preview?.importe_en_letras && !calculandoPreview">
-            <strong>SON:</strong> {{ preview?.importe_en_letras }}
-          </p>
 
           <div class="adm-aviso adm-aviso--peligro" *ngIf="errorPreview">
             <i class="bi bi-x-circle" aria-hidden="true"></i><span>{{ errorPreview }}</span>

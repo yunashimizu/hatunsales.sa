@@ -1425,11 +1425,6 @@ export class VentasComponent implements OnInit, OnDestroy {
     return this.lineas.reduce((suma, linea) => suma + this.brutoLinea(linea), 0);
   }
 
-  subtotalPreview(preview: PreviewComprobante | null): number {
-    if (!preview) return 0;
-    return (preview.items ?? []).reduce((suma, item) => suma + (Number(item.subtotal) || 0), 0);
-  }
-
 
   /**
    * Total a cobrar. Con el cálculo del servidor al día es el suyo (lo mismo que se registra y
@@ -1439,18 +1434,6 @@ export class VentasComponent implements OnInit, OnDestroy {
   get total(): number {
     if (this.preview && !this.calculandoPreview) return this.preview.totales.total;
     return this.redondear(this.totalLocal + this.recargoEstimado);
-  }
-
-  /** Unidades totales del carrito (suma de cantidades), para el desglose del total. */
-  get unidadesCarrito(): number {
-    return this.lineas.reduce((suma, l) => suma + (Number(l.cantidad) || 0), 0);
-  }
-
-  /** Subtotal sin IGV: gravada + exonerada + inafecta del cálculo del servidor (0 sin carrito). */
-  get subtotalSinIgv(): number {
-    const t = this.preview?.totales;
-    if (!t) return 0;
-    return this.redondear((Number(t.gravada) || 0) + (Number(t.exonerada) || 0) + (Number(t.inafecta) || 0));
   }
 
   /** Hay un medio de pago de tarjeta elegido. */
