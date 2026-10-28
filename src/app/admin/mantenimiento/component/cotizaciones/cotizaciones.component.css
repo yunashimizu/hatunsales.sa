@@ -162,116 +162,161 @@
 .adm-fila > .cot-campo-vigencia { flex: 0 1 200px; }
 
 /* ── Vista previa (proforma) ─────────────────────────────────── */
+/* La hoja es siempre clara y usa la paleta del logo (grafito, plata y dorado), igual que el PDF y el Excel.
+   No hereda los tokens --adm-* del panel: así no cambia con el tema ni con el color de acento. */
 
 .cot-ticket {
+  --doc-grafito: #2f343c;
+  --doc-dorado: #c9a95c;
+  --doc-dorado-oscuro: #8a6d2f;
+  --doc-dorado-suave: #f8f3e6;
+  --doc-plata: #c9ced5;
+  --doc-texto: #1f2329;
+  --doc-gris: #555b64;
+  --doc-gris-claro: #8b919b;
+  --doc-linea: #d9dce1;
+  --doc-fondo: #f5f6f8;
+  --doc-cebra: #fafafb;
+  --doc-aviso: #8a6d2f;
+  --doc-peligro: #b42318;
+
   overflow: hidden;
   container-type: inline-size;
   box-shadow: var(--adm-sombra-md);
+  background: #fff;
+  color: var(--doc-texto);
+  border: 1px solid var(--doc-linea);
 }
 
-.cot-ticket__lema {
-  display: block;
-  margin-top: 2px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--adm-texto-suave);
+/* Franja superior: grafito con el tramo corto en dorado */
+.cot-ticket__franja {
+  height: 6px;
+  background: linear-gradient(90deg, var(--doc-dorado) 0 22%, var(--doc-grafito) 22% 100%);
 }
 
-.cot-ticket__datos {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* Encabezado */
+.cot-ticket__cabecera {
+  display: flex; justify-content: space-between; align-items: stretch; gap: 14px;
+  padding: 16px 16px 14px;
 }
-
-.cot-ticket .adm-ticket__dato > span:last-child {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--adm-texto);
-  font-weight: 500;
-}
-
-.cot-ticket__tabla th:last-child,
-.cot-ticket__tabla td:last-child {
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.cot-ticket__tabla td:first-child { overflow-wrap: anywhere; }
-
-.cot-ticket__cantidad { color: var(--adm-texto-suave); white-space: nowrap; }
-
-.cot-ticket__vacio {
-  margin: 0;
-  padding: 16px;
-  text-align: center;
-  font-size: 12.5px;
-  color: var(--adm-texto-suave);
-  border-bottom: 1px dashed var(--adm-borde-fuerte);
-}
-
-.cot-ticket__totales { padding: 8px 16px 14px; }
-
-/* Encabezado como el de la proforma: emisor + recuadro con RUC, PROFORMA y número */
-.cot-ticket__cabecera { align-items: stretch; gap: 14px; }
-.cot-ticket__emisor-linea { display: block; margin-top: 2px; font-size: 11.5px; color: var(--adm-texto-suave); }
+.cot-ticket__marca { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
+.cot-ticket__logo { width: 84px; max-height: 64px; object-fit: contain; flex-shrink: 0; }
+.cot-ticket__emisor { min-width: 0; }
+.cot-ticket__razon { display: block; font-size: 14.5px; color: var(--doc-grafito); letter-spacing: 0.01em; }
+.cot-ticket__emisor-linea { display: block; margin-top: 2px; font-size: 11.5px; color: var(--doc-gris); }
 .cot-ticket__recuadro {
-  display: flex; flex-direction: column; min-width: 150px; overflow: hidden; text-align: center;
-  border: 1.5px solid var(--adm-primario); border-radius: 8px;
+  display: flex; flex-direction: column; flex-shrink: 0; min-width: 150px; overflow: hidden; text-align: center;
+  border: 1.5px solid var(--doc-grafito); border-radius: 8px;
 }
-.cot-ticket__ruc { padding: 6px 10px; font-size: 12px; font-weight: 700; color: var(--adm-texto); }
+.cot-ticket__ruc { padding: 6px 10px; font-size: 12px; font-weight: 700; color: var(--doc-texto); }
 .cot-ticket__tipo {
   padding: 5px 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.22em;
-  color: #fff; background: var(--adm-primario-solido, var(--adm-primario));
+  color: #fff; background: var(--doc-grafito);
 }
-.cot-ticket__codigo { padding: 7px 10px; font-size: 15px; letter-spacing: 0.01em; color: var(--adm-primario); }
+.cot-ticket__codigo { padding: 7px 10px; font-size: 15px; letter-spacing: 0.01em; color: var(--doc-grafito); font-variant-numeric: tabular-nums; }
 
+/* Títulos de bloque: grafito con barrita dorada */
 .cot-ticket__titulo {
+  display: flex; align-items: center; gap: 7px;
   margin: 0 0 6px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--adm-primario);
+  color: var(--doc-grafito);
+}
+.cot-ticket__titulo::before { content: ''; width: 3px; height: 11px; border-radius: 2px; background: var(--doc-dorado); }
+.cot-ticket__titulo--linea { padding-bottom: 5px; border-bottom: 1px solid var(--doc-linea); }
+
+/* Caja gris con datos del cliente y de la proforma */
+.cot-ticket__datos {
+  margin: 0 16px; padding: 12px 14px; border: 1px solid var(--doc-linea); border-radius: 8px;
+  background: var(--doc-fondo);
 }
 .cot-ticket__datos--doble { display: grid; grid-template-columns: 1fr; gap: 12px; }
-@container (min-width: 520px) { .cot-ticket__datos--doble { grid-template-columns: 1fr 1fr; } }
-.cot-ticket__bloque { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cot-ticket__bloque { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.cot-ticket__dato { display: flex; gap: 8px; font-size: 12px; }
+.cot-ticket__dato > span:first-child { min-width: 112px; flex-shrink: 0; font-weight: 700; color: var(--doc-gris); }
+.cot-ticket__dato > span:last-child { min-width: 0; overflow-wrap: anywhere; color: var(--doc-texto); font-weight: 500; }
+.cot-ticket__dato > .cot-ticket__estado--vencida { color: var(--doc-aviso); font-weight: 700; }
+.cot-ticket__dato > .cot-ticket__estado--anulada { color: var(--doc-peligro); font-weight: 700; }
+
+.cot-ticket__vacio {
+  margin: 14px 16px 0; padding: 16px; text-align: center; font-size: 12.5px; color: var(--doc-gris);
+  border: 1px dashed var(--doc-plata); border-radius: 8px;
+}
 
 /* Tabla de detalle: scroll horizontal en pantallas angostas, números alineados */
-.cot-ticket__tabla-caja { overflow-x: auto; }
-.cot-ticket__tabla--detalle { min-width: 460px; font-size: 12px; }
+.cot-ticket__tabla-caja { overflow-x: auto; margin: 14px 16px 0; }
+.cot-ticket__tabla { width: 100%; border-collapse: collapse; }
+.cot-ticket__tabla--detalle { min-width: 540px; font-size: 12px; }
 .cot-ticket__tabla--detalle th {
-  padding: 7px 8px; font-size: 10.5px; letter-spacing: 0.04em; color: #fff;
-  background: var(--adm-primario-solido, var(--adm-primario));
+  padding: 7px 8px; text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: none;
+  color: #fff; background: var(--doc-grafito); border-bottom: 2px solid var(--doc-dorado);
 }
-.cot-ticket__tabla--detalle td { padding: 7px 8px; vertical-align: top; }
+.cot-ticket__tabla--detalle td { padding: 7px 8px; vertical-align: top; border-bottom: 1px solid var(--doc-linea); color: var(--doc-texto); }
 .cot-ticket__tabla--detalle .cot-col-n { width: 28px; text-align: center; }
 .cot-ticket__tabla--detalle .cot-col-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cot-ticket__tabla--detalle .cot-col-desc { min-width: 120px; overflow-wrap: anywhere; text-align: left; }
-.cot-ticket__tabla--detalle th:last-child, .cot-ticket__tabla--detalle td:last-child { text-align: right; }
-.cot-ticket__tabla--detalle tbody tr:nth-child(even) { background: color-mix(in srgb, var(--adm-superficie-2) 70%, transparent); }
+.cot-ticket__tabla--detalle .cot-col-dto--con { color: var(--doc-aviso); font-weight: 600; }
+.cot-ticket__tabla--detalle tbody tr:nth-child(even) { background: var(--doc-cebra); }
 
 /* Pie: ítems/unidades y cuadro de totales */
 .cot-ticket__pie { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 16px; padding: 12px 16px 0; }
-.cot-ticket__resumen { margin: 0; flex: 1 1 140px; font-size: 11.5px; line-height: 1.5; color: var(--adm-texto-suave); }
-.cot-ticket__resumen strong { color: var(--adm-texto); font-variant-numeric: tabular-nums; }
-.cot-ticket__pie .cot-ticket__totales {
-  flex: 1 1 210px; max-width: 280px; margin-left: auto; padding: 0; overflow: hidden;
-  border: 1px solid var(--adm-borde); border-radius: 8px;
+.cot-ticket__resumen { margin: 0; flex: 1 1 140px; font-size: 11.5px; line-height: 1.5; color: var(--doc-gris); }
+.cot-ticket__resumen strong { color: var(--doc-texto); font-variant-numeric: tabular-nums; }
+.cot-ticket__totales {
+  flex: 1 1 210px; max-width: 280px; margin: 0 0 0 auto; padding: 0; list-style: none; overflow: hidden;
+  border: 1px solid var(--doc-plata); border-radius: 8px;
 }
-.cot-ticket__pie .adm-resumen__fila { padding: 6px 12px; font-size: 12.5px; }
-.cot-ticket__pie .cot-ticket__total {
-  margin: 0; padding: 9px 12px; border-top: 0;
-  color: #fff; background: var(--adm-primario-solido, var(--adm-primario));
+.cot-ticket__fila {
+  display: flex; justify-content: space-between; gap: 16px; padding: 6px 12px; font-size: 12.5px;
+  color: var(--doc-gris); border-bottom: 1px solid var(--doc-linea);
 }
-.cot-ticket__pie .cot-ticket__total > span { color: #fff; }
-.cot-ticket__pie .cot-ticket__total > span:last-child { font-size: 1.15rem; }
+.cot-ticket__fila > span:last-child { color: var(--doc-texto); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.cot-ticket__fila.cot-ticket__total {
+  align-items: center; padding: 9px 12px; border: 0; border-left: 4px solid var(--doc-dorado);
+  color: #fff; background: var(--doc-grafito); font-weight: 700;
+}
+.cot-ticket__fila.cot-ticket__total > span { color: #fff; }
+.cot-ticket__fila.cot-ticket__total > span:last-child { font-size: 1.15rem; }
 
 .cot-ticket__son {
-  margin: 12px 16px 0; padding: 8px 12px; font-size: 11.5px; font-weight: 600; text-transform: uppercase;
-  background: var(--adm-superficie-2); border: 1px solid var(--adm-borde); border-radius: 8px;
+  margin: 12px 16px 0; padding: 8px 12px; font-size: 11.5px; text-transform: uppercase; color: var(--doc-texto);
+  background: var(--doc-dorado-suave); border: 1px solid var(--doc-plata); border-radius: 8px;
 }
-.cot-ticket__condiciones { padding: 14px 16px 16px; }
-.cot-ticket__condiciones ul { margin: 0; padding-left: 16px; font-size: 11.5px; line-height: 1.5; color: var(--adm-texto-suave); }
+
+/* Cuentas para depósito o transferencia: banda grafito con barrita dorada */
+.cot-ticket__cuentas { margin: 12px 16px 0; overflow: hidden; border: 1px solid var(--doc-plata); border-radius: 8px; }
+.cot-ticket__cuentas-titulo {
+  display: flex; align-items: center; gap: 7px; margin: 0; padding: 7px 12px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  color: #fff; background: var(--doc-grafito);
+}
+.cot-ticket__cuentas-titulo::before { content: ''; width: 3px; height: 11px; border-radius: 2px; background: var(--doc-dorado); }
+.cot-ticket__cuentas-tabla { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.cot-ticket__cuentas-tabla th {
+  padding: 5px 12px; text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--doc-gris); background: var(--doc-fondo); border-bottom: 1px solid var(--doc-linea);
+}
+.cot-ticket__cuentas-tabla td { padding: 6px 12px; vertical-align: top; color: var(--doc-texto); border-bottom: 1px solid var(--doc-linea); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.cot-ticket__cuentas-tabla tbody tr:last-child td { border-bottom: 0; }
+.cot-ticket__cuentas-tabla td small { display: block; font-size: 10.5px; color: var(--doc-gris); }
+
+/* Condiciones comerciales: viñetas en dorado oscuro (legible sobre blanco) */
+.cot-ticket__condiciones { padding: 14px 16px 6px; }
+.cot-ticket__condiciones ul { margin: 0; padding-left: 16px; font-size: 11.5px; line-height: 1.55; color: var(--doc-gris); }
+.cot-ticket__condiciones li::marker { color: var(--doc-dorado-oscuro); }
+
+/* Pie de la hoja */
+.cot-ticket__pie-hoja {
+  display: flex; flex-direction: column; gap: 2px; margin: 8px 16px 0; padding: 8px 0 14px;
+  border-top: 1px solid var(--doc-linea); font-size: 10px; color: var(--doc-gris-claro);
+}
+.cot-ticket__pie-hoja > span:first-child { font-style: italic; }
+
+@container (min-width: 520px) { .cot-ticket__datos--doble { grid-template-columns: 1fr 1fr; } }
+@container (max-width: 460px) {
+  .cot-ticket__cabecera { flex-direction: column; }
+  .cot-ticket__recuadro { min-width: 0; }
+  .cot-ticket__totales { max-width: none; }
+}
 
 /* ── Acciones de la cotización ───────────────────────────────── */
 

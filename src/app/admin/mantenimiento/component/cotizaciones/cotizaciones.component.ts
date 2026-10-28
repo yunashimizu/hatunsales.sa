@@ -44,6 +44,7 @@ import {
 import { AlmacenPos, PuntoVentaService } from '../../../service/punto-venta.service';
 import { ReceptorService } from '../../../service/receptor.service';
 import { ProductoVenta, Receptor, SugerenciaReceptor } from '../../../models/admin.models';
+import { dominio } from '../../../../constants/urlConstants';
 
 /** Un escaneo en cola: código normalizado, cantidad del multiplicador `5*código` y la sugerencia única visible. */
 interface EscaneoPendiente {
@@ -60,11 +61,27 @@ type LineaCot = {
   unidad_medida?: string;
   /** Entero >= 1: la columna en BD es INTEGER, igual que en ventas/stock. */
   cantidad: number;
+  /** Precio NETO con IGV (precio de lista menos `descuento`), igual que lo guarda el backend. */
   precio_unitario: number;
+  /** Descuento unitario ya restado de `precio_unitario`. Sin descuento: 0 o ausente. */
+  descuento?: number;
   /** Subtotal que guardó el backend (solo en cotizaciones guardadas). */
   subtotal?: number;
   stock_disponible: number;
 };
+
+/** Cuenta bancaria tal como la devuelve `GET caja/cuentas-bancarias` (fila de `cuentas_bancarias`). */
+export interface CuentaDeposito {
+  id_cuenta?: number;
+  banco: string;
+  alias?: string | null;
+  tipo_cuenta?: string | null;
+  numero_cuenta?: string | null;
+  cci?: string | null;
+  titular?: string | null;
+  moneda?: string | null;
+  es_yape?: boolean;
+}
 
 type TipoDocumento = 'pdf' | 'excel';
 
@@ -85,6 +102,11 @@ const DIAS_VIGENCIA_MAX = 90;
 
 /** Productos que se listan en el mensaje de WhatsApp antes de resumir (igual que el backend). */
 const MAX_ITEMS_TEXTO_WA = 8;
+
+/** Logo oficial que sirve el backend (misma ruta que usan los PDF) cuando la configuración fiscal no trae uno. */
+const RUTA_LOGO_OFICIAL = 'uploads/logo-hatunsales.png';
+
+const MS_DIA = 24 * 60 * 60 * 1000;
 
 /** Tiempo antes de liberar el object URL: Firefox cancela la descarga si se revoca al instante. */
 const REVOCAR_URL_MS = 30_000;
@@ -178,6 +200,11 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
 
   cotizacionActual: Cotizacion | null = null;
 
+  /** Cuentas para depósito o transferencia que se imprimen en la hoja. Vacío = el bloque no se muestra. */
+  cuentas: CuentaDeposito[] = [];
+  /** El logo no cargó (404 o sin red): se oculta la imagen en la vista previa. */
+  logoFallido = false;
+
   /**
    * Cola serial de escaneos (igual que el POS): el Enter del lector vacía el campo y encola el
    * código; se procesan de a uno y un fallo no detiene los siguientes.
@@ -211,6 +238,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     this.cargarLista();
     this.cargarContexto();
     this.cargarEmisor();
+    this.cargarCuentas();
     if (this.route.snapshot.queryParamMap.get('desdePos') === '1') {
       this.cargarBorradorDesdePos();
     }
@@ -225,15 +253,21 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
       const data = JSON.parse(raw);
       this.nueva();
       this.lineas = Array.isArray(data.lineas)
-        ? data.lineas.map((l: any) => ({
-            id_producto: l.id_producto,
-            descripcion: l.descripcion,
-            sku: l.sku || '',
-            unidad_medida: l.unidad_medida || undefined,
-            cantidad: this.normalizarCantidad(l.cantidad),
-            precio_unitario: Number(l.precio_unitario) || 0,
-            stock_disponible: Number(l.stock_disponible) || 0,
-          }))
+        ? data.lineas.map((l: any) => {
+            // El carrito del POS guarda el precio de LISTA y el descuento aparte; aquí el precio es el neto.
+            const descuento = Math.max(0, Number(l.descuento) || 0);
+            const lista = Number(l.precio_unitario) || 0;
+            return {
+              id_producto: l.id_producto,
+              descripcion: l.descripcion,
+              sku: l.sku || '',
+              unidad_medida: l.unidad_medida || undefined,
+              cantidad: this.normalizarCantidad(l.cantidad),
+              precio_unitario: redondear2(Math.max(0, lista - descuento)),
+              descuento,
+              stock_disponible: Number(l.stock_disponible) || 0,
+            };
+          })
         : [];
       this.receptor = data.receptor || null;
       this.clienteNombreManual = data.receptor?.denominacion || '';
@@ -294,6 +328,21 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     return redondear2(linea.cantidad * linea.precio_unitario);
   }
 
+  /** Precio de lista de la línea (columna «P. Unit.» de la hoja) = neto + descuento unitario. */
+  precioListaLinea(linea: LineaCot): number {
+    return redondear2(linea.precio_unitario + (Number(linea.descuento) || 0));
+  }
+
+  /** Descuento total de la línea (columna «Dto.»): descuento unitario × cantidad. */
+  descuentoLinea(linea: LineaCot): number {
+    return redondear2((Number(linea.descuento) || 0) * (Number(linea.cantidad) || 0));
+  }
+
+  /** Suma de los descuentos de todas las líneas; la fila «Descuento aplicado» solo sale si es mayor que 0. */
+  get descuentoTotal(): number {
+    return redondear2(this.lineas.reduce((s, l) => s + this.descuentoLinea(l), 0));
+  }
+
   get telefonoOk(): boolean {
     return telefonoValidoPe(this.telefono);
   }
@@ -319,6 +368,40 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     });
   }
 
+  private cargarCuentas(): void {
+    this.pv.cuentasBancarias(false).pipe(
+      takeUntil(this.destruir$),
+      catchError(() => of([] as CuentaDeposito[])),
+    ).subscribe((cuentas) => {
+      // Solo las que tienen banco y algún número que el cliente pueda usar (igual que el PDF).
+      this.cuentas = (Array.isArray(cuentas) ? cuentas : []).filter(
+        (c: CuentaDeposito) => !!String(c?.banco ?? '').trim()
+          && !!(String(c?.numero_cuenta ?? '').trim() || String(c?.cci ?? '').trim()),
+      );
+      this.refrescar();
+    });
+  }
+
+  /** Logo del encabezado: el de la configuración fiscal o, si no hay, el oficial del backend. */
+  get logoUrl(): string {
+    const configurado = String(this.emisor?.logo_url ?? '').trim();
+    return configurado || `${dominio}${RUTA_LOGO_OFICIAL}`;
+  }
+
+  alFallarLogo(): void {
+    this.logoFallido = true;
+    this.refrescar();
+  }
+
+  /** Detalle chico bajo el banco: «Cta. corriente», salvo Yape. */
+  detalleCuenta(c: CuentaDeposito): string {
+    if (c.es_yape) return '';
+    const tipo = String(c.tipo_cuenta ?? '').trim();
+    const moneda = String(c.moneda ?? '').trim().toUpperCase();
+    return [tipo ? `Cta. ${tipo.toLowerCase()}` : '', moneda && moneda !== 'PEN' ? moneda : '']
+      .filter(Boolean).join(' · ');
+  }
+
   /** Unidades totales de la proforma (suma de cantidades), como "Unidades: N" del PDF. */
   get unidadesTotales(): number {
     return this.lineas.reduce((suma, l) => suma + (Number(l.cantidad) || 0), 0);
@@ -342,7 +425,35 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
   get estadoPreview(): string {
     const estado = String(this.cotizacionActual?.estado || '').trim();
     if (!estado) return 'Sin guardar';
-    return estado.charAt(0).toUpperCase() + estado.slice(1);
+    const etiqueta = estado.charAt(0).toUpperCase() + estado.slice(1);
+    return this.estadoVencidoPreview ? `${etiqueta} (vencida)` : etiqueta;
+  }
+
+  /** Igual que el PDF: solo vence una cotización abierta (borrador, enviada o aprobada). */
+  get estadoVencidoPreview(): boolean {
+    const estado = String(this.cotizacionActual?.estado || '').trim().toLowerCase();
+    return ['borrador', 'enviada', 'aprobada'].includes(estado) && this.cotizacionVencida;
+  }
+
+  /** «dd/mm/aaaa (N días)». Guardada: días entre la emisión y el vencimiento; nueva: los días elegidos. */
+  get vigenciaTexto(): string {
+    const fecha = this.fechaVigenciaPreview;
+    const dias = this.diasDeVigencia();
+    return dias ? `${fecha} (${dias} ${dias === 1 ? 'día' : 'días'})` : fecha;
+  }
+
+  private diasDeVigencia(): number | null {
+    const c = this.cotizacionActual;
+    if (c?.valida_hasta) {
+      const creada = c.creado_en ? new Date(c.creado_en) : null;
+      const hasta = new Date(`${String(c.valida_hasta).slice(0, 10)}T00:00:00`);
+      if (!creada || Number.isNaN(creada.getTime()) || Number.isNaN(hasta.getTime())) return null;
+      const desde = new Date(creada.getFullYear(), creada.getMonth(), creada.getDate());
+      const n = Math.round((hasta.getTime() - desde.getTime()) / MS_DIA);
+      return n > 0 ? n : null;
+    }
+    const n = Math.round(Number(this.diasVigencia));
+    return Number.isFinite(n) && n >= 1 ? n : null;
   }
 
   /** Condiciones comerciales: las estándar de la proforma y las propias de la empresa, una por línea. */
@@ -495,9 +606,14 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
   }
 
   get nombreAlmacenDespacho(): string {
+    return this.almacenDespacho ?? 'Sin almacén';
+  }
+
+  /** Nombre del almacén de despacho, o null si no hay (entonces la hoja no imprime la fila). */
+  get almacenDespacho(): string | null {
     if (this.soloLectura && this.cotizacionActual?.almacen_nombre) return this.cotizacionActual.almacen_nombre;
     const almacen = this.almacenes.find((a) => a.id_almacen === this.idAlmacen);
-    return almacen ? `${almacen.nombre}${almacen.sucursal ? ` · ${almacen.sucursal}` : ''}` : 'Sin almacén';
+    return almacen ? `${almacen.nombre}${almacen.sucursal ? ` · ${almacen.sucursal}` : ''}` : null;
   }
 
   /** Stock informativo de una línea/sugerencia. Nunca bloquea: la proforma no mueve inventario. */
@@ -597,6 +713,7 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
       unidad_medida: l.unidad_medida,
       cantidad: this.normalizarCantidad(l.cantidad),
       precio_unitario: l.precio_unitario,
+      descuento: l.descuento,
       stock_disponible: l.stock_disponible,
     }));
     const receptor = this.receptor;
@@ -796,7 +913,9 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
           sku: p.sku || '',
           unidad_medida: p.unidad_medida || undefined,
           cantidad,
+          // `precio_final` = precio de venta − descuento (el neto); es lo que el backend vuelve a calcular al guardar.
           precio_unitario: Number(p.precio_final) || 0,
+          descuento: Math.max(0, Number(p.descuento) || 0),
           stock_disponible: Number(p.stock_disponible) || 0,
         },
       ];
@@ -1092,9 +1211,11 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
         id_producto: id,
         descripcion: i.descripcion || local?.descripcion || 'Producto',
         sku: i.sku || local?.sku || '',
-        unidad_medida: local?.unidad_medida,
+        // El GET puede traer `unidad_medida`/`descuento` o los snapshots crudos; si no, lo que ya se veía en pantalla.
+        unidad_medida: i.unidad_medida || i.unidad_medida_snapshot || local?.unidad_medida,
         cantidad: this.normalizarCantidad(i.cantidad),
         precio_unitario: redondear2(Number(i.precio_unitario) || 0),
+        descuento: numeroOpcional(i.descuento) ?? numeroOpcional(i.descuento_snapshot) ?? local?.descuento,
         subtotal: numeroOpcional(i.subtotal),
         stock_disponible: local?.stock_disponible ?? 0,
       };

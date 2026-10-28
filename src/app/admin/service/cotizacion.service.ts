@@ -13,6 +13,12 @@ export interface CotizacionItem {
   subtotal?: number;
   descripcion?: string;
   sku?: string;
+  /** Unidad de medida SUNAT (NIU, ZZ…). El GET de una proforma puede traerla con este nombre o como `unidad_medida_snapshot`. */
+  unidad_medida?: string;
+  /** Descuento UNITARIO ya restado de `precio_unitario` (que es el neto). Alias del backend: `descuento_snapshot`. */
+  descuento?: number;
+  unidad_medida_snapshot?: string | null;
+  descuento_snapshot?: number | string | null;
 }
 
 export interface Cotizacion {
