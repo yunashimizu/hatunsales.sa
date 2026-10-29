@@ -16,6 +16,7 @@ import { Subject, Subscription, debounceTime, finalize } from 'rxjs';
 
 import { AlertService } from '../../../../shared/services/alert.service';
 import { descargarArchivo } from '../../../../shared/utils/descargar-archivo';
+import { BusquedaPendiente, filtrarInstantaneo } from '../../../../shared/utils/filtro-instantaneo.util';
 import { TIPO_BOLETA, TIPO_FACTURA, TIPO_NOTA_CREDITO } from '../../../models/admin.models';
 import {
   FormatoPdfComprobante,
@@ -155,6 +156,10 @@ export class VentasHistorialComponent implements OnInit {
 
   filtro: FiltroHistorial = { ...FILTRO_HISTORIAL_VACIO };
   filas: FilaHistorial[] = [];
+  /** Filas cargadas filtradas por el texto escrito (al instante, sin esperar al servidor). */
+  filasVisibles: readonly FilaHistorial[] = [];
+  /** Búsqueda pendiente en el servidor: evita mostrar «sin resultados» antes de que llegue. */
+  readonly busqueda = new BusquedaPendiente();
   total = 0;
   pagina = 1;
   cargando = false;
@@ -191,7 +196,7 @@ export class VentasHistorialComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.filtrar$.pipe(debounceTime(320), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.cargar(1));
+    this.filtrar$.pipe(debounceTime(250), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.cargar(1));
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => this.aplicarEnlace(params));
     this.cargar(1);
   }
@@ -215,16 +220,16 @@ export class VentasHistorialComponent implements OnInit {
 
   /** Suma de las ventas vigentes de la página que se ve (las anuladas no cuentan). */
   get totalPagina(): number {
-    return this.filas.filter((f) => f.estado !== 'anulada').reduce((suma, f) => suma + f.total, 0);
+    return this.filasVisibles.filter((f) => f.estado !== 'anulada').reduce((suma, f) => suma + f.total, 0);
   }
 
   get anuladasPagina(): number {
-    return this.filas.filter((f) => f.estado === 'anulada').length;
+    return this.filasVisibles.filter((f) => f.estado === 'anulada').length;
   }
 
   /** Ventas activas de la página sin factura ni boleta vigente. */
   get sinComprobantePagina(): number {
-    return this.filas.filter((f) => f.estado !== 'anulada' && !f.id_comprobante).length;
+    return this.filasVisibles.filter((f) => f.estado !== 'anulada' && !f.id_comprobante).length;
   }
 
   get rangoActivo(): RangoRapido | null {
@@ -242,12 +247,15 @@ export class VentasHistorialComponent implements OnInit {
   cargar(pagina = this.pagina): void {
     // La última consulta manda: un filtro nuevo cancela la lectura anterior.
     this.lectura?.unsubscribe();
+    const alTerminar = this.busqueda.alLanzar();
     this.pagina = pagina;
     this.error = '';
     if (this.errorFechas) {
       this.filas = [];
+      this.refiltrar();
       this.total = 0;
       this.cargando = false;
+      alTerminar();
       this.cdr.markForCheck();
       return;
     }
@@ -269,17 +277,20 @@ export class VentasHistorialComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
           this.cargando = false;
+          alTerminar();
           this.cdr.markForCheck();
         }),
       )
       .subscribe({
         next: (respuesta) => {
           this.filas = (respuesta.datos ?? []).map((fila) => this.resolver(fila));
+          this.refiltrar();
           this.total = Number(respuesta.total) || 0;
           this.pagina = Number(respuesta.pagina) || pagina;
         },
         error: (e) => {
           this.filas = [];
+          this.refiltrar();
           this.total = 0;
           this.error = mensajeDeError(e, 'No se pudo cargar el historial de ventas');
         },
@@ -309,8 +320,20 @@ export class VentasHistorialComponent implements OnInit {
     };
   }
 
+  /** Filtra al instante las filas ya cargadas; el servidor completa el resultado en segundo plano. */
   alFiltrar(): void {
+    this.busqueda.iniciar();
+    this.refiltrar();
     this.filtrar$.next();
+  }
+
+  private refiltrar(): void {
+    // Campos de la fila que el servidor también busca (cliente, nº de venta y comprobante).
+    this.filasVisibles = filtrarInstantaneo(this.filas, this.filtro.texto, (f) => [
+      f.cliente_denominacion,
+      f.id_venta,
+      f.comprobante,
+    ]);
   }
 
   elegirRango(rango: RangoRapido): void {
@@ -329,9 +352,9 @@ export class VentasHistorialComponent implements OnInit {
 
   /** Las ventas que se ven (la página actual) en un CSV que abre Excel, con las cifras tal cual. */
   exportarCsv(): void {
-    if (!this.filas.length) return;
+    if (!this.filasVisibles.length) return;
     const cabecera = ['Venta', 'Fecha', 'Origen', 'Cliente', 'Ítems', 'Medios de pago', 'Total', 'Estado', 'Comprobante', 'Estado SUNAT', 'Notas', 'Guías'];
-    const filas = this.filas.map((f) => [
+    const filas = this.filasVisibles.map((f) => [
       f.id_venta,
       f.fecha.slice(0, 16).replace('T', ' '),
       f.origen,

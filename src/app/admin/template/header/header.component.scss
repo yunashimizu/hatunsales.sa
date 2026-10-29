@@ -58,7 +58,9 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    flex: 0 0 auto;
+    /* Puede encogerse (el texto lleva puntos suspensivos): con 0 0 auto, un título largo
+       empujaba las acciones fuera de la pantalla y en móvil se perdía el menú de usuario. */
+    flex: 0 1 auto;
     min-width: 0;
     max-width: 260px;
   }
@@ -176,6 +178,7 @@
 
   .tb-actions {
     margin-left: auto;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -502,6 +505,11 @@
     padding: 0 14px;
     gap: 10px;
 
+    /* Chip fiscal en su versión corta («BETA»): libera ~120 px para el título. */
+    .tb-fiscal { padding: 0 10px; }
+    .tb-fiscal .tb-fiscal__texto { display: none; }
+    .tb-fiscal .tb-fiscal__corto { display: inline; }
+
     /* Solo en móvil (cajón sobre el contenido) el botón pasa a "X" al abrir. */
     .toggle-btn.open {
       span:nth-child(1) { transform: translateY(5.75px) rotate(45deg); }
@@ -535,6 +543,17 @@
 
       .user-dropdown { width: min(268px, calc(100vw - 24px)); }
     }
+  }
+}
+
+/* Teléfonos estrechos (≤ 420 px): márgenes y huecos más cortos para que el título tenga sitio. */
+@media (max-width: 420px) {
+  .topbar {
+    padding: 0 8px;
+    gap: 6px;
+
+    .tb-actions { gap: 6px; }
+    .toggle-btn { width: 38px; height: 38px; }
   }
 }
 

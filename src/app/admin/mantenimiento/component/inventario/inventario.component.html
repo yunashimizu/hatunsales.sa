@@ -105,7 +105,7 @@
 
   <!-- Listado -->
   <section class="adm-tarjeta adm-tarjeta--acento">
-    <div class="inv-recarga" *ngIf="cargando && filas.length" role="status">
+    <div class="inv-recarga" *ngIf="(cargando || busqueda.activa) && filasVisibles.length" role="status">
       <span class="visually-hidden">Actualizando inventario…</span>
     </div>
 
@@ -136,12 +136,12 @@
       </div>
     </div>
 
-    <div class="adm-esqueletos" *ngIf="cargando && !filas.length" aria-busy="true" aria-label="Cargando inventario">
+    <div class="adm-esqueletos" *ngIf="(cargando || busqueda.activa) && !filasVisibles.length" aria-busy="true" aria-label="Cargando inventario">
       <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1,2,3,4,5,6]"></div>
     </div>
 
     <!-- Error de carga (la lista no llegó) -->
-    <div class="adm-vacio adm-vacio--error" *ngIf="errorCarga && !cargando && !filas.length" role="alert">
+    <div class="adm-vacio adm-vacio--error" *ngIf="errorCarga && !cargando && !filasVisibles.length" role="alert">
       <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
       <div class="adm-vacio__titulo">No se pudo cargar el inventario</div>
       <p>Revise la conexión e intente de nuevo.</p>
@@ -150,7 +150,7 @@
       </button>
     </div>
 
-    <div class="adm-vacio" *ngIf="!cargando && !errorCarga && !filas.length">
+    <div class="adm-vacio" *ngIf="!cargando && !busqueda.activa && !errorCarga && !filasVisibles.length">
       <ng-container *ngIf="filtro.solo_alertas">
         <div class="adm-vacio__icono adm-vacio__icono--exito"><i class="bi bi-check2-circle"></i></div>
         <div class="adm-vacio__titulo">No hay alertas de stock</div>
@@ -173,7 +173,7 @@
       </ng-container>
     </div>
 
-    <div class="adm-tabla-envoltorio inv-lista" *ngIf="filas.length">
+    <div class="adm-tabla-envoltorio inv-lista" *ngIf="filasVisibles.length">
       <table class="adm-tabla adm-tabla--adaptable inv-tabla">
         <thead>
           <tr>
@@ -188,7 +188,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let fila of filas; trackBy: identificarFila"
+          <tr *ngFor="let fila of filasVisibles; trackBy: identificarFila"
               [class.inv-fila--bajo]="fila.estado === 'bajo'"
               [class.inv-fila--sin]="fila.estado === 'sin_stock'"
               [class.adm-recien-creado]="idDestacado === fila.id_inventario">

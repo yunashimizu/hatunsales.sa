@@ -16,6 +16,7 @@ import { ReceptorService } from '../../../service/receptor.service';
 import { AuthService } from '../../../../auth/service/auth.service';
 import { rolPermitido } from '../../../../auth/roles.constants';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { BusquedaPendiente, filtrarInstantaneo } from '../../../../shared/utils/filtro-instantaneo.util';
 import { mensajeDeError, errorOperativo, escapeHtmlAlerta } from '../../../service/api-base.service';
 import { SugerenciaReceptor } from '../../../models/admin.models';
 import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
@@ -31,6 +32,10 @@ import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 })
 export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   cuentas: any[] = [];
+  /** Cuentas cargadas filtradas por el texto escrito (al instante, sin esperar al servidor). */
+  cuentasVisibles: readonly any[] = [];
+  /** Búsqueda pendiente en el servidor: evita mostrar «sin cuentas» antes de que llegue. */
+  readonly busqueda = new BusquedaPendiente();
   total = 0;
   cargando = false;
   /** La última carga de cuentas falló (solo para mostrar el estado de error en pantalla; el aviso modal sigue igual). */
@@ -74,6 +79,7 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly destruir$ = new Subject<void>();
   private readonly buscar$ = new Subject<string>();
+  private readonly filtrarCuentas$ = new Subject<void>();
 
   /** Crear / editar / desactivar cuentas bancarias: solo admin (API también lo exige). */
   get esAdmin(): boolean {
@@ -88,6 +94,7 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.filtrarCuentas$.pipe(debounceTime(250), takeUntil(this.destruir$)).subscribe(() => this.cargar());
     this.cargar();
     this.cargarCuentas();
     this.pv.metodosPago().subscribe({
@@ -196,15 +203,15 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   }
 
   get totalSaldo(): number {
-    return this.cuentas.reduce((s, c) => s + this.monto(c.saldo), 0);
+    return this.cuentasVisibles.reduce((s, c) => s + this.monto(c.saldo), 0);
   }
 
   get saldoVencido(): number {
-    return this.cuentas.filter((c) => c.estado === 'vencido').reduce((s, c) => s + this.monto(c.saldo), 0);
+    return this.cuentasVisibles.filter((c) => c.estado === 'vencido').reduce((s, c) => s + this.monto(c.saldo), 0);
   }
 
   get cuentasVencidas(): number {
-    return this.cuentas.filter((c) => c.estado === 'vencido').length;
+    return this.cuentasVisibles.filter((c) => c.estado === 'vencido').length;
   }
 
   /** Saldo de las cuentas vigentes que vencen en los próximos 7 días (incluye hoy). */
@@ -217,7 +224,7 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   }
 
   private get cuentasPorVencerLista(): any[] {
-    return this.cuentas.filter((c) => {
+    return this.cuentasVisibles.filter((c) => {
       if (c.estado !== 'pendiente' && c.estado !== 'parcial') return false;
       const d = this.diasPara(c);
       return d !== null && d >= 0 && d <= 7;
@@ -225,15 +232,15 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   }
 
   get cuentasConSaldo(): number {
-    return this.cuentas.filter((c) => this.monto(c.saldo) > 0).length;
+    return this.cuentasVisibles.filter((c) => this.monto(c.saldo) > 0).length;
   }
 
   get totalCobrado(): number {
-    return this.cuentas.reduce((s, c) => s + Math.max(0, this.monto(c.monto_total) - this.monto(c.saldo)), 0);
+    return this.cuentasVisibles.reduce((s, c) => s + Math.max(0, this.monto(c.monto_total) - this.monto(c.saldo)), 0);
   }
 
   get pctCobrado(): number {
-    const facturado = this.cuentas.reduce((s, c) => s + this.monto(c.monto_total), 0);
+    const facturado = this.cuentasVisibles.reduce((s, c) => s + this.monto(c.monto_total), 0);
     return facturado > 0 ? Math.round((this.totalCobrado / facturado) * 100) : 0;
   }
 
@@ -441,6 +448,7 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   }
 
   cargar(): void {
+    const alTerminar = this.busqueda.alLanzar();
     this.cargando = true;
     this.errorCarga = false;
     this.cdr.markForCheck();
@@ -451,12 +459,15 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (resp) => {
         this.cuentas = resp?.data ?? [];
+        this.refiltrar();
         this.total = Number(resp?.total ?? 0);
         this.cargando = false;
+        alTerminar();
         this.cdr.markForCheck();
       },
       error: (e) => {
         this.cargando = false;
+        alTerminar();
         this.errorCarga = true;
         this.cdr.markForCheck();
         void this.alerta.error({
@@ -465,6 +476,18 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
         });
       },
     });
+  }
+
+  /** Filtra al instante las cuentas ya cargadas; el servidor completa el resultado en segundo plano. */
+  alBuscarCuentas(): void {
+    this.busqueda.iniciar();
+    this.refiltrar();
+    this.filtrarCuentas$.next();
+  }
+
+  private refiltrar(): void {
+    // Deudor y n.º de venta: lo que se ve en la fila y lo que busca el servidor (credito.repository).
+    this.cuentasVisibles = filtrarInstantaneo(this.cuentas, this.filtroTexto, (c) => [c.deudor, c.id_venta]);
   }
 
   ver(c: any): void {

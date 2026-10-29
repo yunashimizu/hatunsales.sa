@@ -24,7 +24,7 @@ declare global {
   template: `
     <button
       type="button"
-      class="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-800 shadow-sm transition-all hover:scale-[1.01] hover:bg-slate-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+      class="auth-google"
       [disabled]="cargando || !listo"
       (click)="iniciar()"
     >
@@ -38,6 +38,8 @@ declare global {
     </button>
     <div #gisHost class="hidden" aria-hidden="true"></div>
   `,
+  // Host en bloque: como elemento en línea, el botón a todo el ancho dejaba un hueco encima.
+  styles: [':host { display: block; }'],
 })
 export class GoogleSignInComponent implements AfterViewInit, OnDestroy {
   @Input() etiqueta = 'Continuar con Google';

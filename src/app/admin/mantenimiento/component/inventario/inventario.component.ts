@@ -13,6 +13,7 @@ import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { VisorImagenComponent } from '../../../../shared/components/visor-imagen/visor-imagen.component';
 import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
 import { RevealDirective } from '../../../../shared/ui/reveal.directive';
+import { BusquedaPendiente, filtrarInstantaneo } from '../../../../shared/utils/filtro-instantaneo.util';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { mensajeDeError } from '../../../service/api-base.service';
@@ -46,6 +47,10 @@ const MOTIVOS = [
 export class InventarioComponent implements OnInit, OnDestroy {
 
   filas: FilaInventario[] = [];
+  /** Filas cargadas filtradas por el texto escrito (al instante, sin esperar al servidor). */
+  filasVisibles: readonly FilaInventario[] = [];
+  /** Búsqueda pendiente en el servidor: evita mostrar «sin resultados» antes de que llegue. */
+  readonly busqueda = new BusquedaPendiente();
   almacenes: Almacen[] = [];
   resumen: ResumenInventario | null = null;
 
@@ -104,6 +109,7 @@ export class InventarioComponent implements OnInit, OnDestroy {
   // ── Datos ────────────────────────────────────────────────────
 
   cargar(pagina = this.pagina): void {
+    const alTerminar = this.busqueda.alLanzar();
     this.cargando = true;
     this.errorCarga = false;
     this.cdr.markForCheck();
@@ -114,13 +120,16 @@ export class InventarioComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (respuesta) => {
           this.cargando = false;
+          alTerminar();
           this.filas = respuesta.datos;
+          this.refiltrar();
           this.total = respuesta.total;
           this.pagina = respuesta.pagina;
           this.cdr.markForCheck();
         },
         error: (error) => {
           this.cargando = false;
+          alTerminar();
           this.errorCarga = true;
           this.cdr.markForCheck();
           this.alerta.error({
@@ -159,8 +168,20 @@ export class InventarioComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Filtra al instante las filas ya cargadas; el servidor completa el resultado en segundo plano. */
   alBuscar(): void {
+    this.busqueda.iniciar();
+    this.refiltrar();
     this.buscar$.next();
+  }
+
+  private refiltrar(): void {
+    // Mismos campos que busca el servidor (inventario.repository: nombre, SKU y código de barras).
+    this.filasVisibles = filtrarInstantaneo(this.filas, this.filtro.texto, (f) => [
+      f.producto,
+      f.sku,
+      f.codigo_barras,
+    ]);
   }
 
   alternarAlertas(): void {

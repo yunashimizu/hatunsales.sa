@@ -90,7 +90,7 @@
           <label class="adm-etiqueta" for="cxc-filtro-texto">Buscar</label>
           <div class="adm-input-icono">
             <i class="bi bi-search" aria-hidden="true"></i>
-            <input id="cxc-filtro-texto" class="adm-input" type="search" [(ngModel)]="filtroTexto"
+            <input id="cxc-filtro-texto" class="adm-input" type="search" [(ngModel)]="filtroTexto" (ngModelChange)="alBuscarCuentas()"
                    placeholder="Cliente, RUC, n° venta" (keyup.enter)="cargar()">
           </div>
         </div>
@@ -103,7 +103,7 @@
       </div>
     </div>
 
-    <div class="adm-esqueletos" *ngIf="cargando && !cuentas.length" role="status" aria-busy="true" aria-label="Cargando cuentas">
+    <div class="adm-esqueletos" *ngIf="(cargando || busqueda.activa) && !cuentasVisibles.length" role="status" aria-busy="true" aria-label="Cargando cuentas">
       <div class="cxc-esqueleto" *ngFor="let n of [1,2,3,4]">
         <span class="adm-esqueleto adm-esqueleto--circulo"></span>
         <span class="cxc-esqueleto__texto">
@@ -117,7 +117,7 @@
     <!-- Error de carga: sustituye al vacío engañoso («sin cuentas») cuando la lista no llegó -->
     <ng-container *ngIf="!(errorCarga && !cargando); else cxcErrorLista">
 
-    <div class="adm-vacio" *ngIf="!cargando && !cuentas.length">
+    <div class="adm-vacio" *ngIf="!cargando && !busqueda.activa && !cuentasVisibles.length">
       <div class="adm-vacio__icono"><i class="bi bi-wallet2" aria-hidden="true"></i></div>
       <div class="adm-vacio__titulo">Sin cuentas por cobrar</div>
       <p>Cuando vendas a crédito desde el POS aparecerán aquí.</p>
@@ -126,7 +126,7 @@
       </a>
     </div>
 
-    <div class="adm-tabla-envoltorio" *ngIf="cuentas.length">
+    <div class="adm-tabla-envoltorio" *ngIf="cuentasVisibles.length">
       <table class="adm-tabla adm-tabla--adaptable" aria-label="Cuentas por cobrar">
         <thead>
           <tr>
@@ -140,7 +140,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let c of cuentas; trackBy: identificarCuenta" [class.cxc-fila--vencida]="c.estado === 'vencido'">
+          <tr *ngFor="let c of cuentasVisibles; trackBy: identificarCuenta" [class.cxc-fila--vencida]="c.estado === 'vencido'">
             <td data-etiqueta="Deudor" class="cxc-td-deudor">
               <div class="cxc-deudor">
                 <span class="adm-avatar cxc-avatar" [attr.data-tono]="tonoDe(c.deudor)" aria-hidden="true">{{ iniciales(c.deudor) }}</span>

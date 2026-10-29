@@ -152,40 +152,6 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Login y registro: sus plantillas usan utilidades de Tailwind pensadas para
-   fondo claro (text-slate-*, bg-slate-50/80, border-slate-200…). En oscuro se
-   reasignan a los tokens de la tienda solo dentro de la tarjeta del formulario.
-   --------------------------------------------------------------------------- */
-:root[data-tema='oscuro'] .auth-card .text-slate-900 { color: var(--t-texto); }
-:root[data-tema='oscuro'] .auth-card .text-slate-800,
-:root[data-tema='oscuro'] .auth-card .text-slate-700,
-:root[data-tema='oscuro'] .auth-card .text-slate-600 { color: var(--t-texto-suave); }
-:root[data-tema='oscuro'] .auth-card .text-slate-500,
-:root[data-tema='oscuro'] .auth-card .text-slate-400 { color: var(--t-texto-tenue); }
-:root[data-tema='oscuro'] .auth-card .hover\:text-slate-700:hover { color: var(--t-texto); }
-:root[data-tema='oscuro'] .auth-card .bg-slate-50\/80 { background-color: var(--t-superficie-2); }
-:root[data-tema='oscuro'] .auth-card input:focus { background-color: var(--t-superficie); }
-:root[data-tema='oscuro'] .auth-card .border-slate-200,
-:root[data-tema='oscuro'] .auth-card .border-slate-300 { border-color: var(--t-borde-fuerte); }
-:root[data-tema='oscuro'] .auth-card .bg-slate-200 { background-color: var(--t-borde-fuerte); }
-:root[data-tema='oscuro'] .auth-card .bg-white { background-color: var(--t-superficie); }
-:root[data-tema='oscuro'] .auth-card .bg-amber-50 { background-color: var(--t-aviso-claro); }
-:root[data-tema='oscuro'] .auth-card .border-amber-200 { border-color: color-mix(in srgb, var(--t-aviso) 40%, transparent); }
-:root[data-tema='oscuro'] .auth-card .text-amber-800 { color: var(--t-aviso-texto); }
-:root[data-tema='oscuro'] .auth-card .bg-rose-50 { background-color: var(--t-peligro-claro); }
-:root[data-tema='oscuro'] .auth-card .border-rose-200 { border-color: color-mix(in srgb, var(--t-peligro) 40%, transparent); }
-:root[data-tema='oscuro'] .auth-card .text-rose-700,
-:root[data-tema='oscuro'] .auth-card .text-rose-600 { color: var(--t-peligro-texto); }
-:root[data-tema='oscuro'] .auth-card .bg-emerald-50 { background-color: var(--t-exito-claro); }
-:root[data-tema='oscuro'] .auth-card .text-emerald-700,
-:root[data-tema='oscuro'] .auth-card .text-emerald-600 { color: var(--t-exito-texto); }
-:root[data-tema='oscuro'] .auth-card .bg-blue-100 { background-color: var(--t-primario-claro); }
-:root[data-tema='oscuro'] .auth-card .text-blue-700,
-:root[data-tema='oscuro'] .auth-card .text-blue-600 { color: var(--t-primario-texto); }
-:root[data-tema='oscuro'] .auth-card .hover\:text-blue-700:hover { color: var(--t-primario-texto); }
-:root[data-tema='oscuro'] .auth-card input::placeholder { color: var(--t-texto-tenue); }
-
-/* ---------------------------------------------------------------------------
    Piezas globales con colores propios: estados inline (.hs-estado), avisos
    (.nt-*) y modales de SweetAlert. En claro usan literales; aquí se adaptan.
    --------------------------------------------------------------------------- */

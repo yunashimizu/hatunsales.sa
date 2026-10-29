@@ -1,0 +1,365 @@
+/* ---------------------------------------------------------------------------
+   Formulario de /auth (login y registro) · HatunSales
+
+   Sustituye al legado de Bootstrap y a las utilidades de Tailwind con colores
+   crudos (slate, blue, rose, amber…) que había en las plantillas, junto con el
+   parche de tema-oscuro.css que las reasignaba. Todo sale de los tokens --t-*
+   de la tienda, así el tema oscuro y cualquier cambio de paleta se resuelven
+   sin reglas propias.
+
+   Tailwind sigue en /auth solo para la maqueta (flex, grid, gap, espaciado).
+   Todo va bajo .auth-card (la tarjeta de <app-auth-shell>): el contenido se
+   proyecta con ng-content y por eso no puede ir en los CSS de cada componente.
+   --------------------------------------------------------------------------- */
+
+/* ── Cabecera ──────────────────────────────────────────────────────────── */
+
+.auth-card .auth-form-cab {
+  margin-bottom: 1.5rem;
+}
+
+.auth-card .auth-form-titulo {
+  margin: 0;
+  font-family: var(--hs-fuente-titulos);
+  font-size: clamp(1.5rem, 1.3rem + 0.7vw, 1.75rem);
+  font-weight: var(--fw-extra);
+  line-height: var(--lh-titulo);
+  letter-spacing: var(--tracking-titulo);
+  color: var(--t-texto);
+}
+
+.auth-card .auth-form-sub {
+  margin: 6px 0 0;
+  font-size: var(--fs-base);
+  line-height: var(--lh-texto);
+  color: var(--t-texto-suave);
+}
+
+.auth-card .auth-form-icono {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  background: var(--t-primario-claro);
+  color: var(--t-primario-texto);
+  font-size: 1.125rem;
+}
+
+/* Sin `display`: lo fija la maqueta (hidden sm:inline-flex); una regla fuera de
+   capas le ganaría a la utilidad de Tailwind y la insignia saldría también en móvil. */
+.auth-card .auth-insignia {
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--t-r-full);
+  background: var(--t-exito-claro);
+  color: var(--t-exito-texto);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semi);
+  white-space: nowrap;
+}
+
+/* ── Avisos y errores ──────────────────────────────────────────────────── */
+
+.auth-card .auth-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 1rem;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--auth-tono) 38%, transparent);
+  border-radius: var(--t-r-md);
+  background: var(--auth-fondo);
+  color: var(--auth-texto);
+  font-size: var(--fs-base);
+  line-height: var(--lh-control);
+}
+
+.auth-card .auth-aviso > i {
+  margin-top: 2px;
+}
+
+.auth-card .auth-aviso--info {
+  --auth-tono: var(--t-aviso);
+  --auth-fondo: var(--t-aviso-claro);
+  --auth-texto: var(--t-aviso-texto);
+}
+
+.auth-card .auth-aviso--error {
+  --auth-tono: var(--t-peligro);
+  --auth-fondo: var(--t-peligro-claro);
+  --auth-texto: var(--t-peligro-texto);
+}
+
+/* ── Campos ────────────────────────────────────────────────────────────── */
+
+.auth-card .auth-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semi);
+  color: var(--t-texto);
+}
+
+.auth-card .auth-input-wrap {
+  position: relative;
+}
+
+.auth-card .auth-input-ico {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  translate: 0 -50%;
+  color: var(--t-texto-tenue);
+  pointer-events: none;
+  transition: color 160ms ease;
+}
+
+.auth-card .auth-input-wrap:focus-within .auth-input-ico {
+  color: var(--t-primario-texto);
+}
+
+.auth-card .auth-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px 0 42px;
+  border: 1px solid var(--t-borde-fuerte);
+  border-radius: var(--t-r-md);
+  background: color-mix(in srgb, var(--t-superficie-2) 45%, var(--t-superficie));
+  color: var(--t-texto);
+  font-size: var(--fs-md);
+  line-height: var(--lh-control);
+  outline: none;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.auth-card .auth-input--ojo {
+  padding-right: 48px;
+}
+
+.auth-card .auth-input::placeholder {
+  color: var(--t-texto-tenue);
+  opacity: 0.75;
+}
+
+.auth-card .auth-input:hover:not(:focus) {
+  border-color: color-mix(in srgb, var(--t-texto-tenue) 55%, var(--t-borde-fuerte));
+}
+
+.auth-card .auth-input:focus {
+  border-color: var(--t-primario);
+  background: var(--t-superficie);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--t-primario) 20%, transparent);
+}
+
+/* Mostrar/ocultar contraseña: botón cuadrado con su propio foco (antes el
+   anillo salía pegado al icono). */
+.auth-card .auth-ojo {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  translate: 0 -50%;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--t-texto-tenue);
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.auth-card .auth-ojo:hover {
+  background: color-mix(in srgb, var(--t-texto) 7%, transparent);
+  color: var(--t-texto);
+}
+
+.auth-card .auth-ojo:focus-visible {
+  outline: 2px solid var(--t-primario);
+  outline-offset: -2px;
+}
+
+.auth-card .auth-ayuda-error {
+  margin: 4px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--t-peligro-texto);
+}
+
+/* ── Casillas ──────────────────────────────────────────────────────────── */
+
+.auth-card .auth-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-control);
+  color: var(--t-texto-suave);
+  cursor: pointer;
+}
+
+.auth-card .auth-check > input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  accent-color: var(--t-primario);
+  cursor: pointer;
+}
+
+/* ── Medidor de seguridad de la contraseña ─────────────────────────────── */
+
+.auth-card .auth-fuerza {
+  margin-top: 10px;
+}
+
+.auth-card .auth-fuerza__cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: var(--fs-2xs);
+  color: var(--t-texto-tenue);
+}
+
+.auth-card .auth-fuerza__cab strong {
+  font-weight: var(--fw-semi);
+  color: var(--t-texto-suave);
+}
+
+.auth-card .auth-fuerza__barras {
+  display: flex;
+  gap: 4px;
+}
+
+.auth-card .auth-fuerza__barra {
+  flex: 1;
+  height: 6px;
+  border-radius: var(--t-r-full);
+  background: var(--t-borde-fuerte);
+  transition: background-color 200ms ease;
+}
+
+.auth-card .auth-fuerza__barra--debil { background: var(--t-peligro); }
+.auth-card .auth-fuerza__barra--media { background: var(--t-aviso); }
+.auth-card .auth-fuerza__barra--buena { background: var(--t-primario); }
+.auth-card .auth-fuerza__barra--fuerte { background: var(--t-exito); }
+
+.auth-card .auth-requisitos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px 12px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .auth-card .auth-requisitos {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.auth-card .auth-requisito {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-2xs);
+  color: var(--t-texto-tenue);
+  transition: color 160ms ease;
+}
+
+.auth-card .auth-requisito--ok {
+  color: var(--t-exito-texto);
+}
+
+/* ── Botones ───────────────────────────────────────────────────────────── */
+
+.auth-card .auth-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: auth-giro 0.7s linear infinite;
+}
+
+@keyframes auth-giro {
+  to { rotate: 360deg; }
+}
+
+.auth-card .auth-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 1.5em;
+  border: 1px solid var(--t-borde-fuerte);
+  border-radius: var(--t-r-full);
+  background: var(--t-superficie);
+  box-shadow: var(--t-sombra-sm);
+  color: var(--t-texto);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semi);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 200ms ease;
+}
+
+.auth-card .auth-google:hover:not(:disabled) {
+  background: var(--t-superficie-2);
+  border-color: var(--t-texto-tenue);
+  box-shadow: var(--t-sombra-md);
+}
+
+.auth-card .auth-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Separadores y enlaces ─────────────────────────────────────────────── */
+
+.auth-card .auth-divisor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 1.25rem 0;
+  font-size: var(--fs-xs);
+  color: var(--t-texto-tenue);
+}
+
+.auth-card .auth-divisor::before,
+.auth-card .auth-divisor::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--t-borde);
+}
+
+.auth-card .auth-cambio {
+  margin: 1.5rem 0 0;
+  text-align: center;
+  font-size: var(--fs-base);
+  color: var(--t-texto-suave);
+}
+
+.auth-card .auth-enlace {
+  font-weight: var(--fw-semi);
+  color: var(--t-primario-texto);
+  text-decoration: none;
+}
+
+.auth-card .auth-enlace:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card .auth-spinner {
+    animation-duration: 1.6s;
+  }
+}

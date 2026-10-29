@@ -200,7 +200,7 @@
               que el comprobante admite hoy.
             </p>
           </div>
-          @if (cargando && comprobantes.length) {
+          @if ((cargando || busqueda.activa) && comprobantesVisibles.length) {
             <div class="adm-tarjeta__extra">
               <span class="adm-insignia adm-insignia--primaria" role="status">
                 <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Actualizando…
@@ -218,13 +218,13 @@
               <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
             </button>
           </div>
-        } @else if (cargando && !comprobantes.length) {
+        } @else if ((cargando || busqueda.activa) && !comprobantesVisibles.length) {
           <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando documentos">
             @for (n of [1, 2, 3, 4, 5, 6]; track n) {
               <div class="adm-esqueleto adm-esqueleto--fila"></div>
             }
           </div>
-        } @else if (!comprobantes.length) {
+        } @else if (!comprobantesVisibles.length) {
           <div class="adm-vacio" role="status">
             @if (conFiltros) {
               <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-search"></i></div>
@@ -254,7 +254,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (fila of comprobantes; track fila.id_comprobante) {
+                @for (fila of comprobantesVisibles; track fila.id_comprobante) {
                   <tr [class.doc-fila--anulada]="fila.anulado"
                       [class.doc-fila--procesando]="idEnProceso === fila.id_comprobante">
                     <td data-etiqueta="Documento" class="doc-td-documento">

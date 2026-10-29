@@ -17,6 +17,7 @@ import { Subject, Subscription, debounceTime, finalize } from 'rxjs';
 import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { descargarArchivo } from '../../../../shared/utils/descargar-archivo';
+import { BusquedaPendiente, filtrarInstantaneo } from '../../../../shared/utils/filtro-instantaneo.util';
 import { ComprobanteFila, TIPO_FACTURA, TIPO_BOLETA, TIPO_NOTA_CREDITO, TIPO_NOTA_DEBITO } from '../../../models/admin.models';
 import { AmbienteFiscal, TEXTO_ESTADO_SUNAT, TonoEstado } from '../../../models/documentos.models';
 import { errorOperativo, mensajeDeError, normalizarErrorBlob } from '../../../service/api-base.service';
@@ -127,6 +128,10 @@ export class DocComponent implements OnInit {
 
   pestana: Pestana = 'comprobantes';
   comprobantes: FilaDocumento[] = [];
+  /** Comprobantes cargados filtrados por el texto escrito (al instante, sin esperar al servidor). */
+  comprobantesVisibles: readonly FilaDocumento[] = [];
+  /** Búsqueda pendiente en el servidor: evita mostrar «sin resultados» antes de que llegue. */
+  readonly busqueda = new BusquedaPendiente();
   total = 0;
   pagina = 1;
   cargando = false;
@@ -189,7 +194,7 @@ export class DocComponent implements OnInit {
   ngOnInit(): void {
     this.fiscal.iniciar();
     this.filtrar$
-      .pipe(debounceTime(320), takeUntilDestroyed(this.destroyRef))
+      .pipe(debounceTime(250), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.cargar(1));
     this.route.queryParamMap
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -255,6 +260,7 @@ export class DocComponent implements OnInit {
   cargar(pagina = this.pagina): void {
     // La última consulta manda: un filtro nuevo cancela la lectura anterior.
     this.lectura?.unsubscribe();
+    const alTerminar = this.busqueda.alLanzar();
     this.pagina = pagina;
     this.cargando = true;
     this.error = '';
@@ -265,6 +271,7 @@ export class DocComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
           this.cargando = false;
+          alTerminar();
           this.cdr.markForCheck();
         }),
       )
@@ -275,12 +282,14 @@ export class DocComponent implements OnInit {
             vistaEstado: estadoDeComprobante(fila),
             vistaAmbiente: chipAmbiente(fila.proveedor_fiscal, fila.ambiente_fiscal),
           }));
+          this.refiltrar();
           this.total = Number(respuesta.total) || 0;
           this.pagina = Number(respuesta.pagina) || pagina;
           this.cargarMonitor();
         },
         error: (e) => {
           this.comprobantes = [];
+          this.refiltrar();
           this.total = 0;
           this.error = mensajeDeError(e, 'No se pudieron cargar los documentos');
         },
@@ -317,8 +326,20 @@ export class DocComponent implements OnInit {
     this.cargar(1);
   }
 
+  /** Filtra al instante lo ya cargado; el servidor completa el resultado en segundo plano. */
   alFiltrar(): void {
+    this.busqueda.iniciar();
+    this.refiltrar();
     this.filtrar$.next();
+  }
+
+  private refiltrar(): void {
+    // Campos que el servidor también busca (comprobante.repository): cliente, documento y serie-número.
+    this.comprobantesVisibles = filtrarInstantaneo(this.comprobantes, this.filtro.texto, (c) => [
+      c.cliente_denominacion,
+      c.cliente_numero_doc,
+      c.numero_formateado,
+    ]);
   }
 
   limpiarFiltros(): void {

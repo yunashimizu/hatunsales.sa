@@ -1,74 +1,63 @@
 <app-auth-shell modo="login">
   <div #cardInner>
 
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.7rem]">
-        Bienvenido nuevamente
-      </h1>
-      <p class="mt-1.5 text-sm text-slate-500">
-        Inicia sesión con tu cuenta de Hatunsales S.A.C.
-      </p>
+    <div class="auth-form-cab">
+      <h1 class="auth-form-titulo">Bienvenido nuevamente</h1>
+      <p class="auth-form-sub">Inicia sesión con tu cuenta de Hatunsales S.A.C.</p>
     </div>
 
-    <div
-      *ngIf="avisoMsg"
-      class="mb-4 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-800"
-      role="status"
-    >
-      <i class="bi bi-clock-history mt-0.5"></i>
+    <div *ngIf="avisoMsg" class="auth-aviso auth-aviso--info" role="status">
+      <i class="bi bi-clock-history"></i>
       <span>{{ avisoMsg }}</span>
     </div>
 
-    <div
-      *ngIf="errorMsg"
-      class="mb-4 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700"
-      role="alert"
-    >
-      <i class="bi bi-exclamation-circle mt-0.5"></i>
+    <div *ngIf="errorMsg" class="auth-aviso auth-aviso--error" role="alert">
+      <i class="bi bi-exclamation-circle"></i>
       <span>{{ errorMsg }}</span>
     </div>
 
     <form [formGroup]="loginForm" class="space-y-4" (ngSubmit)="login()" autocomplete="on">
 
       <div>
-        <label class="mb-1.5 block text-xs font-semibold text-slate-700" for="login-email">Correo electrónico</label>
-        <div class="relative">
-          <i class="bi bi-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        <label class="auth-label" for="login-email">Correo electrónico</label>
+        <div class="auth-input-wrap">
+          <i class="bi bi-envelope auth-input-ico"></i>
           <input
             id="login-email"
             type="email"
             formControlName="email"
             placeholder="tu@correo.com"
-            class="w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3 pl-10 pr-3 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            class="auth-input"
           />
         </div>
       </div>
 
       <div>
-        <label class="mb-1.5 block text-xs font-semibold text-slate-700" for="login-password">Contraseña</label>
-        <div class="relative">
-          <i class="bi bi-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        <label class="auth-label" for="login-password">Contraseña</label>
+        <div class="auth-input-wrap">
+          <i class="bi bi-lock auth-input-ico"></i>
           <input
             id="login-password"
             [type]="mostrarPassword ? 'text' : 'password'"
             formControlName="password"
             placeholder="••••••••"
-            class="w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3 pl-10 pr-11 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            class="auth-input auth-input--ojo"
           />
           <button
             type="button"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+            class="auth-ojo"
             (click)="mostrarPassword = !mostrarPassword"
-            [attr.aria-label]="mostrarPassword ? 'Ocultar' : 'Mostrar'"
+            [attr.aria-label]="mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            [attr.aria-pressed]="mostrarPassword"
           >
             <i class="bi" [ngClass]="mostrarPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
           </button>
         </div>
       </div>
 
-      <div class="flex items-center justify-between gap-3 text-sm">
-        <label class="inline-flex cursor-pointer items-center gap-2 text-slate-600">
-          <input type="checkbox" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" [(ngModel)]="recordarme" [ngModelOptions]="{standalone: true}" />
+      <div class="flex items-center justify-between gap-3">
+        <label class="auth-check">
+          <input type="checkbox" [(ngModel)]="recordarme" [ngModelOptions]="{standalone: true}" />
           Recordarme
         </label>
         <!-- "¿Olvidaste tu contraseña?" vuelve cuando exista el flujo de recuperación. -->
@@ -76,22 +65,18 @@
 
       <button
         type="submit"
-        class="group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.02] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+        class="x-boton x-boton--lg x-boton--bloque"
         [disabled]="cargando || googleCargando"
       >
-        <span *ngIf="!cargando">Iniciar sesión <i class="bi bi-arrow-right transition group-hover:translate-x-0.5"></i></span>
+        <span *ngIf="!cargando">Iniciar sesión <i class="bi bi-arrow-right"></i></span>
         <span *ngIf="cargando" class="inline-flex items-center gap-2">
-          <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+          <span class="auth-spinner"></span>
           Verificando…
         </span>
       </button>
     </form>
 
-    <div class="my-5 flex items-center gap-3 text-xs text-slate-400">
-      <span class="h-px flex-1 bg-slate-200"></span>
-      o continúa con
-      <span class="h-px flex-1 bg-slate-200"></span>
-    </div>
+    <div class="auth-divisor">o continúa con</div>
 
     <app-google-sign-in
       etiqueta="Continuar con Google"
@@ -100,9 +85,9 @@
       (fallo)="onGoogleError($event)"
     ></app-google-sign-in>
 
-    <p class="mt-6 text-center text-sm text-slate-500">
+    <p class="auth-cambio">
       ¿No tienes una cuenta?
-      <a routerLink="/auth/registro" class="font-semibold text-blue-600 hover:text-blue-700">Crear cuenta</a>
+      <a routerLink="/auth/registro" class="auth-enlace">Crear cuenta</a>
     </p>
   </div>
 </app-auth-shell>

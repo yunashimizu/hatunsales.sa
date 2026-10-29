@@ -68,7 +68,8 @@ export class RegisterComponent {
     return this.form.get('password')?.value ?? '';
   }
 
-  get fuerza(): { nivel: number; etiqueta: string; color: string } {
+  /** `clase` es el modificador de color de .auth-fuerza__barra (auth-formulario.css). */
+  get fuerza(): { nivel: number; etiqueta: string; clase: string } {
     const p = this.password;
     let score = 0;
     if (p.length >= 8) score++;
@@ -77,10 +78,10 @@ export class RegisterComponent {
     if (/\d/.test(p)) score++;
     if (/[^A-Za-z0-9]/.test(p)) score++;
 
-    if (score <= 2) return { nivel: score, etiqueta: 'Débil', color: 'bg-rose-500' };
-    if (score === 3) return { nivel: score, etiqueta: 'Media', color: 'bg-amber-500' };
-    if (score === 4) return { nivel: score, etiqueta: 'Buena', color: 'bg-sky-500' };
-    return { nivel: score, etiqueta: 'Fuerte', color: 'bg-emerald-500' };
+    if (score <= 2) return { nivel: score, etiqueta: 'Débil', clase: 'auth-fuerza__barra--debil' };
+    if (score === 3) return { nivel: score, etiqueta: 'Media', clase: 'auth-fuerza__barra--media' };
+    if (score === 4) return { nivel: score, etiqueta: 'Buena', clase: 'auth-fuerza__barra--buena' };
+    return { nivel: score, etiqueta: 'Fuerte', clase: 'auth-fuerza__barra--fuerte' };
   }
 
   get requisitos() {

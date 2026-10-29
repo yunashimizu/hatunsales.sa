@@ -70,10 +70,10 @@ export class AuthShellComponent implements AfterViewInit, OnDestroy {
   private destruido = false;
 
   readonly beneficios = [
-    { icono: 'bi-truck', titulo: 'Envíos rápidos', texto: 'A todo el Perú', tono: 'bg-sky-100 text-sky-700' },
-    { icono: 'bi-shield-check', titulo: 'Compra segura', texto: 'Datos cifrados', tono: 'bg-blue-100 text-blue-700' },
-    { icono: 'bi-star', titulo: 'Calidad', texto: 'Marcas top', tono: 'bg-amber-100 text-amber-700' },
-    { icono: 'bi-headset', titulo: 'Soporte', texto: 'Te ayudamos', tono: 'bg-emerald-100 text-emerald-700' },
+    { icono: 'bi-truck', titulo: 'Envíos rápidos', texto: 'A todo el Perú' },
+    { icono: 'bi-shield-check', titulo: 'Compra segura', texto: 'Datos cifrados' },
+    { icono: 'bi-star', titulo: 'Calidad', texto: 'Marcas top' },
+    { icono: 'bi-headset', titulo: 'Soporte', texto: 'Te ayudamos' },
   ];
 
   ngAfterViewInit(): void {

@@ -105,13 +105,13 @@
           <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
         </button>
       </div>
-    } @else if (cargando && !guias.length) {
+    } @else if ((cargando || busqueda.activa) && !guiasVisibles.length) {
       <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando guías">
         <div class="adm-esqueleto adm-esqueleto--fila"></div>
         <div class="adm-esqueleto adm-esqueleto--fila"></div>
         <div class="adm-esqueleto adm-esqueleto--fila"></div>
       </div>
-    } @else if (!guias.length) {
+    } @else if (!guiasVisibles.length) {
       <div class="adm-vacio adm-vacio--compacto" role="status">
         <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-truck" aria-hidden="true"></i></div>
         <div class="adm-vacio__titulo">{{ conFiltros ? 'Ninguna guía coincide con los filtros' : 'Todavía no hay guías de remisión' }}</div>
@@ -138,7 +138,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (g of guias; track g.id_guia) {
+            @for (g of guiasVisibles; track g.id_guia) {
               <tr [class.adm-fila--atenuada]="g.estado === 'anulado'">
                 <td data-etiqueta="Guía">
                   <button type="button" class="gre-tabla__enlace adm-tabla__principal adm-tabular" (click)="verDetalle(g.id_guia)"

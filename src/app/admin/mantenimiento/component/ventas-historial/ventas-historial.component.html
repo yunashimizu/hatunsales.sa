@@ -14,7 +14,7 @@
       </div>
     </div>
     <div class="adm-acciones">
-      <button type="button" class="adm-btn adm-btn--suave" (click)="exportarCsv()" [disabled]="!filas.length"
+      <button type="button" class="adm-btn adm-btn--suave" (click)="exportarCsv()" [disabled]="!filasVisibles.length"
               title="Descarga en CSV las ventas de la página que se ve">
         <i class="bi bi-filetype-csv" aria-hidden="true"></i> Exportar página
       </button>
@@ -153,7 +153,7 @@
         </h2>
         <p class="adm-tarjeta__sub">Las más recientes primero. El número de venta lleva a su detalle.</p>
       </div>
-      @if (cargando && filas.length) {
+      @if ((cargando || busqueda.activa) && filasVisibles.length) {
         <div class="adm-tarjeta__extra">
           <span class="adm-insignia adm-insignia--primaria" role="status">
             <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Actualizando…
@@ -177,13 +177,13 @@
           <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
         </button>
       </div>
-    } @else if (cargando && !filas.length) {
+    } @else if ((cargando || busqueda.activa) && !filasVisibles.length) {
       <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando ventas">
         @for (n of [1, 2, 3, 4, 5, 6]; track n) {
           <div class="adm-esqueleto adm-esqueleto--fila"></div>
         }
       </div>
-    } @else if (!filas.length) {
+    } @else if (!filasVisibles.length) {
       <div class="adm-vacio" role="status">
         @if (conFiltros) {
           <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-search"></i></div>
@@ -216,7 +216,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (fila of filas; track fila.id_venta) {
+            @for (fila of filasVisibles; track fila.id_venta) {
               <tr [class.vh-fila--anulada]="fila.estado === 'anulada'">
                 <td data-etiqueta="Venta">
                   <button type="button" class="vh-enlace adm-tabular" (click)="abrirVenta(fila.id_venta)"

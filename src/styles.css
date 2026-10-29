@@ -33,7 +33,7 @@
 @import './app/shared/styles/base.css';
 @import './app/shared/styles/tipografia.css';
 @import './app/shared/styles/estados.css';
-@import './app/shared/styles/legado-bootstrap-auth.css';
+@import './app/shared/styles/auth-formulario.css';
 @import './app/admin/styles/admin-ui.css';
 @import './app/shared/styles/alertas.css';
 @import './app/shared/styles/movimiento.css';

@@ -9,6 +9,7 @@ import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { descargarArchivo } from '../../../../shared/utils/descargar-archivo';
+import { BusquedaPendiente, filtrarInstantaneo } from '../../../../shared/utils/filtro-instantaneo.util';
 import { codigoDeError, mensajeDeError, normalizarErrorBlob } from '../../../service/api-base.service';
 import {
   EstadoGuia,
@@ -36,7 +37,7 @@ import {
 /** Consultas automáticas del ticket mientras el detalle está abierto: a los 5, 15 y 30 s; después, «Consultar». */
 export const ESPERAS_CONSULTA_MS: readonly number[] = [5_000, 10_000, 15_000];
 const POR_PAGINA = 20;
-const ESPERA_FILTRO_MS = 350;
+const ESPERA_FILTRO_MS = 250;
 
 const FILTROS_ESTADO: ReadonlyArray<{ valor: EstadoGuia | ''; texto: string }> = [
   { valor: '', texto: 'Todas' },
@@ -95,6 +96,10 @@ export class GuiasRemisionComponent implements OnInit {
   filtro: FiltroPantalla = filtroVacio();
   errorFiltro = '';
   guias: GuiaRemisionResumen[] = [];
+  /** Guías cargadas filtradas por el texto escrito (al instante, sin esperar al servidor). */
+  guiasVisibles: readonly GuiaRemisionResumen[] = [];
+  /** Búsqueda pendiente en el servidor: evita mostrar «sin guías» antes de que llegue. */
+  readonly busqueda = new BusquedaPendiente();
   total = 0;
   pagina = 1;
   cargando = false;
@@ -161,8 +166,10 @@ export class GuiasRemisionComponent implements OnInit {
   // ── Listado ────────────────────────────────────────────────────────────────
 
   cargar(pagina = this.pagina): void {
+    const alTerminar = this.busqueda.alLanzar();
     if (this.filtro.desde && this.filtro.hasta && this.filtro.desde > this.filtro.hasta) {
       this.errorFiltro = 'La fecha «desde» no puede ser posterior a «hasta».';
+      alTerminar();
       return;
     }
     this.errorFiltro = '';
@@ -177,25 +184,41 @@ export class GuiasRemisionComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
           this.cargando = false;
+          alTerminar();
           this.cdr.markForCheck();
         }),
       )
       .subscribe({
         next: (respuesta) => {
           this.guias = respuesta.datos ?? [];
+          this.refiltrar();
           this.total = Number(respuesta.total) || 0;
           this.pagina = Number(respuesta.pagina) || pagina;
         },
         error: (e) => {
           this.guias = [];
+          this.refiltrar();
           this.total = 0;
           this.error = mensajeDeError(e, 'No se pudieron cargar las guías de remisión');
         },
       });
   }
 
+  /** Filtra al instante las guías ya cargadas; el servidor completa el resultado en segundo plano. */
   alEscribirTexto(): void {
+    this.busqueda.iniciar();
+    this.refiltrar();
     this.texto$.next();
+  }
+
+  private refiltrar(): void {
+    // Campos que el servidor también busca (guia-remision.repository): n.º de guía, destinatario y comprobante.
+    this.guiasVisibles = filtrarInstantaneo(this.guias, this.filtro.texto, (g) => [
+      g.numero_formateado,
+      g.destinatario?.denominacion,
+      g.destinatario?.numero_documento,
+      g.documento_relacionado?.numero_formateado,
+    ]);
   }
 
   elegirEstado(estado: EstadoGuia | ''): void {
@@ -493,6 +516,7 @@ export class GuiasRemisionComponent implements OnInit {
 
   private actualizarFila(guia: GuiaRemisionResumen): void {
     this.guias = this.guias.map((fila) => (fila.id_guia === guia.id_guia ? { ...fila, ...guia } : fila));
+    this.refiltrar();
   }
 
   private avisarResultado(operacion: OperacionGuia): void {

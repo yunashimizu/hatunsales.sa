@@ -2,7 +2,7 @@ import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, E
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, map, switchMap, takeUntil } from 'rxjs';
 import { CartService } from '../../service/cart.service';
 import { CatalogoService } from '../../service/catalogo.service';
 import { CuentaTiendaService } from '../../service/cuenta.service';
@@ -43,6 +43,8 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   private observadorAlto?: ResizeObserver;
   private ultimoScroll = 0;
   private readonly termino$ = new Subject<string>();
+  /** Última respuesta del servidor: permite mostrar al instante las coincidencias al seguir escribiendo. */
+  private ultimaBusqueda: { texto: string; resultados: ProductoTienda[] } | null = null;
 
   categorias: CategoriaTienda[] = [];
   sugerencias: ProductoTienda[] = [];
@@ -89,12 +91,13 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.termino$
       .pipe(
-        debounceTime(220),
+        debounceTime(150),
         distinctUntilChanged(),
-        switchMap((texto) => this.catalogo.buscar(texto)),
+        switchMap((texto) => this.catalogo.buscar(texto).pipe(map((resultados) => ({ texto, resultados })))),
         takeUntil(this.destruir$),
       )
-      .subscribe((resultados) => {
+      .subscribe(({ texto, resultados }) => {
+        this.ultimaBusqueda = { texto: texto.toLowerCase(), resultados };
         this.sugerencias = resultados;
         this.sinResultados = resultados.length === 0;
         this.buscando = false;
@@ -210,8 +213,22 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.buscando = true;
     this.sinResultados = false;
+    this.mostrarCoincidenciasPrevias(texto.toLowerCase());
     this.cdr.markForCheck();
     this.termino$.next(texto);
+  }
+
+  /**
+   * Al refinar lo escrito («mart» → «marti»), las coincidencias entre los resultados ya
+   * recibidos se ven al instante; el servidor confirma y completa unos 150 ms después.
+   */
+  private mostrarCoincidenciasPrevias(texto: string): void {
+    const previa = this.ultimaBusqueda;
+    if (!previa || !texto.startsWith(previa.texto)) return;
+    const locales = previa.resultados.filter((p) =>
+      [p.nombre, p.sku, p.codigo_barras, p.marca].some((campo) => (campo ?? '').toLowerCase().includes(texto)),
+    );
+    if (locales.length) this.sugerencias = locales;
   }
 
   buscar(): void {
