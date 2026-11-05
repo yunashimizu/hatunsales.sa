@@ -1916,7 +1916,9 @@ export class VentasComponent implements OnInit, OnDestroy {
           } else {
             this.alerta.toast({
               type: 'success',
-              title: `${venta.comprobante?.numero_formateado ?? 'Venta'} emitida`,
+              title: venta.comprobante?.envio_diferido
+                ? `${venta.comprobante.numero_formateado ?? 'Venta'} registrada; SUNAT la confirma en segundos`
+                : `${venta.comprobante?.numero_formateado ?? 'Venta'} emitida`,
               timer: 3500,
             });
           }

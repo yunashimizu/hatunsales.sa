@@ -446,8 +446,22 @@ export interface ComprobanteDetalle {
   puede_confirmar_manual: boolean;
   puede_nota_credito: boolean;
   puede_anular: boolean;
+  /** Dar de baja en SUNAT (factura) o informar como anulada en un resumen (boleta), sin nota de crédito. */
+  puede_anular_sin_nota?: boolean;
+  /** Último pedido de baja o resumen de anulación de este comprobante (ausente en un backend anterior). */
+  baja?: BajaComprobante | null;
   /** Envío del comprobante por correo al cliente (ausente en un backend anterior). */
   correo?: CorreoComprobante;
+}
+
+/** Lote (comunicación de baja RA o resumen RC) que anula un comprobante sin nota de crédito. */
+export interface BajaComprobante {
+  id_envio: number;
+  operacion: 'baja' | 'resumen';
+  identificador: string;
+  estado: string;
+  sunat_ticket: string | null;
+  mensaje: string | null;
 }
 
 /** Cómo arma el asistente cada motivo: todo el comprobante, unidades, descuento por línea o un importe. */
@@ -604,6 +618,8 @@ export interface SolicitudAnularComprobante {
   existe_en_sunat?: boolean;
   /** Qué verificó y dónde (obligatoria con confirmar_verificado_sol). */
   nota?: string;
+  /** true = anular dando de baja en SUNAT (RA) o por resumen (RC), sin nota de crédito. */
+  sin_nota?: boolean;
 }
 
 export interface AnulacionComprobante {
@@ -614,6 +630,8 @@ export interface AnulacionComprobante {
   /** Estado de la venta después de la petición ('activa' | 'anulada'); null si no tiene venta. */
   venta_estado: string | null;
   nota?: NotaAnulacion;
+  /** Con sin_nota: el lote enviado a SUNAT (la anulación termina cuando SUNAT lo confirma). */
+  baja?: { id_envio: number; operacion: 'baja' | 'resumen'; identificador: string; estado: string; ticket: string | null };
   avisos: string[];
 }
 

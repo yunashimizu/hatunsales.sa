@@ -71,6 +71,23 @@
         }
       }
 
+      @if (d.baja; as baja) {
+        <div class="adm-aviso" [ngClass]="claseAviso(textoBaja(baja).tono)"
+             [attr.role]="textoBaja(baja).tono === 'peligro' ? 'alert' : 'status'">
+          <i class="bi" [ngClass]="textoBaja(baja).icono" aria-hidden="true"></i>
+          <div class="det-aviso__cuerpo">
+            <strong class="adm-aviso__titulo">{{ textoBaja(baja).titulo }}</strong>
+            <p class="det-parrafo">
+              {{ baja.operacion === 'baja' ? 'Comunicación de baja' : 'Resumen de anulación' }}
+              <span class="adm-mono">{{ baja.identificador }}</span>
+              @if (textoBaja(baja).detalle) {
+                · {{ textoBaja(baja).detalle }}
+              }
+            </p>
+          </div>
+        </div>
+      }
+
       @if (d.aviso) {
         <div class="adm-aviso adm-aviso--aviso">
           <i class="bi bi-cone-striped" aria-hidden="true"></i>
@@ -507,6 +524,12 @@
       @if (d.puede_nota_credito && puedeEmitirNota) {
         <button type="button" class="adm-btn adm-btn--suave" (click)="pedirNotaCredito()" [disabled]="enProceso !== null">
           <i class="bi bi-arrow-return-left" aria-hidden="true"></i> Nota de crédito
+        </button>
+      }
+      @if (d.puede_anular_sin_nota && esAdmin) {
+        <button type="button" class="adm-btn adm-btn--peligro-suave" (click)="darDeBaja()" [disabled]="enProceso !== null">
+          <i class="bi" [ngClass]="enProceso === 'baja' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-x'" aria-hidden="true"></i>
+          Dar de baja en SUNAT
         </button>
       }
       @if (d.puede_anular && esAdmin) {

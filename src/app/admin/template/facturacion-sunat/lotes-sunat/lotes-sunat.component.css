@@ -1,0 +1,62 @@
+:host {
+  display: block;
+}
+.lotes-filtros {
+  border-bottom: 1px solid var(--adm-borde);
+}
+.lotes-filtros .adm-campo {
+  flex: 0 1 220px;
+}
+.lotes-estado {
+  min-width: 220px;
+}
+.lotes-mensaje {
+  max-width: 340px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.lotes-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lotes-fila--procesando td {
+  opacity: 0.6;
+}
+
+/* Marca de color en la fila según el estado: lo que necesita atención se ve sin leer */
+.lotes-tabla tbody tr[data-estado='RECHAZADO'] > td:first-child,
+.lotes-tabla tbody tr[data-estado='EXCEPCION'] > td:first-child {
+  box-shadow: inset 3px 0 0 var(--adm-peligro);
+}
+.lotes-tabla tbody tr[data-estado='PENDIENTE_REENVIO'] > td:first-child,
+.lotes-tabla tbody tr[data-estado='ENVIANDO'] > td:first-child,
+.lotes-tabla tbody tr[data-estado='TICKET_PENDIENTE'] > td:first-child {
+  box-shadow: inset 3px 0 0 var(--adm-aviso);
+}
+
+@media (max-width: 900px) {
+  .lotes-estado {
+    min-width: 0;
+  }
+  .lotes-botones {
+    justify-content: flex-end;
+  }
+  .lotes-mensaje {
+    max-width: none;
+  }
+  .lotes-tabla tbody tr[data-estado] > td:first-child {
+    box-shadow: none;
+  }
+  .lotes-tabla tbody tr[data-estado='RECHAZADO'],
+  .lotes-tabla tbody tr[data-estado='EXCEPCION'] {
+    border-left: 3px solid var(--adm-peligro);
+  }
+  .lotes-tabla tbody tr[data-estado='PENDIENTE_REENVIO'],
+  .lotes-tabla tbody tr[data-estado='ENVIANDO'],
+  .lotes-tabla tbody tr[data-estado='TICKET_PENDIENTE'] {
+    border-left: 3px solid var(--adm-aviso);
+  }
+}

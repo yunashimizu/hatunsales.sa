@@ -13,6 +13,7 @@ function configuracion(listo: boolean): ConfiguracionSunat {
     ambiente: 'beta',
     boletas_modo: 'individual',
     envio_en_linea: true,
+    envio_diferido: false,
     tareas_activas: true,
     aplicar_reglas_2027: 'auto',
     codigo_producto_defecto: null,

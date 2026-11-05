@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+.sin-codigo-avisos:empty {
+  display: none;
+}
+.sin-codigo-lote {
+  border-bottom: 1px solid var(--adm-borde);
+}
+.sin-codigo-lote .adm-campo {
+  flex: 1 1 200px;
+}
+.sin-codigo-casilla {
+  width: 44px;
+}
+.sin-codigo-edicion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sin-codigo-input {
+  width: 120px;
+}
+.sin-codigo-fila--procesando td {
+  opacity: 0.6;
+}
+.sin-codigo-pie {
+  padding: 8px 16px 12px;
+}

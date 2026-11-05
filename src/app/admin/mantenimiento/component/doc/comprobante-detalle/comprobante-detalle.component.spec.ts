@@ -264,6 +264,99 @@ describe('ComprobanteDetalleComponent', () => {
     expect(alerta.error).not.toHaveBeenCalled();
   });
 
+  describe('anular sin nota (baja en SUNAT)', () => {
+    it('el botón aparece solo con puede_anular_sin_nota y rol admin, antes de Anular', () => {
+      crear();
+      expect(botonesPie()).not.toContain('Dar de baja en SUNAT');
+
+      api.detalle.mockReturnValue(of(detalle({ puede_anular_sin_nota: true })));
+      component.cargar();
+      fixture.detectChanges();
+      expect(botonesPie()).toEqual(['Nota de crédito', 'Dar de baja en SUNAT', 'Anular', 'Cerrar']);
+
+      // Un vendedor puede emitir notas, pero no anular ni dar de baja.
+      roles = ['vendedor'];
+      crear();
+      api.detalle.mockReturnValue(of(detalle({ puede_anular_sin_nota: true })));
+      component.cargar();
+      fixture.detectChanges();
+      expect(botonesPie()).toEqual(['Nota de crédito', 'Cerrar']);
+    });
+
+    it('la factura explica la comunicación de baja y envía sin_nota: true con el motivo', async () => {
+      api.detalle.mockReturnValue(of(detalle({ puede_anular_sin_nota: true })));
+      alerta.pedirTexto.mockResolvedValueOnce('Error en el importe');
+      api.anular.mockReturnValue(
+        of({
+          estado: 'anulacion_en_curso',
+          id_comprobante: 10,
+          numero_formateado: 'FB01-00000012',
+          id_venta: 33,
+          venta_estado: 'activa',
+          baja: { id_envio: 7, operacion: 'baja', identificador: 'RA-20261105-1', estado: 'TICKET_PENDIENTE', ticket: '2026123' },
+          avisos: ['SUNAT recibió el pedido de baja de FB01-12 (RA-20261105-1).'],
+        }),
+      );
+      crear();
+      await component.darDeBaja();
+      fixture.detectChanges();
+
+      expect(alerta.pedirTexto).toHaveBeenCalledWith(
+        expect.objectContaining({
+          minimo: 5,
+          maximo: 100,
+          danger: true,
+          message: expect.stringContaining('comunicación de baja'),
+        }),
+      );
+      expect(api.anular).toHaveBeenCalledWith({ id_comprobante: 10, motivo: 'Error en el importe', sin_nota: true });
+      expect(texto()).toContain('Anulación en curso: falta la confirmación de SUNAT');
+      expect(texto()).toContain('SUNAT recibió el pedido de baja');
+    });
+
+    it('la boleta explica el resumen diario y cancelar el diálogo no envía nada', async () => {
+      api.detalle.mockReturnValue(of(detalle({ puede_anular_sin_nota: true, id_tipo: 2, serie: 'BB01' })));
+      crear();
+      await component.darDeBaja();
+      expect(alerta.pedirTexto).toHaveBeenCalledWith(
+        expect.objectContaining({ message: expect.stringContaining('resumen diario') }),
+      );
+      expect(api.anular).not.toHaveBeenCalled();
+    });
+
+    it('no hace nada si el comprobante no admite la baja o el usuario no es admin', async () => {
+      crear();
+      await component.darDeBaja();
+      expect(alerta.pedirTexto).not.toHaveBeenCalled();
+      expect(api.anular).not.toHaveBeenCalled();
+    });
+
+    it('cuenta el estado del lote de baja con identificador, ticket y tono', () => {
+      api.detalle.mockReturnValue(
+        of(detalle({ baja: { id_envio: 7, operacion: 'baja', identificador: 'RA-20261105-1', estado: 'TICKET_PENDIENTE', sunat_ticket: '2026123', mensaje: null } })),
+      );
+      crear();
+      expect(texto()).toContain('SUNAT está procesando la baja');
+      expect(texto()).toContain('RA-20261105-1');
+      expect(texto()).toContain('Ticket 2026123');
+
+      api.detalle.mockReturnValue(
+        of(detalle({ baja: { id_envio: 8, operacion: 'resumen', identificador: 'RC-20261105-2', estado: 'RECHAZADO', sunat_ticket: null, mensaje: '2223 - ya informado' } })),
+      );
+      component.cargar();
+      fixture.detectChanges();
+      expect(texto()).toContain('SUNAT rechazó la baja: el comprobante sigue vigente');
+      expect(texto()).toContain('2223 - ya informado');
+
+      api.detalle.mockReturnValue(
+        of(detalle({ anulado: true, baja: { id_envio: 7, operacion: 'baja', identificador: 'RA-20261105-1', estado: 'ACEPTADO', sunat_ticket: '2026123', mensaje: null } })),
+      );
+      component.cargar();
+      fixture.detectChanges();
+      expect(texto()).toContain('Dado de baja en SUNAT');
+    });
+  });
+
   it('descarga el PDF y la constancia con nombres claros', () => {
     const nombres: string[] = [];
     // jsdom no trae createObjectURL: se simula solo aquí y luego se devuelve lo que había (los specs

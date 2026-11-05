@@ -44,6 +44,8 @@ import {
   SolicitudGuardadoFiscal,
 } from './activacion-produccion/activacion-produccion.component';
 import { EnviosSunatComponent } from './envios-sunat/envios-sunat.component';
+import { LotesSunatComponent } from './lotes-sunat/lotes-sunat.component';
+import { ProductosSinCodigoComponent } from './productos-sin-codigo/productos-sin-codigo.component';
 
 type SeccionFiscal = 'resumen' | 'envios' | 'configuracion' | 'pruebas' | 'bitacora';
 
@@ -111,7 +113,7 @@ const NOMBRES_ACCION_AUDITORIA: Readonly<Record<string, string>> = {
 @Component({
   selector: 'app-facturacion-sunat',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ActivacionProduccionComponent, EnviosSunatComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ActivacionProduccionComponent, EnviosSunatComponent, LotesSunatComponent, ProductosSinCodigoComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './facturacion-sunat.component.html',
   styleUrl: './facturacion-sunat.component.css',
@@ -119,6 +121,7 @@ const NOMBRES_ACCION_AUDITORIA: Readonly<Record<string, string>> = {
 export class FacturacionSunatComponent implements OnInit {
   @ViewChild('archivoCertificado') archivoInput?: ElementRef<HTMLInputElement>;
   @ViewChild(EnviosSunatComponent) envios?: EnviosSunatComponent;
+  @ViewChild(LotesSunatComponent) lotes?: LotesSunatComponent;
   /** Estado global de la emisión (lo comparten la cabecera y el POS). */
   readonly fiscalEstado = inject(FiscalEstadoService);
   seccion: SeccionFiscal = 'resumen';
@@ -214,6 +217,7 @@ export class FacturacionSunatComponent implements OnInit {
     this.cargar();
     this.fiscalEstado.refrescar(true);
     this.envios?.cargar();
+    this.lotes?.cargar();
   }
 
   cargar(restablecer = true): void {
@@ -648,6 +652,7 @@ export class FacturacionSunatComponent implements OnInit {
     this.operacion = {
       boletas_modo: config.boletas_modo,
       envio_en_linea: config.envio_en_linea,
+      envio_diferido: config.envio_diferido === true,
       aplicar_reglas_2027: config.aplicar_reglas_2027,
       codigo_producto_defecto: config.codigo_producto_defecto ?? '',
       series: { ...config.series },

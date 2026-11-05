@@ -1,0 +1,178 @@
+<section class="adm-tarjeta" aria-labelledby="lotes-sunat-titulo">
+  <div class="adm-tarjeta__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="lotes-sunat-titulo">
+        <i class="bi bi-file-earmark-x" aria-hidden="true"></i> Bajas y resúmenes (RA/RC)
+        @if (!cargando || lotes.length) {
+          <span class="adm-insignia adm-insignia--neutra">{{ total }}</span>
+        }
+      </h2>
+      <p class="adm-tarjeta__sub">
+        Comunicaciones de baja de facturas y boletas informadas como anuladas en un resumen diario: anulan sin nota de
+        crédito, hasta 7 días después de emitidas.
+      </p>
+    </div>
+    <div class="adm-tarjeta__extra">
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <div class="adm-tarjeta__cuerpo adm-tarjeta__cuerpo--compacto lotes-filtros">
+    <div class="adm-fila" role="search" aria-label="Filtros de bajas y resúmenes">
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="lotes-ambiente">Ambiente</label>
+        <select id="lotes-ambiente" class="adm-select" name="ambiente" [(ngModel)]="ambiente" (ngModelChange)="cargar(1)">
+          <option value="">Todos</option>
+          <option value="beta">SUNAT BETA (pruebas)</option>
+          <option value="produccion">Producción</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+      <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">No se pudieron cargar las bajas y resúmenes</div>
+      <p>{{ error }}</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+      </button>
+    </div>
+  } @else if (cargando && !lotes.length) {
+    <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando bajas y resúmenes">
+      <div class="adm-esqueleto adm-esqueleto--fila"></div>
+      <div class="adm-esqueleto adm-esqueleto--fila"></div>
+    </div>
+  } @else if (!lotes.length) {
+    <div class="adm-vacio adm-vacio--compacto" role="status">
+      <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-inbox" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">Sin bajas ni resúmenes en este ambiente</div>
+      @if (conFiltros) {
+        <button type="button" class="adm-btn adm-btn--suave" (click)="mostrar()">
+          <i class="bi bi-eraser" aria-hidden="true"></i> Ver los del ambiente vigente
+        </button>
+      }
+    </div>
+  } @else {
+    <div class="adm-tabla-envoltorio">
+      <table class="adm-tabla adm-tabla--adaptable-tablet lotes-tabla">
+        <thead>
+          <tr>
+            <th>Identificador</th>
+            <th>Tipo</th>
+            <th>Fecha de los comprobantes</th>
+            <th>Comprobantes</th>
+            <th>Estado SUNAT</th>
+            <th>Ticket</th>
+            <th>Archivos</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (lote of lotes; track lote.id_envio) {
+            <tr [class.lotes-fila--procesando]="idEnProceso === lote.id_envio" [attr.data-estado]="lote.estado">
+              <td data-etiqueta="Identificador">
+                <div class="adm-tabla__principal adm-tabular adm-mono">{{ lote.identificador }}</div>
+                <div class="adm-tabla__secundario">
+                  {{ lote.creado_en | date: 'dd/MM/yyyy HH:mm' }} · lote #{{ lote.id_envio }}
+                  @if (lote.intento > 1) {
+                    · intento {{ lote.intento }}
+                  }
+                </div>
+              </td>
+              <td data-etiqueta="Tipo">
+                <span class="adm-insignia adm-insignia--sm adm-insignia--info">{{ nombreTipo(lote) }}</span>
+                <span class="adm-insignia adm-insignia--sm"
+                      [ngClass]="lote.ambiente === 'produccion' ? 'adm-insignia--exito' : 'adm-insignia--aviso'">
+                  {{ lote.ambiente === 'produccion' ? 'Producción' : 'BETA' }}
+                </span>
+              </td>
+              <td data-etiqueta="Fecha de los comprobantes" class="adm-tabular">
+                {{ lote.fecha_referencia ? (lote.fecha_referencia | date: 'dd/MM/yyyy') : '—' }}
+              </td>
+              <td data-etiqueta="Comprobantes" class="adm-tabular">
+                @for (linea of lote.lineas.slice(0, lineasVisibles); track linea.id_comprobante) {
+                  <div>{{ documento(linea) }}</div>
+                }
+                @if (lote.lineas.length > lineasVisibles) {
+                  <div class="adm-tabla__secundario">+{{ lote.lineas.length - lineasVisibles }} más</div>
+                }
+              </td>
+              <td data-etiqueta="Estado SUNAT" class="lotes-estado">
+                <div>
+                  <span class="adm-insignia adm-insignia--punto" [ngClass]="claseEstado(lote.estado)">
+                    {{ nombreEstado(lote.estado) }}
+                  </span>
+                  @if (lote.codigo_sunat || lote.mensaje_sunat) {
+                    <div class="adm-tabla__secundario lotes-mensaje" [attr.title]="lote.mensaje_sunat">
+                      @if (lote.codigo_sunat) {
+                        <span class="adm-mono">{{ lote.codigo_sunat }}</span>
+                      }
+                      {{ lote.mensaje_sunat }}
+                    </div>
+                  }
+                  @if ((lote.estado === 'PENDIENTE_REENVIO' || lote.estado === 'TICKET_PENDIENTE') && lote.proximo_intento_en) {
+                    <div class="adm-tabla__secundario">
+                      Próxima consulta automática: {{ lote.proximo_intento_en | date: 'dd/MM HH:mm' }}
+                    </div>
+                  }
+                </div>
+              </td>
+              <td data-etiqueta="Ticket" class="adm-tabular">
+                @if (lote.sunat_ticket) {
+                  <span class="adm-mono">{{ lote.sunat_ticket }}</span>
+                } @else {
+                  <span class="adm-texto-tenue">Sin ticket</span>
+                }
+              </td>
+              <td data-etiqueta="Archivos">
+                <div class="lotes-botones">
+                  @for (tipo of lote.archivos; track tipo) {
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                            (click)="descargar(lote, tipo)" [disabled]="idEnProceso !== null"
+                            [attr.aria-label]="'Descargar ' + nombresArchivo[tipo] + ' de ' + lote.identificador">
+                      <i class="bi bi-download" aria-hidden="true"></i> {{ nombresArchivo[tipo] }}
+                    </button>
+                  } @empty {
+                    <span class="adm-texto-tenue">Sin archivos</span>
+                  }
+                </div>
+              </td>
+              <td data-etiqueta="Acciones">
+                <div class="lotes-botones">
+                  @if (puedeReintentar(lote)) {
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                            (click)="reintentar(lote)" [disabled]="idEnProceso !== null"
+                            [attr.aria-label]="textoReintentar(lote) + ' ' + lote.identificador + ' en SUNAT'">
+                      <i class="bi bi-arrow-repeat" aria-hidden="true"></i> {{ textoReintentar(lote) }}
+                    </button>
+                  } @else {
+                    <span class="adm-texto-tenue">Sin acciones</span>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (total > porPagina) {
+      <nav class="adm-paginacion" aria-label="Paginación de bajas y resúmenes">
+        <span><strong class="adm-tabular">{{ total }}</strong> lotes · página {{ pagina }} de {{ totalPaginas }}</span>
+        <div class="adm-paginacion__botones">
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="pagina <= 1 || cargando" (click)="irA(pagina - 1)">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
+          </button>
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="pagina >= totalPaginas || cargando" (click)="irA(pagina + 1)">
+            Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </nav>
+    }
+  }
+</section>

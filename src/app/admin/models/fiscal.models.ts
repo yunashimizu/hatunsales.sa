@@ -63,6 +63,8 @@ export interface EmisorSunat {
 export interface OperacionFiscal {
   boletas_modo: ModoBoletas;
   envio_en_linea: boolean;
+  /** La venta no espera a SUNAT: el comprobante se envía en segundo plano (apagado por defecto). */
+  envio_diferido: boolean;
   aplicar_reglas_2027: ModoReglas2027;
   codigo_producto_defecto: string;
   series: SeriesSunat;
@@ -128,6 +130,8 @@ export interface ConfiguracionSunat {
   ambiente: AmbienteFiscal;
   boletas_modo: ModoBoletas;
   envio_en_linea: boolean;
+  /** La venta no espera a SUNAT: el comprobante se envía en segundo plano (apagado por defecto). */
+  envio_diferido: boolean;
   tareas_activas: boolean;
   aplicar_reglas_2027: ModoReglas2027;
   codigo_producto_defecto: string | null;
@@ -171,6 +175,7 @@ export interface CambiosConfiguracionFiscal {
   ambiente?: AmbienteFiscal;
   boletas_modo?: ModoBoletas;
   envio_en_linea?: boolean;
+  envio_diferido?: boolean;
   tareas_activas?: boolean;
   aplicar_reglas_2027?: ModoReglas2027;
   codigo_producto_defecto?: string;
@@ -283,6 +288,67 @@ export interface ResultadoEnvio {
   id_comprobante?: number | null;
   serie?: string;
   numero?: number;
+}
+
+/** Archivos descargables de un lote (baja o resumen): no hay XML sin firmar. */
+export type TipoArchivoLote = 'xml_firmado' | 'zip' | 'cdr_xml' | 'cdr_zip';
+
+/** Comprobante incluido en un lote de baja (RA) o resumen (RC). */
+export interface LineaLoteSunat {
+  id_comprobante: number;
+  serie: string;
+  numero: number;
+  tipo_documento: string;
+  condicion: number | null;
+  estado: string;
+}
+
+/** Comunicación de baja (RA) o resumen diario (RC) enviado a SUNAT: GET /fiscal/lotes. */
+export interface LoteSunat {
+  id_envio: number;
+  ambiente: AmbienteFiscal;
+  operacion: 'baja' | 'resumen';
+  identificador: string;
+  estado: string;
+  sunat_ticket: string | null;
+  codigo_sunat: string | null;
+  mensaje_sunat: string | null;
+  /** Qué admite el servidor a continuación (REINTENTAR, CONSULTAR_TICKET, NINGUNA…). */
+  accion_sunat?: string | null;
+  fecha_referencia: string | null;
+  intento: number;
+  proximo_intento_en: string | null;
+  creado_en: string;
+  actualizado_en: string | null;
+  archivos: TipoArchivoLote[];
+  lineas: LineaLoteSunat[];
+}
+
+export interface FiltroLotes {
+  ambiente?: AmbienteFiscal | '';
+  operacion?: 'baja' | 'resumen' | '';
+  estado?: string;
+  pagina?: number;
+  por_pagina?: number;
+}
+
+export interface PaginaLotes {
+  datos: LoteSunat[];
+  total: number;
+  pagina: number;
+  por_pagina: number;
+}
+
+/** Respuesta de POST /fiscal/lotes/:id/reintentar. */
+export interface ResultadoLote {
+  id_envio: number;
+  operacion: 'baja' | 'resumen';
+  identificador: string;
+  estado: string;
+  aceptado: boolean;
+  ticket: string | null;
+  mensaje: string | null;
+  codigo: string | null;
 }
 
 /** GET /fiscal/estado tal como lo devuelve el servidor (lo ven admin, vendedor, caja y consulta). */

@@ -224,6 +224,8 @@
                     <span class="adm-tabla__mono">{{ p.sku || 'sin SKU' }}</span>
                     <span *ngIf="p.codigo_barras"> · {{ p.codigo_barras }}</span>
                     <span *ngIf="p.marca"> · {{ p.marca }}</span>
+                    <span *ngIf="!p.codigo_sunat" class="adm-insignia adm-insignia--sm adm-insignia--aviso"
+                          title="Sin código de producto SUNAT: desde el 1/1/2027 sus comprobantes lo necesitan">sin código SUNAT</span>
                   </div>
                 </div>
               </div>
@@ -391,6 +393,16 @@
                   </button>
                 </div>
                 <p class="adm-ayuda">El que lee el lector. Debe coincidir con la etiqueta del producto. Si no trae código de fábrica, genere uno interno e imprima su etiqueta.</p>
+              </div>
+            </div>
+
+            <div class="adm-fila prod-fila">
+              <div class="adm-campo">
+                <label class="adm-etiqueta" for="f-codigo-sunat">Código SUNAT <span class="adm-etiqueta__opcional">opcional</span></label>
+                <input id="f-codigo-sunat" class="adm-input" type="text" inputmode="numeric" maxlength="8"
+                       autocomplete="off" placeholder="8 dígitos (UNSPSC)"
+                       [(ngModel)]="formulario.codigo_sunat">
+                <p class="adm-ayuda">Catálogo 25 de SUNAT (UNSPSC). Desde el 1/1/2027 es obligatorio en cada comprobante; si no lo conoce, déjelo vacío y fije un código por defecto en Facturación SUNAT › Configuración.</p>
               </div>
             </div>
 

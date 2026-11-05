@@ -1,0 +1,147 @@
+<section class="adm-tarjeta" id="fiscal-productos-sin-codigo" aria-labelledby="sin-codigo-titulo">
+  <div class="adm-tarjeta__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="sin-codigo-titulo">
+        <i class="bi bi-upc" aria-hidden="true"></i> Productos sin código SUNAT
+        @if (!cargando || productos.length) {
+          <span class="adm-insignia" [ngClass]="total ? 'adm-insignia--aviso' : 'adm-insignia--exito'">{{ total }}</span>
+        }
+      </h2>
+      <p class="adm-tarjeta__sub">
+        Código de producto del catálogo 25 de SUNAT (UNSPSC, 8 dígitos). Desde el 1/1/2027 es obligatorio en cada línea del comprobante.
+      </p>
+    </div>
+    <div class="adm-tarjeta__extra">
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cargar()" [disabled]="cargando || ocupado">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+      <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">No se pudo cargar la lista</div>
+      <p>{{ error }}</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+      </button>
+    </div>
+  } @else if (cargando && !productos.length) {
+    <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando productos">
+      <div class="adm-esqueleto adm-esqueleto--fila"></div>
+      <div class="adm-esqueleto adm-esqueleto--fila"></div>
+    </div>
+  } @else {
+    <div class="adm-tarjeta__cuerpo sin-codigo-avisos">
+      @if (hayDefecto) {
+        <div class="adm-aviso adm-aviso--info adm-aviso--compacto" role="status">
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+          <span>
+            Hay un código por defecto (<span class="adm-mono">{{ codigoDefecto }}</span>): los productos sin código usan ese.
+            Conviene cargar el código real de cada uno.
+          </span>
+        </div>
+      } @else if (total) {
+        <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto" role="status">
+          <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+          <span>
+            No hay código por defecto: desde el 1/1/2027 estos productos no se podrán facturar. Cárguelos aquí o fije
+            un código por defecto en «Operación y series».
+          </span>
+        </div>
+      }
+    </div>
+
+    @if (!productos.length) {
+      <div class="adm-vacio adm-vacio--compacto" role="status">
+        <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-check2-circle" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">Todos los productos tienen código</div>
+      </div>
+    } @else {
+      <div class="adm-tarjeta__cuerpo adm-tarjeta__cuerpo--compacto sin-codigo-lote">
+        <div class="adm-fila" role="group" aria-label="Asignar un código a los productos marcados">
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="sin-codigo-lote">Código para los seleccionados</label>
+            <input id="sin-codigo-lote" class="adm-input adm-mono" type="text" inputmode="numeric" maxlength="8"
+                   autocomplete="off" placeholder="8 dígitos (UNSPSC)" [(ngModel)]="codigoLote" name="codigoLote"
+                   [disabled]="ocupado">
+          </div>
+          <div class="adm-campo adm-campo--accion">
+            <span class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</span>
+            <button type="button" class="adm-btn adm-btn--primario" (click)="asignarSeleccionados()"
+                    [disabled]="ocupado || !seleccionados.size">
+              <i class="bi" [ngClass]="idEnProceso === -1 ? 'bi-arrow-repeat adm-girando' : 'bi-check2-all'" aria-hidden="true"></i>
+              Asignar{{ seleccionados.size ? ' a ' + seleccionados.size : '' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="adm-tabla-envoltorio">
+        <table class="adm-tabla adm-tabla--adaptable-tablet sin-codigo-tabla">
+          <thead>
+            <tr>
+              <th class="sin-codigo-casilla">
+                <label class="adm-check">
+                  <input type="checkbox" [checked]="todosSeleccionados" [disabled]="ocupado"
+                         (change)="alternarTodos($any($event.target).checked)"
+                         aria-label="Marcar todos los productos de la lista">
+                </label>
+              </th>
+              <th>Producto</th>
+              <th>Categoría</th>
+              <th>Unidad</th>
+              <th>Código SUNAT</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of productos; track p.id_producto) {
+              <tr [class.sin-codigo-fila--procesando]="idEnProceso === p.id_producto">
+                <td class="sin-codigo-casilla" data-etiqueta="Marcar">
+                  <label class="adm-check">
+                    <input type="checkbox" [checked]="seleccionados.has(p.id_producto)" [disabled]="ocupado"
+                           (change)="alternar(p.id_producto, $any($event.target).checked)"
+                           [attr.aria-label]="'Marcar ' + p.nombre">
+                  </label>
+                </td>
+                <td data-etiqueta="Producto">
+                  <div class="adm-tabla__principal">{{ p.nombre }}</div>
+                  <div class="adm-tabla__secundario">
+                    <span class="adm-tabla__mono">{{ p.sku || 'sin SKU' }}</span>
+                    @if (p.codigo_barras) {
+                      <span> · {{ p.codigo_barras }}</span>
+                    }
+                  </div>
+                </td>
+                <td data-etiqueta="Categoría">{{ p.categoria || '—' }}</td>
+                <td data-etiqueta="Unidad">{{ p.unidad_medida || '—' }}</td>
+                <td data-etiqueta="Código SUNAT">
+                  <form class="sin-codigo-edicion" (ngSubmit)="guardarFila(p)">
+                    <input class="adm-input adm-input--chico adm-mono sin-codigo-input" type="text" inputmode="numeric"
+                           maxlength="8" autocomplete="off" placeholder="8 dígitos"
+                           [name]="'codigo-' + p.id_producto" [(ngModel)]="codigos[p.id_producto]" [disabled]="ocupado"
+                           [class.adm-input--error]="!!codigos[p.id_producto] && !esValido(codigos[p.id_producto])"
+                           [attr.aria-label]="'Código SUNAT de ' + p.nombre">
+                    <button type="submit" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="ocupado"
+                            [attr.aria-label]="'Guardar código SUNAT de ' + p.nombre">
+                      <i class="bi" [ngClass]="idEnProceso === p.id_producto ? 'bi-arrow-repeat adm-girando' : 'bi-check2'" aria-hidden="true"></i>
+                      Guardar
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (hayMas) {
+        <p class="adm-ayuda sin-codigo-pie">
+          Se muestran los primeros {{ productos.length }} de {{ total }}. Al guardar, la lista se completa con los siguientes.
+        </p>
+      }
+    }
+  }
+</section>

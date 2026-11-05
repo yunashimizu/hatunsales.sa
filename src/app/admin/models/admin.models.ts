@@ -126,6 +126,8 @@ export interface ComprobanteEmitido {
   anulado?: boolean;
   estado?: string;
   error?: string;
+  /** true: el comprobante está guardado y su envío a SUNAT sigue en segundo plano. */
+  envio_diferido?: boolean;
   proveedor_fiscal?: 'sunat_directo';
   ambiente_fiscal?: 'beta' | 'produccion';
   estado_sunat?: string;
@@ -260,6 +262,8 @@ export interface ProductoAdmin {
   descripcion_corta: string;
   codigo_barras: string;
   sku: string;
+  /** Código de producto SUNAT (catálogo 25, UNSPSC, 8 dígitos); null si aún no se cargó. */
+  codigo_sunat: string | null;
   precio_compra: number;
   precio_venta: number;
   descuento: number;

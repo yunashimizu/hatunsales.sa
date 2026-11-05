@@ -22,6 +22,7 @@ import { AlertService } from '../../../../../shared/services/alert.service';
 import { descargarArchivo } from '../../../../../shared/utils/descargar-archivo';
 import {
   AnulacionComprobante,
+  BajaComprobante,
   ComprobanteDetalle,
   CorreoComprobante,
   CorreoHistorial,
@@ -58,7 +59,7 @@ import {
 import { ResultadoSunatComponent } from '../resultado-sunat/resultado-sunat.component';
 
 /** Acción que la lista pide ejecutar apenas se abre el detalle. */
-export type AccionDetalle = 'reintentar' | 'recuperar_cdr' | 'confirmar' | 'anular';
+export type AccionDetalle = 'reintentar' | 'recuperar_cdr' | 'confirmar' | 'anular' | 'baja';
 
 /** Catálogo 06 de SUNAT: tipo de documento del cliente. */
 const TIPO_DOCUMENTO: Readonly<Record<number, string>> = {
@@ -99,7 +100,7 @@ const ESTADO_GUIA: Readonly<Record<string, string>> = {
 const TEXTO_ANULACION: Readonly<Record<AnulacionComprobante['estado'], { titulo: string; tono: TonoEstado; icono: string }>> = {
   anulada: { titulo: 'Anulado', tono: 'exito', icono: 'bi-check2-circle' },
   anulacion_en_curso: {
-    titulo: 'Anulación en curso: falta que SUNAT acepte la nota de crédito',
+    titulo: 'Anulación en curso: falta la confirmación de SUNAT',
     tono: 'aviso',
     icono: 'bi-hourglass-split',
   },
@@ -223,6 +224,7 @@ export class ComprobanteDetalleComponent implements OnChanges {
       d.puede_recuperar_cdr ||
       (d.puede_confirmar_manual && this.esAdmin) ||
       (d.puede_nota_credito && this.puedeEmitirNota) ||
+      (d.puede_anular_sin_nota === true && this.esAdmin) ||
       (d.puede_anular && this.esAdmin)
     );
   }
@@ -442,6 +444,65 @@ export class ComprobanteDetalleComponent implements OnChanges {
     this.enviarAnulacion({ id_comprobante: d.id_comprobante, motivo });
   }
 
+  /** Dar de baja en SUNAT (factura) o informar como anulada en un resumen (boleta), sin nota de crédito. */
+  async darDeBaja(): Promise<void> {
+    const d = this.detalle;
+    if (!d || this.enProceso || !this.esAdmin || d.puede_anular_sin_nota !== true) return;
+    const motivo = await this.alerta.pedirTexto({
+      title: `¿Dar de baja ${d.numero_formateado} en SUNAT?`,
+      message: this.explicacionBaja(d),
+      etiqueta: 'Motivo de la baja (5 a 100 caracteres)',
+      placeholder: 'Ej.: error en los datos del cliente',
+      minimo: 5,
+      maximo: 100,
+      multilinea: false,
+      mensajeMinimo: 'Escriba un motivo de al menos 5 caracteres',
+      confirmText: 'Sí, dar de baja',
+      danger: true,
+      type: 'warning',
+    });
+    if (motivo === null || this.destroyRef.destroyed) return;
+    this.enviarAnulacion({ id_comprobante: d.id_comprobante, motivo, sin_nota: true }, 'baja');
+  }
+
+  /** Cómo se cuenta el estado del lote de baja o resumen que anula este comprobante. */
+  textoBaja(baja: BajaComprobante): { titulo: string; detalle: string; tono: TonoEstado; icono: string } {
+    const tipo = baja.operacion === 'baja' ? 'comunicación de baja' : 'resumen de anulación';
+    switch (baja.estado) {
+      case 'ACEPTADO':
+      case 'ACEPTADO_OBS':
+        return { titulo: 'Dado de baja en SUNAT', detalle: baja.mensaje ?? '', tono: 'exito', icono: 'bi-check2-circle' };
+      case 'RECHAZADO':
+        return {
+          titulo: 'SUNAT rechazó la baja: el comprobante sigue vigente',
+          detalle: baja.mensaje ?? '',
+          tono: 'peligro',
+          icono: 'bi-x-octagon',
+        };
+      case 'EXCEPCION':
+        return {
+          titulo: 'La baja necesita revisión',
+          detalle: baja.mensaje ?? 'SUNAT no resolvió el pedido: consúltelo de nuevo desde Facturación SUNAT › Envíos.',
+          tono: 'peligro',
+          icono: 'bi-exclamation-octagon',
+        };
+      case 'TICKET_PENDIENTE':
+        return {
+          titulo: 'SUNAT está procesando la baja',
+          detalle: baja.sunat_ticket ? `Ticket ${baja.sunat_ticket}. Normalmente tarda unos minutos.` : 'Normalmente tarda unos minutos.',
+          tono: 'aviso',
+          icono: 'bi-hourglass-split',
+        };
+      default:
+        return {
+          titulo: `Enviando la ${tipo} a SUNAT`,
+          detalle: baja.mensaje ?? 'Se reintenta automáticamente.',
+          tono: 'aviso',
+          icono: 'bi-hourglass-split',
+        };
+    }
+  }
+
   textoAnulacion(estado: AnulacionComprobante['estado']): { titulo: string; tono: TonoEstado; icono: string } {
     return TEXTO_ANULACION[estado];
   }
@@ -465,9 +526,18 @@ export class ComprobanteDetalleComponent implements OnChanges {
     return `Este comprobante no está aceptado por SUNAT en el ambiente vigente: se anula solo en el sistema, sin enviar nada a SUNAT.${venta} No se puede deshacer.`;
   }
 
-  private enviarAnulacion(solicitud: SolicitudAnularComprobante): void {
+  /** Qué hará la baja en SUNAT, en palabras, antes de confirmarla. */
+  private explicacionBaja(d: ComprobanteDetalle): string {
+    const boleta = d.id_tipo === 2 || /^B/i.test(d.serie);
+    const venta = d.id_venta ? ` la venta #${d.id_venta} se anula cuando SUNAT la confirme (normalmente en minutos).` : ' se anula cuando SUNAT la confirme (normalmente en minutos).';
+    return boleta
+      ? `SUNAT permite anular esta boleta hasta 7 días después de emitida, sin nota de crédito. Se informa ahora como anulada en un resumen diario;${venta} No se puede deshacer.`
+      : `SUNAT permite dar de baja esta factura hasta 7 días después de emitida, sin nota de crédito. Se envía ahora la comunicación de baja;${venta} No se puede deshacer.`;
+  }
+
+  private enviarAnulacion(solicitud: SolicitudAnularComprobante, accion: AccionDetalle = 'anular'): void {
     if (this.enProceso) return;
-    this.enProceso = 'anular';
+    this.enProceso = accion;
     this.limpiarResultados();
     this.api
       .anular(solicitud)
@@ -580,6 +650,7 @@ export class ComprobanteDetalleComponent implements OnChanges {
     else if (accion === 'recuperar_cdr' && d.puede_recuperar_cdr) this.recuperarCdr();
     else if (accion === 'confirmar' && d.puede_confirmar_manual && this.esAdmin) void this.confirmarAceptado();
     else if (accion === 'anular' && d.puede_anular && this.esAdmin) void this.anular();
+    else if (accion === 'baja' && d.puede_anular_sin_nota === true && this.esAdmin) void this.darDeBaja();
     else {
       this.alerta.toast({
         type: 'info',

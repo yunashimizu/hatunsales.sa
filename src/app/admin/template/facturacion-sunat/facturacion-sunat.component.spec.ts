@@ -15,6 +15,7 @@ function configuracionPrueba(): ConfiguracionSunat {
     ambiente: 'beta',
     boletas_modo: 'individual',
     envio_en_linea: true,
+    envio_diferido: false,
     tareas_activas: true,
     aplicar_reglas_2027: 'auto',
     codigo_producto_defecto: null,
@@ -121,6 +122,12 @@ describe('FacturacionSunatComponent', () => {
     fixture.detectChanges();
     // La lista de envíos se crea con la primera configuración y consulta una sola vez.
     for (const peticion of http.match((r) => r.url === urlConstants.fiscal.envios)) peticion.flush(paginaVacia);
+    // Y la de bajas y resúmenes (RA/RC), debajo de los envíos.
+    for (const peticion of http.match((r) => r.url === urlConstants.fiscal.lotes)) peticion.flush(paginaVacia);
+    // Igual la tarjeta de productos sin código SUNAT (Configuración).
+    for (const peticion of http.match((r) => r.url === urlConstants.producto.sinCodigoSunat)) {
+      peticion.flush({ total: 0, datos: [] });
+    }
   }
 
   function responderBeta(config = configuracionPrueba()): void {
@@ -190,7 +197,7 @@ describe('FacturacionSunatComponent', () => {
     const peticion = http.expectOne(urlConstants.fiscal.configuracion);
     expect(peticion.request.method).toBe('PUT');
     expect(Object.keys(peticion.request.body).sort()).toEqual(
-      ['aplicar_reglas_2027', 'boletas_modo', 'codigo_producto_defecto', 'envio_en_linea', 'series'].sort(),
+      ['aplicar_reglas_2027', 'boletas_modo', 'codigo_producto_defecto', 'envio_diferido', 'envio_en_linea', 'series'].sort(),
     );
     peticion.flush(configuracionPrueba());
     responderConfiguracion();
@@ -394,6 +401,11 @@ describe('FacturacionSunatComponent', () => {
       .flush({ message: 'Internal server error' }, { status: 500, statusText: 'Internal Server Error' });
     fixture.detectChanges();
     for (const peticion of http.match((r) => r.url === urlConstants.fiscal.envios)) peticion.flush(paginaVacia);
+    // Y la de bajas y resúmenes (RA/RC), debajo de los envíos.
+    for (const peticion of http.match((r) => r.url === urlConstants.fiscal.lotes)) peticion.flush(paginaVacia);
+    for (const peticion of http.match((r) => r.url === urlConstants.producto.sinCodigoSunat)) {
+      peticion.flush({ total: 0, datos: [] });
+    }
     expect(component.emisorBeta?.razon_social).toBe('Empresa de pruebas');
     expect(component.estadoPosBeta).toBeNull();
     expect(component.errorPosBeta).toContain('No se pudo leer el estado de la emisión de prueba del POS');

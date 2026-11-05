@@ -522,6 +522,32 @@ describe('VentasComponent', () => {
       expect(component.ultimaVenta?.recargo_tarjeta).toBe(0.59);
     });
 
+    it('con el envío diferido avisa que la boleta se registró y SUNAT la confirma, sin advertencia de comprobante pendiente', async () => {
+      const toast = vi.spyOn(TestBed.inject(AlertService), 'toast');
+      const warning = vi.spyOn(TestBed.inject(AlertService), 'warning');
+      puntoVentaMock['registrar'].mockReturnValueOnce(of({
+        id_venta: 2,
+        fecha: '2026-11-05',
+        origen: 'mostrador',
+        cliente_denominacion: 'CLIENTES VARIOS',
+        subtotal: 17.11,
+        igv: 3.08,
+        total: 20.19,
+        comprobante: { id_comprobante: 9, numero_formateado: 'B001-00000009', estado: 'pendiente', aceptada_sunat: false, envio_diferido: true },
+      }));
+      cargarCarrito(0.2);
+      component.lineasPago = [pago(EFECTIVO, null)];
+      component.preview = crearPreview(0.4);
+
+      component.cobrar();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const titulos = toast.mock.calls.map(([t]) => (t as { title: string }).title);
+      expect(titulos).toContain('B001-00000009 registrada; SUNAT la confirma en segundos');
+      expect(titulos).not.toContain('B001-00000009 emitida');
+      expect(warning).not.toHaveBeenCalled();
+    });
+
     it('con el cálculo del servidor desactualizado no deja cobrar aunque haya un medio elegido', () => {
       cargarCarrito(0.2);
       component.lineasPago = [pago(EFECTIVO, null)];

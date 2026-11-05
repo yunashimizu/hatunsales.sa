@@ -331,6 +331,39 @@ describe('ProductosComponent · unidad de medida', () => {
 
     expect(productos.actualizar).toHaveBeenCalledWith(9, expect.objectContaining({ unidad_medida: 'NIU' }));
   });
+
+  it('envía el código SUNAT recortado', () => {
+    conCatalogoDelServidor();
+    abrirYVerificarStock({ ...base, codigo_sunat: '30111500' });
+    expect(component.formulario.codigo_sunat).toBe('30111500');
+
+    component.formulario.codigo_sunat = ' 30111600 ';
+    component.guardar();
+
+    expect(productos.actualizar).toHaveBeenCalledWith(9, expect.objectContaining({ codigo_sunat: '30111600' }));
+  });
+
+  it('envía cadena vacía cuando se vacía el código SUNAT', () => {
+    conCatalogoDelServidor();
+    abrirYVerificarStock({ ...base, codigo_sunat: '30111500' });
+
+    component.formulario.codigo_sunat = '';
+    component.guardar();
+
+    expect(productos.actualizar).toHaveBeenCalledWith(9, expect.objectContaining({ codigo_sunat: '' }));
+  });
+
+  it('un código SUNAT que no tiene 8 dígitos corta el guardado con un aviso', () => {
+    conCatalogoDelServidor();
+    abrirYVerificarStock({ ...base, codigo_sunat: null });
+    expect(component.formulario.codigo_sunat).toBe('');
+
+    component.formulario.codigo_sunat = '3011150';
+    component.guardar();
+
+    expect(productos.actualizar).not.toHaveBeenCalled();
+    expect(alerta.toast).toHaveBeenCalledWith({ type: 'warning', title: 'El código SUNAT debe tener 8 dígitos' });
+  });
 });
 
 /**

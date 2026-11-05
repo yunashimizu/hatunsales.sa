@@ -12,6 +12,8 @@ export interface ProductoFormulario {
   descripcion_corta?: string;
   codigo_barras?: string;
   sku?: string;
+  /** 8 dígitos (catálogo 25 de SUNAT); cadena vacía lo quita. */
+  codigo_sunat?: string;
   precio_compra?: number;
   precio_venta?: number;
   descuento?: number;
@@ -22,6 +24,26 @@ export interface ProductoFormulario {
   destacado?: boolean;
   /** Solo al crear: cantidad inicial en inventario. */
   stock?: number;
+}
+
+/** Producto activo que todavía no tiene código de producto SUNAT. */
+export interface ProductoSinCodigoSunat {
+  id_producto: number;
+  nombre: string;
+  sku: string;
+  codigo_barras: string;
+  categoria: string | null;
+  unidad_medida: string;
+}
+
+export interface AsignacionCodigoSunat {
+  id_producto: number;
+  codigo_sunat: string;
+}
+
+export interface ResultadoAsignacionCodigoSunat {
+  actualizados: number;
+  rechazados: { id_producto: number; motivo: string }[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -53,6 +75,23 @@ export class ProductoAdminService {
   /** Pide al servidor un código EAN-13 interno libre («2…») para un producto sin código de fábrica. */
   generarCodigoInterno(): Observable<{ codigo: string }> {
     return this.http.post<{ codigo: string }>(urlConstants.producto.codigoInterno, {}, opcionesHttp());
+  }
+
+  /** Productos activos sin código SUNAT (el servidor devuelve hasta `limite` y el total real). */
+  sinCodigoSunat(limite = 500): Observable<{ total: number; datos: ProductoSinCodigoSunat[] }> {
+    return this.http.get<{ total: number; datos: ProductoSinCodigoSunat[] }>(
+      urlConstants.producto.sinCodigoSunat,
+      { ...opcionesHttp(), params: { limite } },
+    );
+  }
+
+  /** Asigna códigos SUNAT en bloque; devuelve cuántos se actualizaron y cuáles se rechazaron. */
+  asignarCodigoSunat(asignaciones: AsignacionCodigoSunat[]): Observable<ResultadoAsignacionCodigoSunat> {
+    return this.http.put<ResultadoAsignacionCodigoSunat>(
+      urlConstants.producto.codigoSunat,
+      { asignaciones },
+      opcionesHttp(),
+    );
   }
 
   categorias(): Observable<OpcionCategoria[]> {

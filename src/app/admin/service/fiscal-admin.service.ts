@@ -10,6 +10,11 @@ import {
   EmisorBeta,
   EstadoPosBetaFiscal,
   FiltroEnvios,
+  FiltroLotes,
+  LoteSunat,
+  PaginaLotes,
+  ResultadoLote,
+  TipoArchivoLote,
   PaginaEnvios,
   ResultadoEnvio,
   ResultadoPruebaCredenciales,
@@ -177,6 +182,31 @@ export class FiscalAdminService {
       { nota },
       opcionesHttp(),
     );
+  }
+
+  /** Bajas (RA) y resúmenes (RC) de anulación enviados a SUNAT; los filtros vacíos no se mandan. */
+  lotes(filtro: FiltroLotes) {
+    const params: Record<string, string | number> = {};
+    for (const [clave, valor] of Object.entries(filtro)) {
+      if (valor !== undefined && valor !== null && valor !== '') params[clave] = valor;
+    }
+    return this.http.get<PaginaLotes>(urlConstants.fiscal.lotes, { ...opcionesHttp(), params });
+  }
+
+  lote(id: number) {
+    return this.http.get<LoteSunat>(urlConstants.fiscal.lote(id), opcionesHttp());
+  }
+
+  archivoLote(id: number, tipo: TipoArchivoLote) {
+    return this.http.get(urlConstants.fiscal.archivoLote(id, tipo), {
+      ...opcionesHttp(),
+      responseType: 'blob',
+    });
+  }
+
+  /** Reenvía el lote o consulta su ticket, según su estado. */
+  reintentarLote(id: number) {
+    return this.http.post<ResultadoLote>(urlConstants.fiscal.reintentarLote(id), {}, opcionesHttp());
   }
 
   auditoria(antesDe?: number) {

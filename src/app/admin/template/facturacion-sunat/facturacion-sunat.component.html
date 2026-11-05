@@ -238,6 +238,7 @@
     <div class="fiscal-panel" role="tabpanel" id="fiscal-panel-envios" aria-labelledby="fiscal-tab-envios"
          [hidden]="seccion !== 'envios'">
       <app-envios-sunat [ambienteVigente]="cfg.ambiente" (cambio)="alCambiarEnvios()" />
+      <app-lotes-sunat [ambienteVigente]="cfg.ambiente" (cambio)="alCambiarEnvios()" />
     </div>
 
     <!-- Configuración -->
@@ -288,6 +289,15 @@
             <label class="adm-switch fiscal-opcion">
               <input name="envioLinea" type="checkbox" [(ngModel)]="operacion.envio_en_linea" /> Envío en línea
             </label>
+            <label class="adm-switch fiscal-opcion">
+              <input name="envioDiferido" type="checkbox" [(ngModel)]="operacion.envio_diferido" /> Cobrar sin esperar a SUNAT
+            </label>
+            <p class="adm-ayuda">
+              Con «Cobrar sin esperar a SUNAT» la venta termina en menos de un segundo: el comprobante queda firmado y
+              guardado, y se envía a SUNAT en segundo plano (si SUNAT está lenta o caída, se reintenta solo). El ticket
+              sale con la leyenda «Pendiente de confirmación de SUNAT» hasta que SUNAT lo acepta. Apagado, el cajero espera
+              la respuesta de SUNAT como antes.
+            </p>
             <p class="adm-ayuda">
               Factura y sus notas empiezan con F; boleta y sus notas con B; la guía remitente con T. Si cambia una
               serie, revise su primer número en «Estado y activación».
@@ -298,6 +308,9 @@
           </fieldset>
         </form>
       </section>
+
+      <app-productos-sin-codigo [codigoDefecto]="operacion.codigo_producto_defecto || null"
+                                (cambio)="alCambiarEnvios()" />
 
       <section class="adm-tarjeta" id="fiscal-emisor" aria-labelledby="fiscal-emisor-titulo">
         <div class="adm-tarjeta__cabecera">

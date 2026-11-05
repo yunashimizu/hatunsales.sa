@@ -46,6 +46,7 @@ const FORMULARIO_VACIO: ProductoFormulario = {
   descripcion_corta: '',
   codigo_barras: '',
   sku: '',
+  codigo_sunat: '',
   precio_compra: 0,
   precio_venta: 0,
   descuento: 0,
@@ -313,6 +314,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
       descripcion_corta: producto.descripcion_corta,
       codigo_barras: producto.codigo_barras,
       sku: producto.sku,
+      codigo_sunat: producto.codigo_sunat ?? '',
       precio_compra: Number(producto.precio_compra),
       precio_venta: Number(producto.precio_venta),
       descuento: Number(producto.descuento),
@@ -456,9 +458,17 @@ export class ProductosComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Cadena vacía = quitar el código (el servidor lo deja en null).
+    const codigoSunat = String(this.formulario.codigo_sunat ?? '').trim();
+    if (codigoSunat && !/^\d{8}$/.test(codigoSunat)) {
+      this.alerta.toast({ type: 'warning', title: 'El código SUNAT debe tener 8 dígitos' });
+      return;
+    }
+
     const datos: ProductoFormulario = {
       ...this.formulario,
       nombre,
+      codigo_sunat: codigoSunat,
       unidad_medida: unidad.codigo,
       codigo_barras: this.formulario.codigo_barras?.trim() || undefined,
       sku: this.formulario.sku?.trim() || undefined,
