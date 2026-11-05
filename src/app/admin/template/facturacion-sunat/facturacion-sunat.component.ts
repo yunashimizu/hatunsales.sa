@@ -444,7 +444,7 @@ export class FacturacionSunatComponent implements OnInit {
         this.ambienteCertificado,
         this.otroEmisorBeta,
       ),
-      'Certificado guardado',
+      `Certificado de ${this.ambienteCertificado === 'produccion' ? 'producción' : 'BETA'} guardado`,
       () => {
         this.claveCertificado = '';
         this.archivo = null;
@@ -672,6 +672,9 @@ export class FacturacionSunatComponent implements OnInit {
       },
     };
     this.sol.usuario = config.sol.usuario ?? '';
+    // El certificado se sube por defecto al ambiente vigente: con «beta» fijo, quien trabajaba en
+    // producción lo guardaba en BETA sin querer y el panel seguía pidiendo el de producción.
+    this.ambienteCertificado = config.ambiente;
   }
 
   /**

@@ -386,6 +386,12 @@
                   <p role="status" class="fiscal-certificado__vacio">
                     <i class="bi bi-shield-x" aria-hidden="true"></i> Certificado pendiente de cargar.
                   </p>
+                  @if (ambiente === 'produccion' && cfg.certificado.beta) {
+                    <p role="status" class="adm-tarjeta__sub">
+                      Hay un certificado cargado en BETA, pero no vale para producción: súbalo de nuevo eligiendo
+                      «Producción» en «Destino del certificado».
+                    </p>
+                  }
                 }
               </div>
             }

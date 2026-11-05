@@ -224,6 +224,11 @@ describe('FacturacionSunatComponent', () => {
     expect(component.archivo).toBeNull();
   });
 
+  it('propone subir el certificado al ambiente vigente (producción si se trabaja en producción)', () => {
+    responderConfiguracion({ ...configuracionPrueba(), ambiente: 'produccion' });
+    expect(component.ambienteCertificado).toBe('produccion');
+  });
+
   it('rechaza archivos que exceden el límite antes de hacer una petición', () => {
     responderConfiguracion();
     const input = {
