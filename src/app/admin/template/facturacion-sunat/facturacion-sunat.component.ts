@@ -385,6 +385,16 @@ export class FacturacionSunatComponent implements OnInit {
   /** Vencido, por vencer (menos de 30 días) o autofirmado en producción. */
   alertasCertificado(certificado: CertificadoFiscal): AlertaFiscal[] {
     const alertas: AlertaFiscal[] = [];
+    if (certificado.legible === false) {
+      alertas.push({
+        tono: 'peligro',
+        icono: 'bi-key',
+        titulo: 'No se puede leer con la llave actual del servidor',
+        texto:
+          'Se guardó con otra FISCAL_SECRET_KEY. Suba el certificado de nuevo en «Subir o reemplazar certificado» ' +
+          '(reemplaza este sin abrirlo) o restaure la llave anterior en FISCAL_SECRET_KEY_ANTERIOR.',
+      });
+    }
     if (certificado.vencido) {
       alertas.push({
         tono: 'peligro',

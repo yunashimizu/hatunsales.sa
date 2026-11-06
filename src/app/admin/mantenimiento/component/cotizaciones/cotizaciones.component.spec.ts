@@ -72,6 +72,18 @@ describe('CotizacionesComponent (vista previa de la proforma)', () => {
   const texto = (selector: string): string =>
     (fixture.nativeElement.querySelector(selector)?.textContent ?? '').replace(/\s+/g, ' ').trim();
 
+  it('el logo se resuelve contra el dominio de la API (también la ruta relativa configurada)', async () => {
+    await montar();
+    // Sin logo configurado: el oficial del backend, en absoluto.
+    expect(component.logoUrl).toMatch(/^https?:\/\/.+\/uploads\/logo-hatunsales\.png$/);
+    // Ruta relativa guardada en la configuración: no debe quedar relativa al dominio del front.
+    component.emisor = { ...component.emisor!, logo_url: '/uploads/otro.png' };
+    expect(component.logoUrl).toMatch(/^https?:\/\/.+\/uploads\/otro\.png$/);
+    // URL absoluta: se respeta.
+    component.emisor = { ...component.emisor!, logo_url: 'https://cdn.ejemplo.pe/logo.png' };
+    expect(component.logoUrl).toBe('https://cdn.ejemplo.pe/logo.png');
+  });
+
   it('muestra las cabeceras en el orden de la referencia', async () => {
     await montar();
     ponerLinea(15, 0, 1);

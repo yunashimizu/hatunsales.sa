@@ -36,6 +36,8 @@ import {
 import {
   ModoAltaRapida, ProductoRapidoComponent, ResultadoAltaRapida,
 } from './producto-rapido/producto-rapido.component';
+import { HojaComprobanteComponent } from '../doc/hoja-comprobante/hoja-comprobante.component';
+import { HojaComprobante, hojaDesdePreview } from '../doc/hoja-comprobante/hoja-comprobante.model';
 
 const LS_ALMACEN = 'pos_id_almacen';
 
@@ -59,7 +61,7 @@ interface EscaneoPendiente {
   selector: 'app-ventas',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, ProductoRapidoComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ProductoRapidoComponent, HojaComprobanteComponent],
   templateUrl: './ventas.component.html',
   styleUrls: ['./ventas.component.css'],
 })
@@ -207,6 +209,15 @@ export class VentasComponent implements OnInit, OnDestroy {
     };
   }
 
+  /** Hoja del comprobante para la vista previa (memoizada por referencia de `preview`). */
+  get hojaPreview(): HojaComprobante | null {
+    if (this.preview !== this.hojaDePreview) {
+      this.hojaDePreview = this.preview;
+      this.hojaMemo = this.preview ? hojaDesdePreview(this.preview) : null;
+    }
+    return this.hojaMemo;
+  }
+
   /** @deprecated compat: se deriva de lineasPago[0] */
   get idMetodoPago(): number | null {
     return this.lineasPago[0]?.id_metodo ?? null;
@@ -219,6 +230,9 @@ export class VentasComponent implements OnInit, OnDestroy {
   // ── Vista previa y resultado ──────────────────────────────────
   preview: PreviewComprobante | null = null;
   calculandoPreview = false;
+  /** Última vista previa convertida: la hoja solo se recalcula cuando llega una nueva, no en cada detección. */
+  private hojaDePreview: PreviewComprobante | null = null;
+  private hojaMemo: HojaComprobante | null = null;
   errorPreview = '';
   emitiendo = false;
   ultimaVenta: VentaRegistrada | null = null;

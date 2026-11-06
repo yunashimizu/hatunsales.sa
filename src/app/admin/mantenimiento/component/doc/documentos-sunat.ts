@@ -18,6 +18,15 @@ export const RUTA_DOCUMENTOS = '/dashboard/mantenimiento/doc';
 export const RUTA_DOCUMENTOS_VENTA = '/dashboard/mantenimiento/ventas-historial';
 export const RUTA_GUIAS = '/dashboard/mantenimiento/guias-remision';
 
+/** Catálogo 06 de SUNAT: tipo de documento del cliente. */
+export const TIPO_DOCUMENTO_SUNAT: Readonly<Record<number, string>> = {
+  0: 'Sin documento',
+  1: 'DNI',
+  4: 'Carné de extranjería',
+  6: 'RUC',
+  7: 'Pasaporte',
+};
+
 const SUFIJO_INSIGNIA: Readonly<Record<TonoEstado, string>> = {
   exito: 'exito',
   aviso: 'aviso',

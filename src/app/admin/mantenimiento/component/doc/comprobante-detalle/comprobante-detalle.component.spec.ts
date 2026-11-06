@@ -149,6 +149,38 @@ describe('ComprobanteDetalleComponent', () => {
     expect(enlaces).toContain('/dashboard/mantenimiento/ventas-historial?venta=33');
   });
 
+  it('pinta la hoja compartida del comprobante y deja cuotas, hash y QR en sus secciones', () => {
+    api.detalle.mockReturnValue(
+      of(detalle({ forma_pago: 'Credito', cuotas: [{ numero: 1, monto: 100, fecha_pago: '2026-11-20' }] })),
+    );
+    crear();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.adm-ticket')).toBeNull();
+    expect(el.querySelectorAll('app-hoja-comprobante').length).toBe(1);
+    const hoja = el.querySelector('app-hoja-comprobante') as HTMLElement;
+    expect(hoja.textContent).toContain('FACTURA ELECTRÓNICA');
+    expect(hoja.textContent).toContain('FB01-00000012');
+    expect(hoja.textContent).toContain('Op. exonerada');
+    // Cuotas y hash/QR no se repiten dentro de la hoja: viven en sus secciones del detalle.
+    expect(hoja.textContent).not.toContain('Resumen (hash)');
+    expect(hoja.textContent).not.toContain('Cuota 001');
+    expect(el.textContent).toContain('Forma de pago');
+    expect(el.textContent).toContain('Código hash y QR');
+  });
+
+  it('arma la hoja una sola vez por detalle leído (misma referencia mientras no cambie)', () => {
+    crear();
+    const primera = component.hoja;
+    expect(primera).not.toBeNull();
+    expect(component.hoja).toBe(primera);
+
+    api.detalle.mockReturnValue(of(detalle({ numero: 13, numero_formateado: 'FB01-00000013' })));
+    component.cargar();
+    fixture.detectChanges();
+    expect(component.hoja).not.toBe(primera);
+    expect(component.hoja?.serieNumero).toBe('FB01-00000013');
+  });
+
   it('ofrece solo las acciones que permiten los flags del backend y el rol', () => {
     crear();
     expect(botonesPie()).toEqual(['Nota de crédito', 'Anular', 'Cerrar']);

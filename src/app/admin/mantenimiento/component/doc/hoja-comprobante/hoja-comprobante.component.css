@@ -1,0 +1,233 @@
+/* Hoja del comprobante: copia la estructura del PDF A4 (comprobante-pdf.ts).
+   Es siempre clara (así es el papel) y usa la paleta del logo (grafito, plata y dorado) con los mismos
+   valores de PALETA (proforma-documento.ts). No hereda los tokens --adm-* del panel, salvo el marco.
+   El ancho lo decide el contenedor (container queries), no la pantalla. */
+
+:host {
+  display: block;
+  container-type: inline-size;
+  container-name: hoja;
+}
+
+.hoja-marco {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--adm-superficie-2, #f8fafc);
+}
+
+.hoja {
+  --doc-grafito: #3e403f;
+  --doc-dorado: #b8975a;
+  --doc-dorado-claro: #e9d6a4;
+  --doc-dorado-oscuro: #7f6a3f;
+  --doc-dorado-suave: #f6f1e4;
+  --doc-plata: #c9cac8;
+  --doc-texto: #262726;
+  --doc-gris: #5a5c5b;
+  --doc-gris-claro: #6a6c6b;
+  --doc-linea: #d6d6d4;
+  --doc-fondo: #f3f3f2;
+  --doc-cebra: #f7f7f6;
+  --doc-aviso: #9a5b13;
+  --doc-peligro: #b42318;
+
+  width: 100%;
+  max-width: 794px;
+  margin: 0 auto;
+  overflow: hidden;
+  color: var(--doc-texto);
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid var(--doc-linea);
+  box-shadow: 0 6px 18px -4px rgba(38, 39, 38, 0.18), 0 2px 6px rgba(38, 39, 38, 0.08);
+}
+
+:host-context([data-tema='oscuro']) .hoja {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* Franja superior: grafito con el tramo corto en dorado */
+.hoja__franja {
+  height: 6px;
+  background: linear-gradient(90deg, var(--doc-dorado) 0 22%, var(--doc-grafito) 22% 100%);
+}
+
+/* ── Encabezado ─────────────────────────────────────────────────── */
+.hoja__cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px 12px;
+}
+.hoja__marca { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
+.hoja__logo { width: 84px; max-height: 68px; object-fit: contain; flex-shrink: 0; }
+.hoja__emisor { display: flex; flex-direction: column; min-width: 0; }
+.hoja__razon {
+  font-size: 15px; font-weight: 800; line-height: 1.25; color: var(--doc-grafito);
+  overflow-wrap: anywhere;
+}
+.hoja__comercial { margin-top: 1px; font-size: 12px; font-weight: 700; color: var(--doc-dorado-oscuro); overflow-wrap: anywhere; }
+.hoja__linea { margin-top: 2px; font-size: 12px; color: var(--doc-gris); overflow-wrap: anywhere; }
+.hoja__emisor > .hoja__linea:first-of-type { margin-top: 4px; }
+
+.hoja__recuadro {
+  display: flex; flex-direction: column; flex-shrink: 0; width: 220px; overflow: hidden; text-align: center;
+  border: 1.5px solid var(--doc-grafito); border-radius: 8px;
+}
+.hoja__ruc { padding: 8px 10px 6px; font-size: 13px; font-weight: 700; color: var(--doc-grafito); }
+.hoja__tipo {
+  padding: 6px 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.06em;
+  color: #fff; background: var(--doc-grafito); border-bottom: 2px solid var(--doc-dorado);
+}
+.hoja__codigo {
+  padding: 9px 10px 10px; font-size: 16px; font-weight: 800; letter-spacing: 0.01em;
+  color: var(--doc-grafito); font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+
+/* ── Avisos dentro de la hoja ───────────────────────────────────── */
+.hoja__banner {
+  margin: 0 18px 12px; padding: 7px 10px; text-align: center;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.02em;
+  border: 1.2px solid currentColor; border-radius: 4px;
+}
+.hoja__banner--beta { color: var(--doc-peligro); }
+.hoja__banner--aviso { color: var(--doc-aviso); }
+
+/* ── Cliente y documento ────────────────────────────────────────── */
+.hoja__datos {
+  margin: 0 18px 12px; padding: 10px 12px;
+  border: 1px solid var(--doc-linea); border-radius: 6px; background: var(--doc-fondo);
+}
+.hoja__datos--doble { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; }
+.hoja__bloque { display: flex; flex-direction: column; gap: 4px; min-width: 0; margin: 0; }
+.hoja__dato { display: flex; gap: 8px; }
+.hoja__dato dt {
+  flex: 0 0 38%; max-width: 128px; margin: 0; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.02em; text-transform: uppercase; color: var(--doc-gris);
+}
+.hoja__dato dd { min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--doc-texto); }
+
+.hoja__titulo {
+  display: flex; align-items: center; gap: 7px; margin: 0 0 6px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--doc-grafito);
+}
+.hoja__titulo::before { content: ''; width: 3px; height: 11px; border-radius: 2px; background: var(--doc-dorado); }
+
+/* ── Tabla de detalle ───────────────────────────────────────────── */
+.hoja__tabla-caja { position: relative; margin: 0 18px; }
+.hoja__tabla { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.hoja__col-cant { width: 8.5%; }
+.hoja__col-unidad { width: 8.5%; }
+.hoja__col-num { width: 11.5%; }
+.hoja__col-desc { width: 9.5%; }
+.hoja__col-importe { width: 12.5%; }
+.hoja__tabla th {
+  padding: 7px 6px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.03em;
+  color: #fff; background: var(--doc-grafito); border-bottom: 2px solid var(--doc-dorado);
+}
+.hoja__tabla td {
+  padding: 7px 6px; vertical-align: top; color: var(--doc-texto);
+  border-bottom: 1px solid var(--doc-linea); overflow-wrap: anywhere;
+}
+.hoja__tabla tbody tr:nth-child(even) { background: var(--doc-cebra); }
+.hoja__tabla .hoja__num { text-align: right; font-variant-numeric: tabular-nums; }
+.hoja__tabla .hoja__centro { text-align: center; }
+.hoja__tabla .hoja__importe { font-weight: 700; }
+.hoja__descripcion { display: block; white-space: pre-line; }
+.hoja__codigo-prod { display: block; margin-top: 2px; font-size: 11px; color: var(--doc-gris-claro); }
+.hoja__sin-lineas td { padding: 12px 6px; font-style: italic; color: var(--doc-gris); }
+
+/* ── «SON» y totales ────────────────────────────────────────────── */
+.hoja__pie-totales {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  margin: 14px 18px 0;
+}
+.hoja__son {
+  flex: 1 1 0; min-width: 0; margin: 0; padding: 8px 12px;
+  font-size: 12px; font-weight: 700; color: var(--doc-texto);
+  background: var(--doc-fondo); border-radius: 6px; overflow-wrap: anywhere;
+}
+.hoja__totales { flex: 0 0 270px; max-width: 100%; margin-left: auto; }
+.hoja__filas { margin: 0; padding: 0 6px; }
+.hoja__fila { display: flex; justify-content: space-between; gap: 14px; padding: 2px 0; }
+.hoja__fila dt { margin: 0; color: var(--doc-gris); }
+.hoja__fila dd { margin: 0; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--doc-texto); }
+.hoja__total {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 5px; padding: 8px 10px; border-radius: 6px;
+  font-size: 13.5px; font-weight: 800; color: #fff; background: var(--doc-grafito);
+}
+.hoja__total > span:last-child { color: var(--doc-dorado-claro); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ── Crédito y notas ────────────────────────────────────────────── */
+.hoja__credito, .hoja__nota { margin: 14px 18px 0; }
+.hoja__texto { margin: 0 0 2px; color: var(--doc-texto); overflow-wrap: anywhere; }
+.hoja__rotulo { margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--doc-gris); }
+.hoja__cuotas { width: 100%; max-width: 330px; margin-top: 6px; border-collapse: collapse; }
+.hoja__cuotas th {
+  padding: 5px 8px; text-align: left; font-size: 11px; font-weight: 700;
+  color: #fff; background: var(--doc-grafito); border-bottom: 2px solid var(--doc-dorado);
+}
+.hoja__cuotas td { padding: 5px 8px; border-bottom: 1px solid var(--doc-linea); font-variant-numeric: tabular-nums; }
+.hoja__cuotas .hoja__num { text-align: right; }
+
+/* ── QR ─────────────────────────────────────────────────────────── */
+.hoja__qr {
+  display: flex; align-items: center; gap: 14px; margin: 14px 18px 0; padding: 10px;
+  border: 1px solid var(--doc-linea); border-radius: 6px;
+}
+.hoja__qr-caja {
+  display: flex; align-items: center; justify-content: center; flex: 0 0 112px; min-height: 92px; padding: 6px;
+  text-align: center; font-size: 11px; font-weight: 700; line-height: 1.3; color: var(--doc-gris);
+  border: 1px dashed var(--doc-gris-claro); border-radius: 2px;
+}
+.hoja__qr-caja--aviso { color: var(--doc-aviso); }
+.hoja__qr-texto { min-width: 0; }
+.hoja__hash { margin: 0 0 8px; font-size: 11px; font-weight: 700; overflow-wrap: anywhere; }
+.hoja__leyenda { margin: 0; font-size: 11px; color: var(--doc-gris); }
+
+/* ── Pie ────────────────────────────────────────────────────────── */
+.hoja__pie {
+  display: flex; justify-content: space-between; gap: 12px; margin: 14px 18px 0; padding: 8px 0 12px;
+  font-size: 11px; color: var(--doc-gris-claro); border-top: 1px solid var(--doc-linea);
+}
+.hoja__pie-doc { min-width: 0; overflow-wrap: anywhere; }
+.hoja__pie > span:last-child { flex-shrink: 0; }
+
+/* ── Hoja angosta (columna del POS, panel lateral, móvil) ───────── */
+@container (max-width: 620px) {
+  .hoja-marco { padding: 8px; }
+  .hoja__cabecera { flex-direction: column; align-items: stretch; padding: 14px 14px 10px; }
+  .hoja__recuadro { width: 100%; }
+  .hoja__banner, .hoja__datos, .hoja__tabla-caja, .hoja__pie-totales,
+  .hoja__credito, .hoja__nota, .hoja__qr, .hoja__pie { margin-left: 14px; margin-right: 14px; }
+  .hoja__datos--doble { grid-template-columns: 1fr; }
+
+  /* Una tarjeta por línea, con las 7 etiquetas visibles */
+  .hoja__tabla, .hoja__tabla tbody { display: block; }
+  .hoja__tabla colgroup { display: none; }
+  .hoja__tabla thead {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  .hoja__tabla tbody tr {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; padding: 10px 8px;
+    border-bottom: 1px solid var(--doc-linea);
+  }
+  .hoja__tabla td { display: block; padding: 0; border: 0; text-align: left; }
+  .hoja__tabla td::before {
+    content: attr(data-etiqueta); display: block; margin-bottom: 1px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--doc-gris);
+  }
+  .hoja__tabla td.hoja__num, .hoja__tabla td.hoja__centro { text-align: left; }
+  .hoja__tabla td.hoja__c-descripcion { grid-column: 1 / -1; order: -1; }
+  .hoja__tabla .hoja__sin-lineas { display: block; }
+  .hoja__tabla .hoja__sin-lineas td::before { content: none; }
+
+  .hoja__pie-totales { flex-direction: column; align-items: stretch; }
+  .hoja__totales { flex-basis: auto; width: 100%; }
+  .hoja__qr { flex-direction: column; align-items: stretch; }
+  .hoja__qr-caja { flex-basis: auto; }
+}

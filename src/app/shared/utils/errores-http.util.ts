@@ -172,7 +172,7 @@ const HINTS: Record<string, string> = {
   FISCAL_ANULAR_REQUIERE_NC: 'Emite una nota de crédito que anule el comprobante.',
   FISCAL_MIGRACION_PENDIENTE: 'Avisa a sistemas: falta actualizar la base de datos del servidor.',
   FISCAL_CLAVE_MAESTRA_NO_CONFIGURADA: 'Avisa a sistemas: falta una configuración del servidor.',
-  FISCAL_SECRETO_ILEGIBLE: 'Avisa a sistemas: vuelve a registrar el dato protegido en la configuración.',
+  FISCAL_SECRETO_ILEGIBLE: 'Vuelve a subir ese dato en Facturación SUNAT (certificado, clave SOL o credenciales GRE). Si el servidor cambió su llave, avisa a sistemas para restaurar la anterior.',
   // Generados por el front (interceptor)
   SIN_CONEXION: 'Si otras páginas tampoco cargan, revisa el wifi o el cable de red.',
   SERVIDOR_NO_DISPONIBLE: 'Suele resolverse solo en menos de un minuto.',

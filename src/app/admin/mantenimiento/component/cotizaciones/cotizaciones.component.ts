@@ -44,7 +44,7 @@ import {
 import { AlmacenPos, PuntoVentaService } from '../../../service/punto-venta.service';
 import { ReceptorService } from '../../../service/receptor.service';
 import { ProductoVenta, Receptor, SugerenciaReceptor } from '../../../models/admin.models';
-import { dominio } from '../../../../constants/urlConstants';
+import { urlMedia } from '../../../../shared/utils/media-url.util';
 
 /** Un escaneo en cola: código normalizado, cantidad del multiplicador `5*código` y la sugerencia única visible. */
 interface EscaneoPendiente {
@@ -382,10 +382,13 @@ export class CotizacionesComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Logo del encabezado: el de la configuración fiscal o, si no hay, el oficial del backend. */
+  /**
+   * Logo del encabezado: el de la configuración fiscal o, si no hay, el oficial del backend.
+   * Se resuelve con `urlMedia`: la ruta relativa `/uploads/...` vive en el dominio de la API, no en el del front.
+   */
   get logoUrl(): string {
     const configurado = String(this.emisor?.logo_url ?? '').trim();
-    return configurado || `${dominio}${RUTA_LOGO_OFICIAL}`;
+    return urlMedia(configurado || RUTA_LOGO_OFICIAL);
   }
 
   alFallarLogo(): void {

@@ -104,14 +104,17 @@
 .pv-carrito__pie { justify-content: space-between; font-size: 13.5px; color: var(--adm-texto-suave); }
 .pv-carrito__pie-total strong { margin-left: 6px; font-family: var(--adm-fuente-titulos); font-size: 18px; font-weight: 800; color: var(--adm-texto); font-variant-numeric: tabular-nums; }
 
-.pv-ticket .adm-ticket__dato > span:last-child { min-width: 0; overflow-wrap: anywhere; }
-
 /* ── Vista previa en vivo: la anterior se atenúa mientras llega el cálculo nuevo ── */
-.pv-ticket { transition: opacity 160ms ease; }
-.pv-ticket--actualizando { opacity: 0.55; }
-.pv-ticket__recargo { color: var(--adm-info); }
+.pv-hoja { transition: opacity 160ms ease; }
+.pv-hoja--actualizando { opacity: 0.55; }
+/* El recargo de tarjeta ya va como línea dentro de la hoja; aquí solo se avisa, igual que el PDF (que no tiene fila aparte) */
+.pv-hoja__recargo {
+  display: flex; align-items: flex-start; gap: 8px; margin: 0;
+  font-size: 13px; line-height: 1.4; color: var(--adm-info);
+}
+.pv-hoja__recargo > i { flex-shrink: 0; margin-top: 2px; }
 .pv-descuento-detalle {
-  margin-top: 3px; font-size: 11.5px; line-height: 1.3; text-align: right;
+  margin-top: 3px; font-size: 12px; line-height: 1.3; text-align: right;
   color: var(--adm-texto-suave); font-variant-numeric: tabular-nums;
 }
 .pv-descuento-detalle--aviso { color: var(--adm-aviso); }
@@ -151,7 +154,7 @@
   background: var(--adm-superficie-2); border: 1px solid var(--adm-borde); border-radius: var(--adm-r-md);
 }
 .pv-pago-linea__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.pv-pago-linea__titulo { font-size: 11.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--adm-texto-suave); }
+.pv-pago-linea__titulo { font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--adm-texto-suave); }
 .pv-pago-linea__acciones { display: flex; align-items: center; gap: 4px; }
 .pv-pago-linea .adm-fila > .adm-campo { flex-basis: 130px; }
 
@@ -232,7 +235,7 @@
 }
 .pv-recargo-resultado__pastilla {
   margin-left: auto; padding: 3px 10px; border-radius: 999px;
-  font-size: 11.5px; letter-spacing: 0.02em; text-transform: none;
+  font-size: 12px; letter-spacing: 0.02em; text-transform: none;
   color: var(--adm-info); background: var(--adm-superficie); border: 1px solid var(--adm-info-borde);
 }
 .pv-recargo-resultado__fila { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; color: var(--adm-texto-suave); }
@@ -358,7 +361,7 @@
   .adm-pagina:has(.adm-textarea:focus) ~ .pv-total-movil,
   .adm-pagina:has(.adm-input:focus:not(#adm-buscar-producto)) ~ .pv-total-movil { display: none; }
   .pv-total-movil__texto { display: flex; flex-direction: column; min-width: 0; }
-  .pv-total-movil__etiqueta { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .pv-total-movil__etiqueta { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
   .pv-total-movil__detalle { font-size: 12.5px; color: var(--adm-borde); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pv-total-movil__monto {
     font-family: var(--adm-fuente-titulos); font-size: 22px; font-weight: 800; letter-spacing: -0.02em;
@@ -386,15 +389,11 @@
   .pv-contador__input { width: 52px; min-height: 40px; font-size: 16px; }
   .pv-descuento-input { width: 110px; min-height: 40px; font-size: 16px; }
 
-  /* Ticket angosto: se omite el valor unitario sin IGV */
-  .pv-ticket .adm-ticket__tabla th:nth-child(3),
-  .pv-ticket .adm-ticket__tabla td:nth-child(3) { display: none; }
-
   .pv-total > .pv-total__monto { font-size: 26px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pv-resultado,
   .pv-total-movil { animation: none; }
-  .pv-ticket { transition: none; }
+  .pv-hoja { transition: none; }
 }

@@ -87,6 +87,8 @@ export interface CertificadoFiscal {
   vencido: boolean;
   autofirmado: boolean;
   advertencias: string[];
+  /** false: lo guardado ya no abre con la FISCAL_SECRET_KEY del servidor (cambió la llave); hay que subirlo de nuevo. */
+  legible?: boolean;
 }
 
 export interface ItemChecklistFiscal {

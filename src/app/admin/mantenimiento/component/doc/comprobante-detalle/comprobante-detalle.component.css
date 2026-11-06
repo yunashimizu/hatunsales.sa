@@ -112,10 +112,6 @@
 
 /* ── Comprobante ─────────────────────────────────────────────── */
 
-.det-ticket .adm-ticket__emisor,
-.det-ticket .adm-ticket__dato span:last-child,
-.det-ticket__descripcion { min-width: 0; overflow-wrap: anywhere; }
-
 .det-esqueleto {
   display: flex;
   flex-direction: column;

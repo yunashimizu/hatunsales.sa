@@ -422,7 +422,7 @@
             <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--neutro">
               <i class="bi bi-receipt-cutoff"></i> Así saldrá el comprobante
             </h2>
-            <p class="adm-tarjeta__sub">Lo calcula el servidor: es exactamente lo que se va a emitir.</p>
+            <p class="adm-tarjeta__sub">Es la hoja que se imprimirá. El número definitivo, el código QR y la hora se asignan al emitir.</p>
           </div>
           <span class="adm-insignia adm-insignia--neutra" *ngIf="calculandoPreview">
             <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Actualizando
@@ -430,109 +430,16 @@
         </div>
 
         <div class="adm-tarjeta__cuerpo pv-pila">
-          <div class="adm-ticket pv-ticket"
-               [class.pv-ticket--actualizando]="calculandoPreview"
+          <div class="pv-hoja"
+               [class.pv-hoja--actualizando]="calculandoPreview"
                [attr.aria-busy]="calculandoPreview">
-            <div class="adm-ticket__cabecera">
-              <div class="adm-ticket__emisor">
-                <strong>{{ preview.emisor.razon_social }}</strong>
-                <div>{{ preview.emisor.direccion }}</div>
-                <div>{{ preview.emisor.ubicacion }}</div>
-              </div>
-              <div class="adm-ticket__recuadro">
-                <small>RUC {{ preview.emisor.ruc }}</small>
-                <small>{{ preview.tipo_nombre }}</small>
-                <div class="adm-ticket__numero">{{ preview.numero_formateado }}</div>
-              </div>
-            </div>
-
-            <div class="adm-ticket__seccion">
-              <div class="adm-ticket__dato">
-                <span>Cliente</span><span>{{ preview.receptor.denominacion }}</span>
-              </div>
-              <div class="adm-ticket__dato">
-                <span>{{ preview.receptor.tipo_documento === 6 ? 'RUC' : 'DNI' }}</span>
-                <span>{{ preview.receptor.numero_documento }}</span>
-              </div>
-              <div class="adm-ticket__dato" *ngIf="preview.receptor.direccion">
-                <span>Dirección</span><span>{{ preview.receptor.direccion }}</span>
-              </div>
-              <div class="adm-ticket__dato">
-                <span>Emisión</span><span>{{ preview.fecha_de_emision }}</span>
-              </div>
-              <div class="adm-ticket__dato">
-                <span>Moneda</span><span>{{ preview.moneda.nombre }}</span>
-              </div>
-              <div class="adm-ticket__dato" *ngIf="preview.forma_pago">
-                <span>Forma de pago</span><span>{{ preview.forma_pago === 'Credito' ? 'Crédito' : 'Contado' }}</span>
-              </div>
-              <div class="adm-ticket__dato" *ngIf="preview.observaciones">
-                <span>Observaciones</span><span>{{ preview.observaciones }}</span>
-              </div>
-            </div>
-
-            <div class="adm-ticket__seccion">
-              <table class="adm-ticket__tabla">
-                <thead>
-                  <tr>
-                    <th>Descripción</th>
-                    <th class="adm-num">Cant.</th>
-                    <th class="adm-num">V. unit.</th>
-                    <th class="adm-num">P. unit.</th>
-                    <th class="adm-num">Desc. línea</th>
-                    <th class="adm-num">Importe</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let item of preview.items">
-                    <td data-etiqueta="Descripción">{{ item.descripcion }}</td>
-                    <td data-etiqueta="Cant." class="adm-num">{{ item.cantidad }}</td>
-                    <td data-etiqueta="V. unit." class="adm-num">{{ item.valor_unitario | number:'1.2-4' }}</td>
-                    <td data-etiqueta="P. unit." class="adm-num">{{ item.precio_unitario | number:'1.2-2' }}</td>
-                    <td data-etiqueta="Desc. línea" class="adm-num">
-                      <ng-container *ngIf="item.descuento > 0">− </ng-container>{{ item.descuento | number:'1.2-2' }}
-                    </td>
-                    <td data-etiqueta="Importe" class="adm-num">{{ item.total | number:'1.2-2' }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="adm-ticket__totales">
-              <div class="adm-ticket__total-fila">
-                <span>Op. gravada</span>
-                <span>{{ preview.moneda.simbolo }} {{ preview.totales.gravada | number:'1.2-2' }}</span>
-              </div>
-              <div class="adm-ticket__total-fila" *ngIf="preview.totales.exonerada">
-                <span>Op. exonerada</span>
-                <span>{{ preview.moneda.simbolo }} {{ preview.totales.exonerada | number:'1.2-2' }}</span>
-              </div>
-              <div class="adm-ticket__total-fila" *ngIf="preview.totales.inafecta">
-                <span>Op. inafecta</span>
-                <span>{{ preview.moneda.simbolo }} {{ preview.totales.inafecta | number:'1.2-2' }}</span>
-              </div>
-              <div class="adm-ticket__total-fila" *ngIf="preview.totales.descuento">
-                <span>Descuentos</span>
-                <span>− {{ preview.moneda.simbolo }} {{ preview.totales.descuento | number:'1.2-2' }}</span>
-              </div>
-              <div class="adm-ticket__total-fila">
-                <span>IGV ({{ preview.porcentaje_igv }}%)</span>
-                <span>{{ preview.moneda.simbolo }} {{ preview.totales.igv | number:'1.2-2' }}</span>
-              </div>
-              <div class="adm-ticket__total-fila pv-ticket__recargo" *ngIf="preview.recargo_tarjeta as recargo">
-                <span>Incluye recargo por tarjeta ({{ recargo.porcentaje }}%)</span>
-                <span>{{ preview.moneda.simbolo }} {{ recargo.monto | number:'1.2-2' }}</span>
-              </div>
-              <div class="adm-ticket__total-fila adm-ticket__total-fila--destacada">
-                <span>Importe total</span>
-                <span>{{ preview.moneda.simbolo }} {{ preview.totales.total | number:'1.2-2' }}</span>
-              </div>
-            </div>
-
-            <div class="adm-ticket__letras">
-              Son: {{ preview.importe_en_letras }}
-            </div>
+            <app-hoja-comprobante [datos]="hojaPreview"></app-hoja-comprobante>
           </div>
+
+          <p class="pv-hoja__recargo" *ngIf="preview.recargo_tarjeta as recargo">
+            <i class="bi bi-credit-card" aria-hidden="true"></i>
+            <span>Incluye recargo por tarjeta ({{ recargo.porcentaje }}%): {{ preview.moneda.simbolo }} {{ recargo.monto | number:'1.2-2' }}</span>
+          </p>
 
           <div class="adm-aviso adm-aviso--aviso"
                *ngFor="let advertencia of preview.advertencias">

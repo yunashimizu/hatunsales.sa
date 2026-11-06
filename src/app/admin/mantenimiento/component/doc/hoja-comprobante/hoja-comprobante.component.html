@@ -1,0 +1,219 @@
+@if (vista; as v) {
+  <div class="hoja-marco">
+    <article class="hoja" role="document" [attr.aria-label]="v.h.etiqueta">
+      <div class="hoja__franja" aria-hidden="true"></div>
+
+      <!-- Encabezado: logo, emisor y recuadro del documento -->
+      <header class="hoja__cabecera">
+        <div class="hoja__marca">
+          @if (mostrarLogo) {
+            <img class="hoja__logo" [src]="logoSrc" [alt]="v.h.emisor.razonSocial" (error)="alFallarLogo()" />
+          }
+          <div class="hoja__emisor">
+            <strong class="hoja__razon">{{ v.h.emisor.razonSocial }}</strong>
+            @if (v.nombreComercial) {
+              <span class="hoja__comercial">{{ v.nombreComercial }}</span>
+            }
+            @if (v.h.emisor.direccion) {
+              <span class="hoja__linea">{{ v.h.emisor.direccion }}</span>
+            }
+            @if (v.h.emisor.ubicacion) {
+              <span class="hoja__linea">{{ v.h.emisor.ubicacion }}</span>
+            }
+            @if (v.contacto) {
+              <span class="hoja__linea">{{ v.contacto }}</span>
+            }
+          </div>
+        </div>
+        <div class="hoja__recuadro">
+          <div class="hoja__ruc">R.U.C. N° {{ v.h.emisor.ruc }}</div>
+          <div class="hoja__tipo">{{ v.h.titulo }}</div>
+          <div class="hoja__codigo">{{ v.h.serieNumero }}</div>
+        </div>
+      </header>
+
+      @if (v.h.ambiente === 'beta') {
+        <div class="hoja__banner hoja__banner--beta" role="note">{{ avisoBeta }}</div>
+      }
+      @if (v.h.aviso) {
+        <div class="hoja__banner hoja__banner--aviso" role="note">{{ v.h.aviso }}</div>
+      }
+
+      <!-- Cliente y datos del documento -->
+      <section class="hoja__datos hoja__datos--doble" aria-label="Cliente y datos del documento">
+        <dl class="hoja__bloque">
+          @for (fila of v.filasCliente; track fila[0]) {
+            <div class="hoja__dato">
+              <dt>{{ fila[0] }}</dt>
+              <dd>{{ fila[1] }}</dd>
+            </div>
+          }
+        </dl>
+        <dl class="hoja__bloque">
+          @for (fila of v.filasDocumento; track fila[0]) {
+            <div class="hoja__dato">
+              <dt>{{ fila[0] }}</dt>
+              <dd>{{ fila[1] }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+
+      @if (v.filasReferencia.length) {
+        <section class="hoja__datos hoja__datos--ref" aria-label="Documento que modifica">
+          <h3 class="hoja__titulo">DOCUMENTO QUE MODIFICA</h3>
+          <dl class="hoja__bloque">
+            @for (fila of v.filasReferencia; track fila[0]) {
+              <div class="hoja__dato">
+                <dt>{{ fila[0] }}</dt>
+                <dd>{{ fila[1] }}</dd>
+              </div>
+            }
+          </dl>
+        </section>
+      }
+
+      <!-- Tabla de detalle -->
+      <div class="hoja__tabla-caja">
+        <table class="hoja__tabla" role="table">
+          <colgroup>
+            <col class="hoja__col-cant" />
+            <col class="hoja__col-unidad" />
+            <col />
+            <col class="hoja__col-num" />
+            <col class="hoja__col-num" />
+            <col class="hoja__col-desc" />
+            <col class="hoja__col-importe" />
+          </colgroup>
+          <thead role="rowgroup">
+            <tr role="row">
+              @for (columna of columnas; track columna) {
+                <th role="columnheader" scope="col"
+                    [class.hoja__num]="$index !== 1 && $index !== 2"
+                    [class.hoja__centro]="$index === 1">{{ columna }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            @for (item of v.items; track $index) {
+              <tr role="row">
+                <td role="cell" class="hoja__num hoja__c-cant" [attr.data-etiqueta]="columnas[0]">{{ item.cantidad }}</td>
+                <td role="cell" class="hoja__centro hoja__c-unidad" [attr.data-etiqueta]="columnas[1]">{{ item.unidad }}</td>
+                <td role="cell" class="hoja__c-descripcion" [attr.data-etiqueta]="columnas[2]">
+                  <span class="hoja__descripcion">{{ item.descripcion }}</span>
+                  @if (item.codigo) {
+                    <span class="hoja__codigo-prod">Cód. {{ item.codigo }}</span>
+                  }
+                </td>
+                <td role="cell" class="hoja__num" [attr.data-etiqueta]="columnas[3]">{{ item.valorUnitario }}</td>
+                <td role="cell" class="hoja__num" [attr.data-etiqueta]="columnas[4]">{{ item.precioUnitario }}</td>
+                <td role="cell" class="hoja__num" [attr.data-etiqueta]="columnas[5]">{{ item.descuento || '—' }}</td>
+                <td role="cell" class="hoja__num hoja__importe" [attr.data-etiqueta]="columnas[6]">{{ item.importe }}</td>
+              </tr>
+            } @empty {
+              <tr role="row" class="hoja__sin-lineas">
+                <td role="cell" colspan="7">Sin líneas de detalle.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- «SON: …» a la izquierda y totales a la derecha -->
+      <section class="hoja__pie-totales" aria-label="Totales">
+        @if (v.son) {
+          <p class="hoja__son">{{ v.son }}</p>
+        }
+        <div class="hoja__totales">
+          <dl class="hoja__filas">
+            @for (fila of v.filasTotales; track fila[0]) {
+              <div class="hoja__fila">
+                <dt>{{ fila[0] }}</dt>
+                <dd>{{ fila[1] }}</dd>
+              </div>
+            }
+          </dl>
+          <div class="hoja__total">
+            <span>IMPORTE TOTAL</span>
+            <span>{{ v.total }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Crédito -->
+      @if (v.mostrarCredito) {
+        <section class="hoja__credito" aria-label="Forma de pago a crédito">
+          <h3 class="hoja__titulo">FORMA DE PAGO: CRÉDITO</h3>
+          <p class="hoja__texto">Monto neto pendiente de pago: <strong>{{ v.pendiente }}</strong></p>
+          @if (v.cuotas.length) {
+            <table class="hoja__cuotas">
+              <thead>
+                <tr>
+                  <th scope="col">CUOTA</th>
+                  <th scope="col">FECHA DE PAGO</th>
+                  <th scope="col" class="hoja__num">MONTO</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (cuota of v.cuotas; track cuota.numero) {
+                  <tr>
+                    <td>{{ cuota.numero }}</td>
+                    <td>{{ cuota.fechaPago }}</td>
+                    <td class="hoja__num">{{ cuota.monto }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </section>
+      }
+
+      <!-- Notas -->
+      @if (v.medioPago.length) {
+        <section class="hoja__nota">
+          <h3 class="hoja__rotulo">MEDIO DE PAGO</h3>
+          @for (linea of v.medioPago; track $index) {
+            <p class="hoja__texto">{{ linea }}</p>
+          }
+        </section>
+      }
+      @if (v.observaciones.length) {
+        <section class="hoja__nota">
+          <h3 class="hoja__rotulo">OBSERVACIONES</h3>
+          @for (linea of v.observaciones; track $index) {
+            <p class="hoja__texto">{{ linea }}</p>
+          }
+        </section>
+      }
+
+      <!-- QR: no se genera en el front -->
+      @if (v.h.qr; as qr) {
+        <section class="hoja__qr" aria-label="Código QR y resumen">
+          <div class="hoja__qr-caja" [class.hoja__qr-caja--aviso]="qr.modo !== 'emitido'">
+            @switch (qr.modo) {
+              @case ('pendiente') {
+                <span>El código QR y el resumen (hash) se generan al emitir</span>
+              }
+              @case ('sin-firma') {
+                <span>Código QR no disponible: el comprobante aún no tiene firma electrónica.</span>
+              }
+              @default {
+                <span>El código QR va impreso en el PDF</span>
+              }
+            }
+          </div>
+          <div class="hoja__qr-texto">
+            @if (qr.modo === 'emitido') {
+              <p class="hoja__hash">Resumen (hash): {{ qr.hash || 'no disponible' }}</p>
+            }
+            <p class="hoja__leyenda">{{ v.leyenda }}</p>
+          </div>
+        </section>
+      }
+
+      <footer class="hoja__pie">
+        <span class="hoja__pie-doc">{{ v.pie }}</span>
+      </footer>
+    </article>
+  </div>
+}

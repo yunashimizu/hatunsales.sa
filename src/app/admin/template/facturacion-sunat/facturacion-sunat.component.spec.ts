@@ -4,7 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { urlConstants } from '../../../constants/urlConstants';
 import { AlertService } from '../../../shared/services/alert.service';
-import { ConfiguracionSunat, EstadoFiscalApi } from '../../models/fiscal.models';
+import { CertificadoFiscal, ConfiguracionSunat, EstadoFiscalApi } from '../../models/fiscal.models';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
 import { FacturacionSunatComponent } from './facturacion-sunat.component';
 
@@ -227,6 +227,16 @@ describe('FacturacionSunatComponent', () => {
   it('propone subir el certificado al ambiente vigente (producción si se trabaja en producción)', () => {
     responderConfiguracion({ ...configuracionPrueba(), ambiente: 'produccion' });
     expect(component.ambienteCertificado).toBe('produccion');
+  });
+
+  it('avisa en la tarjeta cuando el certificado guardado ya no abre con la llave del servidor', () => {
+    responderConfiguracion();
+    const base = { ambiente: 'beta', vencido: false, dias_para_vencer: 200, autofirmado: false } as CertificadoFiscal;
+    expect(component.alertasCertificado({ ...base, legible: false }).map((a) => a.titulo)).toEqual([
+      'No se puede leer con la llave actual del servidor',
+    ]);
+    expect(component.alertasCertificado({ ...base, legible: true })).toEqual([]);
+    expect(component.alertasCertificado(base)).toEqual([]);
   });
 
   it('rechaza archivos que exceden el límite antes de hacer una petición', () => {

@@ -220,87 +220,8 @@
         </section>
       }
 
-      <!-- Representación del comprobante -->
-      <div class="adm-ticket det-ticket">
-        <div class="adm-ticket__cabecera">
-          <div class="adm-ticket__emisor">
-            <strong>{{ d.emisor.razon_social }}</strong>
-            @if (d.emisor.nombre_comercial) {
-              <div>{{ d.emisor.nombre_comercial }}</div>
-            }
-            <div>{{ d.emisor.direccion }}</div>
-            <div>{{ d.emisor.ubicacion }}</div>
-          </div>
-          <div class="adm-ticket__recuadro">
-            <small>RUC {{ d.emisor.ruc }}</small>
-            <small class="det-tipo">{{ d.tipo_nombre }}</small>
-            <div class="adm-ticket__numero">{{ d.numero_formateado }}</div>
-          </div>
-        </div>
-
-        <div class="adm-ticket__seccion">
-          <div class="adm-ticket__dato"><span>Cliente</span><span>{{ d.receptor.denominacion }}</span></div>
-          <div class="adm-ticket__dato">
-            <span>{{ tipoDocumento(d.receptor.tipo_documento) }}</span><span>{{ d.receptor.numero_documento }}</span>
-          </div>
-          @if (d.receptor.direccion) {
-            <div class="adm-ticket__dato"><span>Dirección</span><span>{{ d.receptor.direccion }}</span></div>
-          }
-          <div class="adm-ticket__dato">
-            <span>Emisión</span><span class="adm-tabular">{{ d.fecha_de_emision }}@if (d.hora_emision) { {{ ' ' + d.hora_emision }} }</span>
-          </div>
-          <div class="adm-ticket__dato"><span>Moneda</span><span>{{ d.moneda.nombre }}</span></div>
-        </div>
-
-        <div class="adm-ticket__seccion">
-          <table class="adm-ticket__tabla">
-            <thead>
-              <tr>
-                <th>Descripción</th>
-                <th class="adm-num">Cant.</th>
-                <th class="adm-num">P. unit.</th>
-                <th class="adm-num">Importe</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of d.items; track $index) {
-                <tr>
-                  <td class="det-ticket__descripcion">{{ item.descripcion }}</td>
-                  <td class="adm-num">{{ item.cantidad }}</td>
-                  <td class="adm-num">{{ item.precio_unitario | number: '1.2-2' }}</td>
-                  <td class="adm-num">{{ item.total | number: '1.2-2' }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-
-        <div class="adm-ticket__totales">
-          @if (d.totales.gravada) {
-            <div class="adm-ticket__total-fila">
-              <span>Op. gravada</span><span>{{ d.moneda.simbolo }} {{ d.totales.gravada | number: '1.2-2' }}</span>
-            </div>
-          }
-          @if (d.totales.exonerada) {
-            <div class="adm-ticket__total-fila">
-              <span>Op. exonerada</span><span>{{ d.moneda.simbolo }} {{ d.totales.exonerada | number: '1.2-2' }}</span>
-            </div>
-          }
-          @if (d.totales.inafecta) {
-            <div class="adm-ticket__total-fila">
-              <span>Op. inafecta</span><span>{{ d.moneda.simbolo }} {{ d.totales.inafecta | number: '1.2-2' }}</span>
-            </div>
-          }
-          <div class="adm-ticket__total-fila">
-            <span>IGV ({{ d.porcentaje_igv }}%)</span><span>{{ d.moneda.simbolo }} {{ d.totales.igv | number: '1.2-2' }}</span>
-          </div>
-          <div class="adm-ticket__total-fila adm-ticket__total-fila--destacada">
-            <span>Importe total</span><span>{{ d.moneda.simbolo }} {{ d.totales.total | number: '1.2-2' }}</span>
-          </div>
-        </div>
-
-        <div class="adm-ticket__letras">Son: {{ d.importe_en_letras }}</div>
-      </div>
+      <!-- Representación del comprobante: la misma hoja que el PDF A4 (cuotas, hash y QR van debajo) -->
+      <app-hoja-comprobante [datos]="hoja" />
 
       @if (d.forma_pago) {
         <section class="det-seccion" aria-labelledby="det-pago">

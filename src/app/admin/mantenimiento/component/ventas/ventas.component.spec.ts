@@ -312,6 +312,62 @@ describe('VentasComponent', () => {
     expect((component as any).validarCreditoAntesDeCobrar()).toContain('No se pudo verificar el crédito');
   });
 
+  describe('hoja de la vista previa', () => {
+    it('sin vista previa no hay hoja', () => {
+      component.preview = null;
+      expect(component.hojaPreview).toBeNull();
+    });
+
+    it('convierte la vista previa en la hoja del comprobante (título del PDF y fecha dd/mm/aaaa)', () => {
+      component.preview = crearPreview(0);
+      const hoja = component.hojaPreview!;
+      expect(hoja.titulo).toBe('BOLETA DE VENTA ELECTRÓNICA');
+      expect(hoja.fechaEmision).toBe('19/10/2026');
+      expect(hoja.cliente.nombre).toBe('CLIENTES VARIOS');
+      expect(hoja.items).toHaveLength(1);
+    });
+
+    it('está memoizada: no se reconstruye en cada detección, solo cuando llega otra vista previa', () => {
+      component.preview = crearPreview(0);
+      const primera = component.hojaPreview;
+      expect(component.hojaPreview).toBe(primera);
+      expect(component.hojaPreview).toBe(primera);
+
+      component.preview = crearPreview(0.4);
+      const segunda = component.hojaPreview;
+      expect(segunda).not.toBe(primera);
+      expect(component.hojaPreview).toBe(segunda);
+
+      component.preview = null;
+      expect(component.hojaPreview).toBeNull();
+    });
+
+    it('pinta la hoja con el subtítulo nuevo, el recargo fuera de la hoja y el atenuado mientras recalcula', () => {
+      component.lineas = [{
+        id_producto: 1, descripcion: 'CEMENTO', sku: 'CEM', unidad_medida: 'NIU',
+        cantidad: 2, precio_unitario: 10, descuento: 0.2, stock_disponible: 10,
+      }];
+      component.preview = crearPreviewConRecargo();
+      component.calculandoPreview = true;
+      // Solo interesa pintar la vista previa: se omite la carga inicial (series, métodos de pago, catálogo…).
+      for (const carga of ['cargarMetodosPago', 'cargarSeriesFiscales', 'cargarContextoPos', 'cargarChipCaja']) {
+        vi.spyOn(component as any, carga).mockImplementation(() => undefined);
+      }
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      const hoja = el.querySelector('app-hoja-comprobante .hoja');
+      expect(hoja).not.toBeNull();
+      expect(hoja!.getAttribute('aria-label')).toBe('Vista previa del comprobante');
+      expect(el.querySelector('.pv-hoja')!.getAttribute('aria-busy')).toBe('true');
+      expect(el.querySelector('.pv-hoja')!.classList).toContain('pv-hoja--actualizando');
+      expect(el.textContent).toContain('Es la hoja que se imprimirá. El número definitivo, el código QR y la hora se asignan al emitir.');
+      expect(el.querySelector('.pv-hoja__recargo')!.textContent).toContain('Incluye recargo por tarjeta (3%): S/ 0.59');
+      expect(hoja!.textContent).not.toContain('Incluye recargo por tarjeta');
+      expect(el.querySelector('.adm-ticket')).toBeNull();
+    });
+  });
+
   describe('descuentos por unidad y recargo por tarjeta, en vivo', () => {
     const EFECTIVO = 1;
     const TARJETA = 2;

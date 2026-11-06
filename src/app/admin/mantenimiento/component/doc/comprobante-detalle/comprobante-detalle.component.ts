@@ -56,19 +56,12 @@ import {
   nombreDescarga,
   textoAccionSunat,
 } from '../documentos-sunat';
+import { HojaComprobanteComponent } from '../hoja-comprobante/hoja-comprobante.component';
+import { HojaComprobante, hojaDesdeDetalle } from '../hoja-comprobante/hoja-comprobante.model';
 import { ResultadoSunatComponent } from '../resultado-sunat/resultado-sunat.component';
 
 /** Acción que la lista pide ejecutar apenas se abre el detalle. */
 export type AccionDetalle = 'reintentar' | 'recuperar_cdr' | 'confirmar' | 'anular' | 'baja';
-
-/** Catálogo 06 de SUNAT: tipo de documento del cliente. */
-const TIPO_DOCUMENTO: Readonly<Record<number, string>> = {
-  0: 'Sin documento',
-  1: 'DNI',
-  4: 'Carné de extranjería',
-  6: 'RUC',
-  7: 'Pasaporte',
-};
 
 /** Cómo se rotula cada estado del correo al cliente. */
 const TEXTO_CORREO: Readonly<Record<EstadoCorreo, { titulo: string; tono: TonoEstado; icono: string }>> = {
@@ -120,7 +113,7 @@ const TEXTO_ANULACION: Readonly<Record<AnulacionComprobante['estado'], { titulo:
 @Component({
   selector: 'app-comprobante-detalle',
   standalone: true,
-  imports: [CommonModule, RouterLink, ResultadoSunatComponent],
+  imports: [CommonModule, RouterLink, ResultadoSunatComponent, HojaComprobanteComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './comprobante-detalle.component.html',
   styleUrl: './comprobante-detalle.component.css',
@@ -215,6 +208,24 @@ export class ComprobanteDetalleComponent implements OnChanges {
       this.ejecutarPendiente();
     }
   }
+
+  /**
+   * Hoja del comprobante para `app-hoja-comprobante`: se recalcula solo cuando cambia la referencia
+   * de `detalle` (un getter que armara la hoja a cada ciclo cambiaría el @Input siempre).
+   * Las cuotas y el hash/QR no van en la hoja: el detalle ya los muestra debajo (valores por defecto).
+   */
+  get hoja(): HojaComprobante | null {
+    const d = this.detalle;
+    if (!d) return null;
+    if (this.hojaDe !== d) {
+      this.hojaDe = d;
+      // El aviso del ambiente ya se muestra en la alerta «Emitido en SUNAT BETA» del detalle; la hoja conserva solo su banner BETA, como el PDF.
+      this.hojaCache = { ...hojaDesdeDetalle(d), aviso: null };
+    }
+    return this.hojaCache;
+  }
+  private hojaDe: ComprobanteDetalle | null = null;
+  private hojaCache: HojaComprobante | null = null;
 
   get tieneAcciones(): boolean {
     const d = this.detalle;
@@ -618,10 +629,6 @@ export class ComprobanteDetalleComponent implements OnChanges {
 
   textoEstadoEnvio(estado: string): string {
     return textoEstadoSunat(estado);
-  }
-
-  tipoDocumento(tipo: number): string {
-    return TIPO_DOCUMENTO[Number(tipo)] ?? 'Documento';
   }
 
   textoEstadoGuia(estado: string | null): string {

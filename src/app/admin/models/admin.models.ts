@@ -73,7 +73,16 @@ export interface ItemPreview {
 }
 
 export interface PreviewComprobante {
-  emisor: { ruc: string; razon_social: string; direccion: string; ubicacion: string; logo_url: string };
+  emisor: {
+    ruc: string;
+    razon_social: string;
+    direccion: string;
+    ubicacion: string;
+    logo_url: string;
+    nombre_comercial?: string | null;
+    telefono?: string | null;
+    email?: string | null;
+  };
   id_tipo: number;
   tipo_nombre: string;
   serie: string;
@@ -97,6 +106,9 @@ export interface PreviewComprobante {
   observaciones: string;
   nota?: { motivo_codigo: string; motivo_texto: string; documento_modificado: string };
   advertencias: string[];
+  /** Aviso del ambiente fiscal (p. ej. BETA o emisión pausada), si el servidor lo manda. */
+  aviso?: string | null;
+  emision_activa?: boolean;
   /** Solo si ya hay medios de pago elegidos: lo que dirá el comprobante (igual que su PDF). */
   forma_pago?: 'Contado' | 'Credito';
   proveedor_fiscal?: 'sunat_directo';
