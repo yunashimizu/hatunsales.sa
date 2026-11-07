@@ -48,7 +48,7 @@
   color: var(--adm-texto);
 }
 
-.det-seccion__titulo > i { color: var(--adm-primario); }
+.det-seccion__titulo > i { color: var(--adm-marca-texto); }
 
 .det-dato--ancho { grid-column: 1 / -1; }
 
@@ -88,14 +88,14 @@
   background: none;
   font: inherit;
   font-weight: var(--fw-semi, 600);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
 }
 
 .det-enlace:hover { text-decoration-thickness: 2px; }
-.det-enlace:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; border-radius: 2px; }
+.det-enlace:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; border-radius: 2px; }
 
 .det-venta { align-self: flex-start; }
 

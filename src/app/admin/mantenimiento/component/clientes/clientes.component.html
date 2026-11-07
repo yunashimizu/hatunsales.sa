@@ -1,7 +1,7 @@
-<div class="adm-pagina">
+<div class="adm-pagina" [class.adm-pagina--con-ficha]="panelAbierto">
 
   <!-- Cabecera de página -->
-  <header class="adm-cabecera">
+  <header class="adm-cabecera adm-cabecera--barra">
     <div class="adm-cabecera__principal">
       <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-people"></i></span>
       <div class="cli-cabecera__texto">
@@ -204,13 +204,14 @@
               <th scope="col">Cliente</th>
               <th scope="col">DNI</th>
               <th scope="col">Contacto</th>
-              <th scope="col">Dirección</th>
+              <th scope="col" class="cli-col-sec">Dirección</th>
               <th scope="col" class="adm-centro">Acciones</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let c of personasFiltradas; trackBy: identificarCliente"
-                [class.adm-recien-creado]="idDestacado === c.id_cliente">
+                [class.adm-recien-creado]="idDestacado === c.id_cliente"
+                [class.adm-fila--seleccionada]="panelAbierto && editando?.tipo === 'cliente' && editando?.id_cliente === c.id_cliente">
               <td data-etiqueta="Cliente" class="cli-td-principal">
                 <div class="cli-identidad">
                   <span class="adm-avatar cli-avatar" [attr.data-tono]="tonoDe(c)" aria-hidden="true">{{ (c.nombre || nombreDe(c)).charAt(0) }}{{ (c.apellido_paterno || '').charAt(0) }}</span>
@@ -239,7 +240,7 @@
                   <span class="cli-sin-dato" *ngIf="!c.telefono && !c.email">—</span>
                 </div>
               </td>
-              <td data-etiqueta="Dirección">
+              <td data-etiqueta="Dirección" class="cli-col-sec">
                 <span class="cli-direccion" [title]="c.direccion || ''">{{ c.direccion || '—' }}</span>
               </td>
               <td data-etiqueta="Acciones" class="adm-centro">
@@ -288,13 +289,14 @@
               <th scope="col">Empresa</th>
               <th scope="col">RUC</th>
               <th scope="col">Situación</th>
-              <th scope="col">Dirección</th>
+              <th scope="col" class="cli-col-sec">Dirección</th>
               <th scope="col" class="adm-centro">Acciones</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let e of empresasFiltradas; trackBy: identificarEmpresa"
-                [class.adm-recien-creado]="idDestacado === e.id_empresa">
+                [class.adm-recien-creado]="idDestacado === e.id_empresa"
+                [class.adm-fila--seleccionada]="panelAbierto && editando?.tipo === 'empresa' && editando?.id_empresa === e.id_empresa">
               <td data-etiqueta="Empresa" class="cli-td-principal">
                 <div class="cli-identidad">
                   <span class="adm-avatar cli-avatar cli-avatar--empresa" [attr.data-tono]="tonoDe(e)" aria-hidden="true"><i class="bi bi-building"></i></span>
@@ -319,7 +321,7 @@
                   <span class="adm-insignia adm-insignia--sm cli-condicion" [ngClass]="claseCondicion(e.condicion)" *ngIf="e.condicion">{{ e.condicion }}</span>
                 </div>
               </td>
-              <td data-etiqueta="Dirección">
+              <td data-etiqueta="Dirección" class="cli-col-sec">
                 <div class="cli-apilado">
                   <span class="cli-direccion" [title]="e.direccion || ''">{{ e.direccion || '—' }}</span>
                   <span class="adm-tabla__secundario" *ngIf="e.distrito">
@@ -364,16 +366,20 @@
 </div>
 
 <!-- Panel de edición -->
-<div class="adm-velo" *ngIf="panelAbierto" (click)="cerrarPanel()"></div>
+<div class="adm-velo adm-velo--ficha" *ngIf="panelAbierto" (click)="cerrarPanel()"></div>
 
-<aside class="adm-panel" *ngIf="panelAbierto && editando" role="dialog" aria-modal="true" aria-labelledby="cli-panel-titulo">
-  <div class="adm-panel__cabecera">
-    <div class="adm-tarjeta__encabezado">
-      <h2 class="adm-tarjeta__titulo" id="cli-panel-titulo">
-        <i class="bi" [ngClass]="editando.tipo === 'empresa' ? 'bi-building' : 'bi-person'"></i>
+<aside class="adm-panel adm-panel--ficha" *ngIf="panelAbierto && editando" role="dialog" aria-labelledby="cli-panel-titulo">
+  <div class="adm-panel__cabecera cli-panel__cabecera">
+    <div class="adm-tarjeta__encabezado cli-panel__encabezado">
+      <h2 class="cli-panel__titulo" id="cli-panel-titulo">
         {{ editando.tipo === 'empresa' ? 'Editar empresa' : 'Editar cliente' }}
       </h2>
     </div>
+    <span class="adm-insignia adm-insignia--sm adm-insignia--info" *ngIf="editando.tipo !== 'empresa' && editando.tiene_cuenta">
+      <i class="bi bi-bag-check" aria-hidden="true"></i> Con cuenta
+    </span>
+    <span class="adm-insignia adm-insignia--sm adm-insignia--punto" *ngIf="editando.tipo === 'empresa' && editando.estado"
+          [ngClass]="claseEstadoEmpresa(editando.estado)">{{ editando.estado }}</span>
     <button type="button" class="adm-btn-icono" (click)="cerrarPanel()" aria-label="Cerrar" title="Cerrar">
       <i class="bi bi-x-lg"></i>
     </button>
@@ -394,11 +400,6 @@
         <div class="cli-ficha__chips">
           <span class="adm-insignia adm-insignia--sm adm-insignia--neutra" *ngIf="editando.tipo !== 'empresa'">DNI</span>
           <span class="adm-insignia adm-insignia--sm adm-insignia--primaria" *ngIf="editando.tipo === 'empresa'">RUC</span>
-          <span class="adm-insignia adm-insignia--sm adm-insignia--info" *ngIf="editando.tipo !== 'empresa' && editando.tiene_cuenta">
-            <i class="bi bi-bag-check" aria-hidden="true"></i> Con cuenta en la tienda
-          </span>
-          <span class="adm-insignia adm-insignia--sm adm-insignia--punto" *ngIf="editando.tipo === 'empresa' && editando.estado"
-                [ngClass]="claseEstadoEmpresa(editando.estado)">{{ editando.estado }}</span>
         </div>
       </div>
     </div>

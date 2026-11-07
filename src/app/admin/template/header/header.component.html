@@ -11,12 +11,8 @@
     <span></span>
   </button>
 
-  <div class="tb-title" *ngIf="paginaActual">
-    <span class="tb-title__icon" aria-hidden="true"><i class="bi" [ngClass]="iconoActual"></i></span>
-    <div class="tb-title__textos">
-      <span class="tb-title__group" *ngIf="grupoActual">{{ grupoActual }}</span>
-      <span class="tb-title__text">{{ paginaActual }}</span>
-    </div>
+  <div class="tb-title" role="presentation" *ngIf="paginaActual">
+    <div class="tb-title__text">{{ paginaActual }}</div>
   </div>
 
   <button type="button" class="tb-buscar" (click)="abrirPaleta()" aria-label="Buscar o ir a una pantalla" [attr.title]="'Buscar o ir a… (' + atajoPaleta + ')'">
@@ -46,6 +42,9 @@
       @if (chip.alerta) {
         <span class="tb-fiscal__alerta" aria-hidden="true"></span>
       }
+      @if (esAdmin && (chip.alerta || chip.tono === 'detenida')) {
+        <span class="tb-fiscal__ver" aria-hidden="true"> · Ver</span>
+      }
     </ng-template>
 
     <span class="tb-fecha" [attr.title]="fechaLarga">
@@ -64,6 +63,7 @@
 
     <div class="user-pill"
          role="button"
+         [attr.aria-label]="'Menú de ' + (sesion.nombre || 'usuario')"
          tabindex="0"
          [attr.aria-expanded]="showUser"
          [class.open]="showUser"

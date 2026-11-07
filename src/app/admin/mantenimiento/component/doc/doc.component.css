@@ -95,7 +95,7 @@
   flex-shrink: 0;
   border-radius: var(--adm-r-sm);
   background: var(--adm-primario-claro);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   font-size: 16px;
   box-shadow: inset 0 0 0 1px var(--adm-primario-suave);
 }
@@ -140,14 +140,14 @@
   background: none;
   font: inherit;
   font-weight: var(--fw-semi, 600);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
 }
 
 .doc-enlace:hover { text-decoration-thickness: 2px; }
-.doc-enlace:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; border-radius: 2px; }
+.doc-enlace:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; border-radius: 2px; }
 
 /* Un documento anulado sigue visible, pero se nota que ya no vale.
    Las acciones quedan nítidas: el detalle se sigue pudiendo abrir. */

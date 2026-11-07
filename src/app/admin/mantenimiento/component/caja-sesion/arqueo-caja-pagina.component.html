@@ -5,7 +5,7 @@
       <div>
         <span class="adm-cabecera__eyebrow">Ventas</span>
         <h1 class="adm-cabecera__titulo">Arqueo de caja</h1>
-        <p class="adm-cabecera__sub">Conteo, conciliación, movimientos e historial por turno.</p>
+        <p class="adm-cabecera__sub">Resumen por sucursal, turnos del período y arqueo detallado por turno.</p>
       </div>
     </div>
     <div class="adm-acciones">
@@ -22,7 +22,283 @@
       </button>
     </div>
   </header>
-  <section class="adm-tarjeta">
+  <div class="arq-listados">
+    <!-- Filtros -->
+    <section class="adm-tarjeta" aria-labelledby="arq-filtros-titulo">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo" id="arq-filtros-titulo">
+          <i class="bi bi-funnel" aria-hidden="true"></i> Filtros
+        </h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo">
+        <form class="arq-filtros" (ngSubmit)="aplicarFiltros()" novalidate>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="arq-sucursal">Sucursal</label>
+            <select id="arq-sucursal" class="adm-select" name="sucursal" [(ngModel)]="filtros.id_sucursal"
+                    (ngModelChange)="alCambiarSucursal()">
+              <option [ngValue]="null">Todas</option>
+              @for (s of sucursales; track s.id) {
+                <option [ngValue]="s.id">{{ s.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="arq-caja">Caja</label>
+            <select id="arq-caja" class="adm-select" name="caja" [(ngModel)]="filtros.id_caja">
+              <option [ngValue]="null">Todas</option>
+              @for (c of cajasDeLaSucursal; track c.id_caja) {
+                <option [ngValue]="c.id_caja">{{ c.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="arq-desde">Desde</label>
+            <input id="arq-desde" class="adm-input" type="date" name="desde" [(ngModel)]="filtros.desde" />
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="arq-hasta">Hasta</label>
+            <input id="arq-hasta" class="adm-input" type="date" name="hasta" [(ngModel)]="filtros.hasta" />
+          </div>
+          @if (esAdmin) {
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="arq-usuario">N.º de usuario</label>
+              <input id="arq-usuario" class="adm-input adm-input--num" type="number" inputmode="numeric" min="1" step="1"
+                     name="usuario" placeholder="Todos" [(ngModel)]="filtros.id_usuario" />
+            </div>
+          }
+          <div class="arq-filtros__acciones">
+            <button type="submit" class="adm-btn adm-btn--primario" id="arq-aplicar"
+                    [disabled]="cargandoResumen || cargandoTurnos">
+              <i class="bi bi-search" aria-hidden="true"></i> Aplicar
+            </button>
+            <button type="button" class="adm-btn adm-btn--suave" id="arq-limpiar" (click)="limpiarFiltros()"
+                    [disabled]="cargandoResumen || cargandoTurnos">
+              <i class="bi bi-eraser" aria-hidden="true"></i> Hoy y todas
+            </button>
+          </div>
+        </form>
+        <div aria-live="polite">
+          @if (errorFiltro) {
+            <p class="adm-aviso adm-aviso--aviso adm-aviso--compacto arq-aviso" id="arq-error-filtro" role="alert">
+              <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+              <span>{{ errorFiltro }}</span>
+            </p>
+          }
+        </div>
+        <p class="adm-ayuda arq-ayuda">
+          Las tarjetas por sucursal usan el rango de fechas y la sucursal; la caja
+          @if (esAdmin) { y el usuario }
+          filtran solo el listado de turnos. Las fechas son días de Lima.
+        </p>
+      </div>
+    </section>
+
+    <!-- Tarjetas por sucursal -->
+    <section aria-labelledby="arq-resumen-titulo" class="arq-seccion">
+      <div class="arq-seccion__cabecera">
+        <h2 class="adm-seccion__titulo arq-seccion__titulo" id="arq-resumen-titulo">Resumen por sucursal</h2>
+        <button type="button" class="adm-btn adm-btn--suave arq-pdf" id="arq-resumen-pdf"
+                (click)="descargarPdf()" [disabled]="generandoPdf" [attr.aria-busy]="generandoPdf">
+          <i class="bi" [ngClass]="generandoPdf ? 'bi-arrow-repeat adm-girando' : (errorPdf ? 'bi-arrow-clockwise' : 'bi-file-earmark-pdf')" aria-hidden="true"></i>
+          {{ generandoPdf ? 'Generando…' : (errorPdf ? 'Reintentar PDF' : 'Descargar PDF') }}
+        </button>
+      </div>
+      @if (errorPdf) {
+        <p class="adm-aviso adm-aviso--peligro adm-aviso--compacto arq-pdf-error" id="arq-resumen-pdf-error" role="alert">
+          <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+          <span>{{ errorPdf }}</span>
+        </p>
+      }
+      @if (errorResumen) {
+        <div class="adm-tarjeta">
+          <div class="adm-vacio adm-vacio--compacto adm-vacio--error" id="arq-resumen-error" role="alert">
+            <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+            <div class="adm-vacio__titulo">No se pudo cargar el resumen</div>
+            <p>{{ errorResumen }}</p>
+            <button type="button" class="adm-btn adm-btn--suave" id="arq-resumen-reintentar" (click)="cargarResumen()">
+              <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+            </button>
+          </div>
+        </div>
+      } @else if (cargandoResumen && !resumen) {
+        <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando el resumen por sucursal">
+          <div class="adm-esqueleto adm-esqueleto--fila"></div>
+          <div class="adm-esqueleto adm-esqueleto--fila"></div>
+        </div>
+      } @else if (resumen && resumen.sucursales.length) {
+        <div class="arq-sucursales" [attr.aria-busy]="cargandoResumen">
+          @for (s of tarjetas; track trackSucursal(s)) {
+            <article class="adm-tarjeta arq-sucursal" [class.adm-tarjeta--destacada]="s.esTotal" [class.arq-sucursal--total]="s.esTotal" [attr.aria-label]="nombreSucursal(s)">
+              <div class="adm-tarjeta__cabecera arq-sucursal__cabecera">
+                <h3 class="adm-tarjeta__titulo"><i class="bi" [ngClass]="s.esTotal ? 'bi-calculator' : 'bi-shop'" aria-hidden="true"></i> {{ nombreSucursal(s) }}</h3>
+                <span class="adm-insignia adm-insignia--sm adm-insignia--neutra">
+                  {{ s.turnos }} {{ s.turnos === 1 ? 'turno' : 'turnos' }}
+                  @if (s.turnos_abiertos) { · {{ s.turnos_abiertos }} {{ s.turnos_abiertos === 1 ? 'abierto' : 'abiertos' }} }
+                </span>
+              </div>
+              <div class="adm-tarjeta__cuerpo">
+                <dl class="arq-datos">
+                  <div class="arq-datos__fila">
+                    <dt>Efectivo inicial</dt>
+                    <dd class="adm-tabular">@if (s.efectivo_inicial !== null) { S/ {{ s.efectivo_inicial | number:'1.2-2' }} } @else { <span class="adm-texto-suave">sin dato</span> }</dd>
+                  </div>
+                  <div class="arq-datos__fila">
+                    <dt>Ventas</dt>
+                    <dd class="adm-tabular">@if (s.ventas_total !== null) { S/ {{ s.ventas_total | number:'1.2-2' }} } @else { — }</dd>
+                  </div>
+                  <div class="arq-datos__fila">
+                    <dt>Efectivo esperado</dt>
+                    <dd class="adm-tabular">@if (s.efectivo_esperado !== null) { S/ {{ s.efectivo_esperado | number:'1.2-2' }} } @else { — }</dd>
+                  </div>
+                  <div class="arq-datos__fila">
+                    <dt>Efectivo contado</dt>
+                    <dd class="adm-tabular">@if (s.efectivo_contado !== null) { S/ {{ s.efectivo_contado | number:'1.2-2' }} } @else { — }</dd>
+                  </div>
+                  <div class="arq-datos__fila arq-datos__fila--total">
+                    <dt>Diferencia</dt>
+                    <dd class="adm-tabular arq-dif"
+                        [class.arq-dif--falta]="signoDiferencia(s.diferencia) === 'falta'"
+                        [class.arq-dif--sobra]="signoDiferencia(s.diferencia) === 'sobra'"
+                        [class.arq-dif--cuadra]="signoDiferencia(s.diferencia) === 'cuadra'">{{ textoDiferencia(s.diferencia) }}</dd>
+                  </div>
+                </dl>
+                @if (s.por_metodo.length) {
+                  <ul class="adm-leyenda arq-metodos" aria-label="Ventas por medio de pago">
+                    @for (m of s.por_metodo; track m.metodo) {
+                      <li class="adm-leyenda__item">{{ m.metodo }}: <span class="adm-tabular">S/ {{ m.monto | number:'1.2-2' }}</span></li>
+                    }
+                  </ul>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="adm-tarjeta">
+          <div class="adm-vacio adm-vacio--compacto" id="arq-resumen-vacio" role="status">
+            <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-inbox" aria-hidden="true"></i></div>
+            <div class="adm-vacio__titulo">Sin turnos en este período</div>
+            <p>No hay turnos de caja entre las fechas elegidas. Pruebe con otro rango.</p>
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- Listado de turnos -->
+    <section class="adm-tarjeta" aria-labelledby="arq-turnos-titulo">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo" id="arq-turnos-titulo">
+          <i class="bi bi-list-check" aria-hidden="true"></i> Turnos
+        </h2>
+        @if (!errorTurnos && total > 0) {
+          <span class="adm-tarjeta__sub adm-tabular">{{ total }} {{ total === 1 ? 'turno' : 'turnos' }}</span>
+        }
+      </div>
+      @if (errorTurnos) {
+        <div class="adm-vacio adm-vacio--compacto adm-vacio--error" id="arq-turnos-error" role="alert">
+          <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+          <div class="adm-vacio__titulo">No se pudo cargar el listado</div>
+          <p>{{ errorTurnos }}</p>
+          <button type="button" class="adm-btn adm-btn--suave" id="arq-turnos-reintentar" (click)="cargarTurnos()">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+          </button>
+        </div>
+      } @else if (cargandoTurnos && !turnos.length) {
+        <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando turnos">
+          <div class="adm-esqueleto adm-esqueleto--fila"></div>
+          <div class="adm-esqueleto adm-esqueleto--fila"></div>
+          <div class="adm-esqueleto adm-esqueleto--fila"></div>
+        </div>
+      } @else if (!turnos.length) {
+        <div class="adm-vacio adm-vacio--compacto" id="arq-turnos-vacio" role="status">
+          <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-inbox" aria-hidden="true"></i></div>
+          <div class="adm-vacio__titulo">Ningún turno coincide con los filtros</div>
+          <p>Cambie las fechas o quite la sucursal, la caja o el usuario.</p>
+        </div>
+      } @else {
+        <div class="adm-tabla-envoltorio" [attr.aria-busy]="cargandoTurnos">
+          <table class="adm-tabla arq-tabla">
+            <thead>
+              <tr>
+                <th scope="col">Turno</th>
+                <th scope="col">Apertura</th>
+                <th scope="col">Cierre</th>
+                <th scope="col" class="adm-num">Inicial</th>
+                <th scope="col" class="adm-num">Esperado</th>
+                <th scope="col" class="adm-num">Contado</th>
+                <th scope="col" class="adm-num">Diferencia</th>
+                <th scope="col">Estado</th>
+                <th scope="col"><span class="arq-sr">Acciones</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (t of turnos; track t.id_apertura) {
+                <tr [attr.data-estado]="t.estado">
+                  <td data-etiqueta="Turno" class="arq-celda-turno">
+                    <div class="arq-celda-turno__texto">
+                      <div class="adm-tabla__principal">#{{ t.id_apertura }} · {{ t.caja_nombre }}</div>
+                      <div class="adm-tabla__secundario">{{ t.sucursal_nombre || 'Sin sucursal' }}@if (t.usuario_nombre) { · {{ t.usuario_nombre }} }</div>
+                    </div>
+                  </td>
+                  <td data-etiqueta="Apertura" class="adm-tabular">{{ t.abierta_en | date:'dd/MM/yyyy HH:mm':'-0500' }}</td>
+                  <td data-etiqueta="Cierre" class="adm-tabular">
+                    @if (t.cerrada_en) { {{ t.cerrada_en | date:'dd/MM/yyyy HH:mm':'-0500' }} } @else { <span class="adm-texto-suave">—</span> }
+                  </td>
+                  <td data-etiqueta="Inicial" class="adm-num arq-inicial">
+                    @if (t.monto_inicial !== null && t.monto_inicial !== undefined) { S/ {{ t.monto_inicial | number:'1.2-2' }} }
+                    @else { <span class="adm-texto-suave">sin dato</span> }
+                  </td>
+                  <td data-etiqueta="Esperado" class="adm-num">
+                    @if (t.efectivo_esperado !== null && t.efectivo_esperado !== undefined) { S/ {{ t.efectivo_esperado | number:'1.2-2' }} } @else { — }
+                  </td>
+                  <td data-etiqueta="Contado" class="adm-num">
+                    @if (t.efectivo_contado !== null && t.efectivo_contado !== undefined) { S/ {{ t.efectivo_contado | number:'1.2-2' }} } @else { — }
+                  </td>
+                  <td data-etiqueta="Diferencia" class="adm-num arq-dif"
+                      [class.arq-dif--falta]="signoDiferencia(t.diferencia) === 'falta'"
+                      [class.arq-dif--sobra]="signoDiferencia(t.diferencia) === 'sobra'"
+                      [class.arq-dif--cuadra]="signoDiferencia(t.diferencia) === 'cuadra'">{{ textoDiferencia(t.diferencia) }}</td>
+                  <td data-etiqueta="Estado">
+                    <span class="adm-insignia adm-insignia--sm adm-insignia--punto"
+                          [class.adm-insignia--exito]="t.estado === 'abierto'"
+                          [class.adm-insignia--neutra]="t.estado !== 'abierto'">{{ t.estado === 'abierto' ? 'Abierto' : 'Cerrado' }}</span>
+                  </td>
+                  <td data-etiqueta="Arqueo" class="arq-celda-accion">
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm arq-ver" (click)="verTurno(t.id_apertura)"
+                            [disabled]="ocupado"
+                            [attr.aria-label]="'Ver el arqueo del turno ' + t.id_apertura">
+                      <i class="bi bi-calculator" aria-hidden="true"></i> Ver arqueo
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (total > porPagina) {
+          <nav class="adm-paginacion arq-paginacion" aria-label="Paginación de turnos">
+            <span><strong class="adm-tabular">{{ total }}</strong> turnos · página {{ pagina }} de {{ totalPaginas }}</span>
+            <div class="adm-paginacion__botones">
+              <button type="button" class="adm-btn adm-btn--suave" id="arq-anterior"
+                      [disabled]="pagina <= 1 || cargandoTurnos" (click)="irA(pagina - 1)">
+                <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
+              </button>
+              <button type="button" class="adm-btn adm-btn--suave" id="arq-siguiente"
+                      [disabled]="pagina >= totalPaginas || cargandoTurnos" (click)="irA(pagina + 1)">
+                Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </nav>
+        }
+      }
+    </section>
+  </div>
+  <section class="adm-tarjeta" id="arqueo-turno" aria-labelledby="arq-consulta-titulo">
+    <div class="adm-tarjeta__cabecera">
+      <h2 class="adm-tarjeta__titulo" id="arq-consulta-titulo">
+        <i class="bi bi-calculator" aria-hidden="true"></i> Arqueo de un turno
+      </h2>
+    </div>
     <div class="adm-tarjeta__cuerpo">
       <form #consultaForm="ngForm" (ngSubmit)="consultaForm.valid && consultar()" class="adm-fila">
         <div class="adm-campo adm-campo--medio">

@@ -159,7 +159,7 @@ export interface ProductoCotizadoReporte {
       .rp__tabla tbody tr:nth-child(2) .rp__puesto,
       .rp__tabla tbody tr:nth-child(3) .rp__puesto {
         background: var(--adm-primario-claro);
-        color: var(--adm-primario);
+        color: var(--adm-marca-texto);
       }
 
       .rp__texto { min-width: 0; overflow-wrap: anywhere; }
@@ -177,7 +177,7 @@ export interface ProductoCotizadoReporte {
         display: block;
         height: 100%;
         border-radius: inherit;
-        background: var(--adm-primario);
+        background: var(--adm-gradiente-vivo);
         transform-origin: left center;
         scale: clamp(0.02, calc(var(--n, 0) / 100), 1) 1;
         animation: rp-barra-entra 700ms var(--x-ease, ease) backwards;

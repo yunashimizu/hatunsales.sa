@@ -1,265 +1,283 @@
 <div class="adm-pagina ini">
 
-  <header class="ini-escenario x-grano x-plano">
-    <div class="ini-dial x-dial" aria-hidden="true">
-      <i class="x-dial__anillo"></i>
-      <i class="x-dial__marcas"></i>
-      <i class="x-dial__aro"></i>
-      <div class="x-dial__disco">
-        <span class="ini-dial__dia">{{ diaMes }}</span>
-        <span class="ini-dial__mes">{{ mesCorto }}</span>
-      </div>
-    </div>
-
-    <div class="ini-escenario__texto">
-      <span class="x-etiqueta ini-eyebrow">{{ fechaHoy }}</span>
-      <h1 class="ini-saludo">{{ saludo }}, <span class="x-texto-degradado">{{ nombreCorto }}</span></h1>
-      <p class="ini-sub">
-        Resumen del día en HatunSales · <strong>{{ etiquetaRol }}</strong>
-        <span *ngIf="sesion.email"> · {{ sesion.email }}</span>
-      </p>
-    </div>
-    <div class="ini-escenario__acciones">
-      <a class="x-boton x-boton--mono" routerLink="/dashboard/mantenimiento/caja-sesion">
-        <i class="bi bi-cash-stack"></i> Caja
-      </a>
-      <span class="x-iman" hsMagnetic>
-        <a class="x-boton x-boton--vivo" routerLink="/dashboard/mantenimiento/ventas">
-          <i class="bi bi-cart-plus"></i> Nueva venta
-        </a>
-      </span>
-    </div>
+  <!-- El título «Inicio» vive en la barra superior; este h1 es el encabezado para lectores de pantalla. -->
+  <header class="adm-cabecera adm-cabecera--barra">
+    <h1 class="adm-cabecera__titulo">Inicio</h1>
   </header>
 
-  <!-- Indicadores -->
-  <section class="adm-grid adm-grid--4" aria-label="Indicadores del día" hsReveal="lista">
-    <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--exito"><i class="bi bi-graph-up-arrow"></i></div>
-      <div>
-        <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargandoKpis; else esqueleto">
-            <ng-container *ngIf="ventasHoy != null; else guion"><span [hsCountUp]="ventasHoy" [hsDecimales]="2" hsPrefijo="S/ "></span></ng-container>
-          </ng-container>
-        </div>
-        <div class="adm-metrica__etiqueta">Ventas hoy</div>
-      </div>
+  <!-- Saludo, turno y acciones -->
+  <section class="ini-saludo" aria-label="Saludo y accesos al turno">
+    <div class="ini-saludo__texto">
+      <p class="ini-saludo__titulo">{{ saludo }}, {{ nombreCorto }}</p>
+      @if (cargando && veCaja) {
+        <span class="adm-esqueleto ini-esqueleto-linea" aria-hidden="true"></span>
+      } @else if (lineaTurno) {
+        <p class="ini-saludo__turno">{{ lineaTurno }}</p>
+      }
     </div>
-
-    <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--peligro"><i class="bi bi-x-octagon"></i></div>
-      <div>
-        <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargandoKpis; else esqueleto">
-            <ng-container *ngIf="sinStock != null; else guion"><span [hsCountUp]="sinStock"></span></ng-container>
-          </ng-container>
-        </div>
-        <div class="adm-metrica__etiqueta">Productos sin stock</div>
+    @if (veVender || veCaja) {
+      <div class="ini-saludo__acciones">
+        @if (veVender) {
+          <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/ventas">
+            <i class="bi bi-receipt" aria-hidden="true"></i> Vender
+          </a>
+        }
+        @if (veCaja) {
+          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/caja-sesion">
+            <i class="bi bi-cash-stack" aria-hidden="true"></i> Ver el turno
+          </a>
+        }
       </div>
-    </div>
-
-    <div class="adm-metrica">
-      <div class="adm-metrica__icono adm-metrica__icono--aviso"><i class="bi bi-exclamation-triangle"></i></div>
-      <div>
-        <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargandoKpis; else esqueleto">
-            <ng-container *ngIf="bajoStock != null || cpeAtencion != null; else guion">
-              <span [hsCountUp]="(bajoStock || 0) + (cpeAtencion || 0)"></span>
-            </ng-container>
-          </ng-container>
-        </div>
-        <div class="adm-metrica__etiqueta">Alertas (stock + CPE)</div>
-      </div>
-    </div>
-
-    <div class="adm-metrica"
-         [class.adm-metrica--exito]="cajaAbierta"
-         [class.adm-metrica--aviso]="cajaAbierta === false"
-         [class.adm-metrica--neutro]="cajaAbierta == null">
-      <div class="adm-metrica__icono"><i class="bi" [ngClass]="cajaAbierta ? 'bi-unlock' : 'bi-lock'"></i></div>
-      <div>
-        <div class="adm-metrica__valor">
-          <ng-container *ngIf="!cargandoKpis; else esqueleto">
-            <ng-container *ngIf="cajaAbierta != null; else guion">{{ cajaAbierta ? 'Abierta' : 'Cerrada' }}</ng-container>
-          </ng-container>
-        </div>
-        <div class="adm-metrica__etiqueta">
-          Caja<span *ngIf="cajaNombre"> · {{ cajaNombre }}</span>
-        </div>
-      </div>
-    </div>
+    }
   </section>
-  <ng-template #guion>—</ng-template>
-  <ng-template #esqueleto><span class="adm-esqueleto ini-esqueleto"></span></ng-template>
 
-  <div class="adm-grid adm-grid--lateral">
+  <!-- Indicadores del día -->
+  <section class="ini-kpis" aria-label="Indicadores del día" [style.--ini-kpis]="kpisVisibles" [attr.aria-busy]="cargando">
+    @if (veReportes) {
+      <div class="ini-kpi">
+        <span class="ini-kpi__etiqueta">Ventas de hoy</span>
+        @if (cargando) {
+          <span class="adm-esqueleto ini-esqueleto-valor" aria-hidden="true"></span>
+        } @else {
+          <span class="ini-kpi__valor">{{ ventasHoy != null ? soles(ventasHoy) : '—' }}</span>
+        }
+        <span class="ini-kpi__detalle">
+          @if (!cargando && ventasHoy != null) {
+            Neto del día · al {{ actualizadoA }}
+          } @else if (!cargando) {
+            No se pudo cargar
+          }
+        </span>
+      </div>
 
-    <!-- Accesos rápidos -->
-    <section class="adm-tarjeta">
-      <div class="adm-tarjeta__cabecera">
-        <div class="adm-tarjeta__encabezado">
-          <h2 class="adm-tarjeta__titulo"><i class="bi bi-lightning-charge"></i> Accesos rápidos</h2>
-          <p class="adm-tarjeta__sub">Lo que más se usa durante el día.</p>
+      <div class="ini-kpi">
+        <span class="ini-kpi__etiqueta">Ticket promedio</span>
+        @if (cargando) {
+          <span class="adm-esqueleto ini-esqueleto-valor" aria-hidden="true"></span>
+        } @else {
+          <span class="ini-kpi__valor">{{ ticketPromedio != null ? soles(ticketPromedio) : '—' }}</span>
+        }
+        <span class="ini-kpi__detalle">
+          @if (!cargando && numVentas != null) {
+            @if (numVentas === 0) { Sin ventas todavía } @else { {{ numVentas }} {{ numVentas === 1 ? 'venta' : 'ventas' }} }
+          } @else if (!cargando) {
+            No se pudo cargar
+          }
+        </span>
+      </div>
+    }
+
+    @if (veCxc) {
+      <div class="ini-kpi">
+        <span class="ini-kpi__etiqueta">Por cobrar vencido</span>
+        @if (cargando) {
+          <span class="adm-esqueleto ini-esqueleto-valor" aria-hidden="true"></span>
+        } @else {
+          <span class="ini-kpi__valor" [class.ini-kpi__valor--peligro]="(cxcVencidoCuentas ?? 0) > 0">{{ cxcVencidoMonto != null ? soles(cxcVencidoMonto) : '—' }}</span>
+        }
+        <span class="ini-kpi__detalle">
+          @if (!cargando && cxcVencidoCuentas != null) {
+            @if (cxcVencidoCuentas === 0) {
+              Sin cuentas vencidas
+            } @else {
+              {{ cxcVencidoCuentas }} {{ cxcVencidoCuentas === 1 ? 'cuenta' : 'cuentas' }} ·
+              <a routerLink="/dashboard/mantenimiento/cuentas-por-cobrar">ver cuentas</a>
+            }
+          } @else if (!cargando) {
+            No se pudo cargar
+          }
+        </span>
+      </div>
+    }
+
+    @if (veCaja) {
+      <div class="ini-kpi">
+        <span class="ini-kpi__etiqueta">Efectivo del turno</span>
+        @if (cargando) {
+          <span class="adm-esqueleto ini-esqueleto-valor" aria-hidden="true"></span>
+        } @else {
+          <span class="ini-kpi__valor">{{ efectivoTurno != null ? soles(efectivoTurno) : '—' }}</span>
+        }
+        <span class="ini-kpi__detalle">
+          @if (!cargando) {
+            @if (cajaAbierta === false) {
+              Caja cerrada
+            } @else if (cajaAbierta == null) {
+              No se pudo cargar
+            } @else if (detalleMedios) {
+              {{ detalleMedios }}
+            } @else {
+              Cobrado en efectivo
+            }
+          }
+        </span>
+      </div>
+    }
+  </section>
+
+  <div class="ini-fila" [class.ini-fila--sola]="!veReportes">
+
+    <!-- Ventas de la semana -->
+    @if (veReportes) {
+      <section class="ini-tarjeta" aria-labelledby="ini-semana-titulo" [attr.aria-busy]="cargando">
+        <div class="ini-tarjeta__cabecera">
+          <h2 id="ini-semana-titulo" class="ini-tarjeta__titulo">Ventas de la semana</h2>
+          @if (semanaConDatos) {
+            <div class="ini-leyenda" aria-hidden="true">
+              <span><i class="ini-leyenda__punto ini-leyenda__punto--hoy"></i>Hoy</span>
+              <span><i class="ini-leyenda__punto"></i>Días anteriores</span>
+            </div>
+          }
         </div>
-        <span class="adm-insignia adm-insignia--aviso adm-insignia--punto" *ngIf="cpeAtencion">
-          {{ cpeAtencion }} CPE por revisar
-        </span>
-      </div>
-      <div class="adm-tarjeta__cuerpo">
-        <nav class="adm-atajos" aria-label="Accesos rápidos" hsReveal="lista">
-          <a class="adm-atajo x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/ventas">
-            <span class="adm-atajo__icono"><i class="bi bi-receipt"></i></span>
-            <span class="adm-atajo__texto">
-              <span class="adm-atajo__titulo">Ventas</span>
-              <span class="adm-atajo__desc">Punto de venta y comprobantes</span>
-            </span>
-            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
-          </a>
-          <a class="adm-atajo adm-atajo--info x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/cotizaciones">
-            <span class="adm-atajo__icono"><i class="bi bi-file-earmark-ruled"></i></span>
-            <span class="adm-atajo__texto">
-              <span class="adm-atajo__titulo">Cotizaciones</span>
-              <span class="adm-atajo__desc">Proformas para clientes</span>
-            </span>
-            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
-          </a>
-          <a class="adm-atajo adm-atajo--aviso x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/doc">
-            <span class="adm-atajo__icono"><i class="bi bi-file-earmark-text"></i></span>
-            <span class="adm-atajo__texto">
-              <span class="adm-atajo__titulo">Documentos</span>
-              <span class="adm-atajo__desc">Boletas, facturas y SUNAT</span>
-            </span>
-            <span class="adm-insignia adm-insignia--aviso" *ngIf="cpeAtencion">{{ cpeAtencion }}</span>
-            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true" *ngIf="!cpeAtencion"></i>
-          </a>
-          <a class="adm-atajo x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/clientes">
-            <span class="adm-atajo__icono"><i class="bi bi-people"></i></span>
-            <span class="adm-atajo__texto">
-              <span class="adm-atajo__titulo">Clientes</span>
-              <span class="adm-atajo__desc">Personas y empresas</span>
-            </span>
-            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
-          </a>
-          <a class="adm-atajo adm-atajo--exito x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/recepcion">
-            <span class="adm-atajo__icono"><i class="bi bi-box-arrow-in-down"></i></span>
-            <span class="adm-atajo__texto">
-              <span class="adm-atajo__titulo">Recepción</span>
-              <span class="adm-atajo__desc">Ingreso de mercadería</span>
-            </span>
-            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
-          </a>
-          <a class="adm-atajo adm-atajo--exito x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/inventario">
-            <span class="adm-atajo__icono"><i class="bi bi-boxes"></i></span>
-            <span class="adm-atajo__texto">
-              <span class="adm-atajo__titulo">Inventario</span>
-              <span class="adm-atajo__desc">Stock por almacén y kardex</span>
-            </span>
-            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
-          </a>
-          <a class="adm-atajo adm-atajo--peligro x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/stock">
-            <span class="adm-atajo__icono"><i class="bi bi-clipboard-data"></i></span>
-            <span class="adm-atajo__texto">
-              <span class="adm-atajo__titulo">Stock</span>
-              <span class="adm-atajo__desc">Ajustes y alertas de mínimo</span>
-            </span>
-            <span class="adm-insignia adm-insignia--peligro" *ngIf="sinStock">{{ sinStock }}</span>
-            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true" *ngIf="!sinStock"></i>
-          </a>
-          <a class="adm-atajo adm-atajo--info x-brillo" hsSpotlight routerLink="/dashboard/mantenimiento/reportes">
-            <span class="adm-atajo__icono"><i class="bi bi-bar-chart-line"></i></span>
-            <span class="adm-atajo__texto">
-              <span class="adm-atajo__titulo">Reportes</span>
-              <span class="adm-atajo__desc">Ventas por periodo, Excel y PDF</span>
-            </span>
-            <i class="bi bi-arrow-right adm-atajo__flecha" aria-hidden="true"></i>
-          </a>
-        </nav>
-      </div>
-    </section>
 
-    <!-- Turno de caja -->
-    <aside class="adm-tarjeta" [class.adm-tarjeta--exito-suave]="cajaAbierta" [class.adm-tarjeta--destacada]="!cajaAbierta">
-      <div class="adm-tarjeta__cabecera adm-tarjeta__cabecera--limpia">
-        <h2 class="adm-tarjeta__titulo" [class.adm-tarjeta__titulo--exito]="cajaAbierta">
-          <i class="bi bi-cash-coin"></i> Turno de caja
-        </h2>
-        <span class="adm-insignia adm-insignia--punto"
-              [ngClass]="cajaAbierta ? 'adm-insignia--exito' : (cajaAbierta === false ? 'adm-insignia--aviso' : 'adm-insignia--neutra')">
-          {{ cajaAbierta ? 'Abierta' : (cajaAbierta === false ? 'Cerrada' : 'Sin datos') }}
-        </span>
-      </div>
-      <div class="adm-tarjeta__cuerpo ini-turno">
-
-        <ng-container *ngIf="cargandoKpis">
-          <span class="adm-esqueleto adm-esqueleto--titulo"></span>
-          <span class="adm-esqueleto adm-esqueleto--linea"></span>
-          <span class="adm-esqueleto adm-esqueleto--linea"></span>
-        </ng-container>
-
-        <ng-container *ngIf="!cargandoKpis && cajaAbierta">
-          <div class="ini-turno__total">
-            <span class="adm-dato__etiqueta">Cobrado en el turno</span>
-            <span class="ini-turno__monto" [hsCountUp]="turnoTotal ?? 0" [hsDecimales]="2" hsPrefijo="S/ "></span>
+        @if (cargando) {
+          <span class="adm-esqueleto ini-esqueleto-grafico" aria-hidden="true"></span>
+        } @else if (semanaConDatos) {
+          <svg class="ini-grafico" viewBox="0 0 640 200" preserveAspectRatio="xMidYMid meet" role="img"
+               aria-label="Gráfico de barras con las ventas de cada día de esta semana, de lunes a hoy. Los valores están en la tabla que sigue.">
+            <g class="ini-grafico__rejilla">
+              @for (m of marcasEje; track m.y) {
+                <line x1="40" [attr.y1]="m.y" x2="640" [attr.y2]="m.y" />
+              }
+            </g>
+            <g class="ini-grafico__texto ini-grafico__texto--eje" text-anchor="end">
+              @for (m of marcasEje; track m.y) {
+                <text x="34" [attr.y]="m.y + 4">{{ m.texto }}</text>
+              }
+            </g>
+            @for (b of barras; track b.etiqueta) {
+              @if (b.alto > 0) {
+                <rect class="ini-grafico__barra" [class.ini-grafico__barra--hoy]="b.esHoy"
+                      [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.ancho" [attr.height]="b.alto" rx="3">
+                  <title>{{ b.titulo }}</title>
+                </rect>
+              }
+              <text class="ini-grafico__texto ini-grafico__texto--valor" text-anchor="middle"
+                    [attr.x]="b.xc" [attr.y]="b.yValor">{{ b.valorCorto }}</text>
+              <text class="ini-grafico__texto ini-grafico__texto--dia" text-anchor="middle"
+                    [class.ini-grafico__texto--hoy]="b.esHoy" [attr.x]="b.xc" y="192">{{ b.etiqueta }}</text>
+            }
+          </svg>
+          <table class="ini-solo-lectores">
+            <caption>Ventas netas por día, de lunes a hoy</caption>
+            <thead><tr><th scope="col">Día</th><th scope="col">Ventas</th></tr></thead>
+            <tbody>
+              @for (b of barras; track b.etiqueta) {
+                <tr><th scope="row">{{ b.etiqueta }}{{ b.esHoy ? ' (hoy)' : '' }}</th><td>{{ soles(b.valor) }}</td></tr>
+              }
+            </tbody>
+          </table>
+          <p class="ini-pie">{{ hallazgoSemana }} <span class="ini-pie__aparte">{{ resumenSemana }}</span></p>
+        } @else {
+          <div class="ini-vacio" role="status">
+            <i class="bi bi-bar-chart-line ini-vacio__icono" aria-hidden="true"></i>
+            <p class="ini-vacio__titulo">{{ semanaFalla ? 'No se pudieron cargar las ventas' : 'Sin ventas esta semana todavía' }}</p>
+            <p class="ini-vacio__texto">{{ semanaFalla ? 'Revisa la conexión y vuelve a entrar al inicio.' : 'Cuando registres ventas, aparecerán aquí día por día.' }}</p>
           </div>
-          <dl class="adm-datos adm-datos--columna ini-turno__datos">
-            <div class="adm-dato">
-              <dt class="adm-dato__etiqueta">Ventas registradas</dt>
-              <dd class="adm-dato__valor">{{ turnoVentas ?? 0 }}</dd>
-            </div>
-            <div class="adm-dato" *ngIf="cajaNombre">
-              <dt class="adm-dato__etiqueta">Caja</dt>
-              <dd class="adm-dato__valor">{{ cajaNombre }}</dd>
-            </div>
-          </dl>
-        </ng-container>
+        }
+      </section>
+    }
 
-        <div class="adm-vacio adm-vacio--compacto ini-turno__vacio" *ngIf="!cargandoKpis && cajaAbierta === false">
-          <div class="adm-vacio__icono adm-vacio__icono--aviso"><i class="bi bi-lock"></i></div>
-          <div class="adm-vacio__titulo">No hay caja abierta</div>
-          <p>En modo blando igual puede vender; abra un turno para llevar el control del efectivo.</p>
-        </div>
-
-        <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto" *ngIf="!cargandoKpis && cajaAbierta == null">
-          <i class="bi bi-wifi-off"></i>
-          <span>No se pudo leer el estado de la caja. Revise la conexión e intente de nuevo.</span>
-        </div>
-
-        <a class="adm-btn adm-btn--bloque"
-           [ngClass]="cajaAbierta ? 'adm-btn--suave' : 'adm-btn--primario'"
-           routerLink="/dashboard/mantenimiento/caja-sesion">
-          <i class="bi" [ngClass]="cajaAbierta ? 'bi-arrow-right-circle' : 'bi-unlock'"></i>
-          {{ cajaAbierta ? 'Ver el turno' : 'Abrir caja' }}
-        </a>
+    <!-- Necesita tu atención -->
+    <section class="ini-tarjeta" aria-labelledby="ini-atencion-titulo" [attr.aria-busy]="cargando">
+      <div class="ini-tarjeta__cabecera">
+        <h2 id="ini-atencion-titulo" class="ini-tarjeta__titulo">Necesita tu atención</h2>
       </div>
-    </aside>
+
+      @if (cargando) {
+        <div class="ini-esqueletos" aria-hidden="true">
+          <span class="adm-esqueleto adm-esqueleto--fila"></span>
+          <span class="adm-esqueleto adm-esqueleto--fila"></span>
+          <span class="adm-esqueleto adm-esqueleto--fila"></span>
+        </div>
+      } @else if (filasAtencion.length > 0) {
+        <ul class="ini-lista">
+          @for (fila of filasAtencion; track fila.id) {
+            <li class="ini-lista__fila">
+              <span class="ini-lista__texto">
+                {{ fila.texto }}
+                @if (fila.detalle) { <small>{{ fila.detalle }}</small> }
+              </span>
+              <span class="ini-tag" [class.ini-tag--peligro]="fila.tono === 'peligro'" [class.ini-tag--aviso]="fila.tono === 'aviso'">{{ fila.etiqueta }}</span>
+              @if (fila.ruta && fila.accion) {
+                <a class="ini-lista__accion" [routerLink]="fila.ruta">{{ fila.accion }}<span class="ini-solo-lectores">: {{ fila.texto }}</span></a>
+              } @else {
+                <span></span>
+              }
+            </li>
+          }
+        </ul>
+      } @else if (atencionRevisada) {
+        <div class="ini-vacio" role="status">
+          <i class="bi bi-check2-circle ini-vacio__icono ini-vacio__icono--ok" aria-hidden="true"></i>
+          <p class="ini-vacio__titulo">Todo en orden</p>
+          <p class="ini-vacio__texto">No hay nada pendiente por ahora.</p>
+        </div>
+      } @else {
+        <div class="ini-vacio" role="status">
+          <i class="bi bi-wifi-off ini-vacio__icono" aria-hidden="true"></i>
+          <p class="ini-vacio__titulo">No se pudo revisar</p>
+          <p class="ini-vacio__texto">Revisa la conexión y vuelve a entrar al inicio.</p>
+        </div>
+      }
+    </section>
   </div>
 
-  <!-- Estado del negocio -->
-  <section class="adm-tarjeta" *ngIf="!cargandoKpis && (sinStock || bajoStock || cpeAtencion)">
-    <div class="adm-tarjeta__cabecera">
-      <div class="adm-tarjeta__encabezado">
-        <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--aviso"><i class="bi bi-bell"></i> Pendientes de atención</h2>
-        <p class="adm-tarjeta__sub">Cosas que conviene resolver hoy.</p>
-      </div>
-    </div>
-    <div class="adm-tarjeta__cuerpo adm-tarjeta__cuerpo--sin-relleno">
-      <ul class="ini-pendientes">
-        <li *ngIf="sinStock">
-          <span class="adm-punto adm-punto--peligro" aria-hidden="true"></span>
-          <span class="ini-pendientes__texto"><strong>{{ sinStock }}</strong> producto(s) sin stock en el catálogo</span>
-          <a class="adm-btn adm-btn--sm adm-btn--suave" routerLink="/dashboard/mantenimiento/inventario">Ver inventario</a>
-        </li>
-        <li *ngIf="bajoStock">
-          <span class="adm-punto adm-punto--aviso" aria-hidden="true"></span>
-          <span class="ini-pendientes__texto"><strong>{{ bajoStock }}</strong> producto(s) por debajo del mínimo</span>
-          <a class="adm-btn adm-btn--sm adm-btn--suave" routerLink="/dashboard/mantenimiento/stock">Ver stock</a>
-        </li>
-        <li *ngIf="cpeAtencion">
-          <span class="adm-punto adm-punto--aviso" aria-hidden="true"></span>
-          <span class="ini-pendientes__texto"><strong>{{ cpeAtencion }}</strong> comprobante(s) electrónico(s) requieren revisión</span>
-          <a class="adm-btn adm-btn--sm adm-btn--suave" routerLink="/dashboard/mantenimiento/doc">Ver documentos</a>
-        </li>
-      </ul>
-    </div>
-  </section>
+  <div class="ini-fila ini-fila--pareja" [class.ini-fila--sola]="!veReportes || accesos.length === 0">
+
+    <!-- Lo más vendido -->
+    @if (veReportes) {
+      <section class="ini-tarjeta" aria-labelledby="ini-top-titulo" [attr.aria-busy]="cargando">
+        <div class="ini-tarjeta__cabecera">
+          <h2 id="ini-top-titulo" class="ini-tarjeta__titulo">Lo más vendido hoy</h2>
+          <a class="ini-tarjeta__enlace" routerLink="/dashboard/mantenimiento/reportes">Reporte completo</a>
+        </div>
+
+        @if (cargando) {
+          <div class="ini-esqueletos" aria-hidden="true">
+            <span class="adm-esqueleto adm-esqueleto--fila"></span>
+            <span class="adm-esqueleto adm-esqueleto--fila"></span>
+            <span class="adm-esqueleto adm-esqueleto--fila"></span>
+          </div>
+        } @else if (topProductos.length > 0) {
+          <ul class="ini-lista">
+            @for (p of topProductos; track $index) {
+              <li class="ini-lista__fila ini-lista__fila--top">
+                <span class="ini-lista__texto">
+                  {{ p.nombre }}
+                  <small>{{ p.unidades }}</small>
+                </span>
+                <span class="ini-barra" aria-hidden="true"><span class="ini-barra__relleno" [style.width.%]="p.ancho"></span></span>
+                <span class="ini-lista__monto">{{ soles(p.monto) }}</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <div class="ini-vacio" role="status">
+            <i class="bi bi-basket ini-vacio__icono" aria-hidden="true"></i>
+            <p class="ini-vacio__titulo">{{ ventasHoy == null ? 'No se pudo cargar' : 'Aún no hay ventas hoy' }}</p>
+            <p class="ini-vacio__texto">{{ ventasHoy == null ? 'Revisa la conexión y vuelve a entrar al inicio.' : 'Los productos más vendidos del día aparecerán aquí.' }}</p>
+          </div>
+        }
+      </section>
+    }
+
+    <!-- Accesos de todos los días -->
+    @if (accesos.length > 0) {
+      <section class="ini-tarjeta" aria-labelledby="ini-accesos-titulo">
+        <div class="ini-tarjeta__cabecera">
+          <h2 id="ini-accesos-titulo" class="ini-tarjeta__titulo">Accesos de todos los días</h2>
+        </div>
+        <div class="ini-accesos">
+          @for (a of accesos; track a.ruta) {
+            <a class="ini-acceso" [routerLink]="a.ruta">
+              <span [class]="'ini-acceso__icono ini-acceso__icono--' + a.tono"><i [class]="'bi ' + a.icono" aria-hidden="true"></i></span>
+              <span class="ini-acceso__texto">{{ a.titulo }}<small>{{ a.desc }}</small></span>
+            </a>
+          }
+        </div>
+      </section>
+    }
+  </div>
 
 </div>

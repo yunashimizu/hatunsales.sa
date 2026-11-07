@@ -11,7 +11,7 @@
   font-size: 11px;
   font-weight: 700;
 }
-.adm-pestania--activa .gre-form__numero { background: var(--adm-primario); color: #fff; }
+.adm-pestania--activa .gre-form__numero { background: var(--adm-primario); color: var(--adm-primario-texto); }
 
 .gre-form__paso { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .gre-form__fila { margin-top: 12px; }

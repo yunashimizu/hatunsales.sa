@@ -3,6 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
 import { opcionesHttp } from './api-base.service';
+import {
+  FiltroTurnosCaja,
+  ListadoTurnosCaja,
+  ResumenSucursalesCaja,
+} from '../models/caja-arqueo.models';
 
 export interface AperturaCaja {
   id_apertura: number;
@@ -13,6 +18,9 @@ export interface AperturaCaja {
   id_usuario: number | null;
   fecha: string | null;
   monto_inicial: number | null;
+  /** Solo en la respuesta de abrir: efectivo que dejó el último cierre de la caja y diferencia con lo declarado. */
+  sugerido_inicial?: number | null;
+  diferencia_sugerido?: number | null;
 }
 
 export interface ResumenTurnoCaja {
@@ -34,6 +42,23 @@ export interface CajaDisponible {
   id_sucursal: number | null;
   sucursal_nombre: string | null;
   ocupada: boolean;
+  /** Efectivo contado en el último cierre de esta caja; null si no hay cierre previo. */
+  sugerido_inicial?: number | null;
+}
+
+/** Cuerpo de POST /caja/abrir. `sin_efectivo: true` guarda 0.00 e ignora `monto_inicial`. */
+export interface AbrirCajaBody {
+  id_caja: number;
+  monto_inicial?: number | null;
+  sin_efectivo?: boolean;
+}
+
+function parametros(valores: object): Record<string, string | number> {
+  const salida: Record<string, string | number> = {};
+  for (const [clave, valor] of Object.entries(valores)) {
+    if (valor !== null && valor !== undefined && valor !== '') salida[clave] = valor as string | number;
+  }
+  return salida;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -48,8 +73,34 @@ export class CajaSesionService {
     return this.http.get<{ items: CajaDisponible[] }>(urlConstants.caja.disponibles, opcionesHttp());
   }
 
-  abrir(body: { id_caja: number; monto_inicial?: number | null }): Observable<AperturaCaja> {
+  abrir(body: AbrirCajaBody): Observable<AperturaCaja> {
     return this.http.post<AperturaCaja>(urlConstants.caja.abrir, body, opcionesHttp());
+  }
+
+  /** Turnos paginados. Solo se mandan los filtros con valor. */
+  aperturas(filtro: FiltroTurnosCaja = {}): Observable<ListadoTurnosCaja> {
+    return this.http.get<ListadoTurnosCaja>(urlConstants.caja.aperturas, {
+      ...opcionesHttp(),
+      params: parametros(filtro),
+    });
+  }
+
+  resumenSucursales(rango: { desde?: string | null; hasta?: string | null } = {}): Observable<ResumenSucursalesCaja> {
+    return this.http.get<ResumenSucursalesCaja>(urlConstants.caja.resumenSucursales, {
+      ...opcionesHttp(),
+      params: parametros(rango),
+    });
+  }
+
+  /** PDF del resumen por sucursal. `id_sucursal` solo viaja si hay una sucursal elegida. */
+  resumenSucursalesPdf(
+    filtro: { desde?: string | null; hasta?: string | null; id_sucursal?: number | null } = {},
+  ): Observable<Blob> {
+    return this.http.get(urlConstants.caja.resumenSucursalesPdf, {
+      ...opcionesHttp(),
+      params: parametros(filtro),
+      responseType: 'blob',
+    });
   }
 
   cerrar(body: {

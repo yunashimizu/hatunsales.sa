@@ -126,7 +126,10 @@
             </div>
             <div class="adm-campo">
               <span class="adm-etiqueta">Monto inicial</span>
-              <div class="adm-cifra">{{ apertura.monto_inicial != null ? (apertura.monto_inicial | number:'1.2-2') : '—' }}</div>
+              <div class="adm-cifra">
+                @if (apertura.monto_inicial != null) { S/ {{ apertura.monto_inicial | number:'1.2-2' }} }
+                @else { <span class="adm-texto-suave">sin dato</span> }
+              </div>
             </div>
           </div>
 
@@ -134,7 +137,7 @@
             <div class="adm-bloque caja-cierre">
               <h3 class="adm-bloque__titulo"><i class="bi bi-lock" aria-hidden="true"></i> Cerrar el turno</h3>
               <div class="adm-fila">
-                <div class="adm-campo"><label class="adm-etiqueta" for="monto-conteo">Efectivo contado (opcional)</label><input id="monto-conteo" class="adm-input" type="number" min="0" max="10000000" step="0.01" [(ngModel)]="montoConteo" [disabled]="cerrando"></div>
+                <div class="adm-campo"><label class="adm-etiqueta" for="monto-conteo">Efectivo contado (opcional)</label><input id="monto-conteo" class="adm-input" type="number" inputmode="decimal" min="0" max="10000000" step="0.01" [(ngModel)]="montoConteo" [disabled]="cerrando"></div>
                 <div class="adm-campo"><label class="adm-etiqueta" for="obs-cierre">Observación</label><input id="obs-cierre" class="adm-input" maxlength="500" [(ngModel)]="observacion" [disabled]="cerrando"></div>
               </div>
               <button class="adm-btn adm-btn--primario" type="button" (click)="cerrarSinArqueo()" [disabled]="cerrando || cargando">{{ cerrando ? 'Cerrando…' : 'Cerrar turno' }}</button>
@@ -177,14 +180,131 @@
           <p class="adm-ayuda caja-ayuda">Las ocupadas ya tienen un turno abierto.</p>
 
           <div class="adm-campo caja-campo-monto">
-            <label class="adm-etiqueta" for="monto-ini">Monto inicial (opcional)</label>
-            <div class="adm-input-grupo">
-              <span class="adm-input-grupo__afijo" aria-hidden="true">S/</span>
-              <input id="monto-ini" class="adm-input adm-input--num" type="number" min="0" step="0.01"
-                     [(ngModel)]="montoInicial" placeholder="0.00">
+            <span class="adm-etiqueta" id="efectivo-modo-etiqueta">Efectivo al abrir</span>
+            <div class="adm-segmentado adm-segmentado--bloque caja-modo" role="radiogroup" aria-labelledby="efectivo-modo-etiqueta">
+              <button type="button" class="adm-segmento" role="radio" id="modo-con-efectivo"
+                      [class.adm-segmento--activo]="conEfectivo" [attr.aria-checked]="conEfectivo"
+                      (click)="elegirModo(true)">
+                <i class="bi bi-cash-coin" aria-hidden="true"></i> Con efectivo
+              </button>
+              <button type="button" class="adm-segmento" role="radio" id="modo-sin-efectivo"
+                      [class.adm-segmento--activo]="!conEfectivo" [attr.aria-checked]="!conEfectivo"
+                      (click)="elegirModo(false)">
+                <i class="bi bi-slash-circle" aria-hidden="true"></i> Sin efectivo
+              </button>
             </div>
           </div>
-          <p class="adm-ayuda caja-ayuda">Efectivo con el que arrancas el turno.</p>
+
+          @if (conEfectivo) {
+            <div class="adm-campo caja-campo-monto">
+              <label class="adm-etiqueta" for="monto-ini">Monto inicial</label>
+              <div class="adm-input-grupo">
+                <span class="adm-input-grupo__afijo" aria-hidden="true">S/</span>
+                <input id="monto-ini" class="adm-input adm-input--num" type="number" inputmode="decimal"
+                       min="0" max="9999999.99" step="0.01" autocomplete="off"
+                       [(ngModel)]="montoInicial" (ngModelChange)="alEditarMonto()" placeholder="0.00"
+                       [class.adm-input--error]="!!errorMonto"
+                       [attr.aria-invalid]="errorMonto ? 'true' : null"
+                       [attr.aria-describedby]="errorMonto ? 'monto-ini-error' : 'monto-ini-ayuda'">
+              </div>
+              @if (errorMonto) {
+                <p class="adm-ayuda adm-ayuda--error" id="monto-ini-error" role="alert">
+                  <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ errorMonto }}
+                </p>
+              } @else {
+                <p class="adm-ayuda caja-ayuda" id="monto-ini-ayuda">Efectivo con el que arrancas el turno.</p>
+              }
+            </div>
+
+            <!-- Ayuda para contar billetes y monedas: solo calcula el monto inicial, no se envía -->
+            <div class="caja-desglose">
+              <button type="button" class="adm-btn adm-btn--suave caja-desglose__toggle" id="desglose-toggle"
+                      [attr.aria-expanded]="desgloseAbierto" aria-controls="desglose-panel"
+                      (click)="alternarDesglose()">
+                <i class="bi" [ngClass]="desgloseAbierto ? 'bi-chevron-up' : 'bi-calculator'" aria-hidden="true"></i>
+                Contar billetes y monedas
+              </button>
+              <div aria-live="polite" class="caja-desglose__aviso-region">
+                @if (avisoDesglose) {
+                  <p class="adm-ayuda caja-desglose__aviso" id="desglose-aviso">
+                    <i class="bi bi-info-circle" aria-hidden="true"></i> {{ avisoDesglose }}
+                  </p>
+                }
+              </div>
+              @if (desgloseAbierto) {
+                <div class="caja-desglose__panel" id="desglose-panel">
+                  <p class="adm-ayuda caja-ayuda">
+                    Escribe cuántas piezas tienes de cada una; el total llena «Monto inicial». Es solo una ayuda: el desglose no se guarda.
+                  </p>
+                  <div class="caja-desglose__rejilla">
+                    @for (grupo of [{ titulo: 'Billetes', lineas: conteoBilletes }, { titulo: 'Monedas', lineas: conteoMonedas }]; track grupo.titulo) {
+                      <fieldset class="caja-desglose__grupo">
+                        <legend class="caja-desglose__titulo">{{ grupo.titulo }}</legend>
+                        @for (l of grupo.lineas; track l.centimos) {
+                          <div class="caja-den" [class.caja-den--con-cantidad]="(l.cantidad || 0) > 0">
+                            <label class="adm-etiqueta caja-den__etiqueta" [for]="'den-' + l.centimos">{{ l.etiqueta }}</label>
+                            <input class="adm-input adm-input--num caja-den__input" [id]="'den-' + l.centimos"
+                                   type="number" inputmode="numeric" min="0" [max]="maxCantidadDenominacion" step="1"
+                                   autocomplete="off" placeholder="0"
+                                   [(ngModel)]="l.cantidad" (ngModelChange)="alCambiarConteo()"
+                                   [class.adm-input--error]="cantidadInvalida(l)"
+                                   [attr.aria-invalid]="cantidadInvalida(l) ? 'true' : null"
+                                   [attr.aria-describedby]="cantidadInvalida(l) ? 'den-error' : null">
+                            <span class="adm-tabular caja-den__subtotal">S/ {{ subtotalConteo(l) | number:'1.2-2' }}</span>
+                          </div>
+                        }
+                      </fieldset>
+                    }
+                  </div>
+                  @if (conteoTieneErrores) {
+                    <p class="adm-ayuda adm-ayuda--error" id="den-error" role="alert">
+                      <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                      Usa números enteros de 0 a {{ maxCantidadDenominacion | number }}. Lo inválido no se suma.
+                    </p>
+                  }
+                  <div class="caja-desglose__total">
+                    <span class="caja-desglose__total-texto" id="desglose-total" aria-live="polite" aria-atomic="true">
+                      Total contado: <strong class="adm-tabular">S/ {{ totalConteo | number:'1.2-2' }}</strong>
+                    </span>
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" id="desglose-limpiar"
+                            (click)="limpiarConteo()" [disabled]="!conteoConDatos">
+                      <i class="bi bi-eraser" aria-hidden="true"></i> Borrar conteo
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="adm-ayuda caja-ayuda" id="sin-efectivo-ayuda">
+              El turno se abrirá con S/ 0.00 de forma explícita.
+            </p>
+          }
+
+          <!-- Sugerido: lo que dejó el último turno cerrado de esta caja -->
+          @if (sugerido !== null) {
+            <div class="caja-sugerido">
+              <span class="caja-sugerido__texto" id="caja-sugerido-texto">
+                Dejó <strong class="adm-tabular">S/ {{ sugerido | number:'1.2-2' }}</strong> el último turno
+              </span>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" id="usar-sugerido"
+                      (click)="usarSugerido()"
+                      [disabled]="conEfectivo && montoInicial === sugerido">
+                <i class="bi bi-arrow-down-circle" aria-hidden="true"></i> Usar sugerido
+              </button>
+            </div>
+          }
+          <div aria-live="polite" class="caja-diferencia-region">
+            @if (diferenciaSugerido; as dif) {
+              <p class="adm-aviso adm-aviso--aviso adm-aviso--compacto caja-aviso" id="aviso-diferencia">
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                <span>
+                  Difiere S/ {{ (dif < 0 ? -dif : dif) | number:'1.2-2' }} del sugerido
+                  ({{ dif < 0 ? 'abres con menos efectivo' : 'abres con más efectivo' }}).
+                  Puedes abrir igual; queda registrado.
+                </span>
+              </p>
+            }
+          </div>
 
           <div class="adm-acciones caja-acciones">
             <button type="button" class="adm-btn adm-btn--primario"

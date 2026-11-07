@@ -1,0 +1,397 @@
+/* Arqueo de caja · sistema compartido (admin-ui.css, clases adm-*); aquí solo lo propio, con prefijo arq-.
+   Diseñado desde 360 px (una columna). El ancho lo decide el contenedor (@container), no la pantalla,
+   porque el panel puede tener barra lateral. */
+:host {
+  display: block;
+}
+
+.arq-listados {
+  container-type: inline-size;
+  container-name: arq;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.arq-listados > * {
+  min-width: 0;
+}
+
+.arq-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.arq-seccion__titulo {
+  margin: 0;
+  min-width: 0;
+}
+
+/* Título de la sección y botón «Descargar PDF»: en móvil el botón ocupa la fila (44 px) */
+.arq-seccion__cabecera {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.arq-pdf {
+  min-height: 44px;
+  justify-content: center;
+}
+
+.arq-pdf-error {
+  margin: 0;
+}
+
+.arq-aviso {
+  margin: 12px 0 0;
+}
+
+.arq-ayuda {
+  margin: 12px 0 0;
+}
+
+.arq-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── Filtros: apilados en una columna; se reparten al ensanchar ───────────── */
+.arq-filtros {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.arq-filtros .adm-campo,
+.arq-filtros .adm-input,
+.arq-filtros .adm-select {
+  min-width: 0;
+  width: 100%;
+}
+
+.arq-filtros__acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.arq-filtros__acciones .adm-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.arq-filtros .adm-btn,
+.arq-filtros .adm-input,
+.arq-filtros .adm-select {
+  min-height: 44px;
+}
+
+/* ── Tarjetas por sucursal ────────────────────────────────────────────────── */
+.arq-sucursales {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.arq-sucursal__cabecera {
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.arq-sucursal .adm-tarjeta__titulo {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.arq-datos {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.arq-datos__fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--adm-borde);
+  font-size: var(--adm-fs-cuerpo);
+}
+
+.arq-datos__fila:last-child {
+  border-bottom: 0;
+}
+
+.arq-datos dt {
+  min-width: 0;
+  font-size: var(--adm-fs-etiqueta);
+  color: var(--adm-texto-suave);
+}
+
+.arq-datos dd {
+  margin: 0;
+  text-align: right;
+  font-weight: var(--fw-semi);
+  color: var(--adm-texto);
+  overflow-wrap: anywhere;
+}
+
+.arq-datos__fila--total dd {
+  font-size: var(--adm-fs-titulo-tarjeta);
+}
+
+.arq-metodos {
+  margin: 12px 0 0;
+}
+
+/* Diferencia: el color acompaña al texto «Sobra/Falta/Cuadra», nunca va solo */
+.arq-dif.arq-dif--falta {
+  color: var(--adm-peligro-texto);
+  font-weight: var(--fw-negrita);
+}
+
+.arq-dif.arq-dif--sobra {
+  color: var(--adm-aviso-texto);
+  font-weight: var(--fw-negrita);
+}
+
+.arq-dif.arq-dif--cuadra {
+  color: var(--adm-exito-texto);
+}
+
+/* ── Tabla de turnos ──────────────────────────────────────────────────────── */
+.arq-tabla thead th {
+  font-size: var(--adm-fs-ayuda);
+}
+
+.arq-celda-turno {
+  min-width: 160px;
+}
+
+.arq-celda-turno__texto {
+  min-width: 0;
+}
+
+/* ── Paginador: botones anchos para el pulgar ─────────────────────────────── */
+.arq-paginacion {
+  justify-content: center;
+}
+
+.arq-paginacion .adm-paginacion__botones {
+  width: 100%;
+  gap: 8px;
+}
+
+.arq-paginacion .adm-btn {
+  flex: 1 1 0;
+  min-height: 44px;
+}
+
+.arq-ver {
+  min-height: 44px;
+}
+
+/* ── Anchuras medias y amplias ────────────────────────────────────────────── */
+@container arq (min-width: 560px) {
+  .arq-seccion__cabecera {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .arq-pdf {
+    flex: 0 0 auto;
+    min-height: 40px;
+  }
+
+  .arq-filtros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .arq-filtros__acciones {
+    grid-column: 1 / -1;
+    flex-direction: row;
+  }
+
+  .arq-filtros .adm-btn {
+    min-height: 40px;
+  }
+
+  .arq-paginacion {
+    justify-content: space-between;
+  }
+
+  .arq-paginacion .adm-paginacion__botones {
+    width: auto;
+  }
+
+  .arq-paginacion .adm-btn {
+    flex: 0 0 auto;
+    min-height: 40px;
+  }
+}
+
+@container arq (min-width: 900px) {
+  .arq-filtros {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    align-items: end;
+  }
+
+  /* Los botones van en su propia fila: en una celda de la grilla quedaban aplastados («Apli»). */
+  .arq-filtros__acciones {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Con ≥ 900 px el Total deja de ser una tarjeta más y pasa a barra de ancho completo, con sus montos en línea.
+   Así nunca queda solo en una segunda fila de la grilla. */
+@container arq (min-width: 900px) {
+  .arq-sucursal--total {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .arq-sucursal--total .arq-sucursal__cabecera {
+    flex-wrap: nowrap;
+    padding: 12px 20px;
+    border-bottom: 0;
+    border-right: 1px solid var(--adm-primario-borde);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .arq-sucursal--total .adm-tarjeta__titulo {
+    white-space: nowrap;
+  }
+
+  .arq-sucursal--total .adm-tarjeta__cuerpo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 28px;
+    padding: 12px 20px;
+  }
+
+  .arq-sucursal--total .arq-datos {
+    flex: 1 1 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+  }
+
+  .arq-sucursal--total .arq-datos__fila {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .arq-sucursal--total .arq-datos dd {
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .arq-sucursal--total .arq-metodos {
+    margin: 0;
+  }
+}
+
+/* ── Turnos: tarjetas apiladas bajo 1200 px (la tabla de 9 columnas, con el botón Ver arqueo, no cabe antes), con la etiqueta de cada dato ──── */
+@container arq (max-width: 1199px) {
+  .arq-tabla,
+  .arq-tabla tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .arq-tabla thead {
+    display: none;
+  }
+
+  .arq-tabla tbody tr {
+    display: block;
+    margin: 10px 12px;
+    padding: 6px 0;
+    border: 1px solid var(--adm-borde);
+    border-radius: var(--adm-r-md);
+    background: var(--adm-superficie);
+    box-shadow: var(--adm-sombra-sm);
+  }
+
+  .arq-tabla tbody tr:hover {
+    background: var(--adm-superficie);
+  }
+
+  .arq-tabla tbody td,
+  .arq-tabla tbody td:first-child,
+  .arq-tabla tbody td:last-child {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 7px 12px;
+    border-bottom: 0;
+    text-align: right;
+    min-width: 0;
+  }
+
+  .arq-tabla tbody td::before {
+    content: attr(data-etiqueta);
+    flex-shrink: 0;
+    font-size: var(--adm-fs-ayuda);
+    font-weight: var(--fw-negrita);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--adm-texto-suave);
+    text-align: left;
+  }
+
+  .arq-tabla .arq-celda-turno {
+    min-width: 0;
+    align-items: flex-start;
+  }
+
+  .arq-tabla .arq-celda-turno__texto {
+    min-width: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .arq-tabla .arq-celda-accion {
+    padding-top: 10px;
+  }
+
+  .arq-tabla .arq-celda-accion::before {
+    content: none;
+  }
+
+  .arq-tabla .arq-ver {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+/* Cabecera de la pantalla en móvil: los botones ocupan todo el ancho y miden 44 px */
+@media (max-width: 640px) {
+  .adm-acciones .adm-btn {
+    min-height: 44px;
+  }
+
+  .adm-acciones .adm-btn,
+  .adm-fila .adm-input {
+    min-height: 44px;
+  }
+}

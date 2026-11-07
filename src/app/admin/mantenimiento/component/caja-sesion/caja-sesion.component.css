@@ -18,7 +18,8 @@
   gap: 8px 20px;
   padding: 20px 24px 20px 28px;
   border-color: color-mix(in srgb, var(--caja-estado) 38%, var(--adm-borde));
-  background: linear-gradient(135deg, color-mix(in srgb, var(--caja-estado) 14%, var(--adm-superficie)) 0%, var(--adm-superficie) 72%);
+  /* Acero y oro: superficie plana; el estado lo da la barra lateral y el borde, no un degradado. */
+  background: color-mix(in srgb, var(--caja-estado) 6%, var(--adm-superficie));
 }
 
 .caja-turno.caja-turno--abierta {
@@ -86,8 +87,8 @@
 }
 
 .caja-turno__total-etiqueta {
-  font-family: var(--x-mono, var(--adm-fuente-mono));
-  font-size: var(--adm-fs-rotulo);
+  font-family: inherit;
+  font-size: var(--adm-fs-ayuda);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--adm-texto-suave);
@@ -144,10 +145,10 @@
 
 .caja-cifra .adm-etiqueta,
 .caja-datos .adm-etiqueta {
-  font-family: var(--x-mono, var(--adm-fuente-mono));
-  font-size: var(--adm-fs-rotulo);
+  font-family: inherit;
+  font-size: var(--adm-fs-ayuda);
   font-weight: 500;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--adm-texto-suave);
 }
@@ -225,6 +226,161 @@
   margin: 0;
 }
 
+/* Sugerido del último turno y selector Con/Sin efectivo (pensado desde 360 px: una columna) */
+.caja-modo {
+  margin-top: 4px;
+}
+
+.caja-sugerido {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--adm-superficie-2);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  font-size: var(--adm-fs-etiqueta);
+  color: var(--adm-texto-2);
+}
+
+.caja-sugerido__texto {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.caja-diferencia-region:empty {
+  display: none;
+}
+
+.caja-acciones .adm-btn {
+  min-width: 0;
+}
+
+/* ── Contar billetes y monedas (una columna desde 360 px; dos columnas con 640 px de contenedor) ── */
+.caja-desglose {
+  container-type: inline-size;
+  container-name: desglose;
+  margin-top: 12px;
+}
+
+.caja-desglose__toggle {
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.caja-desglose__aviso-region:empty {
+  display: none;
+}
+
+.caja-desglose__aviso {
+  margin: 8px 0 0;
+}
+
+.caja-desglose__panel {
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--adm-superficie-2);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+}
+
+.caja-desglose__rejilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.caja-desglose__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.caja-desglose__titulo {
+  margin: 0 0 8px;
+  padding: 0;
+  font-family: inherit;
+  font-size: var(--adm-fs-ayuda);
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--adm-texto-suave);
+}
+
+.caja-den {
+  display: grid;
+  grid-template-columns: 4.25rem minmax(0, 1fr) minmax(5rem, auto);
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--adm-r-md);
+}
+
+.caja-den--con-cantidad {
+  background: var(--adm-primario-claro);
+  border-color: var(--adm-primario-borde);
+}
+
+.caja-den__etiqueta {
+  margin: 0;
+  font-family: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.caja-den .caja-den__input {
+  min-width: 0;
+  min-height: 44px;
+}
+
+.caja-den__subtotal {
+  text-align: right;
+  font-size: var(--adm-fs-etiqueta);
+  color: var(--adm-texto-suave);
+}
+
+.caja-den--con-cantidad .caja-den__subtotal {
+  font-weight: var(--fw-negrita);
+  color: var(--adm-primario);
+}
+
+.caja-desglose__total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--adm-borde);
+}
+
+.caja-desglose__total-texto {
+  min-width: 0;
+  font-size: var(--fs-lg, 1.125rem);
+}
+
+.caja-desglose__total .adm-btn {
+  min-height: 44px;
+}
+
+@container desglose (min-width: 640px) {
+  .caja-desglose__rejilla {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+    align-items: start;
+  }
+}
+
 @media (max-width: 1200px) {
   /* La rejilla de 4 pasa a 2 columnas: la pieza principal ocupa toda la fila */
   .caja-resumen > .caja-turno { grid-column: 1 / -1; }
@@ -242,4 +398,12 @@
   }
 
   .caja-cifras { grid-template-columns: minmax(0, 1fr); }
+
+  /* Móvil: objetivos táctiles de 44 px aunque el puntero no se declare grueso */
+  .caja-columnas .adm-btn,
+  .caja-columnas .adm-input,
+  .caja-columnas .adm-select,
+  .caja-columnas .adm-segmento { min-height: 44px; }
+  .caja-sugerido .adm-btn { flex: 1 1 100%; }
+  .caja-acciones .adm-btn { flex: 1 1 100%; }
 }

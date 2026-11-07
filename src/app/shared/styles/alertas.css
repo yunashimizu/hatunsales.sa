@@ -58,7 +58,7 @@
 
   /* Colores de botones (también los usa el hover de Swal con color-mix) */
   --swal2-confirm-button-background-color: var(--adm-primario, #2563eb);
-  --swal2-confirm-button-color: #ffffff;
+  --swal2-confirm-button-color: var(--adm-primario-texto, #ffffff);
   --swal2-deny-button-background-color: #ffffff;
   --swal2-deny-button-color: var(--adm-texto-2, #1e293b);
   --swal2-cancel-button-background-color: #ffffff;

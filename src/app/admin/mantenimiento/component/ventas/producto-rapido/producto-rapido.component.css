@@ -41,7 +41,7 @@
 }
 
 .pvr-parecido__detalle {
-  font-size: 12px;
+  font-size: var(--adm-fs-ayuda);
   color: var(--adm-texto-suave);
 }
 
@@ -93,7 +93,7 @@
 }
 
 .pvr-fijo__detalle {
-  font-size: 12.5px;
+  font-size: var(--adm-fs-ayuda);
   color: var(--adm-texto-suave);
 }
 

@@ -25,95 +25,121 @@
   --adm-fuente-titulos: var(--hs-fuente-titulos);
   --adm-fuente-mono: var(--hs-fuente-mono);
 
-  /* Tamaños con nombre de uso (para el CSS de cada página) */
-  --adm-fs-cuerpo: var(--fs-base);     /* 14 · texto de página, celdas, campos */
+  /* Tamaños con nombre de uso (para el CSS de cada página) · piel «Acero y oro» */
+  --adm-fs-cuerpo: var(--fs-md);       /* 15 · texto de página, celdas, campos */
   --adm-fs-etiqueta: var(--fs-sm);     /* 13 · labels, pestañas, avisos */
-  --adm-fs-ayuda: var(--fs-xs);        /* 12 · ayudas, metadatos, insignias */
-  --adm-fs-rotulo: var(--fs-2xs);      /* 11 · rótulos en MAYÚSCULAS */
-  --adm-fs-titulo-tarjeta: var(--fs-lg);   /* 16 */
+  --adm-fs-ayuda: 0.78125rem;          /* 12,5 · ayudas, metadatos, insignias */
+  --adm-fs-rotulo: 0.71875rem;         /* 11,5 · rótulos en MAYÚSCULAS */
+  --adm-fs-titulo-tarjeta: var(--fs-xl);   /* 17-18 */
   --adm-fs-titulo-seccion: var(--fs-xl);   /* 18 */
-  --adm-fs-total: var(--fs-3xl);           /* 24 · totales a pagar */
+  --adm-fs-total: 2.25rem;                 /* 36 · total a pagar */
 
-  --adm-fondo: #f3f5fa;
-  --adm-fondo-2: #eceff7;
+  /* Superficies: papel cálido, blanco y grises con rol fijo */
+  --adm-fondo: #f4f3ef;
+  --adm-fondo-2: #efede7;
   --adm-superficie: #ffffff;
-  --adm-superficie-2: #f8fafc;
-  --adm-superficie-3: #f1f4f9;
-  --adm-borde: #e4e8f0;
-  --adm-borde-fuerte: #cfd6e2;
+  --adm-superficie-2: #faf9f6;
+  --adm-superficie-3: #f0eee8;
+  --adm-borde: #e4e2dc;
+  --adm-borde-fuerte: #cfccc4;
 
-  --adm-texto: #0f172a;
-  --adm-texto-2: #1e293b;
-  --adm-texto-suave: #5b6578;   /* 5,9:1 sobre blanco */
-  --adm-texto-tenue: #667085;   /* 5,0:1 sobre blanco y ≥ 4,5:1 sobre las superficies grises (antes #8a94a6, 3,1:1) */
+  --adm-texto: #1f201f;         /* 16:1 */
+  --adm-texto-2: #3e403f;       /* 10:1 */
+  --adm-texto-suave: #5a5c5b;   /* 7:1 sobre blanco */
+  --adm-texto-tenue: #75777a;   /* 4,6:1 sobre blanco */
 
-  --adm-primario: #2563eb;
-  --adm-primario-osc: #1d4ed8;
-  --adm-primario-claro: #eff6ff;
-  --adm-primario-suave: #dbeafe;
-  --adm-primario-borde: #bfdbfe;
-  --adm-violeta: #7c3aed;
-  --adm-gradiente: linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%);
-  --adm-gradiente-vivo: linear-gradient(135deg, #60a5fa 0%, #2563eb 55%, #1d4ed8 100%);
+  /* Acción: grafito. El oro (--adm-marca) es el acento de la marca:
+     texto oro SIEMPRE #8a6f3c sobre claro; #b8975a solo barras, bordes e iconos. */
+  --adm-primario: #2b2c2b;
+  --adm-primario-osc: #1f201f;
+  --adm-primario-claro: #f3ecdc;     /* fondo suave de «activo» (tinte oro) */
+  --adm-primario-suave: #e8ddbf;
+  --adm-primario-borde: #e3d3ab;
+  --adm-primario-texto: #ffffff;     /* letra sobre un relleno --adm-primario */
+  --adm-violeta: #8a6f3c;
+  --adm-gradiente: #2b2c2b;          /* relleno de acción (antes degradado azul) */
+  --adm-gradiente-vivo: #b8975a;     /* barras de progreso y acentos: oro */
+
+  --adm-marca: #b8975a;
+  --adm-marca-osc: #6e5730;
+  --adm-marca-texto: #8a6f3c;
+  --adm-marca-claro: #f3ecdc;
+  --adm-marca-borde: #e3d3ab;
 
   /* Estados: el color base es para iconos, puntos, barras y fondos sólidos;
-     el «-texto» es el que se usa en letras (≥ 4,5:1 sobre blanco y sobre su
-     fondo claro). */
-  --adm-exito: #059669;
-  --adm-exito-texto: #047857;
-  --adm-exito-claro: #ecfdf5;
-  --adm-exito-borde: #a7f3d0;
-  --adm-peligro: #dc2626;
-  --adm-peligro-texto: #b91c1c;
-  --adm-peligro-claro: #fef2f2;
-  --adm-peligro-borde: #fecaca;
-  --adm-aviso: #d97706;
-  --adm-aviso-texto: #b45309;
-  --adm-aviso-claro: #fffbeb;
-  --adm-aviso-borde: #fde68a;
-  --adm-info: #0284c7;
-  --adm-info-texto: #0369a1;
-  --adm-info-claro: #f0f9ff;
-  --adm-info-borde: #bae6fd;
+     el «-texto» es el que se usa en letras. «dinero» = éxito (Cobrar, vuelto, caja abierta). */
+  --adm-exito: #1e7b34;
+  --adm-exito-texto: #1e7b34;
+  --adm-exito-claro: #e8f4ea;
+  --adm-exito-borde: #cbe5d1;
+  --adm-dinero: var(--adm-exito);
+  --adm-dinero-claro: var(--adm-exito-claro);
+  --adm-dinero-borde: var(--adm-exito-borde);
+  --adm-peligro: #b42318;
+  --adm-peligro-texto: #b42318;
+  --adm-peligro-claro: #fbeae7;
+  --adm-peligro-borde: #f2cbc5;
+  --adm-aviso: #9a5b13;
+  --adm-aviso-texto: #9a5b13;
+  --adm-aviso-claro: #fbf3e4;
+  --adm-aviso-borde: #f0d9b5;
+  --adm-info: #3e5c76;
+  --adm-info-texto: #2f4b63;
+  --adm-info-claro: #eef3f7;
+  --adm-info-borde: #cfdce7;
 
-  /* Tokens que antes eran colores sueltos en este archivo: en claro valen lo mismo
-     que antes; tema-oscuro.css los redefine. */
-  --adm-borde-hover: #d6dce8;
-  --adm-borde-campo-hover: #a9b4c6;
-  --adm-borde-boton-hover: #b3bdcc;
-  --adm-interruptor-off: #cbd5e1;
-  --adm-hover-fila: #f6f7fd;
-  --adm-zebra: #fafbfe;
-  --adm-hover-fila-zebra: #f3f5fd;
-  --adm-esqueleto-fondo: #eceff5;
+  /* Tokens que antes eran colores sueltos en este archivo; tema-oscuro.css los redefine. */
+  --adm-borde-hover: #d9d6ce;
+  --adm-borde-campo-hover: #a8a59c;
+  --adm-borde-boton-hover: #b5b2a9;
+  --adm-interruptor-off: #cfccc4;
+  --adm-hover-fila: #faf9f6;
+  --adm-zebra: #fbfaf7;
+  --adm-hover-fila-zebra: #f6f4ef;
+  --adm-esqueleto-fondo: #ece9e2;
   --adm-esqueleto-brillo: rgba(255, 255, 255, 0.72);
   --adm-velo-carga: rgba(255, 255, 255, 0.72);
-  --adm-oscuro-fondo: #0f172a;
-  --adm-oscuro-fondo-hover: #1e293b;
+  --adm-oscuro-fondo: #2b2c2b;
+  --adm-oscuro-fondo-hover: #1f201f;
   --adm-oscuro-texto: #ffffff;
-  --adm-aviso-info-texto: #075985;
-  --adm-aviso-exito-texto: #065f46;
-  --adm-aviso-aviso-texto: #92400e;
-  --adm-aviso-peligro-texto: #991b1b;
-  --adm-peligro-suave-hover: #fee2e2;
+  --adm-aviso-info-texto: #2f4b63;
+  --adm-aviso-exito-texto: #176028;
+  --adm-aviso-aviso-texto: #7a4810;
+  --adm-aviso-peligro-texto: #8f1d14;
+  --adm-peligro-suave-hover: #f6d6d1;
   /* Rellenos con letra blanca (botones de estado): el mismo tono en claro y oscuro, ≥ 4,5:1 con blanco */
-  --adm-exito-solido: #047857;
-  --adm-peligro-solido: #dc2626;
-  --adm-aviso-solido: #b45309;
-  --adm-punteado: rgba(15, 23, 42, 0.07);   /* puntos de la cuadrícula de fondo */
+  --adm-exito-solido: #1e7b34;
+  --adm-peligro-solido: #b42318;
+  --adm-aviso-solido: #9a5b13;
+  --adm-punteado: rgba(31, 32, 31, 0.06);   /* puntos de la cuadrícula de fondo */
 
+  /* Radios: 6 chips pequeños · 10 botones chicos · 12 campos y botones · 16 tarjetas · 18 ticket */
   --adm-r-xs: 6px;
-  --adm-r-sm: 9px;
+  --adm-r-sm: 10px;
   --adm-r-md: 12px;
-  --adm-r-lg: 18px;
-  --adm-r-xl: 24px;
+  --adm-r-lg: 16px;
+  --adm-r-xl: 18px;
+  --adm-r-tile: 14px;
 
-  --adm-sombra-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 1px rgba(15, 23, 42, 0.03);
-  --adm-sombra: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px -3px rgba(15, 23, 42, 0.07);
-  --adm-sombra-md: 0 6px 18px -4px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.05);
-  --adm-sombra-lg: 0 22px 54px -14px rgba(15, 23, 42, 0.20), 0 8px 20px -8px rgba(15, 23, 42, 0.08);
-  --adm-sombra-primario: 0 6px 16px -4px rgba(37, 99, 235, 0.45);
-  --adm-anillo: 0 0 0 4px rgba(37, 99, 235, 0.14);
+  /* Sin sombras ornamentales: las superficies se separan con borde de 1 px.
+     Solo menús y modales llevan sombra. (Valores «cero» y no `none`, para poder listarlos con otras sombras.) */
+  --adm-sombra-sm: 0 0 0 0 transparent;
+  --adm-sombra: 0 0 0 0 transparent;
+  --adm-sombra-md: 0 8px 24px -8px rgba(31, 32, 31, 0.2);
+  --adm-sombra-lg: 0 16px 40px -12px rgba(31, 32, 31, 0.28);
+  --adm-sombra-primario: 0 0 0 0 transparent;
+  --adm-anillo: 0 0 0 3px rgba(184, 151, 90, 0.18);
+
+  /* Alturas */
+  --adm-h-input: 44px;
+  --adm-h-input-escaner: 56px;
+  --adm-h-boton: 44px;
+  --adm-h-boton-chico: 36px;
+  --adm-h-cobrar: 58px;
+  --adm-h-fila: 48px;
+  --adm-h-cabecera-tabla: 40px;
+  --adm-h-barra: 64px;
+  --adm-ancho-sidebar: 240px;
 
   /* Movimiento: derivan del sistema global (movimiento.css). */
   --adm-transicion: var(--mov-micro, 140ms) var(--ease-salida-suave, cubic-bezier(0.2, 0, 0, 1));
@@ -167,18 +193,17 @@
   width: 52px;
   height: 52px;
   flex-shrink: 0;
-  border-radius: 15px;
+  border-radius: var(--adm-r-md);
   background: var(--adm-gradiente);
-  color: #fff;
+  color: var(--adm-primario-texto);
   font-size: 22px;
-  box-shadow: var(--adm-sombra-primario), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
-.adm-cabecera__icono--exito   { background: linear-gradient(135deg, #34d399, #059669); box-shadow: 0 6px 16px -4px rgba(5, 150, 105, 0.45); }
-.adm-cabecera__icono--aviso   { background: linear-gradient(135deg, #fbbf24, #d97706); box-shadow: 0 6px 16px -4px rgba(217, 119, 6, 0.45); }
-.adm-cabecera__icono--peligro { background: linear-gradient(135deg, #f87171, #dc2626); box-shadow: 0 6px 16px -4px rgba(220, 38, 38, 0.45); }
-.adm-cabecera__icono--info    { background: linear-gradient(135deg, #38bdf8, #0284c7); box-shadow: 0 6px 16px -4px rgba(2, 132, 199, 0.45); }
-.adm-cabecera__icono--oscuro  { background: linear-gradient(135deg, #334155, #0f172a); box-shadow: 0 6px 16px -4px rgba(15, 23, 42, 0.45); }
+.adm-cabecera__icono--exito   { background: var(--adm-exito); }
+.adm-cabecera__icono--aviso   { background: var(--adm-aviso); }
+.adm-cabecera__icono--peligro { background: var(--adm-peligro); }
+.adm-cabecera__icono--info    { background: var(--adm-info); }
+.adm-cabecera__icono--oscuro  { background: var(--adm-oscuro-fondo); }
 
 .adm-cabecera__eyebrow {
   display: inline-flex;
@@ -191,7 +216,7 @@
   letter-spacing: var(--tracking-mayus-ancho);
   text-transform: uppercase;
   font-feature-settings: 'case' 1;
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
 }
 
 .adm-cabecera__eyebrow::before {
@@ -209,7 +234,7 @@
   font-size: var(--fs-titulo-pagina);   /* 22 px en móvil → 28 px en escritorio, sin saltos */
   font-weight: var(--fw-extra);
   line-height: var(--lh-ajustado);
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   color: var(--adm-texto);
   text-wrap: balance;
 }
@@ -249,7 +274,7 @@
   flex-shrink: 0;
   border-radius: 10px;
   background: var(--adm-primario-claro);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   font-size: 15px;
 }
 
@@ -284,7 +309,6 @@
   background: var(--adm-superficie);
   border: 1px solid var(--adm-borde);
   border-radius: var(--adm-r-lg);
-  box-shadow: var(--adm-sombra);
   overflow: hidden;
 }
 
@@ -301,9 +325,9 @@
   z-index: 1;
 }
 
-.adm-tarjeta--acento-exito::before   { background: linear-gradient(90deg, #34d399, #059669); }
-.adm-tarjeta--acento-peligro::before { background: linear-gradient(90deg, #f87171, #dc2626); }
-.adm-tarjeta--acento-aviso::before   { background: linear-gradient(90deg, #fbbf24, #d97706); }
+.adm-tarjeta--acento-exito::before   { background: var(--adm-exito); }
+.adm-tarjeta--acento-peligro::before { background: var(--adm-peligro); }
+.adm-tarjeta--acento-aviso::before   { background: var(--adm-aviso); }
 
 /* Tarjeta de resumen con tinte de marca (totales, estado destacado) */
 .adm-tarjeta--destacada {
@@ -351,7 +375,7 @@
   flex-shrink: 0;
   border-radius: 9px;
   background: var(--adm-primario-claro);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   font-size: 14px;
 }
 
@@ -424,7 +448,7 @@
   color: var(--adm-texto-suave);
 }
 
-.adm-bloque__titulo > i { color: var(--adm-primario); font-size: 13px; }
+.adm-bloque__titulo > i { color: var(--adm-marca-texto); font-size: 13px; }
 
 /* ── Rejillas ────────────────────────────────────────────────── */
 
@@ -440,8 +464,8 @@
 /* ── Indicadores ─────────────────────────────────────────────── */
 
 .adm-metrica {
-  --adm-metrica-color: var(--adm-primario);
-  --adm-metrica-fondo: var(--adm-primario-claro);
+  --adm-metrica-color: var(--adm-marca);
+  --adm-metrica-fondo: var(--adm-marca-claro);
   position: relative;
   display: flex;
   align-items: center;
@@ -451,9 +475,8 @@
   background: var(--adm-superficie);
   border: 1px solid var(--adm-borde);
   border-radius: var(--adm-r-lg);
-  box-shadow: var(--adm-sombra-sm);
   overflow: hidden;
-  transition: box-shadow var(--adm-transicion), transform var(--adm-transicion), border-color var(--adm-transicion);
+  transition: border-color var(--adm-transicion);
 }
 
 /* Barra de acento lateral con el color del indicador */
@@ -471,9 +494,7 @@
 
 @media (hover: hover) {
   .adm-metrica:hover {
-    box-shadow: var(--adm-sombra-md);
-    transform: translateY(var(--mov-elevar, -1px));
-    border-color: var(--adm-borde-hover);
+    border-color: var(--adm-borde-fuerte);
   }
 }
 
@@ -487,11 +508,10 @@
   width: 46px;
   height: 46px;
   flex-shrink: 0;
-  border-radius: 13px;
+  border-radius: var(--adm-r-md);
   background: var(--adm-metrica-fondo);
   color: var(--adm-metrica-color);
   font-size: 19px;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
 }
 
 /* El color del icono tiñe también la barra de acento de su métrica */
@@ -512,7 +532,7 @@
    arriba y la cifra entera abajo) y, en último caso, entre grupos de cifras. */
 .adm-metrica__valor {
   font-family: var(--adm-fuente-titulos);
-  font-size: var(--fs-metrica);
+  font-size: clamp(1.25rem, 0.6rem + 9cqi, 1.875rem);   /* 20 → 30 px */
   font-weight: var(--fw-extra);
   line-height: var(--lh-ajustado);
   letter-spacing: -0.02em;
@@ -548,9 +568,9 @@
 
 /* Métrica seleccionable (por ejemplo, periodo de reporte) */
 .adm-metrica--boton { cursor: pointer; text-align: left; font: inherit; }
-.adm-metrica--boton:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; }
+.adm-metrica--boton:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
 .adm-metrica--boton:active { transform: scale(var(--mov-pulsar, 0.98)); transition-duration: var(--mov-pulsacion, 90ms); }
-.adm-metrica--activa { border-color: var(--adm-primario-borde); box-shadow: var(--adm-anillo), var(--adm-sombra-sm); background: linear-gradient(160deg, var(--adm-superficie), var(--adm-primario-claro)); }
+.adm-metrica--activa { border-color: var(--adm-marca); box-shadow: var(--adm-anillo); background: color-mix(in srgb, var(--adm-marca-claro) 45%, var(--adm-superficie)); }
 
 /* ── Formularios ─────────────────────────────────────────────── */
 
@@ -588,17 +608,16 @@
 .adm-select,
 .adm-textarea {
   width: 100%;
-  min-height: 40px;
-  padding: 9px 12px;
+  min-height: var(--adm-h-input);
+  padding: 9px 14px;
   font-family: inherit;
   font-size: var(--adm-fs-cuerpo);
   font-weight: var(--fw-regular);
   line-height: var(--lh-control);
   color: var(--adm-texto);
   background: var(--adm-superficie);
-  border: 1px solid var(--adm-borde-fuerte);
-  border-radius: var(--adm-r-sm);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border: 1.5px solid var(--adm-borde-fuerte);
+  border-radius: var(--adm-r-md);
   outline: none;
   transition: border-color var(--adm-transicion), box-shadow var(--adm-transicion), background var(--adm-transicion);
 }
@@ -607,7 +626,7 @@
   appearance: none;
   -webkit-appearance: none;
   padding-right: 34px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%235b6578' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%235a5c5b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 11px center;
   background-size: 16px;
@@ -634,7 +653,7 @@
 .adm-input:focus,
 .adm-select:focus,
 .adm-textarea:focus {
-  border-color: var(--adm-primario);
+  border-color: var(--adm-marca);
   box-shadow: var(--adm-anillo);
 }
 
@@ -651,10 +670,10 @@
 .adm-input--error,
 .adm-select--error { border-color: var(--adm-peligro); }
 .adm-input--error:focus,
-.adm-select--error:focus { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.14); }
+.adm-select--error:focus { box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.16); }
 
-.adm-input--grande { min-height: 48px; font-size: var(--fs-lg); padding: 11px 14px; border-radius: var(--adm-r-md); }
-.adm-input--chico  { min-height: 34px; font-size: var(--fs-sm); padding: 6px 10px; }
+.adm-input--grande { min-height: var(--adm-h-input-escaner); font-size: var(--fs-lg); padding: 11px 16px; border-radius: var(--adm-r-md); }
+.adm-input--chico  { min-height: var(--adm-h-boton-chico); font-size: var(--fs-sm); padding: 6px 10px; }
 .adm-input--num    { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Campo numérico con la directiva appNumero (type=text + inputmode): cifras
@@ -665,7 +684,7 @@
 /* appNumero marca .num-invalido + aria-invalid al salir del campo con un texto
    que no es número (o fuera de rango): mismo aspecto que .adm-input--error. */
 .adm-input.num-invalido { border-color: var(--adm-peligro); }
-.adm-input.num-invalido:focus { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.14); }
+.adm-input.num-invalido:focus { box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.16); }
 
 /* Input con icono a la izquierda (buscadores) */
 .adm-input-icono {
@@ -687,7 +706,7 @@
 
 .adm-input-icono > .adm-input { padding-left: 36px; }
 .adm-input-icono > .adm-input--grande { padding-left: 42px; }
-.adm-input-icono:focus-within > i { color: var(--adm-primario); }
+.adm-input-icono:focus-within > i { color: var(--adm-marca-texto); }
 
 /* Prefijo/sufijo pegado al input (S/, %, unidad) */
 .adm-input-grupo {
@@ -731,7 +750,7 @@
 .adm-textarea[aria-invalid='true'] { border-color: var(--adm-peligro); }
 .adm-input[aria-invalid='true']:focus,
 .adm-select[aria-invalid='true']:focus,
-.adm-textarea[aria-invalid='true']:focus { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.14); }
+.adm-textarea[aria-invalid='true']:focus { box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.16); }
 
 .adm-fila {
   display: flex;
@@ -824,7 +843,7 @@
 
 .adm-switch input:checked { background: var(--adm-primario); }
 .adm-switch input:checked::after { transform: translateX(18px); }
-.adm-switch input:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; }
+.adm-switch input:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
 .adm-switch input:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Botones ─────────────────────────────────────────────────── */
@@ -834,15 +853,15 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 38px;
-  padding: 9px 16px;
+  min-height: var(--adm-h-boton);
+  padding: 9px 18px;
   font-family: inherit;
   font-size: var(--adm-fs-cuerpo);
   font-weight: var(--fw-semi);
   line-height: var(--lh-1);
   white-space: nowrap;
   border: 1px solid transparent;
-  border-radius: var(--adm-r-sm);
+  border-radius: var(--adm-r-md);
   cursor: pointer;
   text-decoration: none;
   font-variant-numeric: tabular-nums;
@@ -855,7 +874,7 @@
 
 .adm-btn:focus-visible,
 .adm-btn-icono:focus-visible {
-  outline: 2px solid var(--adm-primario);
+  outline: 2px solid var(--adm-marca);
   outline-offset: 2px;
 }
 
@@ -881,48 +900,44 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 }
 
 .adm-btn--primario {
-  background: var(--adm-gradiente);
-  color: #fff;
-  box-shadow: 0 1px 2px rgba(29, 78, 216, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  background: var(--adm-primario);
+  border-color: var(--adm-primario);
+  color: var(--adm-primario-texto);
 }
 .adm-btn--primario:hover:not(:disabled) {
-  box-shadow: var(--adm-sombra-primario), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  filter: brightness(1.05);
-  transform: translateY(-1px);
+  background: var(--adm-primario-osc);
+  border-color: var(--adm-primario-osc);
 }
 
 .adm-btn--suave {
   background: var(--adm-superficie);
   color: var(--adm-texto);
   border-color: var(--adm-borde-fuerte);
-  box-shadow: var(--adm-sombra-sm);
 }
 .adm-btn--suave:hover:not(:disabled) {
   background: var(--adm-superficie-2);
   border-color: var(--adm-borde-boton-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--adm-sombra);
 }
 
 .adm-btn--contorno {
   background: var(--adm-superficie);
-  color: var(--adm-primario);
-  border-color: var(--adm-primario-borde);
+  color: var(--adm-marca-texto);
+  border-color: var(--adm-marca-borde);
 }
 .adm-btn--contorno:hover:not(:disabled) {
-  background: var(--adm-primario-claro);
-  border-color: var(--adm-primario);
-  color: var(--adm-primario-osc);
+  background: var(--adm-marca-claro);
+  border-color: var(--adm-marca);
+  color: var(--adm-marca-osc);
 }
 
 /* Éxito y aviso usan el tono «-texto» de fondo: con letra blanca, el verde
    #059669 (3,8:1) y el ámbar #d97706 (3,2:1) no llegaban a AA; #047857 da
    5,5:1 y #b45309, 5,0:1. */
-.adm-btn--exito  { background: var(--adm-exito-solido); color: #fff; box-shadow: 0 1px 2px rgba(4, 120, 87, 0.35); }
-.adm-btn--exito:hover:not(:disabled) { filter: brightness(0.94); transform: translateY(-1px); box-shadow: 0 6px 16px -4px rgba(4, 120, 87, 0.45); }
+.adm-btn--exito  { background: var(--adm-exito-solido); color: #fff; }
+.adm-btn--exito:hover:not(:disabled) { filter: brightness(0.94); }
 
-.adm-btn--peligro { background: var(--adm-peligro-solido); color: #fff; box-shadow: 0 1px 2px rgba(220, 38, 38, 0.35); }
-.adm-btn--peligro:hover:not(:disabled) { filter: brightness(0.94); transform: translateY(-1px); box-shadow: 0 6px 16px -4px rgba(220, 38, 38, 0.45); }
+.adm-btn--peligro { background: var(--adm-peligro-solido); color: #fff; }
+.adm-btn--peligro:hover:not(:disabled) { filter: brightness(0.94); }
 
 .adm-btn--peligro-suave { background: var(--adm-peligro-claro); color: var(--adm-peligro-texto); border-color: var(--adm-peligro-borde); }
 .adm-btn--peligro-suave:hover:not(:disabled) { background: var(--adm-peligro-suave-hover); }
@@ -931,7 +946,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-btn--aviso:hover:not(:disabled) { filter: brightness(0.94); }
 
 .adm-btn--oscuro { background: var(--adm-oscuro-fondo); color: var(--adm-oscuro-texto); }
-.adm-btn--oscuro:hover:not(:disabled) { background: var(--adm-oscuro-fondo-hover); transform: translateY(-1px); }
+.adm-btn--oscuro:hover:not(:disabled) { background: var(--adm-oscuro-fondo-hover); }
 
 .adm-btn--fantasma { background: transparent; color: var(--adm-texto-suave); }
 .adm-btn--fantasma:hover:not(:disabled) { background: var(--adm-superficie-3); color: var(--adm-texto); }
@@ -943,8 +958,8 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   transition-duration: var(--mov-pulsacion, 90ms);
 }
 
-.adm-btn--sm { min-height: 32px; padding: 6px 12px; font-size: var(--fs-sm); }
-.adm-btn--lg { min-height: 46px; padding: 12px 22px; font-size: var(--fs-md); border-radius: var(--adm-r-md); }
+.adm-btn--sm { min-height: var(--adm-h-boton-chico); padding: 6px 12px; font-size: var(--fs-base); border-radius: var(--adm-r-sm); }
+.adm-btn--lg { min-height: 52px; padding: 12px 24px; font-size: var(--fs-lg); border-radius: var(--adm-r-md); }
 .adm-btn--bloque { width: 100%; }
 .adm-btn--pill { border-radius: 999px; }
 
@@ -967,8 +982,8 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-btn-icono {
   display: inline-grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   border: 1px solid transparent;
   border-radius: var(--adm-r-sm);
@@ -981,7 +996,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-btn-icono:hover:not(:disabled) { background: var(--adm-superficie-3); color: var(--adm-texto); }
 .adm-btn-icono:active:not(:disabled) { transform: scale(0.94); transition-duration: var(--mov-pulsacion, 90ms); }
 .adm-btn-icono--peligro:hover:not(:disabled) { background: var(--adm-peligro-claro); color: var(--adm-peligro); }
-.adm-btn-icono--primario:hover:not(:disabled) { background: var(--adm-primario-claro); color: var(--adm-primario); }
+.adm-btn-icono--primario:hover:not(:disabled) { background: var(--adm-marca-claro); color: var(--adm-marca-texto); }
 .adm-btn-icono--exito:hover:not(:disabled) { background: var(--adm-exito-claro); color: var(--adm-exito); }
 .adm-btn-icono--borde { border-color: var(--adm-borde-fuerte); background: var(--adm-superficie); box-shadow: var(--adm-sombra-sm); }
 .adm-btn-icono--sm { width: 30px; height: 30px; font-size: 14px; }
@@ -1030,19 +1045,19 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-pestania:hover:not(.adm-pestania--activa) { color: var(--adm-texto); background: color-mix(in srgb, var(--adm-superficie) 60%, transparent); }
 
 .adm-pestania--activa {
-  color: var(--adm-primario);
+  color: var(--adm-texto);
   background: var(--adm-superficie);
-  border-color: var(--adm-borde);
-  box-shadow: var(--adm-sombra-sm);
+  border-color: transparent;
+  box-shadow: 0 1px 2px rgba(31, 32, 31, 0.08);
 }
 
 .adm-pestania .adm-insignia { padding: 1px 8px; font-size: 11.5px; }
-.adm-pestania:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 1px; }
+.adm-pestania:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 1px; }
 
 /* Pestañas subrayadas (alternativa para cabeceras de tarjeta) */
 .adm-pestanias--linea { padding: 0; background: transparent; border-bottom: 1px solid var(--adm-borde); border-radius: 0; gap: 0; }
 .adm-pestanias--linea .adm-pestania { border-radius: 0; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 10px 14px; }
-.adm-pestanias--linea .adm-pestania--activa { background: transparent; box-shadow: none; border-bottom-color: var(--adm-primario); }
+.adm-pestanias--linea .adm-pestania--activa { background: transparent; box-shadow: none; border-bottom-color: var(--adm-marca); color: var(--adm-texto); }
 
 /* Segmentado (elegir uno de pocos: Boleta / Factura) */
 .adm-segmentado {
@@ -1062,7 +1077,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 36px;
+  min-height: 38px;
   padding: 7px 14px;
   font-family: inherit;
   font-size: var(--adm-fs-etiqueta);
@@ -1078,9 +1093,9 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 }
 
 .adm-segmento:hover:not(.adm-segmento--activo):not(:disabled) { color: var(--adm-texto); }
-.adm-segmento--activo { color: var(--adm-primario); background: var(--adm-superficie); border-color: var(--adm-borde); box-shadow: var(--adm-sombra-sm); }
+.adm-segmento--activo { color: var(--adm-texto); background: var(--adm-superficie); border-color: transparent; box-shadow: 0 1px 2px rgba(31, 32, 31, 0.08); }
 .adm-segmento:disabled { opacity: 0.5; cursor: not-allowed; }
-.adm-segmento:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 1px; }
+.adm-segmento:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 1px; }
 
 /* Chips de filtro (multi selección ligera) */
 .adm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1089,10 +1104,10 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 30px;
-  padding: 4px 12px;
+  min-height: 32px;
+  padding: 4px 13px;
   font-family: inherit;
-  font-size: var(--adm-fs-ayuda);
+  font-size: var(--adm-fs-etiqueta);
   font-weight: var(--fw-semi);
   line-height: 1.2;
   color: var(--adm-texto-suave);
@@ -1105,8 +1120,8 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 }
 
 .adm-chip:hover:not(.adm-chip--activo) { background: var(--adm-superficie-2); color: var(--adm-texto); }
-.adm-chip--activo { background: var(--adm-primario-claro); color: var(--adm-primario); border-color: var(--adm-primario-borde); }
-.adm-chip:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 1px; }
+.adm-chip--activo { background: var(--adm-primario); color: var(--adm-primario-texto); border-color: var(--adm-primario); }
+.adm-chip:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 1px; }
 
 /* ── Barra de filtros ────────────────────────────────────────── */
 
@@ -1149,7 +1164,8 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 11px 16px;
+  height: var(--adm-h-cabecera-tabla);
+  padding: 8px 16px;
   text-align: left;
   font-size: var(--adm-fs-rotulo);
   font-weight: var(--fw-negrita);
@@ -1157,9 +1173,9 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   text-transform: uppercase;
   letter-spacing: var(--tracking-mayus);
   font-feature-settings: 'case' 1;
-  color: var(--adm-texto-suave);
+  color: var(--adm-texto-tenue);
   background: var(--adm-superficie-2);
-  border-bottom: 1px solid var(--adm-borde-fuerte);
+  border-bottom: 1px solid var(--adm-borde);
   white-space: nowrap;
 }
 
@@ -1167,7 +1183,8 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-tabla thead th:last-child  { padding-right: 20px; }
 
 .adm-tabla tbody td {
-  padding: 12px 16px;
+  height: var(--adm-h-fila);
+  padding: 10px 16px;
   border-bottom: 1px solid var(--adm-borde);
   vertical-align: middle;
   color: var(--adm-texto-2);
@@ -1195,12 +1212,12 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-tabla__secundario { margin-top: 2px; font-size: var(--adm-fs-ayuda); font-weight: var(--fw-regular); line-height: 1.4; color: var(--adm-texto-suave); }
 .adm-tabla__mono { font-family: var(--adm-fuente-mono); font-size: var(--adm-fs-ayuda); color: var(--adm-texto-suave); }
 
-.adm-tabla tbody tr.adm-fila--seleccionada { background: var(--adm-primario-claro); }
-.adm-tabla tbody tr.adm-fila--seleccionada td { border-bottom-color: var(--adm-primario-borde); }
+.adm-tabla tbody tr.adm-fila--seleccionada { background: color-mix(in srgb, var(--adm-marca-claro) 55%, var(--adm-superficie)); }
+.adm-tabla tbody tr.adm-fila--seleccionada td:first-child { box-shadow: inset 3px 0 0 var(--adm-marca); }
 .adm-tabla tbody tr.adm-fila--atenuada td { color: var(--adm-texto-tenue); }
 .adm-tabla tbody tr.adm-fila--clic { cursor: pointer; }
 /* Fila enfocable con teclado (tabindex="0" + Enter): anillo por dentro */
-.adm-tabla tbody tr:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: -2px; }
+.adm-tabla tbody tr:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: -2px; }
 
 /* Miniatura de producto en tabla */
 .adm-tabla__miniatura {
@@ -1245,7 +1262,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-insignia--aviso   { background: var(--adm-aviso-claro);    color: var(--adm-aviso-texto); }
 .adm-insignia--peligro { background: var(--adm-peligro-claro);  color: var(--adm-peligro-texto); }
 .adm-insignia--info    { background: var(--adm-info-claro);     color: var(--adm-info-texto); }
-.adm-insignia--primaria{ background: var(--adm-primario-claro); color: var(--adm-primario); }
+.adm-insignia--primaria{ background: var(--adm-marca-claro); color: var(--adm-marca-texto); }
 .adm-insignia--oscura  { background: var(--adm-oscuro-fondo); color: var(--adm-oscuro-texto); }
 
 .adm-insignia--contorno { background: transparent; border-color: currentColor; opacity: 0.9; }
@@ -1271,10 +1288,10 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   background: var(--adm-texto-tenue);
   flex-shrink: 0;
 }
-.adm-punto--exito   { background: var(--adm-exito); box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); }
-.adm-punto--aviso   { background: var(--adm-aviso); box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15); }
-.adm-punto--peligro { background: var(--adm-peligro); box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15); }
-.adm-punto--info    { background: var(--adm-info); box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15); }
+.adm-punto--exito   { background: var(--adm-exito); box-shadow: 0 0 0 3px rgba(30, 123, 52, 0.16); }
+.adm-punto--aviso   { background: var(--adm-aviso); box-shadow: 0 0 0 3px rgba(154, 91, 19, 0.16); }
+.adm-punto--peligro { background: var(--adm-peligro); box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.16); }
+.adm-punto--info    { background: var(--adm-info); box-shadow: 0 0 0 3px rgba(62, 92, 118, 0.16); }
 
 /* ── Avatar ──────────────────────────────────────────────────── */
 
@@ -1285,8 +1302,8 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   height: 36px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: var(--adm-primario-claro);
-  color: var(--adm-primario);
+  background: var(--adm-marca-claro);
+  color: var(--adm-marca-texto);
   font-size: 12.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -1297,7 +1314,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-avatar--sm { width: 28px; height: 28px; font-size: 10.5px; }
 .adm-avatar--lg { width: 56px; height: 56px; font-size: 18px; }
 .adm-avatar--xl { width: 84px; height: 84px; font-size: 28px; }
-.adm-avatar--gradiente { background: var(--adm-gradiente); color: #fff; box-shadow: var(--adm-sombra-primario); }
+.adm-avatar--gradiente { background: var(--adm-gradiente); color: var(--adm-primario-texto); }
 
 /* ── Autocompletado ──────────────────────────────────────────── */
 
@@ -1384,9 +1401,9 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   margin-bottom: 6px;
   border-radius: 50%;
   background: linear-gradient(160deg, var(--adm-primario-claro), var(--adm-superficie));
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   font-size: 26px;
-  box-shadow: inset 0 0 0 1px var(--adm-primario-borde), 0 0 0 8px rgba(37, 99, 235, 0.05);
+  box-shadow: inset 0 0 0 1px var(--adm-primario-borde), 0 0 0 8px rgba(184, 151, 90, 0.08);
 }
 
 .adm-vacio__icono--neutro { background: linear-gradient(160deg, var(--adm-superficie-3), var(--adm-superficie)); color: var(--adm-texto-tenue); box-shadow: inset 0 0 0 1px var(--adm-borde), 0 0 0 8px rgba(15, 23, 42, 0.03); }
@@ -1465,7 +1482,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   place-items: center;
   background: var(--adm-velo-carga);
   backdrop-filter: blur(2px);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   font-size: 24px;
   border-radius: inherit;
 }
@@ -1475,7 +1492,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   height: 22px;
   border-radius: 50%;
   border: 2.5px solid var(--adm-primario-suave);
-  border-top-color: var(--adm-primario);
+  border-top-color: var(--adm-marca);
   animation: adm-girar 800ms linear infinite;
 }
 .adm-spinner--sm { width: 16px; height: 16px; border-width: 2px; }
@@ -1488,10 +1505,10 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   background: var(--adm-superficie-3);
   overflow: hidden;
 }
-.adm-progreso__barra { height: 100%; border-radius: inherit; background: var(--adm-gradiente); transition: width 300ms ease; }
-.adm-progreso__barra--exito { background: linear-gradient(90deg, #34d399, #059669); }
-.adm-progreso__barra--aviso { background: linear-gradient(90deg, #fbbf24, #d97706); }
-.adm-progreso__barra--peligro { background: linear-gradient(90deg, #f87171, #dc2626); }
+.adm-progreso__barra { height: 100%; border-radius: inherit; background: var(--adm-gradiente-vivo); transition: width 300ms ease; }
+.adm-progreso__barra--exito { background: var(--adm-exito); }
+.adm-progreso__barra--aviso { background: var(--adm-aviso); }
+.adm-progreso__barra--peligro { background: var(--adm-peligro); }
 
 /* ── Ticket del comprobante ──────────────────────────────────── */
 
@@ -1644,13 +1661,13 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   transition: border-color var(--adm-transicion), background var(--adm-transicion), color var(--adm-transicion);
 }
 
-.adm-soltar > i { font-size: 26px; color: var(--adm-primario); }
+.adm-soltar > i { font-size: 26px; color: var(--adm-marca-texto); }
 
 .adm-soltar:hover,
 .adm-soltar--encima {
-  border-color: var(--adm-primario);
-  background: var(--adm-primario-claro);
-  color: var(--adm-primario);
+  border-color: var(--adm-marca);
+  background: var(--adm-marca-claro);
+  color: var(--adm-marca-texto);
 }
 
 .adm-galeria {
@@ -1671,7 +1688,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 }
 
 .adm-galeria__pieza:hover { box-shadow: var(--adm-sombra-md); transform: translateY(-1px); }
-.adm-galeria__pieza--principal { border-color: var(--adm-primario); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+.adm-galeria__pieza--principal { border-color: var(--adm-marca); box-shadow: 0 0 0 3px rgba(184, 151, 90, 0.18); }
 .adm-galeria__pieza--arrastrando { opacity: 0.45; }
 
 .adm-galeria__pieza img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -1713,7 +1730,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   padding: 2px 8px;
   font-size: 10px;
   font-weight: 700;
-  color: #fff;
+  color: var(--adm-primario-texto);
   background: var(--adm-gradiente);
   border-radius: 999px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
@@ -1774,7 +1791,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   transition: background var(--adm-transicion), transform var(--adm-transicion);
 }
 
-.adm-visor__cerrar:hover { background: var(--adm-primario); transform: scale(1.06); }
+.adm-visor__cerrar:hover { background: var(--adm-marca); transform: scale(1.06); }
 
 .adm-visor__nav {
   position: absolute;
@@ -1793,7 +1810,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   transition: background var(--adm-transicion), transform var(--adm-transicion);
 }
 
-.adm-visor__nav:hover { background: var(--adm-primario); transform: translateY(-50%) scale(1.06); }
+.adm-visor__nav:hover { background: var(--adm-marca); transform: translateY(-50%) scale(1.06); }
 .adm-visor__nav--prev { left: 8px; }
 .adm-visor__nav--next { right: 8px; }
 
@@ -1863,7 +1880,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   transition: box-shadow var(--adm-transicion), border-color var(--adm-transicion);
 }
 
-.adm-evidencia__thumb:hover { border-color: var(--adm-primario); box-shadow: var(--adm-sombra-md); }
+.adm-evidencia__thumb:hover { border-color: var(--adm-marca); box-shadow: var(--adm-sombra-md); }
 
 /* ── Lista de datos (clave → valor) ──────────────────────────── */
 
@@ -1910,7 +1927,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 }
 
 .adm-atajo {
-  --adm-atajo-color: var(--adm-primario);
+  --adm-atajo-color: var(--adm-marca-texto);
   --adm-atajo-fondo: var(--adm-primario-claro);
   position: relative;
   display: flex;
@@ -1937,7 +1954,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 
 .adm-atajo:active { transform: scale(var(--mov-pulsar, 0.98)); transition-duration: var(--mov-pulsacion, 90ms); }
 
-.adm-atajo:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; }
+.adm-atajo:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
 
 .adm-atajo__icono {
   display: grid;
@@ -1952,16 +1969,16 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   transition: background var(--adm-transicion), color var(--adm-transicion), transform var(--adm-transicion-suave);
 }
 
-.adm-atajo:hover .adm-atajo__icono { background: var(--adm-gradiente); color: #fff; transform: scale(1.04); }
+.adm-atajo:hover .adm-atajo__icono { background: var(--adm-gradiente); color: var(--adm-primario-texto); transform: scale(1.04); }
 
 .adm-atajo--exito   { --adm-atajo-color: var(--adm-exito);   --adm-atajo-fondo: var(--adm-exito-claro); }
 .adm-atajo--aviso   { --adm-atajo-color: var(--adm-aviso);   --adm-atajo-fondo: var(--adm-aviso-claro); }
 .adm-atajo--peligro { --adm-atajo-color: var(--adm-peligro); --adm-atajo-fondo: var(--adm-peligro-claro); }
 .adm-atajo--info    { --adm-atajo-color: var(--adm-info);    --adm-atajo-fondo: var(--adm-info-claro); }
-.adm-atajo--exito:hover .adm-atajo__icono   { background: linear-gradient(135deg, #34d399, #059669); }
-.adm-atajo--aviso:hover .adm-atajo__icono   { background: linear-gradient(135deg, #fbbf24, #d97706); }
-.adm-atajo--peligro:hover .adm-atajo__icono { background: linear-gradient(135deg, #f87171, #dc2626); }
-.adm-atajo--info:hover .adm-atajo__icono    { background: linear-gradient(135deg, #38bdf8, #0284c7); }
+.adm-atajo--exito:hover .adm-atajo__icono   { background: var(--adm-exito); }
+.adm-atajo--aviso:hover .adm-atajo__icono   { background: var(--adm-aviso); }
+.adm-atajo--peligro:hover .adm-atajo__icono { background: var(--adm-peligro); }
+.adm-atajo--info:hover .adm-atajo__icono    { background: var(--adm-info); }
 
 .adm-atajo__texto { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
 .adm-atajo__titulo { font-size: var(--adm-fs-cuerpo); font-weight: var(--fw-negrita); color: var(--adm-texto); line-height: 1.25; letter-spacing: -0.005em; }
@@ -1975,7 +1992,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   -webkit-line-clamp: 2;
 }
 .adm-atajo__flecha { flex-shrink: 0; color: var(--adm-texto-tenue); font-size: 13px; transition: transform var(--adm-transicion), color var(--adm-transicion); }
-.adm-atajo:hover .adm-atajo__flecha { transform: translateX(3px); color: var(--adm-primario); }
+.adm-atajo:hover .adm-atajo__flecha { transform: translateX(3px); color: var(--adm-marca-texto); }
 .adm-atajo .adm-insignia { flex-shrink: 0; }
 
 /* ── Panel lateral ───────────────────────────────────────────── */
@@ -1987,7 +2004,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   border: 0;
   padding: 0;
   margin: 0;
-  background: rgba(15, 23, 42, 0.48);
+  background: rgba(31, 32, 31, 0.48);
   backdrop-filter: blur(3px);
   animation: mov-aparecer var(--mov-entrada, 240ms) var(--ease-entrada, cubic-bezier(0.16, 1, 0.3, 1));
 }
@@ -2005,7 +2022,8 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   display: flex;
   flex-direction: column;
   background: var(--adm-superficie);
-  box-shadow: -16px 0 48px rgba(15, 23, 42, 0.22);
+  border-left: 1px solid var(--adm-borde);
+  box-shadow: var(--adm-sombra-lg);
   animation: mov-deslizar-derecha var(--mov-panel, 260ms) var(--ease-entrada, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
@@ -2019,7 +2037,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   gap: 12px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--adm-borde);
-  background: linear-gradient(180deg, var(--adm-superficie), var(--adm-superficie-2));
+  background: var(--adm-superficie);
 }
 
 .adm-panel__cabecera .adm-tarjeta__titulo { font-size: var(--adm-fs-titulo-seccion); }
@@ -2115,7 +2133,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   transition: background var(--adm-transicion), color var(--adm-transicion), border-color var(--adm-transicion);
 }
 .adm-paginacion__pagina:hover:not(:disabled):not(.adm-paginacion__pagina--activa) { background: var(--adm-superficie-3); }
-.adm-paginacion__pagina--activa { background: var(--adm-primario); color: #fff; }
+.adm-paginacion__pagina--activa { background: var(--adm-primario); color: var(--adm-primario-texto); }
 .adm-paginacion__pagina:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Utilidades pequeñas ─────────────────────────────────────── */
@@ -2128,7 +2146,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-texto-peligro { color: var(--adm-peligro-texto); }
 .adm-texto-aviso { color: var(--adm-aviso-texto); }
 .adm-texto-info { color: var(--adm-info-texto); }
-.adm-texto-primario { color: var(--adm-primario); }
+.adm-texto-primario { color: var(--adm-marca-texto); }
 .adm-negrita { font-weight: var(--fw-semi); }
 .adm-tabular { font-variant-numeric: tabular-nums; }
 /* Cifra suelta fuera de tablas: tabular y sin partirse */
@@ -2249,7 +2267,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   font-feature-settings: normal;
 }
 
-.adm-tabla tbody tr:hover > td:first-child { box-shadow: inset 3px 0 0 var(--adm-primario); }
+.adm-tabla tbody tr:hover > td:first-child { box-shadow: inset 3px 0 0 var(--adm-marca); }
 
 /* Insignias: filo interior del mismo color (más nítidas sobre cualquier fondo) */
 .adm-insignia { box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 16%, transparent); }
@@ -2280,7 +2298,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 /* Campos: el anillo de foco ya existe; se suma una elevación suave */
 .adm-input:focus,
 .adm-select:focus,
-.adm-textarea:focus { box-shadow: var(--adm-anillo), 0 8px 20px -12px color-mix(in srgb, var(--adm-primario) 55%, transparent); }
+.adm-textarea:focus { box-shadow: var(--adm-anillo), 0 8px 20px -12px color-mix(in srgb, var(--adm-marca) 40%, transparent); }
 
 /* Pestañas y segmentado: la activa sube con un resorte corto */
 .adm-pestania--activa,
@@ -2331,6 +2349,176 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 /* Papel cuadriculado de fondo para zonas amplias de trabajo (opt-in) */
 .adm-punteado {
   background: radial-gradient(circle at 1px 1px, var(--adm-punteado) 1px, transparent 0) 0 0 / 22px 22px;
+}
+
+/* ── v4 «Acero y oro»: piel final ───────────────────────────────────────────
+   Va después de v3 «Taller» y la corrige: rótulos en Inter (no mono), sin
+   aurora, sin brillos ni sombras ornamentales, superficies planas con borde.
+   Las clases siguen siendo las mismas; solo cambian valores. */
+
+.adm-cabecera__eyebrow,
+.adm-dato__etiqueta,
+.adm-metrica__etiqueta,
+.adm-bloque__titulo {
+  font-family: var(--adm-fuente);
+  font-weight: var(--fw-negrita);
+  letter-spacing: var(--tracking-mayus);
+  font-feature-settings: 'case' 1;
+}
+
+.adm-cabecera__eyebrow { font-size: var(--adm-fs-rotulo); letter-spacing: 0.08em; }
+
+.adm-cabecera__titulo {
+  font-size: 1.375rem;          /* 22 px; en la barra superior llega el título de la pantalla (R4) */
+  font-weight: var(--fw-extra);
+  letter-spacing: -0.02em;
+  word-spacing: normal;
+}
+
+.adm-cabecera__icono { box-shadow: none; }
+
+.adm-metrica { background: var(--adm-superficie); }
+.adm-metrica__valor { font-weight: var(--fw-extra); letter-spacing: -0.02em; }
+.adm-metrica__etiqueta { font-size: var(--adm-fs-rotulo); }
+
+.adm-tabla thead th {
+  font-family: var(--adm-fuente);
+  font-size: var(--adm-fs-rotulo);
+  font-weight: var(--fw-negrita);
+  letter-spacing: var(--tracking-mayus);
+  font-feature-settings: 'case' 1;
+}
+
+.adm-insignia,
+.adm-insignia--punto::before { box-shadow: none; }
+
+.adm-btn--primario::before { content: none; }
+
+.adm-input:focus,
+.adm-select:focus,
+.adm-textarea:focus { box-shadow: var(--adm-anillo); }
+
+.adm-pestania--activa,
+.adm-segmento--activo { animation: none; }
+
+.adm-atajo:hover .adm-atajo__icono { transform: scale(1.04); }
+.adm-vacio__icono { animation: none; }
+
+.adm-escenario {
+  background: var(--adm-superficie);
+  border-color: var(--adm-borde);
+  color: var(--adm-texto);
+  border-radius: var(--adm-r-lg);
+}
+.adm-escenario .adm-cabecera__titulo,
+.adm-escenario .adm-escenario__titulo { color: var(--adm-texto); }
+.adm-escenario .adm-cabecera__sub { color: var(--adm-texto-suave); }
+.adm-escenario .adm-cabecera__eyebrow { color: var(--adm-marca-texto); }
+
+/* ── R4 · Cabecera de página como barra de acciones ─────────────────────────
+   El título de la pantalla vive en la barra superior (header). La cabecera de
+   cada página queda como una fila compacta con SOLO las acciones a la derecha.
+   Icono, eyebrow, título (h1) y subtítulo siguen en el DOM —el h1 es el
+   encabezado de la página para lectores de pantalla— pero ocultos a la vista.
+   Reversible quitando la clase `adm-cabecera--barra`. */
+.adm-cabecera--barra {
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 16px;
+  padding-bottom: 0;
+}
+
+.adm-cabecera--barra > :not(.adm-acciones) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Sin acciones: la cabecera entera es solo para lectores de pantalla */
+.adm-cabecera--barra:not(:has(.adm-acciones)) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* ── R8 · Ayuda plegable («menos texto, más guía») ───────────────────────────
+   <details class="adm-mas-info"><summary class="adm-mas-info__resumen">…</summary>…</details>
+   La ayuda larga se pliega; el texto no se borra. */
+.adm-mas-info { min-width: 0; }
+
+.adm-mas-info__resumen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--adm-h-boton-chico);
+  padding: 0 10px 0 6px;
+  font-size: var(--adm-fs-etiqueta);
+  font-weight: var(--fw-semi);
+  color: var(--adm-marca-texto);
+  border-radius: var(--adm-r-sm);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.adm-mas-info__resumen::-webkit-details-marker { display: none; }
+.adm-mas-info__resumen::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: transform var(--adm-transicion);
+}
+.adm-mas-info[open] > .adm-mas-info__resumen::before { transform: rotate(90deg); }
+.adm-mas-info__resumen:hover { background: var(--adm-marca-claro); }
+.adm-mas-info__resumen:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
+.adm-mas-info__cuerpo,
+.adm-mas-info > :not(summary) { margin-top: 6px; }
+
+/* ── R7 · Ficha lateral anclada (listados: productos, clientes, inventario, proveedores) ──
+   En ≥ 1200 px la ficha de ver/editar es una columna de 400 px pegada al borde derecho, bajo la
+   barra superior, SIN velo: la tabla sigue a la vista (la página reserva ese ancho con
+   `adm-pagina--con-ficha`). Bajo 1200 px sigue siendo el cajón de siempre, con velo.
+   Uso: <aside class="adm-panel adm-panel--ficha">, <div class="adm-velo adm-velo--ficha">,
+   <div class="adm-pagina" [class.adm-pagina--con-ficha]="panelAbierto">. Reversible quitando las clases. */
+.adm-panel--ficha { container-type: inline-size; container-name: ficha; }
+
+@media (min-width: 1200px) {
+  .adm-velo--ficha { display: none; }
+
+  .adm-panel--ficha,
+  .adm-panel--ficha.adm-panel--ancho,
+  .adm-panel--ficha.adm-panel--angosto {
+    top: var(--adm-h-barra);
+    width: 400px;
+    box-shadow: none;
+    animation: none;
+    z-index: var(--z-panel-ficha, 40);
+  }
+
+  .adm-pagina--con-ficha { padding-right: 408px; transition: padding-right var(--adm-transicion); }
+  .adm-pagina--con-ficha .adm-grid--4,
+  .adm-pagina--con-ficha .adm-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.adm-panel--ficha .adm-panel__cuerpo { padding: 16px 20px; }
+
+/* La ficha es estrecha: cualquier rejilla de formulario dentro cae a una columna salvo pares cortos */
+@container ficha (max-width: 460px) {
+  .adm-panel--ficha .adm-grid--2,
+  .adm-panel--ficha .adm-grid--3,
+  .adm-panel--ficha .adm-grid--4 { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ── Adaptación a pantallas chicas ───────────────────────────── */

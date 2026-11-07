@@ -1,24 +1,24 @@
-/* Barra superior del panel: vidrio sobre el contenido, todo con tokens --adm-* (tema claro/oscuro). */
+/* Barra superior «Acero y oro»: 64 px, superficie plana, borde inferior de 1 px, sin sombras.
+   Solo tokens --adm-* (tema claro/oscuro). Medidas de la maqueta Vender. */
 .topbar {
-  height: 66px;
-  background: color-mix(in srgb, var(--adm-superficie) 82%, transparent);
-  -webkit-backdrop-filter: blur(14px) saturate(1.5);
-  backdrop-filter: blur(14px) saturate(1.5);
+  height: var(--adm-h-barra, 64px);
+  background: var(--adm-superficie);
   border-bottom: 1px solid var(--adm-borde);
   display: flex;
   align-items: center;
-  padding: 0 22px;
-  gap: 14px;
+  padding: 0 24px;
+  gap: 12px;
   flex-shrink: 0;
   position: relative;
   z-index: 99;
 
+  /* Botón fantasma de 40 px (hamburguesa, tienda, tema, usuario) */
   .toggle-btn {
     width: 40px;
     height: 40px;
-    background: var(--adm-superficie);
-    border: 1px solid var(--adm-borde);
-    border-radius: 12px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--adm-r-md);
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -26,14 +26,13 @@
     justify-content: center;
     gap: 4px;
     flex-shrink: 0;
-    box-shadow: var(--adm-sombra-sm);
-    transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s, scale 260ms var(--x-resorte-suave, ease);
+    transition: background-color 0.15s;
 
     span {
       display: block;
       width: 16px;
       height: 1.75px;
-      background: var(--adm-texto-2);
+      background: var(--adm-texto-suave);
       border-radius: 2px;
       transition: transform 0.2s ease, opacity 0.15s ease, width 0.2s ease;
     }
@@ -41,66 +40,33 @@
     span:nth-child(2) { width: 11px; align-self: flex-start; margin-left: 12px; }
 
     &:hover {
-      background: var(--adm-superficie-2);
-      border-color: var(--adm-borde-fuerte);
+      background: var(--adm-superficie-3);
+      span { background: var(--adm-texto); }
       span:nth-child(2) { width: 16px; margin-left: 12px; }
     }
 
-    &:active { scale: 0.92; }
-
     &:focus-visible {
-      outline: 2px solid var(--adm-primario);
+      outline: 2px solid var(--adm-marca);
       outline-offset: 2px;
     }
   }
 
+  /* Título de la pantalla (no es un h1: cada página conserva el suyo) */
   .tb-title {
     display: flex;
     align-items: center;
-    gap: 12px;
-    /* Puede encogerse (el texto lleva puntos suspensivos): con 0 0 auto, un título largo
-       empujaba las acciones fuera de la pantalla y en móvil se perdía el menú de usuario. */
+    /* Puede encogerse (el texto lleva puntos suspensivos) para no empujar las acciones fuera. */
     flex: 0 1 auto;
     min-width: 0;
-    max-width: 260px;
-  }
-
-  .tb-title__icon {
-    display: grid;
-    place-items: center;
-    width: 38px;
-    height: 38px;
-    flex-shrink: 0;
-    border-radius: 12px;
-    background: var(--adm-primario-claro);
-    color: var(--adm-primario);
-    font-size: 16px;
-    box-shadow: inset 0 0 0 1px var(--adm-primario-borde);
-  }
-
-  .tb-title__textos {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    line-height: 1.15;
-  }
-
-  .tb-title__group {
-    font-family: var(--x-mono, ui-monospace, monospace);
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--adm-texto-tenue);
-    white-space: nowrap;
   }
 
   .tb-title__text {
-    font-family: var(--adm-fuente-titulos);
-    font-size: 16px;
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', var(--adm-fuente-titulos), 'Inter', sans-serif;
+    font-size: 22px;
     font-weight: 800;
-    letter-spacing: -0.025em;
-    word-spacing: 0.06em;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
     color: var(--adm-texto);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -112,34 +78,33 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    flex: 1 1 160px;
-    max-width: 340px;
+    flex: 0 1 300px;
+    width: 300px;
     min-width: 0;
     height: 40px;
-    margin-left: clamp(8px, 2vw, 28px);
+    margin-left: auto;
     padding: 0 8px 0 14px;
-    border: 1px solid var(--adm-borde);
-    border-radius: 999px;
-    background: var(--adm-superficie-2);
+    border: 1.5px solid var(--adm-borde-fuerte);
+    border-radius: var(--adm-r-md);
+    background: var(--adm-superficie);
     color: var(--adm-texto-tenue);
     font: inherit;
-    font-size: 13.5px;
+    font-size: 15px;
+    font-weight: 500;
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.18s, background-color 0.18s, box-shadow 0.25s var(--x-ease, ease);
+    transition: border-color 0.15s, background-color 0.15s;
 
-    i { font-size: 14px; transition: color 0.18s; }
+    i { font-size: 15px; }
 
     &:hover {
-      border-color: var(--adm-borde-fuerte);
-      background: var(--adm-superficie);
+      border-color: var(--adm-borde-campo-hover, var(--adm-borde-fuerte));
       color: var(--adm-texto-suave);
-      i { color: var(--adm-primario); }
     }
 
     &:focus-visible {
       outline: none;
-      border-color: var(--adm-primario);
+      border-color: var(--adm-marca);
       box-shadow: var(--adm-anillo);
     }
 
@@ -152,18 +117,14 @@
     }
 
     .tb-buscar__atajo {
-      display: inline-grid;
-      place-items: center;
-      height: 24px;
-      padding: 0 8px;
+      display: inline-block;
+      padding: 2px 7px;
       border: 1px solid var(--adm-borde-fuerte);
-      border-bottom-width: 2px;
-      border-radius: 7px;
-      background: var(--adm-superficie);
+      border-radius: 6px;
+      background: var(--adm-superficie-2);
       color: var(--adm-texto-suave);
-      font-family: var(--x-mono, ui-monospace, monospace);
-      font-size: 11px;
-      line-height: 1;
+      font: 600 11.5px 'Inter', system-ui, sans-serif;
+      line-height: 1.4;
     }
 
     @media (max-width: 1100px) {
@@ -171,45 +132,46 @@
       width: 40px;
       padding: 0;
       justify-content: center;
-      margin-left: 0;
       .tb-buscar__texto, .tb-buscar__atajo { display: none; }
     }
   }
 
   .tb-actions {
-    margin-left: auto;
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     position: relative;
   }
 
-  .tb-tema { --tb-size: 38px; --tb-borde: var(--adm-borde); --tb-color: var(--adm-texto-2); --tb-fondo: var(--adm-superficie); }
+  .tb-tema {
+    --tb-size: 40px;
+    --tb-borde: transparent;
+    --tb-borde-hover: var(--adm-borde-fuerte);
+    --tb-color: var(--adm-texto-suave);
+    --tb-fondo: transparent;
+  }
 
+  /* Fecha: discreta, sin caja */
   .tb-fecha {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    height: 38px;
-    padding: 0 13px;
-    border-radius: 12px;
-    background: var(--adm-superficie-2);
-    border: 1px solid var(--adm-borde);
-    color: var(--adm-texto-suave);
-    font-family: var(--x-mono, ui-monospace, monospace);
-    font-size: 11.5px;
+    height: 40px;
+    padding: 0 6px;
+    color: var(--adm-texto-tenue);
+    font-size: 13px;
     font-weight: 500;
-    letter-spacing: 0.02em;
     white-space: nowrap;
     text-transform: capitalize;
 
-    i { color: var(--adm-texto-tenue); font-size: 13px; }
+    i { font-size: 13px; }
 
     @media (max-width: 1500px) { display: none; }
   }
 
-  /* Ambiente de emisión SUNAT (chip con tooltip del motivo; punto rojo si hay alerta) */
+  /* Ambiente de emisión SUNAT: píldora de 32 px con punto de estado.
+     Verde = todo bien; aviso con punto rojo y « · Ver» = hay un problema. */
   .tb-fiscal {
     position: relative;
     display: inline-flex;
@@ -219,145 +181,142 @@
     padding: 0 12px;
     border-radius: 999px;
     border: 1px solid var(--adm-borde);
-    background: var(--adm-superficie-2);
-    color: var(--adm-texto-suave);
-    font-family: var(--x-mono, ui-monospace, monospace);
-    font-size: 11px;
+    background: var(--adm-superficie);
+    color: var(--adm-texto-2);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.03em;
+    letter-spacing: 0;
+    text-transform: none;
     white-space: nowrap;
     text-decoration: none;
     cursor: default;
 
-    &--beta { background: var(--adm-aviso-claro); border-color: var(--adm-aviso-borde); color: var(--adm-aviso-aviso-texto); }
-    &--produccion { background: var(--adm-exito-claro); border-color: var(--adm-exito-borde); color: var(--adm-aviso-exito-texto); }
-    &--detenida { background: var(--adm-peligro-claro); border-color: var(--adm-peligro-borde); color: var(--adm-aviso-peligro-texto); }
+    &--beta { background: var(--adm-aviso-claro); border-color: var(--adm-aviso-borde); color: var(--adm-aviso-texto); }
+    &--produccion { background: var(--adm-exito-claro); border-color: var(--adm-exito-borde); color: var(--adm-exito-texto); }
+    &--detenida { background: var(--adm-aviso-claro); border-color: var(--adm-aviso-borde); color: var(--adm-aviso-texto); }
 
     .tb-fiscal__punto {
-      width: 7px;
-      height: 7px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: currentColor;
       flex-shrink: 0;
     }
 
-    &--produccion .tb-fiscal__punto,
-    &--beta .tb-fiscal__punto { box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent); }
+    &--detenida .tb-fiscal__punto { background: var(--adm-peligro); }
 
     .tb-fiscal__corto { display: none; }
 
+    /* Problema detectado (SUNAT detenida o plazos vencidos): aviso + punto rojo en lugar del punto de estado */
     .tb-fiscal__alerta {
-      position: absolute;
-      top: -3px;
-      right: -3px;
-      width: 10px;
-      height: 10px;
+      order: -1;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: var(--adm-peligro);
-      box-shadow: 0 0 0 2px var(--adm-superficie);
+      flex-shrink: 0;
     }
+
+    &:has(.tb-fiscal__alerta) {
+      background: var(--adm-aviso-claro);
+      border-color: var(--adm-aviso-borde);
+      color: var(--adm-aviso-texto);
+      .tb-fiscal__punto { display: none; }
+    }
+
+    .tb-fiscal__ver { margin-left: -3px; }
   }
 
   a.tb-fiscal {
     cursor: pointer;
-    transition: filter 0.15s, translate 0.2s var(--x-resorte-suave, ease);
+    transition: filter 0.15s;
 
-    &:hover { text-decoration: none; filter: brightness(0.97); translate: 0 -1px; }
-    &:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; }
+    &:hover { text-decoration: none; filter: brightness(0.97); }
+    &:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
   }
 
+  /* «Ver tienda»: botón fantasma */
   .tb-link-tienda {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    height: 38px;
-    padding: 0 14px;
-    border-radius: 12px;
-    border: 1px solid var(--adm-borde);
-    background: var(--adm-superficie);
-    color: var(--adm-texto-2);
-    font-size: 13px;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: var(--adm-r-md);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--adm-texto-suave);
+    font-size: 14px;
     font-weight: 600;
     text-decoration: none;
     white-space: nowrap;
-    box-shadow: var(--adm-sombra-sm);
-    transition: background-color 0.15s, border-color 0.15s, color 0.15s, translate 0.2s var(--x-resorte-suave, ease);
+    transition: background-color 0.15s, color 0.15s;
 
-    i { font-size: 14px; color: var(--adm-primario); }
+    i { font-size: 15px; }
 
     &:hover {
-      background: var(--adm-superficie-2);
-      border-color: var(--adm-borde-fuerte);
+      background: var(--adm-superficie-3);
       color: var(--adm-texto);
       text-decoration: none;
-      translate: 0 -1px;
     }
 
-    @media (max-width: 720px) {
-      width: 38px;
+    &:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
+
+    @media (max-width: 1280px) {
+      width: 40px;
       padding: 0;
       justify-content: center;
       span { display: none; }
     }
   }
 
+  /* Usuario: avatar compacto (el nombre y el rol siguen disponibles para lectores de pantalla) */
   .user-pill {
     display: flex;
     align-items: center;
-    gap: 9px;
-    height: 42px;
-    padding: 3px 11px 3px 3px;
-    background: var(--adm-superficie);
-    border: 1px solid var(--adm-borde);
-    border-radius: 999px;
+    gap: 6px;
+    height: 40px;
+    padding: 0 6px 0 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--adm-r-md);
     cursor: pointer;
     position: relative;
-    box-shadow: var(--adm-sombra-sm);
-    transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    transition: background-color 0.15s;
 
     &:hover,
-    &.open {
-      background: var(--adm-superficie-2);
-      border-color: var(--adm-borde-fuerte);
-    }
+    &.open { background: var(--adm-superficie-3); }
 
     &:focus-visible {
-      outline: 2px solid var(--adm-primario);
+      outline: 2px solid var(--adm-marca);
       outline-offset: 2px;
     }
 
     .user-avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #ea580c, #9a3412);
-      color: #ffffff;
-      font-size: 11.5px;
-      font-weight: 700;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--adm-primario);
+      color: var(--adm-marca-borde);
+      font-size: 12px;
+      font-weight: 800;
       letter-spacing: 0.02em;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      box-shadow: 0 0 0 2px var(--adm-superficie), 0 0 0 3px rgba(59, 130, 246, 0.35);
     }
 
     .user-info {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.2;
-
-      .user-name {
-        font-size: 12.5px;
-        font-weight: 600;
-        color: var(--adm-texto);
-        white-space: nowrap;
-        max-width: 160px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .user-role { font-size: 11px; color: var(--adm-texto-suave); }
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
 
     .tb-chevron {
@@ -374,8 +333,8 @@
       width: 268px;
       background: var(--adm-superficie);
       border: 1px solid var(--adm-borde);
-      border-radius: 20px;
-      box-shadow: var(--adm-sombra-lg);
+      border-radius: var(--adm-r-tile);
+      box-shadow: var(--adm-sombra-md);
       overflow: hidden;
       opacity: 0;
       transform: translateY(-6px) scale(0.97);
@@ -406,11 +365,11 @@
         width: 42px;
         height: 42px;
         flex-shrink: 0;
-        border-radius: 13px;
-        background: linear-gradient(135deg, #ea580c, #9a3412);
-        color: #fff;
+        border-radius: var(--adm-r-md);
+        background: var(--adm-primario);
+        color: var(--adm-marca-borde);
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 800;
       }
 
       .ud-meta__textos {
@@ -443,12 +402,9 @@
         padding: 2px 9px;
         border-radius: 999px;
         background: var(--adm-primario-claro);
-        color: var(--adm-primario);
-        font-family: var(--x-mono, ui-monospace, monospace);
-        font-size: 10px;
+        color: var(--adm-marca-texto);
+        font-size: 11.5px;
         font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
       }
 
       .ud-item {
@@ -456,7 +412,7 @@
         align-items: center;
         gap: 10px;
         padding: 10px;
-        border-radius: 12px;
+        border-radius: var(--adm-r-sm);
         font-size: 13.5px;
         font-weight: 500;
         color: var(--adm-texto-2);
@@ -475,7 +431,7 @@
           background: var(--adm-superficie-3);
           color: var(--adm-texto);
           text-decoration: none;
-          i { color: var(--adm-primario); }
+          i { color: var(--adm-marca-texto); }
         }
       }
 
@@ -499,15 +455,24 @@
   }
 }
 
+/* Tema oscuro: el relleno primario se invierte, así que los avatares usan superficie-3 + oro. */
+:host-context([data-tema='oscuro']) .topbar {
+  .user-avatar,
+  .ud-avatar {
+    background: var(--adm-superficie-3);
+    color: var(--adm-marca-texto);
+  }
+}
+
 @media (max-width: 900px) {
   .topbar {
-    height: 60px;
     padding: 0 14px;
     gap: 10px;
 
     /* Chip fiscal en su versión corta («BETA»): libera ~120 px para el título. */
     .tb-fiscal { padding: 0 10px; }
-    .tb-fiscal .tb-fiscal__texto { display: none; }
+    .tb-fiscal .tb-fiscal__texto,
+    .tb-fiscal .tb-fiscal__ver { display: none; }
     .tb-fiscal .tb-fiscal__corto { display: inline; }
 
     /* Solo en móvil (cajón sobre el contenido) el botón pasa a "X" al abrir. */
@@ -523,24 +488,14 @@
   .topbar {
     padding: 0 12px;
 
-    .tb-title__icon { display: none; }
-    .tb-title__group { display: none; }
-    .tb-title__text { font-size: 15px; }
-
-    .tb-fiscal { padding: 0 10px; }
-    .tb-fiscal .tb-fiscal__texto { display: none; }
-    .tb-fiscal .tb-fiscal__corto { display: inline; }
+    .tb-title__text { font-size: 18px; }
 
     /* «Ver tienda» sigue disponible en el menú de usuario */
     .tb-link-tienda { display: none; }
 
     .user-pill {
-      height: 38px;
-      padding: 2px;
-
-      .user-info,
+      padding: 0 2px;
       .tb-chevron { display: none; }
-
       .user-dropdown { width: min(268px, calc(100vw - 24px)); }
     }
   }
@@ -553,13 +508,11 @@
     gap: 6px;
 
     .tb-actions { gap: 6px; }
-    .toggle-btn { width: 38px; height: 38px; }
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .topbar .user-dropdown,
   .topbar .toggle-btn span,
-  .topbar .tb-link-tienda,
   .topbar a.tb-fiscal { transition: none; }
 }

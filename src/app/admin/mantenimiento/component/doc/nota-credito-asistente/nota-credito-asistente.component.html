@@ -198,7 +198,10 @@
                     </table>
                   </div>
                   @if (tieneRecargo) {
-                    <p class="adm-ayuda">El recargo por pago con tarjeta no se elige: se acredita solo, en proporción a lo devuelto.</p>
+                    <details class="adm-mas-info">
+                      <summary class="adm-mas-info__resumen">Sobre el recargo por tarjeta</summary>
+                      <p class="adm-ayuda">El recargo por pago con tarjeta no se elige: se acredita solo, en proporción a lo devuelto.</p>
+                    </details>
                   }
                 }
                 @case ('descuento_items') {
@@ -268,7 +271,10 @@
                            [disabled]="enviando">
                     Reingresar al almacén lo devuelto
                   </label>
-                  <span class="adm-ayuda">Cuando SUNAT acepte la nota, las unidades vuelven al almacén del que salieron.</span>
+                  <details class="adm-mas-info">
+                    <summary class="adm-mas-info__resumen">Sobre el reingreso</summary>
+                    <p class="adm-ayuda">Cuando SUNAT acepte la nota, las unidades vuelven al almacén del que salieron.</p>
+                  </details>
                 </div>
               }
 
@@ -294,7 +300,10 @@
                 </li>
               </ul>
               @if (motivo.forma === 'items' && totalCentimos > 0) {
-                <p class="adm-ayuda">El importe exacto lo calcula el sistema al emitir, con la parte proporcional del recargo por tarjeta si lo hubo.</p>
+                <details class="adm-mas-info">
+                  <summary class="adm-mas-info__resumen">Sobre el total estimado</summary>
+                  <p class="adm-ayuda">El importe exacto lo calcula el sistema al emitir, con la parte proporcional del recargo por tarjeta si lo hubo.</p>
+                </details>
               }
 
               @if (errorEnvio; as fallo) {

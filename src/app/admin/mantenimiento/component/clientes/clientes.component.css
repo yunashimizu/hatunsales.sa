@@ -38,7 +38,7 @@
 .cli-alta__texto {
   margin: 0;
   max-width: 54ch;
-  font-size: 13.5px;
+  font-size: var(--adm-fs-etiqueta);
   line-height: 1.55;
   color: var(--adm-texto-suave);
 }
@@ -57,7 +57,7 @@
   align-items: center;
   gap: 8px;
   padding: 4px 12px 4px 4px;
-  font-size: 12.5px;
+  font-size: var(--adm-fs-ayuda);
   color: var(--adm-texto-2);
   background: var(--adm-superficie);
   border: 1px solid var(--adm-borde);
@@ -83,12 +83,12 @@
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--adm-primario-claro);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   font-size: 12px;
 }
 
 .cli-alta__tipo-icono--empresa { background: var(--adm-info-claro); color: var(--adm-info); }
-.cli-alta__tipo--activo .cli-alta__tipo-icono { background: var(--adm-gradiente); color: var(--x-lienzo-texto); }
+.cli-alta__tipo--activo .cli-alta__tipo-icono { background: var(--adm-gradiente); color: var(--adm-primario-texto); }
 
 /* El formulario va en un recuadro sobre el tinte de la tarjeta destacada */
 .cli-alta__form {
@@ -118,7 +118,7 @@
 .cli-alta__contador {
   padding: 1px 9px;
   font-family: var(--x-mono, var(--adm-fuente-mono));
-  font-size: 11px;
+  font-size: var(--adm-fs-ayuda);
   font-weight: 500;
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
@@ -163,7 +163,7 @@
 /* El contador de la pestaña activa toma el color de marca */
 .cli-pestania--activa .adm-insignia {
   background: var(--adm-primario-claro);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
 }
 
 /* Resumen de la pestaña: cápsulas informativas con la cifra en negrita */
@@ -183,7 +183,7 @@
 
 .cli-resumen__filtro {
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--adm-fs-ayuda);
   color: var(--adm-texto-suave);
   font-variant-numeric: tabular-nums;
 }
@@ -228,7 +228,7 @@
 /* Avatar con iniciales: seis tonos estables por persona (data-tono lo calcula tonoDe) */
 .cli-avatar {
   background: var(--adm-primario-claro);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent);
   transition: transform 360ms var(--x-resorte-suave, ease);
 }
@@ -288,7 +288,7 @@
   color: var(--adm-texto-suave);
 }
 
-.cli-contacto--correo { font-size: 12.5px; color: var(--adm-texto-suave); }
+.cli-contacto--correo { font-size: var(--adm-fs-ayuda); color: var(--adm-texto-suave); }
 
 .cli-sin-dato { color: var(--adm-texto-suave); }
 
@@ -312,7 +312,7 @@
   padding: 14px;
   border: 1px solid var(--adm-borde);
   border-radius: var(--adm-r-md);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--adm-primario) 7%, var(--adm-superficie)), var(--adm-superficie) 70%);
+  background: var(--adm-superficie-2);
 }
 
 .cli-ficha__avatar { width: 56px; height: 56px; font-size: 19px; }
@@ -323,7 +323,7 @@
 .cli-ficha__nombre {
   margin: 0;
   font-family: var(--adm-fuente-titulos);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.015em;
@@ -392,4 +392,54 @@
   .cli-avatar,
   .cli-alta__tipo { transition: none; }
   .adm-tabla tbody tr:hover .cli-avatar { transform: none; }
+}
+
+/* ── R7 · Ficha lateral anclada (400 px) ─────────────────────── */
+
+/* Cabecera de la ficha: título 17/700, insignia de estado y cerrar */
+.cli-panel__cabecera { gap: 10px; padding: 16px 20px; }
+.cli-panel__encabezado { flex: 1 1 auto; min-width: 0; }
+
+.cli-panel__titulo {
+  margin: 0;
+  font-family: var(--adm-fuente-titulos);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--adm-texto);
+  overflow-wrap: anywhere;
+}
+
+.cli-panel__cabecera .adm-insignia { flex-shrink: 0; }
+
+/* Campos y botones de 44 px dentro de la ficha; el pie queda fijo (el cuerpo es lo que desplaza) */
+.adm-panel--ficha .adm-input { min-height: 44px; }
+.adm-panel--ficha .adm-panel__pie { flex-wrap: nowrap; }
+.adm-panel--ficha .adm-panel__pie .adm-btn { min-height: 44px; }
+.adm-panel--ficha .adm-panel__pie .adm-btn--primario { flex: 1 1 auto; justify-content: center; }
+
+/* La ficha mide 400 px: una columna; departamento y provincia son un par corto, el distrito baja */
+@container ficha (max-width: 460px) {
+  .cli-fila { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 14px; }
+  .cli-fila > .adm-campo { flex: 0 0 auto; width: 100%; }
+
+  .cli-fila.cli-fila--tres {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 12px;
+  }
+
+  .cli-fila--tres > .adm-campo:nth-child(3) { grid-column: 1 / -1; }
+
+  .cli-ficha { gap: 12px; padding: 12px; }
+  .cli-ficha__avatar { width: 48px; height: 48px; font-size: 17px; }
+  .cli-ficha__nombre { font-size: var(--adm-fs-cuerpo); }
+}
+
+/* Con la ficha abierta (≥ 1200 px) la tabla queda en ~700 px: se oculta lo secundario y el alta se apila */
+@media (min-width: 1200px) {
+  .adm-pagina--con-ficha .cli-col-sec { display: none; }
+  .adm-pagina--con-ficha .cli-td-principal { min-width: 180px; }
+  .adm-pagina--con-ficha .cli-alta { grid-template-columns: minmax(0, 1fr); }
 }

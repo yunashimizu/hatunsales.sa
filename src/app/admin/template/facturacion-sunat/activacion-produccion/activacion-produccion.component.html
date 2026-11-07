@@ -189,10 +189,6 @@
     <!-- 4. Credenciales SOL de producción -->
     <div class="adm-bloque activacion__paso" id="activacion-credenciales" [class.activacion__paso--ok]="resultadoPrueba?.ok === true">
       <h3 class="adm-bloque__titulo"><i class="bi bi-key" aria-hidden="true"></i> 4. Probar credenciales SOL de producción</h3>
-      <p class="adm-ayuda">
-        Consulta en SUNAT una factura que no existe ({{ config.series.factura }}-99999999) con el usuario secundario
-        registrado: comprueba usuario, clave y perfil sin enviar ni numerar ningún comprobante.
-      </p>
       <div class="adm-acciones">
         <button type="button" class="adm-btn adm-btn--suave" (click)="probarCredenciales()"
                 [disabled]="!puedeProbarCredenciales">
@@ -227,6 +223,13 @@
           <span>{{ errorPrueba }}</span>
         </div>
       }
+      <details class="adm-mas-info">
+        <summary class="adm-mas-info__resumen">Qué comprueba esta prueba</summary>
+        <p class="adm-ayuda">
+          Consulta en SUNAT una factura que no existe ({{ config.series.factura }}-99999999) con el usuario secundario
+          registrado: comprueba usuario, clave y perfil sin enviar ni numerar ningún comprobante.
+        </p>
+      </details>
     </div>
 
     <!-- 5. Activar -->

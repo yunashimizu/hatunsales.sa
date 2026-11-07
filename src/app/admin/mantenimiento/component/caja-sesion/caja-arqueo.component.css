@@ -25,10 +25,10 @@
 }
 
 .arq-cifra .adm-etiqueta {
-  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-family: inherit;
   font-size: var(--adm-fs-rotulo);
   font-weight: 500;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--adm-texto-suave);
 }
@@ -94,7 +94,7 @@
 }
 
 .arq-desglose span {
-  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-family: inherit;
   font-size: var(--adm-fs-rotulo);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -188,7 +188,7 @@ legend > i {
 }
 
 .arq-den .adm-etiqueta {
-  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-family: inherit;
   font-size: var(--adm-fs-etiqueta);
   font-weight: 600;
 }
@@ -251,7 +251,7 @@ legend > i {
 }
 
 .arq-codigo {
-  font-family: var(--x-mono, var(--adm-fuente-mono));
+  font-family: inherit;
   font-size: var(--adm-fs-etiqueta);
 }
 

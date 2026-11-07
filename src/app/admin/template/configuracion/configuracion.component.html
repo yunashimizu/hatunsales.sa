@@ -1,7 +1,7 @@
 <div class="adm-pagina">
 
   <!-- Cabecera de página -->
-  <header class="adm-cabecera">
+  <header class="adm-cabecera adm-cabecera--barra">
     <div class="adm-cabecera__principal">
       <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-gear"></i></span>
       <div>
@@ -216,7 +216,10 @@
                        aria-describedby="cfg-logo-ayuda"
                        [(ngModel)]="formEmisor.logo_url" placeholder="/uploads/logo-hatunsales.png">
               </div>
-              <span class="adm-ayuda" id="cfg-logo-ayuda">Déjelo vacío para usar el logo oficial de HatunSales. Se imprime en proformas, comprobantes, guías de remisión y arqueos de caja (PNG o JPEG de hasta 2 MB). Si la imagen no se puede leer, se usa el logo oficial.</span>
+              <details class="adm-mas-info">
+                <summary class="adm-mas-info__resumen">Sobre el logo</summary>
+                <p class="adm-ayuda" id="cfg-logo-ayuda">Déjelo vacío para usar el logo oficial de HatunSales. Se imprime en proformas, comprobantes, guías de remisión y arqueos de caja (PNG o JPEG de hasta 2 MB). Si la imagen no se puede leer, se usa el logo oficial.</p>
+              </details>
             </div>
           </div>
         </div>
@@ -274,7 +277,7 @@
               <textarea id="cfg-condiciones" class="adm-textarea" rows="4" maxlength="1500"
                         aria-describedby="cfg-condiciones-ayuda"
                         [(ngModel)]="formProforma.condiciones"
-                        placeholder="Una condición por línea. Ej.: Entrega en 24 a 48 horas en Lima.&#10;Pago contra entrega o transferencia previa."></textarea>
+                        placeholder="Ej.: Entrega en 24 a 48 horas en Lima.&#10;Pago contra entrega o transferencia previa."></textarea>
               <div class="cfg-ayuda-fila">
                 <span class="adm-ayuda" id="cfg-condiciones-ayuda">Escriba una condición por línea.</span>
                 <span class="adm-ayuda cfg-contador" [class.cfg-contador--limite]="(formProforma.condiciones || '').length > 1350">{{ (formProforma.condiciones || '').length }} / 1500</span>

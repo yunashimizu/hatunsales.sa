@@ -1,7 +1,7 @@
 <div class="adm-pagina">
 
   <!-- Cabecera de página -->
-  <header class="adm-cabecera">
+  <header class="adm-cabecera adm-cabecera--barra">
     <div class="adm-cabecera__principal">
       <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-receipt"></i></span>
       <div class="pv-cabecera__texto">
@@ -11,11 +11,6 @@
           Escanee o busque los productos, identifique al cliente y emita la boleta o factura. Los precios ya incluyen IGV.
         </p>
       </div>
-    </div>
-    <div class="adm-acciones">
-      <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/guias-remision">
-        <i class="bi bi-truck" aria-hidden="true"></i> Guías de remisión
-      </a>
     </div>
   </header>
 
@@ -78,229 +73,130 @@
     <span>No se verificó el cliente guardado en la cotización: {{ errorReceptorCotizacion }}. Selecciónelo manualmente antes de cobrar.</span>
   </div>
 
-  <!-- Contexto operativo: caja y almacén de esta venta -->
-  <section class="adm-filtros pv-contexto"
-           *ngIf="almacenes.length || cajaChip || cargandoContextoPos"
-           aria-label="Caja y almacén de la venta">
-    <div class="pv-contexto__chips">
-      <a *ngIf="cajaChip"
-         routerLink="/dashboard/mantenimiento/caja-sesion"
-         class="adm-insignia pv-contexto__caja"
-         [class.adm-insignia--exito]="cajaChip.abierta"
-         [class.adm-insignia--neutra]="!cajaChip.abierta"
-         [title]="cajaChip.modo === 'estricto' ? 'Modo estricto: abrir caja antes de cobrar' : 'Modo blando: puedes cobrar sin abrir'">
-        <i class="bi bi-cash-stack" aria-hidden="true"></i> {{ cajaChip.etiqueta }}
-      </a>
-      <span class="adm-insignia adm-insignia--neutra pv-contexto__insignia" *ngIf="nombreAlmacenActivo && !cambiandoAlmacen">
-        <i class="bi bi-building" aria-hidden="true"></i>
-        <span class="adm-truncar">{{ nombreAlmacenActivo }}</span>
-      </span>
-      <span class="adm-insignia adm-insignia--aviso" *ngIf="cambiandoAlmacen">
-        <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Actualizando stock…
-      </span>
-      <ng-container *ngIf="cargandoContextoPos && !almacenes.length">
-        <span class="adm-esqueleto pv-contexto__esqueleto" aria-hidden="true"></span>
-        <span class="adm-esqueleto pv-contexto__esqueleto" aria-hidden="true"></span>
-      </ng-container>
-    </div>
-
-    <div class="adm-campo pv-contexto__almacen" *ngIf="almacenes.length">
-      <label class="adm-etiqueta" for="adm-almacen-pos">Almacén / sede</label>
-      <select id="adm-almacen-pos"
-              class="adm-select"
-              [ngModel]="idAlmacen"
-              (ngModelChange)="cambiarAlmacen($event)"
-              [disabled]="cambiandoAlmacen || emitiendo">
-        <option *ngFor="let a of almacenes" [ngValue]="a.id_almacen">
-          {{ a.nombre }}<ng-container *ngIf="a.sucursal"> · {{ a.sucursal }}</ng-container>
-        </option>
-      </select>
-      <span class="adm-ayuda">
-        La búsqueda y el stock usan este almacén. Cambiarlo actualiza el catálogo sin vaciar el carrito.
-      </span>
-    </div>
-
-    <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto pv-contexto__aviso"
-         *ngIf="!almacenes.length && !cargandoContextoPos && !errorContextoPos">
-      <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
-      <span>No hay almacenes disponibles para este usuario. Contacte al administrador.</span>
-    </div>
-  </section>
-
-  <!-- Resultado de la última venta -->
-  <section class="adm-tarjeta adm-tarjeta--exito-suave pv-resultado"
-           *ngIf="ultimaVenta"
-           [class.pv-resultado--pendiente]="ultimaVenta.comprobante_error"
-           role="status">
-    <div class="adm-tarjeta__cuerpo adm-tarjeta__cuerpo--compacto pv-resultado__cuerpo">
-      <div class="pv-resultado__icono" [class.pv-resultado__icono--pendiente]="ultimaVenta.comprobante_error" aria-hidden="true">
-        <i class="bi" [ngClass]="ultimaVenta.comprobante_error ? 'bi-exclamation-triangle-fill' : 'bi-check-circle-fill'"></i>
-      </div>
-
-      <div class="pv-resultado__texto">
-        <strong class="pv-resultado__titulo">
-          {{ ultimaVenta.comprobante_error ? 'Venta registrada, comprobante pendiente' : 'Comprobante emitido' }}
-        </strong>
-        <div class="pv-resultado__detalle">
-          Venta #{{ ultimaVenta.id_venta }}
-          <span *ngIf="ultimaVenta.comprobante?.numero_formateado">
-            · {{ ultimaVenta.comprobante?.numero_formateado }}
-          </span>
-          · Total S/ {{ ultimaVenta.total | number:'1.2-2' }}
-          <span *ngIf="ultimaVenta.recargo_tarjeta">
-            (incluye recargo por tarjeta S/ {{ ultimaVenta.recargo_tarjeta | number:'1.2-2' }})
-          </span>
-        </div>
-        <div class="adm-ayuda adm-ayuda--error" *ngIf="ultimaVenta.comprobante_error">
-          {{ ultimaVenta.comprobante_error }}
-        </div>
-      </div>
-
-      <div class="adm-acciones pv-resultado__acciones">
-        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
-                *ngIf="ultimaVenta.comprobante?.enlace_pdf || ultimaVenta.comprobante?.enlace"
-                (click)="abrirComprobante()">
-          <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Ver comprobante
-        </button>
-        <a class="adm-btn adm-btn--suave adm-btn--sm" routerLink="/dashboard/mantenimiento/doc">
-          <i class="bi bi-collection" aria-hidden="true"></i> Ir a documentos
-        </a>
-        <a class="adm-btn adm-btn--primario adm-btn--sm"
-           *ngIf="ultimaVenta.id_venta"
-           [routerLink]="['/dashboard/mantenimiento/guias-remision']"
-           [queryParams]="{ venta: ultimaVenta.id_venta }">
-          <i class="bi bi-truck" aria-hidden="true"></i> Preparar guía
-        </a>
-      </div>
-
-      <button type="button" class="adm-btn-icono pv-resultado__cerrar" (click)="cerrarUltimaVenta()"
-              aria-label="Cerrar aviso" title="Cerrar aviso">
-        <i class="bi bi-x-lg" aria-hidden="true"></i>
-      </button>
-    </div>
-  </section>
 
   <div class="adm-grid adm-grid--pos pv-grid">
 
-    <!-- ─── Columna izquierda: búsqueda, carrito y vista previa ─── -->
-    <div class="pv-columna">
+    <!-- ─── Panel izquierdo: buscador, contexto, frecuentes, última venta y vista previa ─── -->
+    <div class="pv-columna pv-izquierda">
 
       <!-- Buscador de productos -->
-      <section class="adm-tarjeta adm-tarjeta--acento adm-tarjeta--desbordable pv-busqueda">
-        <div class="adm-tarjeta__cabecera">
-          <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo"><i class="bi bi-upc-scan"></i> Buscar producto</h2>
-            <p class="adm-tarjeta__sub">Escanee el código de barras o escriba el nombre: Enter lo suma al carrito.</p>
-          </div>
-          <span class="adm-insignia adm-insignia--neutra pv-busqueda__almacen" [title]="'Almacén activo'" *ngIf="nombreAlmacenActivo">
-            <i class="bi bi-building" aria-hidden="true"></i>
-            <span class="adm-truncar">{{ nombreAlmacenActivo }}</span>
-          </span>
+      <section class="pv-busqueda" aria-label="Buscar producto">
+        <div class="pv-sr">
+          <h2>Buscar producto</h2>
+          <p>Escanee el código de barras o escriba el nombre: Enter lo suma al carrito.</p>
         </div>
+        <!-- Repite el almacén de la fila de contexto: se oculta por CSS, el nodo se conserva. -->
+        <span class="adm-insignia adm-insignia--neutra pv-busqueda__almacen" [title]="'Almacén activo'" *ngIf="nombreAlmacenActivo">
+          <i class="bi bi-building" aria-hidden="true"></i>
+          <span class="adm-truncar">{{ nombreAlmacenActivo }}</span>
+        </span>
 
-        <div class="adm-tarjeta__cuerpo">
-          <div class="adm-campo">
-            <div class="pv-buscador-cabecera"
-                 *ngIf="mostrarBotonAltaProductoEnBusqueda || mostrarTarjetaSinResultados || nombreAlmacenActivo">
-              <label class="adm-etiqueta" for="adm-buscar-producto">
-                {{ nombreAlmacenActivo ? 'Código, SKU o nombre' : 'Buscar producto' }}
-              </label>
-              <button type="button" class="adm-btn adm-btn--primario adm-btn--sm pv-buscador__alta"
-                      *ngIf="mostrarBotonAltaProductoEnBusqueda || mostrarTarjetaSinResultados"
-                      (click)="abrirAltaRapida()"
-                      title="Registrar este producto y continuar la venta (F2)">
-                <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear producto
-                <kbd class="adm-kbd pv-buscador__tecla">F2</kbd>
-              </button>
+        <div class="adm-campo pv-busqueda__campo">
+          <div class="pv-buscador-cabecera"
+               *ngIf="mostrarBotonAltaProductoEnBusqueda || mostrarTarjetaSinResultados || nombreAlmacenActivo">
+            <label class="adm-etiqueta" for="adm-buscar-producto">
+              {{ nombreAlmacenActivo ? 'Código, SKU o nombre' : 'Buscar producto' }}
+            </label>
+            <button type="button" class="adm-btn adm-btn--primario adm-btn--sm pv-buscador__alta"
+                    *ngIf="mostrarBotonAltaProductoEnBusqueda || mostrarTarjetaSinResultados"
+                    (click)="abrirAltaRapida()"
+                    title="Registrar este producto y continuar la venta (F2)">
+              <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear producto
+              <kbd class="adm-kbd pv-buscador__tecla">F2</kbd>
+            </button>
+          </div>
+
+          <div class="adm-input-icono adm-autocompletar pv-buscador">
+            <i class="bi bi-upc-scan" aria-hidden="true"></i>
+            <input #inputProducto
+                   id="adm-buscar-producto"
+                   class="adm-input adm-input--grande pv-buscador__input"
+                   type="text"
+                   autocomplete="off"
+                   autofocus
+                   aria-label="Buscar producto por código de barras, SKU o nombre"
+                   placeholder="Escanee el código o escriba nombre / SKU…"
+                   [(ngModel)]="textoProducto"
+                   (focus)="alEnfocarProducto()"
+                   (ngModelChange)="alEscribirProducto()"
+                   (keydown)="alPresionarEnProducto($event)">
+            <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProducto" aria-hidden="true"></i>
+            <kbd class="adm-kbd pv-buscador__f2" *ngIf="puedeCrearRapido" aria-hidden="true">F2</kbd>
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm pv-buscador__sonido"
+                    [attr.aria-pressed]="sonido.activo()"
+                    [title]="sonido.activo() ? 'Sonido del lector activado: clic para silenciar' : 'Sonido del lector silenciado: clic para activar'"
+                    aria-label="Sonido del lector"
+                    (click)="sonido.alternar()">
+              <i class="bi" [ngClass]="sonido.activo() ? 'bi-volume-up-fill' : 'bi-volume-mute-fill'" aria-hidden="true"></i>
+              <span class="pv-buscador__sonido-texto">Sonido</span>
+            </button>
+
+            <div class="adm-aviso adm-aviso--peligro" *ngIf="errorBusquedaProducto" role="alert">
+              <span>{{ errorBusquedaProducto }}</span>
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                      (click)="reintentarBusquedaProducto()">Reintentar</button>
             </div>
 
-            <div class="adm-input-icono adm-autocompletar pv-buscador">
-              <i class="bi bi-upc-scan" aria-hidden="true"></i>
-              <input #inputProducto
-                     id="adm-buscar-producto"
-                     class="adm-input adm-input--grande pv-buscador__input"
-                     type="text"
-                     autocomplete="off"
-                     autofocus
-                     aria-label="Buscar producto por código de barras, SKU o nombre"
-                     placeholder="Escanee el código o escriba nombre / SKU…"
-                     [(ngModel)]="textoProducto"
-                     (focus)="alEnfocarProducto()"
-                     (ngModelChange)="alEscribirProducto()"
-                     (keydown)="alPresionarEnProducto($event)">
-              <i class="bi bi-arrow-repeat adm-girando pv-buscador__estado" *ngIf="buscandoProducto" aria-hidden="true"></i>
-
-              <div class="adm-aviso adm-aviso--peligro" *ngIf="errorBusquedaProducto" role="alert">
-                <span>{{ errorBusquedaProducto }}</span>
-                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
-                        (click)="reintentarBusquedaProducto()">Reintentar</button>
-              </div>
-
-              <ul class="adm-sugerencias" *ngIf="sugerenciasProducto.length">
-                <li *ngFor="let producto of sugerenciasProducto; trackBy: identificarProductoSugerido; let i = index"
-                    class="adm-sugerencia"
-                    [class.adm-sugerencia--activa]="i === indiceProducto"
-                    (click)="agregarProducto(producto)">
-                  <img class="adm-sugerencia__miniatura"
-                       [src]="urlDe(producto.imagen_url) || 'assets/img/producto-sin-imagen.svg'"
-                       [alt]="producto.nombre">
-                  <div class="adm-sugerencia__texto">
-                    <div class="adm-sugerencia__titulo">{{ producto.nombre }}</div>
-                    <div class="adm-sugerencia__detalle">
-                      <span *ngIf="producto.sku">{{ producto.sku }} · </span>
-                      <span class="adm-sugerencia__precio">S/ {{ producto.precio_final | number:'1.2-2' }}</span>
-                    </div>
+            <ul class="adm-sugerencias" *ngIf="sugerenciasProducto.length">
+              <li *ngFor="let producto of sugerenciasProducto; trackBy: identificarProductoSugerido; let i = index"
+                  class="adm-sugerencia"
+                  [class.adm-sugerencia--activa]="i === indiceProducto"
+                  (click)="agregarProducto(producto)">
+                <img class="adm-sugerencia__miniatura"
+                     [src]="urlDe(producto.imagen_url) || 'assets/img/producto-sin-imagen.svg'"
+                     [alt]="producto.nombre">
+                <div class="adm-sugerencia__texto">
+                  <div class="adm-sugerencia__titulo">{{ producto.nombre }}</div>
+                  <div class="adm-sugerencia__detalle">
+                    <span *ngIf="producto.sku">{{ producto.sku }} · </span>
+                    <span class="adm-sugerencia__precio">S/ {{ producto.precio_final | number:'1.2-2' }}</span>
                   </div>
-                  <span class="adm-insignia"
-                        [ngClass]="producto.stock_disponible > 0 ? 'adm-insignia--exito' : 'adm-insignia--peligro'"
-                        title="Stock disponible en este almacén">
-                    {{ producto.stock_disponible }}
-                  </span>
-                  <button type="button"
-                          class="adm-btn adm-btn--suave adm-btn--sm pv-sugerencia__stock"
-                          *ngIf="puedeCrearRapido && sinStock(producto)"
-                          tabindex="-1"
-                          title="Ingresar unidades a este almacén y seguir con la venta"
-                          (click)="abrirIngresoStock(producto, $event)">
-                    <i class="bi bi-plus-lg" aria-hidden="true"></i> Stock
-                  </button>
-                </li>
-              </ul>
-
-              <!-- Sin resultados tras un intento explícito: registrar el producto aquí mismo. -->
-              <div class="adm-sugerencias pv-sinresultado"
-                   *ngIf="mostrarTarjetaSinResultados && busquedaFallida as fallida"
-                   role="status">
-                <div class="adm-vacio adm-vacio--compacto pv-sinresultado__cuerpo">
-                  <div class="adm-vacio__icono adm-vacio__icono--aviso">
-                    <i class="bi" [ngClass]="fallida.esCodigo ? 'bi-upc-scan' : 'bi-slash-circle'"></i>
-                  </div>
-                  <div class="adm-vacio__titulo pv-sinresultado__titulo" *ngIf="!fallida.esCodigo">
-                    Sin resultados para «{{ fallida.texto }}»
-                  </div>
-                  <div class="adm-vacio__titulo pv-sinresultado__titulo" *ngIf="fallida.esCodigo">
-                    El código {{ fallida.texto }} no está registrado
-                  </div>
-                  <p>
-                    {{ fallida.esCodigo ? 'Créelo ahora con ese código y siga cobrando.' : 'Regístrelo aquí mismo y siga cobrando.' }}
-                  </p>
-                  <span class="adm-ayuda">Use el botón «Crear producto» junto al buscador o pulse <kbd class="adm-kbd">F2</kbd>.</span>
                 </div>
+                <span class="adm-insignia"
+                      [ngClass]="producto.stock_disponible > 0 ? 'adm-insignia--exito' : 'adm-insignia--peligro'"
+                      title="Stock disponible en este almacén">
+                  {{ producto.stock_disponible }}
+                </span>
+                <button type="button"
+                        class="adm-btn adm-btn--suave adm-btn--sm pv-sugerencia__stock"
+                        *ngIf="puedeCrearRapido && sinStock(producto)"
+                        tabindex="-1"
+                        title="Ingresar unidades a este almacén y seguir con la venta"
+                        (click)="abrirIngresoStock(producto, $event)">
+                  <i class="bi bi-plus-lg" aria-hidden="true"></i> Stock
+                </button>
+              </li>
+            </ul>
+
+            <!-- Sin resultados tras un intento explícito: registrar el producto aquí mismo. -->
+            <div class="adm-sugerencias pv-sinresultado"
+                 *ngIf="mostrarTarjetaSinResultados && busquedaFallida as fallida"
+                 role="status">
+              <div class="adm-vacio adm-vacio--compacto pv-sinresultado__cuerpo">
+                <div class="adm-vacio__icono adm-vacio__icono--aviso">
+                  <i class="bi" [ngClass]="fallida.esCodigo ? 'bi-upc-scan' : 'bi-slash-circle'"></i>
+                </div>
+                <div class="adm-vacio__titulo pv-sinresultado__titulo" *ngIf="!fallida.esCodigo">
+                  Sin resultados para «{{ fallida.texto }}»
+                </div>
+                <div class="adm-vacio__titulo pv-sinresultado__titulo" *ngIf="fallida.esCodigo">
+                  El código {{ fallida.texto }} no está registrado
+                </div>
+                <p>
+                  {{ fallida.esCodigo ? 'Créelo ahora con ese código y siga cobrando.' : 'Regístrelo aquí mismo y siga cobrando.' }}
+                </p>
+                <span class="adm-ayuda">Use el botón «Crear producto» junto al buscador o pulse <kbd class="adm-kbd">F2</kbd>.</span>
               </div>
             </div>
+          </div>
 
+          <div class="pv-atajos-fila">
+          <details class="adm-mas-info pv-atajos">
+            <summary class="adm-mas-info__resumen">Atajos y lector</summary>
             <div class="pv-buscador__pie">
               <p class="adm-ayuda pv-buscador__ayuda">
                 Con lector USB: deje el cursor aquí y escanee; el producto entra al carrito (todavía no se emite nada). Puede escanear varios seguidos sin esperar, suena al leer y, para varias unidades, escriba <kbd class="adm-kbd">5*</kbd> y escanee.
               </p>
-              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm pv-buscador__sonido"
-                      [attr.aria-pressed]="sonido.activo()"
-                      [title]="sonido.activo() ? 'Sonido del lector activado: clic para silenciar' : 'Sonido del lector silenciado: clic para activar'"
-                      aria-label="Sonido del lector"
-                      (click)="sonido.alternar()">
-                <i class="bi" [ngClass]="sonido.activo() ? 'bi-volume-up-fill' : 'bi-volume-mute-fill'" aria-hidden="true"></i>
-                <span class="pv-buscador__sonido-texto">Sonido</span>
-              </button>
             </div>
             <div class="pv-teclas" aria-hidden="true">
               <span><kbd class="adm-kbd">Enter</kbd> agregar</span>
@@ -308,175 +204,244 @@
               <span><kbd class="adm-kbd">Esc</kbd> cerrar la lista</span>
               <span *ngIf="puedeCrearRapido"><kbd class="adm-kbd">F2</kbd> crear producto</span>
             </div>
+            <p class="adm-ayuda pv-atajos__cliente">
+              Cliente: con 8 dígitos (DNI) u 11 (RUC) se busca solo; si no está registrado se consulta a SUNAT y queda guardado para la próxima venta.
+            </p>
+          </details>
+          <a class="adm-btn adm-btn--fantasma adm-btn--sm pv-atajos__guias" routerLink="/dashboard/mantenimiento/guias-remision">
+            <i class="bi bi-truck" aria-hidden="true"></i> Guías de remisión
+          </a>
           </div>
         </div>
       </section>
 
-      <!-- Carrito -->
-      <section class="adm-tarjeta pv-carrito">
-        <div class="adm-tarjeta__cabecera">
-          <h2 class="adm-tarjeta__titulo">
-            <i class="bi bi-cart3"></i> Carrito
-            <span class="adm-insignia adm-insignia--neutra" *ngIf="lineas.length">{{ lineas.length }}</span>
-          </h2>
-          <button type="button" class="adm-btn adm-btn--fantasma adm-btn--sm pv-carrito__vaciar"
-                  *ngIf="lineas.length" (click)="vaciarCarrito()">
-            <i class="bi bi-trash3" aria-hidden="true"></i> Vaciar
+      <!-- Contexto operativo: caja y almacén de esta venta -->
+      <section class="pv-contexto"
+               *ngIf="almacenes.length || cajaChip || cargandoContextoPos"
+               aria-label="Caja y almacén de la venta">
+        <div class="pv-contexto__chips">
+          <a *ngIf="cajaChip"
+             routerLink="/dashboard/mantenimiento/caja-sesion"
+             class="adm-insignia pv-contexto__caja"
+             [class.adm-insignia--exito]="cajaChip.abierta"
+             [class.adm-insignia--neutra]="!cajaChip.abierta"
+             [title]="cajaChip.modo === 'estricto' ? 'Modo estricto: abrir caja antes de cobrar' : 'Modo blando: puedes cobrar sin abrir'">
+            <i class="bi bi-cash-stack" aria-hidden="true"></i> {{ cajaChip.etiqueta }}
+          </a>
+          <span class="adm-insignia adm-insignia--neutra pv-contexto__insignia" *ngIf="nombreAlmacenActivo && !cambiandoAlmacen">
+            <i class="bi bi-building" aria-hidden="true"></i>
+            <span class="adm-truncar">{{ nombreAlmacenActivo }}</span>
+          </span>
+          <span class="adm-insignia adm-insignia--aviso" *ngIf="cambiandoAlmacen">
+            <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Actualizando stock…
+          </span>
+          <ng-container *ngIf="cargandoContextoPos && !almacenes.length">
+            <span class="adm-esqueleto pv-contexto__esqueleto" aria-hidden="true"></span>
+            <span class="adm-esqueleto pv-contexto__esqueleto" aria-hidden="true"></span>
+          </ng-container>
+        </div>
+
+        <div class="adm-campo pv-contexto__almacen" *ngIf="almacenes.length">
+          <label class="adm-etiqueta" for="adm-almacen-pos">Almacén / sede</label>
+          <select id="adm-almacen-pos"
+                  class="adm-select"
+                  [ngModel]="idAlmacen"
+                  (ngModelChange)="cambiarAlmacen($event)"
+                  [disabled]="cambiandoAlmacen || emitiendo">
+            <option *ngFor="let a of almacenes" [ngValue]="a.id_almacen">
+              {{ a.nombre }}<ng-container *ngIf="a.sucursal"> · {{ a.sucursal }}</ng-container>
+            </option>
+          </select>
+          <details class="adm-mas-info pv-contexto__info">
+            <summary class="adm-mas-info__resumen">¿Qué cambia el almacén?</summary>
+            <span class="adm-ayuda">
+              La búsqueda y el stock usan este almacén. Cambiarlo actualiza el catálogo sin vaciar el carrito.
+            </span>
+          </details>
+        </div>
+
+        <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto pv-contexto__aviso"
+             *ngIf="!almacenes.length && !cargandoContextoPos && !errorContextoPos">
+          <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+          <span>No hay almacenes disponibles para este usuario. Contacte al administrador.</span>
+        </div>
+      </section>
+
+      <!-- Productos frecuentes: mismo método que elegir una sugerencia del buscador -->
+      <section class="pv-frecuentes" *ngIf="frecuentes.length" aria-label="Productos frecuentes">
+        <div class="pv-frecuentes__rejilla">
+          <button type="button" class="pv-tile"
+                  *ngFor="let producto of frecuentes; trackBy: identificarProductoSugerido"
+                  [disabled]="emitiendo"
+                  (click)="agregarProducto(producto)">
+            <span class="pv-tile__texto">
+              <span class="pv-tile__nombre">{{ producto.nombre }}</span>
+              <span class="pv-tile__detalle">
+                <ng-container *ngIf="producto.sku">{{ producto.sku }} · </ng-container>{{ producto.stock_disponible }} en stock
+              </span>
+            </span>
+            <span class="pv-tile__pie">
+              <span class="pv-tile__precio">S/ {{ producto.precio_final | number:'1.2-2' }}</span>
+              <span class="pv-tile__unidad" *ngIf="producto.unidad_medida">{{ producto.unidad_medida }}</span>
+            </span>
+          </button>
+          <button type="button" class="pv-tile pv-tile--nuevo"
+                  *ngIf="puedeCrearRapido"
+                  (click)="abrirAltaRapida()"
+                  title="Registrar un producto que no tiene código y seguir con la venta (F2)">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+            <span>Producto sin código</span>
           </button>
         </div>
+      </section>
 
-        <div class="adm-vacio adm-vacio--compacto" *ngIf="!lineas.length">
-          <div class="adm-vacio__icono"><i class="bi bi-basket" aria-hidden="true"></i></div>
-          <div class="adm-vacio__titulo">El carrito está vacío</div>
-          <p>Escanee un código de barras o use el buscador de arriba: cada producto elegido se suma aquí.</p>
-        </div>
+      <!-- Resultado de la última venta -->
+      <section class="pv-resultado"
+               *ngIf="ultimaVenta"
+               [class.pv-resultado--pendiente]="ultimaVenta.comprobante_error"
+               role="status">
+        <div class="pv-resultado__cuerpo">
+          <div class="pv-resultado__icono" [class.pv-resultado__icono--pendiente]="ultimaVenta.comprobante_error" aria-hidden="true">
+            <i class="bi" [ngClass]="ultimaVenta.comprobante_error ? 'bi-exclamation-triangle-fill' : 'bi-check-circle-fill'"></i>
+          </div>
 
-        <div class="adm-tabla-envoltorio" *ngIf="lineas.length">
-          <table class="adm-tabla adm-tabla--adaptable adm-tabla--compacta pv-carrito__tabla">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th class="adm-centro">Cantidad</th>
-                <th class="adm-num">Precio</th>
-                <th class="adm-num" title="Descuento por unidad, en soles">Desc. c/u</th>
-                <th class="adm-num">Subtotal</th>
-                <th aria-label="Quitar"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let linea of lineas; trackBy: identificarLinea"
-                  [class.adm-recien-creado]="linea.id_producto === idLineaDestacada">
-                <td data-etiqueta="Producto" class="pv-carrito__producto">
-                  <div class="adm-tabla__principal">{{ linea.descripcion }}</div>
-                  <div class="adm-tabla__secundario">
-                    <span *ngIf="linea.sku">{{ linea.sku }} · </span>
-                    <span class="pv-carrito__precio-linea">S/ {{ linea.precio_unitario | number:'1.2-2' }} c/u · </span>
-                    Stock {{ linea.stock_disponible }}
-                    <span class="adm-insignia adm-insignia--peligro adm-insignia--sm"
-                          *ngIf="linea.cantidad > linea.stock_disponible">Excede el stock</span>
-                  </div>
-                </td>
+          <div class="pv-resultado__texto">
+            <strong class="pv-resultado__titulo">
+              {{ ultimaVenta.comprobante_error ? 'Venta registrada, comprobante pendiente' : 'Comprobante emitido' }}
+            </strong>
+            <div class="pv-resultado__detalle">
+              Venta #{{ ultimaVenta.id_venta }}
+              <span *ngIf="ultimaVenta.comprobante?.numero_formateado">
+                · {{ ultimaVenta.comprobante?.numero_formateado }}
+              </span>
+              · Total S/ {{ ultimaVenta.total | number:'1.2-2' }}
+              <span *ngIf="ultimaVenta.recargo_tarjeta">
+                (incluye recargo por tarjeta S/ {{ ultimaVenta.recargo_tarjeta | number:'1.2-2' }})
+              </span>
+            </div>
+            <div class="adm-ayuda adm-ayuda--error" *ngIf="ultimaVenta.comprobante_error">
+              {{ ultimaVenta.comprobante_error }}
+            </div>
+          </div>
 
-                <td data-etiqueta="Cantidad" class="adm-centro">
-                  <div class="pv-contador">
-                    <button type="button" class="adm-btn-icono" (click)="sumarCantidad(linea, -1)"
-                            [disabled]="linea.cantidad <= 1" aria-label="Quitar una unidad">
-                      <i class="bi bi-dash" aria-hidden="true"></i>
-                    </button>
-                    <input class="adm-input pv-contador__input" type="number" min="1" step="1"
-                           [ngModel]="linea.cantidad"
-                           (ngModelChange)="cambiarCantidad(linea, $event)"
-                           [attr.aria-label]="'Cantidad de ' + linea.descripcion">
-                    <button type="button" class="adm-btn-icono" (click)="sumarCantidad(linea, 1)"
-                            aria-label="Agregar una unidad">
-                      <i class="bi bi-plus" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                </td>
+          <div class="adm-acciones pv-resultado__acciones">
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+                    *ngIf="ultimaVenta.comprobante?.enlace_pdf || ultimaVenta.comprobante?.enlace"
+                    (click)="abrirComprobante()">
+              <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Ver comprobante
+            </button>
+            <a class="adm-btn adm-btn--suave adm-btn--sm" routerLink="/dashboard/mantenimiento/doc">
+              <i class="bi bi-collection" aria-hidden="true"></i> Ir a documentos
+            </a>
+            <a class="adm-btn adm-btn--primario adm-btn--sm"
+               *ngIf="ultimaVenta.id_venta"
+               [routerLink]="['/dashboard/mantenimiento/guias-remision']"
+               [queryParams]="{ venta: ultimaVenta.id_venta }">
+              <i class="bi bi-truck" aria-hidden="true"></i> Preparar guía
+            </a>
+          </div>
 
-                <td data-etiqueta="Precio" class="adm-num">
-                  S/ {{ linea.precio_unitario | number:'1.2-2' }}
-                </td>
-
-                <td data-etiqueta="Desc. c/u" class="adm-num">
-                  <input class="adm-input adm-input--chico adm-input--num pv-descuento-input"
-                         type="number"
-                         min="0"
-                         step="0.01"
-                         [ngModel]="linea.descuento ?? 0"
-                         (ngModelChange)="cambiarDescuento(linea, $event)"
-                         [attr.aria-label]="'Descuento por unidad para ' + linea.descripcion">
-                  <div class="pv-descuento-detalle" *ngIf="descuentoTotalLinea(linea) > 0" aria-live="polite">
-                    <ng-container *ngIf="linea.cantidad !== 1">{{ linea.cantidad }} × {{ descuentoUnitarioEfectivo(linea) | number:'1.2-2' }} = </ng-container>− S/ {{ descuentoTotalLinea(linea) | number:'1.2-2' }}
-                  </div>
-                  <div class="pv-descuento-detalle pv-descuento-detalle--aviso" *ngIf="descuentoExcede(linea)" role="status">
-                    No puede superar el precio: se aplica S/ {{ descuentoUnitarioEfectivo(linea) | number:'1.2-2' }}
-                  </div>
-                </td>
-
-                <td data-etiqueta="Subtotal" class="adm-num adm-tabla__principal pv-carrito__subtotal">
-                  S/ {{ subtotalLinea(linea) | number:'1.2-2' }}
-                </td>
-
-                <td data-etiqueta="Quitar" class="pv-carrito__quitar">
-                  <button type="button" class="adm-btn-icono adm-btn-icono--peligro adm-btn-icono--sm"
-                          (click)="quitarLinea(linea)" aria-label="Quitar producto" title="Quitar del carrito">
-                    <i class="bi bi-x-lg" aria-hidden="true"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="adm-tarjeta__pie pv-carrito__pie" *ngIf="lineas.length">
-          <span>{{ lineas.length }} {{ lineas.length === 1 ? 'producto' : 'productos' }}</span>
-          <span class="pv-carrito__pie-total">Total <strong>S/ {{ total | number:'1.2-2' }}</strong></span>
+          <button type="button" class="adm-btn-icono pv-resultado__cerrar" (click)="cerrarUltimaVenta()"
+                  aria-label="Cerrar aviso" title="Cerrar aviso">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
         </div>
       </section>
 
-      <!-- Vista previa del comprobante -->
-      <section class="adm-tarjeta pv-vista-previa" *ngIf="preview">
-        <div class="adm-tarjeta__cabecera">
-          <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--neutro">
-              <i class="bi bi-receipt-cutoff"></i> Así saldrá el comprobante
-            </h2>
-            <p class="adm-tarjeta__sub">Es la hoja que se imprimirá. El número definitivo, el código QR y la hora se asignan al emitir.</p>
-          </div>
+      <!-- Vista previa del comprobante (la hoja fiel): plegada por defecto; el DOM queda montado -->
+      <details class="adm-mas-info pv-vista-previa-det" *ngIf="preview || calculandoPreview">
+        <summary class="adm-mas-info__resumen">
+          Vista previa del comprobante
           <span class="adm-insignia adm-insignia--neutra" *ngIf="calculandoPreview">
             <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Actualizando
           </span>
-        </div>
-
-        <div class="adm-tarjeta__cuerpo pv-pila">
-          <div class="pv-hoja"
-               [class.pv-hoja--actualizando]="calculandoPreview"
-               [attr.aria-busy]="calculandoPreview">
-            <app-hoja-comprobante [datos]="hojaPreview"></app-hoja-comprobante>
+        </summary>
+        <!-- Vista previa del comprobante -->
+        <section class="adm-tarjeta pv-vista-previa" *ngIf="preview">
+          <div class="adm-tarjeta__cabecera">
+            <div class="adm-tarjeta__encabezado">
+              <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--neutro">
+                <i class="bi bi-receipt-cutoff"></i> Así saldrá el comprobante
+              </h2>
+              <p class="adm-tarjeta__sub">Es la hoja que se imprimirá. El número definitivo, el código QR y la hora se asignan al emitir.</p>
+            </div>
+            <span class="adm-insignia adm-insignia--neutra" *ngIf="calculandoPreview">
+              <i class="bi bi-arrow-repeat adm-girando" aria-hidden="true"></i> Actualizando
+            </span>
           </div>
 
-          <p class="pv-hoja__recargo" *ngIf="preview.recargo_tarjeta as recargo">
-            <i class="bi bi-credit-card" aria-hidden="true"></i>
-            <span>Incluye recargo por tarjeta ({{ recargo.porcentaje }}%): {{ preview.moneda.simbolo }} {{ recargo.monto | number:'1.2-2' }}</span>
-          </p>
+          <div class="adm-tarjeta__cuerpo pv-pila">
+            <div class="pv-hoja"
+                 [class.pv-hoja--actualizando]="calculandoPreview"
+                 [attr.aria-busy]="calculandoPreview">
+              <app-hoja-comprobante [datos]="hojaPreview"></app-hoja-comprobante>
+            </div>
 
-          <div class="adm-aviso adm-aviso--aviso"
-               *ngFor="let advertencia of preview.advertencias">
-            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i><span>{{ advertencia }}</span>
+            <p class="pv-hoja__recargo" *ngIf="preview.recargo_tarjeta as recargo">
+              <i class="bi bi-credit-card" aria-hidden="true"></i>
+              <span>Incluye recargo por tarjeta ({{ recargo.porcentaje }}%): {{ preview.moneda.simbolo }} {{ recargo.monto | number:'1.2-2' }}</span>
+            </p>
+
+            <div class="adm-aviso adm-aviso--aviso"
+                 *ngFor="let advertencia of preview.advertencias">
+              <i class="bi bi-exclamation-triangle" aria-hidden="true"></i><span>{{ advertencia }}</span>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Cálculo del comprobante en curso -->
-      <section class="adm-tarjeta pv-vista-previa" *ngIf="calculandoPreview && !preview" aria-busy="true">
-        <div class="adm-tarjeta__cabecera">
-          <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--neutro">
-            <i class="bi bi-receipt-cutoff"></i> Calculando el comprobante…
-          </h2>
-        </div>
-        <div class="adm-esqueletos">
-          <div class="adm-esqueleto adm-esqueleto--titulo"></div>
-          <div class="adm-esqueleto adm-esqueleto--linea"></div>
-          <div class="adm-esqueleto adm-esqueleto--fila"></div>
-          <div class="adm-esqueleto adm-esqueleto--linea"></div>
-        </div>
-      </section>
+        <!-- Cálculo del comprobante en curso -->
+        <section class="adm-tarjeta pv-vista-previa" *ngIf="calculandoPreview && !preview" aria-busy="true">
+          <div class="adm-tarjeta__cabecera">
+            <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--neutro">
+              <i class="bi bi-receipt-cutoff"></i> Calculando el comprobante…
+            </h2>
+          </div>
+          <div class="adm-esqueletos">
+            <div class="adm-esqueleto adm-esqueleto--titulo"></div>
+            <div class="adm-esqueleto adm-esqueleto--linea"></div>
+            <div class="adm-esqueleto adm-esqueleto--fila"></div>
+            <div class="adm-esqueleto adm-esqueleto--linea"></div>
+          </div>
+        </section>
+      </details>
     </div>
 
-    <!-- ─── Columna derecha: cliente, comprobante y cobro ─── -->
-    <aside class="pv-columna" aria-label="Cliente, comprobante y cobro">
+    <!-- ─── Panel derecho: Ticket (cliente, líneas, pago y cobro) ─── -->
+    <aside class="pv-columna pv-ticket" aria-label="Cliente, comprobante y cobro">
+
+      <div class="pv-ticket__cabecera">
+        <h2 class="pv-ticket__titulo">Ticket</h2>
+        <span class="pv-ticket__cuenta" *ngIf="lineas.length">{{ lineas.length }} {{ lineas.length === 1 ? 'producto' : 'productos' }}</span>
+        <div class="adm-segmentado adm-segmentado--bloque pv-tipos" role="group" aria-label="Tipo de comprobante">
+          <button type="button" class="adm-segmento pv-tipo"
+                  [class.adm-segmento--activo]="idTipo === TIPO_BOLETA"
+                  [class.pv-tipo--activo]="idTipo === TIPO_BOLETA"
+                  [attr.aria-pressed]="idTipo === TIPO_BOLETA"
+                  (click)="cambiarTipo(TIPO_BOLETA)">
+            <i class="bi bi-receipt" aria-hidden="true"></i> Boleta
+          </button>
+          <button type="button" class="adm-segmento pv-tipo"
+                  [class.adm-segmento--activo]="idTipo === TIPO_FACTURA"
+                  [class.pv-tipo--activo]="idTipo === TIPO_FACTURA"
+                  [attr.aria-pressed]="idTipo === TIPO_FACTURA"
+                  (click)="cambiarTipo(TIPO_FACTURA)">
+            <i class="bi bi-file-earmark-ruled" aria-hidden="true"></i> Factura
+          </button>
+        </div>
+      </div>
+
+      <div class="adm-aviso adm-aviso--aviso" *ngIf="avisoFactura">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i><span>{{ avisoFactura }}</span>
+      </div>
 
       <!-- Cliente -->
-      <section class="adm-tarjeta adm-tarjeta--desbordable pv-cliente">
-        <div class="adm-tarjeta__cabecera">
-          <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--info"><i class="bi bi-person-vcard"></i> Cliente</h2>
-            <p class="adm-tarjeta__sub">DNI para boleta, RUC para factura.</p>
-          </div>
+      <section class="pv-cliente" aria-label="Cliente">
+        <div class="pv-sr">
+          <h3>Cliente</h3>
+          <p>DNI para boleta, RUC para factura.</p>
         </div>
 
-        <div class="adm-tarjeta__cuerpo">
+        <div class="pv-cliente__cuerpo">
           <div class="pv-receptor" *ngIf="receptor; else buscadorReceptor">
             <span class="pv-receptor__avatar" aria-hidden="true">
               <i class="bi" [ngClass]="receptor.tipo_documento === 6 ? 'bi-building' : 'bi-person'"></i>
@@ -526,7 +491,7 @@
                          class="adm-input pv-buscador__input"
                          type="text"
                          autocomplete="off"
-                         placeholder="Escriba el documento o el nombre…"
+                         placeholder="DNI o RUC…"
                          [(ngModel)]="textoReceptor"
                          (ngModelChange)="alEscribirReceptor()"
                          (keydown)="alPresionarEnReceptor($event)">
@@ -553,16 +518,14 @@
                   <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
                           (click)="alEscribirReceptor()">Reintentar</button>
                 </div>
-                <span class="adm-ayuda">
-                  Con 8 dígitos (DNI) u 11 (RUC) se busca solo; si no está registrado se consulta a SUNAT y queda guardado para la próxima venta.
-                </span>
               </div>
 
               <div class="adm-acciones">
                 <button type="button" class="adm-btn adm-btn--primario adm-btn--sm"
                         [disabled]="!documentoCompleto || buscandoReceptor"
+                        title="Buscar en SUNAT"
                         (click)="buscarDocumento()">
-                  <i class="bi bi-cloud-arrow-down" aria-hidden="true"></i> Buscar en SUNAT
+                  <i class="bi bi-cloud-arrow-down" aria-hidden="true"></i> <span class="pv-btn-texto">Buscar en SUNAT</span>
                 </button>
                 <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="usarConsumidorFinal()">
                   <i class="bi bi-person" aria-hidden="true"></i> Sin identificar
@@ -573,107 +536,159 @@
         </div>
       </section>
 
-      <!-- Comprobante -->
-      <section class="adm-tarjeta pv-comprobante">
-        <div class="adm-tarjeta__cabecera">
-          <h2 class="adm-tarjeta__titulo"><i class="bi bi-file-earmark-text"></i> Comprobante</h2>
-        </div>
+      <div class="pv-ticket__cuerpo">
 
-        <div class="adm-tarjeta__cuerpo pv-pila">
-          <div class="adm-segmentado adm-segmentado--bloque pv-tipos" role="group" aria-label="Tipo de comprobante">
-            <button type="button" class="adm-segmento pv-tipo"
-                    [class.adm-segmento--activo]="idTipo === TIPO_BOLETA"
-                    [class.pv-tipo--activo]="idTipo === TIPO_BOLETA"
-                    [attr.aria-pressed]="idTipo === TIPO_BOLETA"
-                    (click)="cambiarTipo(TIPO_BOLETA)">
-              <i class="bi bi-receipt" aria-hidden="true"></i> Boleta
-            </button>
-            <button type="button" class="adm-segmento pv-tipo"
-                    [class.adm-segmento--activo]="idTipo === TIPO_FACTURA"
-                    [class.pv-tipo--activo]="idTipo === TIPO_FACTURA"
-                    [attr.aria-pressed]="idTipo === TIPO_FACTURA"
-                    (click)="cambiarTipo(TIPO_FACTURA)">
-              <i class="bi bi-file-earmark-ruled" aria-hidden="true"></i> Factura
-            </button>
+        <!-- Líneas del carrito -->
+        <section class="pv-carrito" aria-label="Carrito">
+          <h3 class="pv-sr">Carrito</h3>
+
+          <div class="adm-vacio adm-vacio--compacto" *ngIf="!lineas.length">
+            <div class="adm-vacio__icono"><i class="bi bi-basket" aria-hidden="true"></i></div>
+            <div class="adm-vacio__titulo">El carrito está vacío</div>
+            <p>Escanee un código de barras o use el buscador: cada producto elegido se suma aquí.</p>
           </div>
 
-          <div class="adm-aviso adm-aviso--aviso" *ngIf="avisoFactura">
-            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i><span>{{ avisoFactura }}</span>
-          </div>
-
-          <div class="adm-fila pv-serie">
-            <div class="adm-campo adm-campo--chico">
-              <label class="adm-etiqueta" for="adm-serie">Serie</label>
-              <input id="adm-serie" class="adm-input pv-serie__input" type="text" maxlength="4"
-                     [value]="serie" readonly tabindex="-1"
-                     [attr.title]="'Asignada automáticamente para ' + (idTipo === TIPO_FACTURA ? 'factura' : 'boleta')">
-            </div>
-            <p class="adm-ayuda pv-serie__ayuda">
-              Se asigna sola según el tipo: B… para boleta, F… para factura.
-            </p>
-          </div>
-
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="adm-observaciones">
-              Observaciones <span class="adm-etiqueta__opcional">opcional</span>
-            </label>
-            <textarea id="adm-observaciones" class="adm-textarea" rows="2"
-                      placeholder="Se imprime en el comprobante (p. ej. condiciones de entrega)"
-                      [(ngModel)]="observaciones"></textarea>
-          </div>
-
-          <div class="pv-opciones">
-            <label class="adm-switch pv-opcion">
-              <input type="checkbox" [(ngModel)]="enviarPorCorreo" [disabled]="!emitirComprobante">
-              <span class="pv-opcion__texto">
-                <span class="pv-opcion__titulo">Enviar por correo</span>
-                <span class="pv-opcion__desc">
-                  @if (!emitirComprobante) {
-                    Requiere comprobante electrónico.
-                  } @else {
-                    El comprobante llega al correo del cliente cuando SUNAT lo acepta.
-                  }
-                </span>
-              </span>
-            </label>
-            @if (enviarPorCorreo && emitirComprobante) {
-              @if (correoRegistrado) {
-                <p class="adm-ayuda pv-correo" id="pv-correo-destino">Se enviará a: <strong>{{ correoRegistrado }}</strong></p>
-              } @else {
-                <div class="adm-campo pv-correo">
-                  <label class="adm-etiqueta" for="pv-correo-cliente">Correo del cliente</label>
-                  <input id="pv-correo-cliente" class="adm-input" type="email" autocomplete="off" maxlength="254"
-                         placeholder="cliente@ejemplo.pe" [(ngModel)]="correoCliente"
-                         [attr.aria-invalid]="!correoClienteValido">
-                  @if (!correoClienteValido) {
-                    <p class="adm-ayuda adm-ayuda--error" role="alert">Escriba un correo con el formato nombre@dominio.pe.</p>
-                  } @else {
-                    <p class="adm-ayuda">Este cliente no tiene correo registrado. Sin uno, el comprobante no se envía.</p>
-                  }
+          <ul class="pv-lineas" *ngIf="lineas.length">
+            <li *ngFor="let linea of lineas; trackBy: identificarLinea"
+                class="pv-linea"
+                [class.adm-recien-creado]="linea.id_producto === idLineaDestacada">
+              <div class="pv-linea__info">
+                <div class="pv-linea__nombre" title="{{ linea.descripcion }}">{{ linea.descripcion }}</div>
+                <div class="pv-linea__detalle">
+                  <span>{{ linea.cantidad }} × S/ {{ linea.precio_unitario | number:'1.2-2' }}</span>
+                  <span *ngIf="linea.unidad_medida"> · {{ linea.unidad_medida }}</span>
+                  <span *ngIf="linea.sku"> · {{ linea.sku }}</span>
+                  · Stock {{ linea.stock_disponible }}
+                  <span class="adm-insignia adm-insignia--peligro adm-insignia--sm"
+                        *ngIf="linea.cantidad > linea.stock_disponible">Excede el stock</span>
                 </div>
+              </div>
+
+              <div class="pv-linea__cantidad">
+                <div class="pv-contador">
+                  <button type="button" class="adm-btn-icono" (click)="sumarCantidad(linea, -1)"
+                          [disabled]="linea.cantidad <= 1" aria-label="Quitar una unidad">
+                    <i class="bi bi-dash" aria-hidden="true"></i>
+                  </button>
+                  <input class="adm-input pv-contador__input" type="number" min="1" step="1"
+                         [ngModel]="linea.cantidad"
+                         (ngModelChange)="cambiarCantidad(linea, $event)"
+                         [attr.aria-label]="'Cantidad de ' + linea.descripcion">
+                  <button type="button" class="adm-btn-icono" (click)="sumarCantidad(linea, 1)"
+                          aria-label="Agregar una unidad">
+                    <i class="bi bi-plus" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="pv-linea__monto">S/ {{ subtotalLinea(linea) | number:'1.2-2' }}</div>
+
+              <div class="pv-linea__extra">
+                <label class="pv-linea__desc" title="Descuento por unidad, en soles">
+                  <span>Desc. c/u S/</span>
+                  <input class="adm-input adm-input--chico adm-input--num pv-descuento-input"
+                         type="number"
+                         min="0"
+                         step="0.01"
+                         [ngModel]="linea.descuento ?? 0"
+                         (ngModelChange)="cambiarDescuento(linea, $event)"
+                         [attr.aria-label]="'Descuento por unidad para ' + linea.descripcion">
+                </label>
+                <div class="pv-descuento-detalle" *ngIf="descuentoTotalLinea(linea) > 0" aria-live="polite">
+                  <ng-container *ngIf="linea.cantidad !== 1">{{ linea.cantidad }} × {{ descuentoUnitarioEfectivo(linea) | number:'1.2-2' }} = </ng-container>− S/ {{ descuentoTotalLinea(linea) | number:'1.2-2' }}
+                </div>
+                <div class="pv-descuento-detalle pv-descuento-detalle--aviso" *ngIf="descuentoExcede(linea)" role="status">
+                  No puede superar el precio: se aplica S/ {{ descuentoUnitarioEfectivo(linea) | number:'1.2-2' }}
+                </div>
+                <button type="button" class="adm-btn-icono adm-btn-icono--peligro adm-btn-icono--sm"
+                        (click)="quitarLinea(linea)" aria-label="Quitar producto" title="Quitar del carrito">
+                  <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Más opciones: serie, observaciones, correo y emisión electrónica -->
+        <details class="adm-mas-info pv-mas-opciones" [open]="!emitirComprobante || enviarPorCorreo">
+          <summary class="adm-mas-info__resumen">
+            Más opciones<span class="pv-mas-opciones__hint">: serie {{ serie }}, correo, observaciones</span>
+            <span class="adm-insignia adm-insignia--aviso adm-insignia--sm" *ngIf="!emitirComprobante">Sin comprobante electrónico</span>
+          </summary>
+          <div class="pv-pila pv-mas-opciones__cuerpo">
+            <div class="adm-fila pv-serie">
+              <div class="adm-campo adm-campo--chico">
+                <label class="adm-etiqueta" for="adm-serie">Serie</label>
+                <input id="adm-serie" class="adm-input pv-serie__input" type="text" maxlength="4"
+                       [value]="serie" readonly tabindex="-1"
+                       [attr.title]="'Asignada automáticamente para ' + (idTipo === TIPO_FACTURA ? 'factura' : 'boleta')">
+              </div>
+              <p class="adm-ayuda pv-serie__ayuda">
+                Se asigna sola según el tipo: B… para boleta, F… para factura.
+              </p>
+            </div>
+
+            <div class="adm-campo">
+              <label class="adm-etiqueta" for="adm-observaciones">
+                Observaciones <span class="adm-etiqueta__opcional">opcional</span>
+              </label>
+              <textarea id="adm-observaciones" class="adm-textarea" rows="2"
+                        placeholder="Se imprime en el comprobante (p. ej. condiciones de entrega)"
+                        [(ngModel)]="observaciones"></textarea>
+            </div>
+
+            <div class="pv-opciones">
+              <label class="adm-switch pv-opcion">
+                <input type="checkbox" [(ngModel)]="enviarPorCorreo" [disabled]="!emitirComprobante">
+                <span class="pv-opcion__texto">
+                  <span class="pv-opcion__titulo">Enviar por correo</span>
+                  <span class="pv-opcion__desc">
+                    @if (!emitirComprobante) {
+                      Requiere comprobante electrónico.
+                    } @else {
+                      El comprobante llega al correo del cliente cuando SUNAT lo acepta.
+                    }
+                  </span>
+                </span>
+              </label>
+              @if (enviarPorCorreo && emitirComprobante) {
+                @if (correoRegistrado) {
+                  <p class="adm-ayuda pv-correo" id="pv-correo-destino">Se enviará a: <strong>{{ correoRegistrado }}</strong></p>
+                } @else {
+                  <div class="adm-campo pv-correo">
+                    <label class="adm-etiqueta" for="pv-correo-cliente">Correo del cliente</label>
+                    <input id="pv-correo-cliente" class="adm-input" type="email" autocomplete="off" maxlength="254"
+                           placeholder="cliente@ejemplo.pe" [(ngModel)]="correoCliente"
+                           [attr.aria-invalid]="!correoClienteValido">
+                    @if (!correoClienteValido) {
+                      <p class="adm-ayuda adm-ayuda--error" role="alert">Escriba un correo con el formato nombre@dominio.pe.</p>
+                    } @else {
+                      <p class="adm-ayuda">Este cliente no tiene correo registrado. Sin uno, el comprobante no se envía.</p>
+                    }
+                  </div>
+                }
               }
-            }
-            <label class="adm-switch pv-opcion">
-              <input type="checkbox" [(ngModel)]="emitirComprobante">
-              <span class="pv-opcion__texto">
-                <span class="pv-opcion__titulo">Emitir comprobante electrónico</span>
-                <span class="pv-opcion__desc">Genera la boleta o factura electrónica al cobrar.</span>
-              </span>
-            </label>
+              <label class="adm-switch pv-opcion">
+                <input type="checkbox" [(ngModel)]="emitirComprobante">
+                <span class="pv-opcion__texto">
+                  <span class="pv-opcion__titulo">Emitir comprobante electrónico</span>
+                  <span class="pv-opcion__desc">Genera la boleta o factura electrónica al cobrar.</span>
+                </span>
+              </label>
+            </div>
           </div>
-        </div>
-      </section>
+        </details>
 
-      <!-- Medios de pago -->
-      <section class="adm-tarjeta pv-pago">
-        <div class="adm-tarjeta__cabecera">
-          <h2 class="adm-tarjeta__titulo adm-tarjeta__titulo--exito"><i class="bi bi-cash-coin"></i> Pago</h2>
-          <a routerLink="/dashboard/mantenimiento/cuentas-por-cobrar" class="adm-btn adm-btn--fantasma adm-btn--sm">
-            <i class="bi bi-wallet2" aria-hidden="true"></i> Cuentas por cobrar
-          </a>
-        </div>
+        <!-- Medios de pago -->
+        <section class="pv-pago">
+          <div class="pv-pago__cabecera">
+            <h3 class="pv-pago__titulo">Pago</h3>
+            <a routerLink="/dashboard/mantenimiento/cuentas-por-cobrar" class="adm-btn adm-btn--fantasma adm-btn--sm">
+              <i class="bi bi-wallet2" aria-hidden="true"></i> Cuentas por cobrar
+            </a>
+          </div>
 
-        <div class="adm-tarjeta__cuerpo pv-pila">
+          <div class="pv-pila pv-pago__cuerpo">
           <div class="adm-aviso adm-aviso--peligro" *ngIf="!metodosPago.length">
             <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
             <span>{{ errorMetodosPago || 'No hay medios de pago disponibles. No se puede emitir hasta recuperar esta configuración.' }}</span>
@@ -883,16 +898,13 @@
               <span>S/ {{ total | number:'1.2-2' }}</span>
             </div>
           </div>
-        </div>
-      </section>
+          </div>
+        </section>
+      </div>
 
       <!-- Total y cobro -->
-      <section class="adm-tarjeta adm-tarjeta--destacada pv-cobro" aria-label="Total y cobro">
-        <div class="adm-tarjeta__cuerpo pv-pila">
-          <ul class="adm-resumen">
-            <li class="adm-resumen__fila">
-              <span>Productos</span><span>{{ lineas.length }}</span>
-            </li>
+      <section class="pv-cobro" aria-label="Total y cobro">
+        <ul class="adm-resumen pv-filas">
             <li class="adm-resumen__fila" *ngIf="descuentoCarrito > 0">
               <span>Descuentos</span><span>− S/ {{ descuentoCarrito | number:'1.2-2' }}</span>
             </li>
@@ -902,11 +914,12 @@
             <li class="adm-resumen__fila" [class.pv-resumen__desactualizado]="calculandoPreview" *ngIf="preview">
               <span>IGV incluido ({{ preview.porcentaje_igv }}%)</span><span>S/ {{ preview.totales.igv | number:'1.2-2' }}</span>
             </li>
-            <li class="adm-resumen__fila adm-resumen__fila--total pv-total">
-              <span>Total a pagar</span>
-              <span class="pv-total__monto" [class.pv-total__monto--calculando]="calculandoPreview">S/ {{ total | number:'1.2-2' }}</span>
-            </li>
-          </ul>
+        </ul>
+
+        <div class="pv-total">
+          <span>Total a pagar</span>
+          <span class="pv-total__monto" [class.pv-total__monto--calculando]="calculandoPreview">S/ {{ total | number:'1.2-2' }}</span>
+        </div>
 
           <div class="adm-aviso adm-aviso--peligro" *ngIf="errorPreview">
             <i class="bi bi-x-circle" aria-hidden="true"></i><span>{{ errorPreview }}</span>
@@ -917,23 +930,30 @@
             <span>Desde la cotización {{ codigoCotizacionCargada }}</span>
           </div>
 
-          <button type="button" class="x-boton x-boton--lg pv-cobrar"
-                  [class.pv-cobrar--lista]="puedeEmitir && !emitiendo"
-                  [disabled]="!puedeEmitir" (click)="cobrar()">
-            <i class="bi" [ngClass]="emitiendo ? 'bi-arrow-repeat adm-girando' : 'bi-cash-coin'" aria-hidden="true"></i>
-            <span>{{ emitiendo ? 'Procesando…' : 'Cobrar y emitir' }}</span>
-            <span class="pv-cobrar__monto" *ngIf="puedeEmitir && !emitiendo">S/ {{ total | number:'1.2-2' }}</span>
-          </button>
+        <button type="button" class="pv-cobrar"
+                [class.pv-cobrar--lista]="puedeEmitir && !emitiendo"
+                [disabled]="!puedeEmitir" (click)="cobrar()">
+          <i class="bi" [ngClass]="emitiendo ? 'bi-arrow-repeat adm-girando' : 'bi-cash-coin'" aria-hidden="true"></i>
+          <span>{{ emitiendo ? 'Procesando…' : 'Cobrar y emitir' }}</span>
+          <span class="pv-cobrar__monto" *ngIf="puedeEmitir && !emitiendo">S/ {{ total | number:'1.2-2' }}</span>
+        </button>
 
-          <button type="button" class="x-boton x-boton--contorno x-boton--sm pv-cotizar"
-                  [disabled]="!lineas.length || emitiendo" (click)="irACotizarCarrito()">
-            <i class="bi bi-file-earmark-ruled" aria-hidden="true"></i> Cotizar este carrito
+        <div class="pv-secundarias">
+          <button type="button" class="adm-btn adm-btn--fantasma pv-secundaria pv-cotizar"
+                  [disabled]="!lineas.length || emitiendo" (click)="irACotizarCarrito()"
+                  title="Cotizar este carrito">
+            <i class="bi bi-file-earmark-ruled" aria-hidden="true"></i> Cotizar
+          </button>
+          <button type="button" class="adm-btn adm-btn--fantasma pv-secundaria pv-carrito__vaciar"
+                  *ngIf="lineas.length" (click)="vaciarCarrito()">
+            <i class="bi bi-trash3" aria-hidden="true"></i> Vaciar
           </button>
         </div>
       </section>
     </aside>
   </div>
 </div>
+
 
 <!-- Total siempre a la vista en pantallas chicas. Va fuera de .adm-pagina: su animación deja un transform
      que convertiría el position: fixed en absoluto. Solo muestra datos; el cobro sigue en la tarjeta. -->

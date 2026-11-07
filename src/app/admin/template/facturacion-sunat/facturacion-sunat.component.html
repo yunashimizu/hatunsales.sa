@@ -1,5 +1,5 @@
 <div class="adm-pagina">
-  <header class="adm-cabecera">
+  <header class="adm-cabecera adm-cabecera--barra">
     <div class="adm-cabecera__principal">
       <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-file-earmark-check"></i></span>
       <div>
@@ -220,11 +220,14 @@
                 <span class="adm-ayuda">Última vuelta: {{ ultima | date: 'dd/MM HH:mm' }}</span>
               }
             </div>
-            <p class="adm-ayuda adm-mb-0">
-              Con la emisión activa, cada 2 minutos el servidor reintenta los envíos pendientes (espera 2, 5, 15, 30 y
-              60 minutos entre intentos; tras 6 intentos quedan para revisarlos a mano) y recupera los que quedaron sin
-              respuesta. Si las apaga, los pendientes solo se reenvían con «Reintentar» en Envíos SUNAT.
-            </p>
+            <details class="adm-mas-info">
+              <summary class="adm-mas-info__resumen">Sobre las tareas programadas</summary>
+              <p class="adm-ayuda adm-mb-0">
+                Con la emisión activa, cada 2 minutos el servidor reintenta los envíos pendientes (espera 2, 5, 15, 30 y
+                60 minutos entre intentos; tras 6 intentos quedan para revisarlos a mano) y recupera los que quedaron sin
+                respuesta. Si las apaga, los pendientes solo se reenvían con «Reintentar» en Envíos SUNAT.
+              </p>
+            </details>
           </div>
         </div>
       </section>
@@ -292,19 +295,22 @@
             <label class="adm-switch fiscal-opcion">
               <input name="envioDiferido" type="checkbox" [(ngModel)]="operacion.envio_diferido" /> Cobrar sin esperar a SUNAT
             </label>
-            <p class="adm-ayuda">
-              Con «Cobrar sin esperar a SUNAT» la venta termina en menos de un segundo: el comprobante queda firmado y
-              guardado, y se envía a SUNAT en segundo plano (si SUNAT está lenta o caída, se reintenta solo). El ticket
-              sale con la leyenda «Pendiente de confirmación de SUNAT» hasta que SUNAT lo acepta. Apagado, el cajero espera
-              la respuesta de SUNAT como antes.
-            </p>
-            <p class="adm-ayuda">
-              Factura y sus notas empiezan con F; boleta y sus notas con B; la guía remitente con T. Si cambia una
-              serie, revise su primer número en «Estado y activación».
-            </p>
             <button class="adm-btn adm-btn--primario" type="submit" [disabled]="operacionForm.invalid">
               Guardar operación y series
             </button>
+            <details class="adm-mas-info">
+              <summary class="adm-mas-info__resumen">Sobre el cobro sin espera y las series</summary>
+              <p class="adm-ayuda">
+                Con «Cobrar sin esperar a SUNAT» la venta termina en menos de un segundo: el comprobante queda firmado y
+                guardado, y se envía a SUNAT en segundo plano (si SUNAT está lenta o caída, se reintenta solo). El ticket
+                sale con la leyenda «Pendiente de confirmación de SUNAT» hasta que SUNAT lo acepta. Apagado, el cajero espera
+                la respuesta de SUNAT como antes.
+              </p>
+              <p class="adm-ayuda">
+                Factura y sus notas empiezan con F; boleta y sus notas con B; la guía remitente con T. Si cambia una
+                serie, revise su primer número en «Estado y activación».
+              </p>
+            </details>
           </fieldset>
         </form>
       </section>

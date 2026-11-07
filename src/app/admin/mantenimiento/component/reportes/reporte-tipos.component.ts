@@ -107,7 +107,7 @@ const ICONOS: Record<number, string> = {
       }
 
       .tipo:hover:not(:disabled) { border-color: var(--adm-primario-borde); background: var(--adm-superficie-2); }
-      .tipo:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; }
+      .tipo:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
       .tipo:disabled { cursor: progress; opacity: 0.65; }
 
       .tipo--activo,
@@ -125,11 +125,11 @@ const ICONOS: Record<number, string> = {
         height: 42px;
         border-radius: 12px;
         background: var(--adm-primario-claro);
-        color: var(--adm-primario);
+        color: var(--adm-marca-texto);
         font-size: 18px;
       }
 
-      .tipo--activo .tipo__icono { background: var(--adm-gradiente); color: var(--x-lienzo-texto); }
+      .tipo--activo .tipo__icono { background: var(--adm-gradiente); color: var(--adm-primario-texto); }
       .tipo--neg .tipo__icono { background: var(--adm-peligro-claro); color: var(--adm-peligro-texto); }
 
       .tipo__texto { grid-area: texto; display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
@@ -158,7 +158,7 @@ const ICONOS: Record<number, string> = {
         display: block;
         height: 100%;
         border-radius: inherit;
-        background: var(--adm-primario);
+        background: var(--adm-gradiente-vivo);
         transform-origin: left center;
         scale: clamp(0.02, calc(var(--n, 0) / 100), 1) 1;
         transition: scale 280ms ease;

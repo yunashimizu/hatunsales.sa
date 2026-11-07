@@ -17,7 +17,10 @@ import { ComprobanteService } from '../../service/comprobante.service';
 import { InventarioAdminService } from '../../service/inventario-admin.service';
 
 export interface ItemMenu {
+  /** Texto del ítem (también lo usa la paleta de comandos). */
   etiqueta: string;
+  /** Texto que muestra el menú lateral si debe ser distinto (p. ej. «Vender» en vez de «Ventas»). */
+  etiquetaMenu?: string;
   ruta: string;
   icono: string;
   roles: string[];
@@ -29,15 +32,19 @@ export interface ItemMenu {
 export interface SeccionMenu {
   titulo: string;
   items: ItemMenu[];
+  /** Grupo suelto, siempre visible y sin rótulo (p. ej. «Inicio» arriba del todo). */
+  sinRotulo?: boolean;
 }
 
-/** Mismas rutas/roles; iconos Bootstrap Icons (ya cargados en el admin). */
+/** Mismas rutas/roles; agrupadas por tarea. Iconos Bootstrap Icons (ya cargados en el admin). */
 export const SECCIONES_MENU: SeccionMenu[] = [
   {
-    titulo: 'Navegación',
+    titulo: 'Inicio',
+    sinRotulo: true,
     items: [
       {
         etiqueta: 'Dashboard',
+        etiquetaMenu: 'Inicio',
         ruta: '/dashboard/home',
         icono: 'bi-house-door',
         roles: ['admin', 'superadmin', 'vendedor', 'caja', 'consulta'],
@@ -45,10 +52,11 @@ export const SECCIONES_MENU: SeccionMenu[] = [
     ],
   },
   {
-    titulo: 'Ventas',
+    titulo: 'Hoy',
     items: [
       {
         etiqueta: 'Ventas',
+        etiquetaMenu: 'Vender',
         ruta: '/dashboard/mantenimiento/ventas',
         icono: 'bi-receipt',
         roles: ['admin', 'superadmin', 'vendedor', 'caja'],
@@ -84,24 +92,6 @@ export const SECCIONES_MENU: SeccionMenu[] = [
         roles: ['admin', 'superadmin', 'vendedor', 'caja'],
         badgeKey: 'cpe_atencion',
       },
-      {
-        etiqueta: 'Guías de remisión',
-        ruta: '/dashboard/mantenimiento/guias-remision',
-        icono: 'bi-truck',
-        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
-      },
-      {
-        etiqueta: 'Clientes',
-        ruta: '/dashboard/mantenimiento/clientes',
-        icono: 'bi-people',
-        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
-      },
-      {
-        etiqueta: 'Cuentas por cobrar',
-        ruta: '/dashboard/mantenimiento/cuentas-por-cobrar',
-        icono: 'bi-wallet2',
-        roles: ['admin', 'superadmin', 'caja', 'vendedor'],
-      },
     ],
   },
   {
@@ -128,7 +118,7 @@ export const SECCIONES_MENU: SeccionMenu[] = [
     ],
   },
   {
-    titulo: 'Almacén',
+    titulo: 'Inventario',
     items: [
       {
         etiqueta: 'Inventario',
@@ -165,6 +155,40 @@ export const SECCIONES_MENU: SeccionMenu[] = [
     ],
   },
   {
+    titulo: 'Clientes',
+    items: [
+      {
+        etiqueta: 'Clientes',
+        ruta: '/dashboard/mantenimiento/clientes',
+        icono: 'bi-people',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      },
+      {
+        etiqueta: 'Cuentas por cobrar',
+        ruta: '/dashboard/mantenimiento/cuentas-por-cobrar',
+        icono: 'bi-wallet2',
+        roles: ['admin', 'superadmin', 'caja', 'vendedor'],
+      },
+    ],
+  },
+  {
+    titulo: 'SUNAT',
+    items: [
+      {
+        etiqueta: 'Facturación SUNAT',
+        ruta: '/dashboard/facturacion-sunat',
+        icono: 'bi-file-earmark-check',
+        roles: ['admin', 'superadmin'],
+      },
+      {
+        etiqueta: 'Guías de remisión',
+        ruta: '/dashboard/mantenimiento/guias-remision',
+        icono: 'bi-truck',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      },
+    ],
+  },
+  {
     titulo: 'Reportes',
     items: [
       {
@@ -176,14 +200,8 @@ export const SECCIONES_MENU: SeccionMenu[] = [
     ],
   },
   {
-    titulo: 'Administración',
+    titulo: 'Ajustes',
     items: [
-      {
-        etiqueta: 'Facturación SUNAT',
-        ruta: '/dashboard/facturacion-sunat',
-        icono: 'bi-file-earmark-check',
-        roles: ['admin', 'superadmin'],
-      },
       {
         etiqueta: 'Usuarios',
         ruta: '/dashboard/mantenimiento/usuarios',
@@ -293,6 +311,11 @@ export class SidebarComponent implements OnInit {
 
   visible(item: ItemMenu): boolean {
     return this.auth.puedeVer(item.roles, item.permisos ?? []);
+  }
+
+  /** Texto del ítem en el menú (puede diferir de la etiqueta que usa la paleta). */
+  textoItem(item: ItemMenu): string {
+    return item.etiquetaMenu ?? item.etiqueta;
   }
 
   seccionVisible(seccion: SeccionMenu): boolean {

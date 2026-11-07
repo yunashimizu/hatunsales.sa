@@ -183,7 +183,7 @@
                 <div class="adm-campo adm-autocompletar">
                   <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-buscar-venta">Venta</label>
                   <input id="gre-buscar-venta" class="adm-input" type="text" autocomplete="off"
-                         placeholder="N.° de venta, cliente o RUC" [ngModel]="busquedaVenta" (ngModelChange)="buscarVenta($event)"
+                         placeholder="Escriba N.° de venta, cliente o RUC" [ngModel]="busquedaVenta" (ngModelChange)="buscarVenta($event)"
                          [disabled]="cargandoVenta" [class.adm-input--error]="!!error('venta')" aria-describedby="gre-venta-ayuda">
                   @if (ventasEncontradas.length) {
                     <ul class="adm-sugerencias" aria-label="Ventas encontradas">
@@ -531,7 +531,7 @@
             @if (f.origen === 'sin_venta') {
               <div class="adm-campo adm-autocompletar">
                 <label class="adm-etiqueta" for="gre-buscar-producto">Agregar un producto</label>
-                <input id="gre-buscar-producto" class="adm-input" type="text" autocomplete="off" placeholder="Nombre, código o código de barras"
+                <input id="gre-buscar-producto" class="adm-input" type="text" autocomplete="off" placeholder="Escriba nombre, código o código de barras"
                        [ngModel]="busquedaProducto" (ngModelChange)="buscarProducto($event)" (keydown.enter)="alEnterBuscarProducto($event)" aria-describedby="gre-producto-ayuda">
                 @if (productosEncontrados.length) {
                   <ul class="adm-sugerencias" aria-label="Productos encontrados">

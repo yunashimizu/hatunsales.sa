@@ -75,14 +75,14 @@
   border-bottom-left-radius: 0;
   background: var(--adm-primario-claro);
   border-color: var(--adm-borde-fuerte);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   box-shadow: none;
 }
 
 .prov-ruc__boton:hover:not(:disabled) {
   background: var(--adm-primario-suave);
   border-color: var(--adm-borde-fuerte);
-  color: var(--adm-primario-osc);
+  color: var(--adm-marca-osc);
   box-shadow: none;
   transform: none;
 }
@@ -111,7 +111,7 @@
   white-space: nowrap;
 }
 
-.prov-buscador__resumen > i { color: var(--adm-primario); font-size: 13px; }
+.prov-buscador__resumen > i { color: var(--adm-marca-texto); font-size: 13px; }
 .prov-buscador__resumen > strong { color: var(--adm-texto); font-weight: 700; }
 
 /* ── Listado: carga y tabla ──────────────────────────────────── */
@@ -182,6 +182,35 @@
 }
 
 .prov-historial__fecha { white-space: nowrap; }
+
+/* ── R7 · Historial como ficha lateral anclada (400 px, sin velo ≥ 1200 px) ── */
+
+/* Cabecera: título 17/700 y subtítulo (proveedor) alineado con el título */
+.prov-ficha .adm-panel__cabecera { align-items: flex-start; padding: 16px 20px; }
+.prov-ficha .adm-panel__cabecera .adm-tarjeta__titulo { font-size: 17px; font-weight: 700; }
+.prov-ficha .adm-panel__sub { overflow-wrap: anywhere; }
+.prov-ficha .adm-panel__pie { position: sticky; bottom: 0; }
+
+/* Con la ficha abierta la tabla cede ancho: el contacto (dato secundario) se oculta por CSS.
+   Los datos siguen en el DOM y el proveedor se ve completo en el formulario al editar. */
+@media (min-width: 1200px) {
+  .adm-pagina--con-ficha .prov-col-sec { display: none; }
+}
+
+/* Ficha estrecha (400 px): tabla de recepciones compacta y con scroll horizontal contenido */
+@media (min-width: 641px) {
+  @container ficha (max-width: 460px) {
+    .prov-ficha .prov-historial__tabla { max-width: 100%; overflow-x: auto; }
+    .prov-ficha .prov-historial__tabla .adm-tabla thead th,
+    .prov-ficha .prov-historial__tabla .adm-tabla tbody td {
+      padding: 8px 8px;
+      white-space: nowrap;
+    }
+    .prov-ficha .prov-historial__totales { margin-left: 0; }
+    .prov-ficha .adm-panel__sub { margin-left: 0; }
+    .prov-ficha .adm-panel__pie > .adm-btn { flex: 1 1 auto; min-height: 44px; justify-content: center; }
+  }
+}
 .prov-historial__totales { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0 40px; }
 
 /* ── Móvil ───────────────────────────────────────────────────── */

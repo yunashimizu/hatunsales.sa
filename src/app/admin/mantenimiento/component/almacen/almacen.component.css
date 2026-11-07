@@ -94,7 +94,7 @@
   flex-shrink: 0;
   border-radius: 10px;
   background: var(--adm-primario-claro);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   font-size: 16px;
   box-shadow: inset 0 0 0 1px var(--adm-primario-suave);
 }

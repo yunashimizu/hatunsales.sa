@@ -101,6 +101,9 @@ export class PuntoVentaService {
     return this.catalogoListo && this.catalogo.length === 0;
   }
 
+  /** Catálogo en memoria, solo lectura (lo usan los tiles de frecuentes del POS). */
+  get catalogoCacheado(): readonly ProductoVenta[] { return this.catalogo; }
+
   get catalogoExpirado(): boolean {
     if (!this.catalogoListo || !this.catalogoCargadoEn) return true;
     return Date.now() - this.catalogoCargadoEn > CATALOGO_TTL_MS;

@@ -1,192 +1,510 @@
-/* La vista usa el sistema compartido (admin-ui.css, clases adm-*). Aquí quedan el
-   escenario de bienvenida y los detalles propios del inicio. */
+/* Inicio · piel «Acero y oro». Solo tokens --adm-*; tarjetas planas separadas por borde de 1 px,
+   sin sombras ni degradados. Medidas de la maqueta Inicio.dc.html. */
 :host {
   display: block;
   width: 100%;
 }
 
-/* ───────────────────────────────────────────────── escenario de bienvenida */
+.ini {
+  gap: 20px;
+}
 
-.ini-escenario {
-  position: relative;
-  isolation: isolate;
+/* ───────────────────────────────────────────────── texto solo para lectores de pantalla */
+
+.ini-solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ───────────────────────────────────────────────── saludo + acciones */
+
+.ini-saludo {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 24px 32px;
-  min-height: 188px;
-  padding: clamp(22px, 3.2vw, 38px);
-  border: 1px solid var(--x-lienzo-linea);
-  border-radius: var(--adm-r-xl);
-  background:
-    radial-gradient(60% 120% at 92% -10%, rgba(249, 115, 22, 0.5), transparent 62%),
-    radial-gradient(46% 90% at 0% 120%, rgba(255, 125, 54, 0.3), transparent 62%),
-    var(--x-lienzo);
-  color: var(--x-lienzo-texto);
-  overflow: hidden;
-  container-type: inline-size;
+  gap: 12px;
 }
 
-.ini-escenario__texto {
-  position: relative;
-  z-index: 1;
+.ini-saludo__texto {
   min-width: 0;
-  max-width: 640px;
 }
 
-.ini-eyebrow {
-  color: var(--x-lienzo-tenue);
-}
-
-.ini-eyebrow::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--x-menta);
-  box-shadow: 0 0 0 3px rgba(46, 230, 166, 0.2);
-}
-
-.ini-saludo {
-  margin: 14px 0 10px;
+.ini-saludo__titulo {
+  margin: 0;
   font-family: var(--adm-fuente-titulos);
-  font-size: clamp(1.9rem, 1.1rem + 2.8vw, 3.2rem);
+  font-size: 26px;
   font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.045em;
-  word-spacing: 0.08em;
-  color: var(--x-lienzo-texto);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--adm-texto);
   text-wrap: balance;
 }
 
-.ini-sub {
-  margin: 0;
-  font-size: 0.9375rem;
-  color: var(--x-lienzo-suave);
+.ini-saludo__turno {
+  margin: 4px 0 0;
+  color: var(--adm-texto-suave);
+  font-size: var(--adm-fs-cuerpo);
 }
 
-.ini-sub strong {
-  color: var(--x-lienzo-texto);
-}
-
-.ini-escenario__acciones {
-  position: relative;
-  z-index: 2;
+.ini-saludo__acciones {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
+  gap: 8px;
 }
 
-/* Instrumento decorativo: anillo vivo con el día del mes en el centro */
-.ini-dial {
-  position: absolute;
-  top: 50%;
-  right: 400px;
-  z-index: 0;
-  translate: 0 -50%;
-  --x-dial: 190px;
-  opacity: 0.95;
-  pointer-events: none;
+/* ───────────────────────────────────────────────── indicadores */
+
+.ini-kpis {
+  display: grid;
+  grid-template-columns: repeat(var(--ini-kpis, 4), minmax(0, 1fr));
+  gap: 14px;
 }
 
-.ini-dial .x-dial__disco {
-  gap: 2px;
-  align-content: center;
-  justify-items: center;
+.ini-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 18px 20px;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-lg);
 }
 
-.ini-dial__dia {
-  font-family: var(--x-mono);
-  font-size: 2.1rem;
+.ini-kpi__etiqueta {
+  font-size: var(--adm-fs-etiqueta);
   font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.04em;
+  color: var(--adm-texto-suave);
 }
 
-.ini-dial__mes {
-  font-family: var(--x-mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--x-lienzo-tenue);
-}
-
-/* ───────────────────────────────────────────────────────────────── métricas */
-
-.ini-esqueleto {
-  display: inline-block;
-  width: 88px;
-  height: 22px;
-  vertical-align: middle;
-}
-
-.ini-turno {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.ini-turno__total {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.ini-turno__monto {
+.ini-kpi__valor {
   font-family: var(--adm-fuente-titulos);
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 800;
-  letter-spacing: -0.04em;
   line-height: 1.1;
-  color: var(--adm-exito-texto);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-texto);
+  overflow-wrap: anywhere;
+}
+
+.ini-kpi__valor--peligro {
+  color: var(--adm-peligro-texto);
+}
+
+.ini-kpi__detalle {
+  min-height: 1.45em;
+  font-size: var(--adm-fs-etiqueta);
+  color: var(--adm-texto-tenue);
   font-variant-numeric: tabular-nums;
 }
 
-.ini-turno__datos {
-  padding: 12px 14px;
-  border-radius: var(--adm-r-md);
-  background: color-mix(in srgb, var(--adm-superficie) 70%, transparent);
-  border: 1px solid var(--adm-borde);
+.ini-kpi__detalle a {
+  color: var(--adm-marca-texto);
+  font-weight: 600;
 }
 
-.ini-turno__datos dd { margin: 0; }
+/* ───────────────────────────────────────────────── filas de tarjetas */
 
-.ini-turno__vacio { padding: 10px 4px 4px; }
+.ini-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
 
-.ini-pendientes {
+.ini-fila--pareja {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.ini-fila--sola {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ini-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 18px 20px;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-lg);
+}
+
+.ini-tarjeta__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.ini-tarjeta__titulo {
+  margin: 0;
+  font-family: var(--adm-fuente-titulos);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--adm-texto);
+}
+
+.ini-tarjeta__enlace {
+  font-size: var(--adm-fs-etiqueta);
+  font-weight: 600;
+  color: var(--adm-marca-texto);
+}
+
+/* ───────────────────────────────────────────────── gráfico de la semana */
+
+.ini-leyenda {
+  display: flex;
+  gap: 14px;
+  font-size: var(--adm-fs-ayuda);
+  color: var(--adm-texto-suave);
+}
+
+.ini-leyenda__punto {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  border-radius: 3px;
+  background: var(--adm-primario);
+}
+
+.ini-leyenda__punto--hoy {
+  background: var(--adm-marca);
+}
+
+.ini-grafico {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 640 / 200;
+  margin-top: 6px;
+  overflow: visible;
+}
+
+.ini-grafico__rejilla line {
+  stroke: var(--adm-borde);
+  stroke-width: 1;
+}
+
+.ini-grafico__barra {
+  fill: var(--adm-primario);
+}
+
+.ini-grafico__barra--hoy {
+  fill: var(--adm-marca);
+}
+
+.ini-grafico__texto {
+  fill: var(--adm-texto-tenue);
+  font-family: var(--adm-fuente);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ini-grafico__texto--valor {
+  fill: var(--adm-texto-suave);
+  font-weight: 600;
+}
+
+.ini-grafico__texto--hoy {
+  fill: var(--adm-texto);
+  font-weight: 700;
+}
+
+.ini-pie {
+  margin: 4px 0 0;
+  font-size: var(--adm-fs-etiqueta);
+  color: var(--adm-texto-suave);
+}
+
+.ini-pie__aparte {
+  color: var(--adm-texto-tenue);
+}
+
+/* ───────────────────────────────────────────────── listas con filas de 11 px */
+
+.ini-lista {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.ini-pendientes li {
-  display: flex;
+.ini-lista__fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 14px;
-  padding: 13px 20px;
-  border-bottom: 1px solid var(--adm-borde);
+  padding: 11px 0;
+  border-bottom: 1px solid var(--adm-superficie-3);
   font-size: 14px;
+  color: var(--adm-texto);
+}
+
+.ini-lista__fila:last-child {
+  border-bottom: 0;
+}
+
+.ini-lista__texto {
+  min-width: 0;
+}
+
+.ini-lista__texto small {
+  display: block;
+  margin-top: 1px;
+  font-size: var(--adm-fs-ayuda);
+  color: var(--adm-texto-tenue);
+  font-variant-numeric: tabular-nums;
+}
+
+.ini-lista__accion,
+.ini-lista__monto {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ini-lista__accion {
+  color: var(--adm-marca-texto);
+}
+
+/* Lo más vendido: nombre · barra · monto */
+.ini-lista__fila--top {
+  grid-template-columns: minmax(0, 1fr) 120px 104px;
+}
+
+.ini-barra {
+  display: block;
+  width: 120px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--adm-superficie-3);
+}
+
+.ini-barra__relleno {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--adm-marca);
+}
+
+/* Etiqueta píldora */
+.ini-tag {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--adm-superficie-3);
   color: var(--adm-texto-2);
 }
 
-.ini-pendientes li:last-child { border-bottom: none; }
-.ini-pendientes__texto { flex: 1; min-width: 0; }
-.ini-pendientes__texto strong { color: var(--adm-texto); }
-
-/* El instrumento solo cabe cuando el escenario es ancho (el menú lateral abierto lo estrecha) */
-@container (max-width: 1000px) {
-  .ini-dial { display: none; }
+.ini-tag--peligro {
+  background: var(--adm-peligro-claro);
+  color: var(--adm-peligro-texto);
 }
 
-@media (max-width: 640px) {
-  .ini-escenario { min-height: 0; align-items: flex-start; }
-  .ini-escenario__acciones { width: 100%; }
-  .ini-escenario__acciones .x-iman { flex: 1 1 140px; padding: 0; margin: 0; }
-  .ini-escenario__acciones .x-boton { width: 100%; }
-  .ini-escenario__acciones > .x-boton { flex: 1 1 120px; }
-  .ini-pendientes li { flex-wrap: wrap; padding: 12px 14px; }
-  .ini-pendientes li .adm-btn { flex: 1 1 100%; }
-  .ini-turno__monto { font-size: 28px; }
+.ini-tag--aviso {
+  background: var(--adm-aviso-claro);
+  color: var(--adm-aviso-texto);
+}
+
+/* ───────────────────────────────────────────────── accesos */
+
+.ini-accesos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.ini-acceso {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-tile);
+  background: var(--adm-superficie);
+  color: var(--adm-texto);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ini-acceso:hover {
+  border-color: var(--adm-marca);
+  box-shadow: var(--adm-anillo);
+  color: var(--adm-texto);
+  text-decoration: none;
+}
+
+.ini-acceso:focus-visible {
+  outline: 2px solid var(--adm-marca);
+  outline-offset: 2px;
+}
+
+.ini-acceso__icono {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  font-size: 19px;
+}
+
+.ini-acceso__icono--grafito {
+  background: var(--adm-primario);
+  color: var(--adm-primario-texto);
+}
+
+.ini-acceso__icono--marca {
+  background: var(--adm-marca-claro);
+  color: var(--adm-marca-texto);
+}
+
+.ini-acceso__icono--exito {
+  background: var(--adm-exito-claro);
+  color: var(--adm-exito-texto);
+}
+
+.ini-acceso__icono--neutro {
+  background: var(--adm-superficie-3);
+  color: var(--adm-texto-2);
+}
+
+.ini-acceso__texto {
+  min-width: 0;
+}
+
+.ini-acceso__texto small {
+  display: block;
+  margin-top: 1px;
+  font-size: var(--adm-fs-ayuda);
+  font-weight: 400;
+  color: var(--adm-texto-tenue);
+}
+
+/* ───────────────────────────────────────────────── estados vacíos y de carga */
+
+.ini-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 28px 12px;
+  text-align: center;
+}
+
+.ini-vacio__icono {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--adm-texto-tenue);
+}
+
+.ini-vacio__icono--ok {
+  color: var(--adm-exito-texto);
+}
+
+.ini-vacio__titulo {
+  margin: 6px 0 0;
+  font-size: var(--adm-fs-cuerpo);
+  font-weight: 700;
+  color: var(--adm-texto);
+}
+
+.ini-vacio__texto {
+  margin: 0;
+  font-size: var(--adm-fs-etiqueta);
+  color: var(--adm-texto-suave);
+}
+
+.ini-esqueletos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ini-esqueleto-linea {
+  display: block;
+  width: min(320px, 70vw);
+  height: 18px;
+  margin-top: 6px;
+}
+
+.ini-esqueleto-valor {
+  display: block;
+  width: 62%;
+  height: 33px;
+  border-radius: var(--adm-r-xs);
+}
+
+.ini-esqueleto-grafico {
+  display: block;
+  width: 100%;
+  height: 200px;
+  border-radius: var(--adm-r-sm);
+}
+
+/* ───────────────────────────────────────────────── responsive */
+
+@media (max-width: 1100px) {
+  .ini-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ini-fila,
+  .ini-fila--pareja {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .ini-kpis {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ini-saludo__titulo {
+    font-size: 22px;
+  }
+
+  .ini-saludo__acciones {
+    width: 100%;
+  }
+
+  .ini-saludo__acciones .adm-btn {
+    flex: 1 1 140px;
+  }
+
+  .ini-accesos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ini-lista__fila--top {
+    grid-template-columns: minmax(0, 1fr) 72px auto;
+  }
+
+  .ini-barra {
+    width: 72px;
+  }
+
+  .ini-lista__fila {
+    gap: 10px;
+  }
 }

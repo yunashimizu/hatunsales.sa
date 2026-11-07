@@ -33,14 +33,14 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--adm-primario, var(--adm-texto));
+  color: var(--adm-marca-texto, var(--adm-texto));
   font: inherit;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
 }
 .vh-enlace:hover { text-decoration: underline; }
-.vh-enlace:focus-visible { outline: 2px solid var(--adm-primario, currentColor); outline-offset: 2px; border-radius: 4px; }
+.vh-enlace:focus-visible { outline: 2px solid var(--adm-marca, currentColor); outline-offset: 2px; border-radius: 4px; }
 
 .vh-enlace-texto { margin-left: 8px; font-weight: 600; }
 

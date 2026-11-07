@@ -13,19 +13,19 @@
       </div>
     </div>
     <div class="adm-acciones rep-escenario__acciones">
-      <button type="button" class="x-boton x-boton--mono" (click)="cargar()" [disabled]="cargando"
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando"
               title="Volver a consultar el periodo seleccionado">
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
         Actualizar
       </button>
-      <button type="button" class="x-boton x-boton--mono reporte-btn-excel"
+      <button type="button" class="adm-btn adm-btn--suave reporte-btn-excel"
               (click)="exportarExcel()"
               [disabled]="!!exportando || cargando"
               title="Descargar el reporte del periodo en Excel">
         <i class="bi" [ngClass]="exportando === 'excel' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-excel'" aria-hidden="true"></i>
         Excel
       </button>
-      <button type="button" class="x-boton x-boton--vivo"
+      <button type="button" class="adm-btn adm-btn--primario"
               (click)="exportarPdf()"
               [disabled]="!!exportando || cargando"
               title="Descargar el reporte del periodo en PDF">

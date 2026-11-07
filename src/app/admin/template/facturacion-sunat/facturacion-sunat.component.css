@@ -181,14 +181,14 @@ legend {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   cursor: pointer;
 }
 .fiscal-metrica__ver:hover {
   text-decoration: underline;
 }
 .fiscal-metrica__ver:focus-visible {
-  outline: 2px solid var(--adm-primario);
+  outline: 2px solid var(--adm-marca);
   outline-offset: 2px;
   border-radius: 4px;
 }

@@ -110,7 +110,7 @@ fieldset:disabled {
   color: var(--adm-texto-suave);
 }
 .activacion__cumplidos summary:focus-visible {
-  outline: 2px solid var(--adm-primario);
+  outline: 2px solid var(--adm-marca);
   outline-offset: 3px;
   border-radius: 4px;
 }

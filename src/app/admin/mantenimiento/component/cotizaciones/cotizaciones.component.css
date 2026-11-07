@@ -15,7 +15,7 @@
   border-left: 1px solid var(--adm-borde);
 }
 
-.cot-filtros__resumen > i { color: var(--adm-primario); font-size: 13px; }
+.cot-filtros__resumen > i { color: var(--adm-marca-texto); font-size: 13px; }
 .cot-filtros__resumen > strong { color: var(--adm-texto); font-weight: 700; }
 
 .cot-td-cliente { min-width: 160px; }
@@ -84,7 +84,7 @@
 .cot-buscador__estado {
   left: auto;
   right: 12px;
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
 }
 
 /* Nombres largos de ferretería: dos líneas antes de cortar. */
@@ -109,7 +109,7 @@
 
 .cot-check-sedes {
   min-height: 40px;
-  font-size: 13.5px;
+  font-size: var(--adm-fs-etiqueta);
 }
 
 .cot-stock-ctx__ayuda { margin: 10px 0 0; }
@@ -337,7 +337,7 @@
 }
 
 .cot-acciones__titulo {
-  font-size: 11.5px;
+  font-size: var(--adm-fs-rotulo);
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -362,13 +362,13 @@
   margin: 16px 0 0;
   padding: 0;
   list-style: none;
-  font-size: 12.5px;
+  font-size: var(--adm-fs-ayuda);
   line-height: 1.45;
   color: var(--adm-texto-suave);
 }
 
 .cot-notas li { display: flex; align-items: flex-start; gap: 8px; }
-.cot-notas i { margin-top: 1px; color: var(--adm-primario); }
+.cot-notas i { margin-top: 1px; color: var(--adm-marca-texto); }
 
 /* ── Móvil ───────────────────────────────────────────────────── */
 

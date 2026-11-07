@@ -59,7 +59,7 @@
 
 .pc__campo > i {
   font-size: 1.1rem;
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
 }
 
 .pc__campo input {
@@ -158,7 +158,7 @@
 
 .pc__op.activo .pc__icono {
   background: var(--adm-primario);
-  color: #fff;
+  color: var(--adm-primario-texto);
   rotate: -6deg;
 }
 

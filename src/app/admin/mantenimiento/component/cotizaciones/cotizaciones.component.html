@@ -1,7 +1,7 @@
 <div class="adm-pagina">
 
   <!-- Cabecera de página -->
-  <header class="adm-cabecera">
+  <header class="adm-cabecera adm-cabecera--barra">
     <div class="adm-cabecera__principal">
       <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-file-earmark-ruled"></i></span>
       <div class="cot-cabecera__texto">
@@ -196,7 +196,10 @@
                     </li>
                   </ul>
                 </div>
-                <span class="adm-ayuda">Si aún no está registrado, escriba su nombre: se usará tal cual en la proforma.</span>
+                <details class="adm-mas-info">
+                  <summary class="adm-mas-info__resumen">Si el cliente no está registrado</summary>
+                  <p class="adm-ayuda">Si aún no está registrado, escriba su nombre: se usará tal cual en la proforma.</p>
+                </details>
               </div>
             </ng-template>
 
@@ -262,11 +265,14 @@
                     <span>Ver stock de todas las sedes</span>
                   </label>
                 </div>
-                <p class="adm-ayuda cot-stock-ctx__ayuda">
-                  Despacho: <strong>{{ nombreAlmacenDespacho }}</strong>. El almacén solo cambia el stock que se muestra.
-                  El stock es informativo: la proforma no reserva ni descuenta inventario, así que puede cotizar
-                  cualquier producto activo, con o sin stock.
-                </p>
+                <details class="adm-mas-info cot-stock-ctx__ayuda">
+                  <summary class="adm-mas-info__resumen">Sobre el stock y el despacho</summary>
+                  <p class="adm-ayuda">
+                    Despacho: <strong>{{ nombreAlmacenDespacho }}</strong>. El almacén solo cambia el stock que se muestra.
+                    El stock es informativo: la proforma no reserva ni descuenta inventario, así que puede cotizar
+                    cualquier producto activo, con o sin stock.
+                  </p>
+                </details>
               </div>
 
               <div class="adm-aviso adm-aviso--peligro cot-aviso-accion" *ngIf="errorProductos" role="alert">
@@ -300,7 +306,7 @@
                   <div class="adm-input-icono cot-buscador">
                     <i class="bi bi-upc-scan" aria-hidden="true"></i>
                     <input id="cot-producto" class="adm-input" type="text" autocomplete="off"
-                           placeholder="Buscar producto por nombre, SKU o código…"
+                           placeholder="Escanee o escriba nombre, SKU o código…"
                            [(ngModel)]="textoProducto" (ngModelChange)="alEscribirProducto()"
                            (focus)="alEnfocarProducto()"
                            (keydown)="alPresionarEnProducto($event)">
@@ -322,9 +328,12 @@
                   </ul>
                 </div>
                 <div class="cot-buscador__pie">
-                  <span class="adm-ayuda cot-buscador__ayuda">
-                  Escanee el código de barras o escríbalo y presione <kbd class="adm-kbd">Enter</kbd> para agregarlo al instante. Puede escanear varios seguidos, suena al leer y, para varias unidades, escriba <kbd class="adm-kbd">5*</kbd> y escanee.
-                </span>
+                  <details class="adm-mas-info cot-buscador__ayuda">
+                    <summary class="adm-mas-info__resumen">Cómo usar el lector de códigos</summary>
+                    <p class="adm-ayuda">
+                      Escanee el código de barras o escríbalo y presione <kbd class="adm-kbd">Enter</kbd> para agregarlo al instante. Puede escanear varios seguidos, suena al leer y, para varias unidades, escriba <kbd class="adm-kbd">5*</kbd> y escanee.
+                    </p>
+                  </details>
                   <button type="button" class="adm-btn adm-btn--suave adm-btn--sm cot-buscador__sonido"
                           [attr.aria-pressed]="sonido.activo()"
                           [title]="sonido.activo() ? 'Sonido del lector activado: clic para silenciar' : 'Sonido del lector silenciado: clic para activar'"

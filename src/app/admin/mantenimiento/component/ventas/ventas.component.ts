@@ -2241,6 +2241,30 @@ export class VentasComponent implements OnInit, OnDestroy {
     return p.id_producto;
   }
 
+  // ── Tiles de frecuentes (solo lectura del catálogo ya cacheado) ──────────
+
+  /** Referencia del catálogo con el que se calculó `frecuentes`: si no cambia, no se recalcula. */
+  private frecuentesBase: readonly ProductoVenta[] | null = null;
+  private frecuentesCalculados: ProductoVenta[] = [];
+
+  /**
+   * Hasta 7 productos para los tiles del panel izquierdo. Sale del catálogo que el servicio
+   * ya tiene en memoria (no hace ninguna petición): primero los marcados `destacado` si la API
+   * los trae, y si no, los primeros 7 con stock. Vacío mientras el catálogo no haya cargado.
+   */
+  get frecuentes(): ProductoVenta[] {
+    if (!this.puntoVenta.tieneCatalogo) return [];
+    const catalogo = this.puntoVenta.catalogoCacheado;
+    if (!Array.isArray(catalogo) || !catalogo.length) return [];
+    if (catalogo !== this.frecuentesBase) {
+      this.frecuentesBase = catalogo;
+      const conStock = catalogo.filter((p) => Number(p.stock_disponible) > 0);
+      const destacados = conStock.filter((p) => (p as ProductoVenta & { destacado?: boolean }).destacado === true);
+      this.frecuentesCalculados = (destacados.length ? destacados : conStock).slice(0, 7);
+    }
+    return this.frecuentesCalculados;
+  }
+
   identificarReceptorSugerido(_i: number, r: SugerenciaReceptor): string {
     return String(r.id_cliente ?? r.id_empresa ?? r.numero_documento ?? _i);
   }

@@ -38,7 +38,7 @@
   border-left: 1px solid var(--adm-borde);
 }
 
-.prod-filtros__resumen > i { color: var(--adm-primario); font-size: 13px; }
+.prod-filtros__resumen > i { color: var(--adm-marca-texto); font-size: 13px; }
 .prod-filtros__resumen > strong { color: var(--adm-texto); font-weight: 700; }
 
 /* Atajos por estado con su conteo */
@@ -70,8 +70,8 @@
 }
 
 .adm-chip--activo .prod-chip__n {
-  background: color-mix(in srgb, var(--adm-primario) 16%, transparent);
-  color: var(--adm-primario);
+  background: color-mix(in srgb, var(--adm-primario-texto) 22%, transparent);
+  color: var(--adm-primario-texto);
 }
 
 /* ── Carga ───────────────────────────────────────────────────── */
@@ -153,7 +153,7 @@
   box-shadow: var(--adm-sombra-md);
 }
 
-.prod-foto--clic:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; }
+.prod-foto--clic:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
 
 .prod-foto--vacia {
   border-style: dashed;
@@ -205,7 +205,7 @@
   align-items: center;
   gap: 6px;
   font-family: var(--x-mono, var(--adm-fuente-mono));
-  font-size: 10.5px;
+  font-size: var(--adm-fs-rotulo);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--adm-exito-texto);
@@ -218,7 +218,7 @@
 
 .prod-unidad {
   font-family: var(--x-mono, var(--adm-fuente-mono));
-  font-size: 10px;
+  font-size: var(--adm-fs-rotulo);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--adm-texto-tenue);
@@ -242,7 +242,7 @@
   padding: 14px 16px;
   border: 1px solid var(--adm-borde);
   border-radius: var(--adm-r-lg);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--adm-primario) 7%, var(--adm-superficie)) 0%, var(--adm-superficie) 62%);
+  background: var(--adm-superficie-2);
 }
 
 .prod-ficha__texto { flex: 1; min-width: 0; overflow-wrap: anywhere; }
@@ -278,13 +278,13 @@
 }
 
 .prod-enlace-marca {
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-.prod-enlace-marca:hover { color: var(--adm-primario-osc); }
+.prod-enlace-marca:hover { color: var(--adm-marca-osc); }
 
 /* Precio final, ganancia y margen en vivo */
 .prod-calculo {
@@ -309,7 +309,7 @@
 
 .prod-calculo dt {
   font-family: var(--x-mono, var(--adm-fuente-mono));
-  font-size: 10.5px;
+  font-size: var(--adm-fs-rotulo);
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -319,7 +319,7 @@
 .prod-calculo dd {
   margin: 0;
   font-family: var(--adm-fuente-titulos);
-  font-size: 18px;
+  font-size: var(--fs-xl);
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -358,19 +358,19 @@
   min-width: 0;
 }
 
-.prod-opcion__titulo { font-size: 13.5px; font-weight: 600; color: var(--adm-texto); }
-.prod-opcion__desc { font-size: 12.5px; color: var(--adm-texto-suave); }
+.prod-opcion__titulo { font-size: var(--adm-fs-etiqueta); font-weight: 600; color: var(--adm-texto); }
+.prod-opcion__desc { font-size: var(--adm-fs-ayuda); color: var(--adm-texto-suave); }
 
 /* ── Panel: galería ──────────────────────────────────────────── */
 
 .prod-soltar__texto { font-weight: 600; color: inherit; }
-.prod-soltar:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; }
+.prod-soltar:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
 
 .prod-soltar--subiendo {
   border-style: solid;
   border-color: var(--adm-primario);
   background: var(--adm-primario-claro);
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   cursor: progress;
 }
 
@@ -413,14 +413,14 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.82);
+  background: color-mix(in srgb, var(--adm-superficie) 82%, transparent);
   color: var(--adm-texto);
-  font-size: 12px;
+  font-size: var(--adm-fs-ayuda);
   font-weight: 600;
 }
 
 .prod-galeria__ayuda { display: flex; align-items: center; gap: 6px; }
-.prod-galeria__ayuda > i { color: var(--adm-primario); }
+.prod-galeria__ayuda > i { color: var(--adm-marca-texto); }
 
 .prod-pendientes__aviso { align-items: center; flex-wrap: wrap; gap: 8px; }
 .prod-pendientes__aviso > span { flex: 1 1 200px; }
@@ -438,7 +438,7 @@
   border-radius: 6px;
   background: var(--adm-peligro);
   color: #fff;
-  font-size: 11px;
+  font-size: var(--adm-fs-ayuda);
   font-weight: 600;
 }
 
@@ -511,3 +511,103 @@
 .prod-barras { display: flex; gap: 8px; align-items: stretch; }
 .prod-barras .adm-input-icono { flex: 1 1 auto; min-width: 0; }
 .prod-barras__generar { flex: none; white-space: nowrap; }
+
+/* ── R7 · Ficha lateral anclada (400 px) ─────────────────────────
+   El aside `adm-panel--ficha` es contenedor `ficha` (ver admin-ui.css, bloque R7). Todo lo de abajo es
+   presentación: la plantilla conserva sus bindings, ids y referencias. */
+
+/* Cabecera del panel: título + insignia de estado + cerrar */
+.prod-panel__encabezado { flex: 1 1 auto; min-width: 0; }
+
+.prod-panel__titulo-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.prod-panel__titulo { flex: 0 1 auto; }
+.prod-panel__estado { flex: none; }
+
+@container ficha (max-width: 460px) {
+  /* Título 17/700 como en la maqueta; sin el icono de color (la insignia ya da el estado) */
+  .adm-panel__cabecera .prod-panel__titulo {
+    font-size: 17px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .prod-panel__titulo > i { display: none; }
+
+  .prod-panel__sub {
+    margin-left: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* Formulario: una columna; solo los pares cortos (`prod-fila--par`) van de a dos */
+  .prod-fila {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px 12px;
+  }
+
+  .prod-fila--par { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .prod-fila > * { min-width: 0; }
+
+  /* Hueco de «stock inicial» (campo vacío, aria-hidden): en una columna sobra */
+  .prod-fila > .adm-campo[aria-hidden='true'] { display: none; }
+
+  /* Campos de 44 px (objetivo táctil) */
+  .adm-input,
+  .adm-select,
+  .adm-textarea { min-height: 44px; }
+
+  :host ::ng-deep app-selector-unidad .adm-select { min-height: 44px; }
+
+  .adm-panel__pie .adm-btn { min-height: 44px; }
+
+  /* Código de barras: el campo arriba y «Generar código» debajo, a todo el ancho */
+  .prod-barras { flex-direction: column; align-items: stretch; }
+  .prod-barras__generar { width: 100%; justify-content: center; white-space: normal; }
+
+  /* Ficha rápida más compacta */
+  .prod-ficha { padding: 12px; gap: 12px; }
+  .prod-foto--grande { width: 56px; height: 56px; }
+
+  /* Precio final · ganancia · margen: una fila por dato en lugar de tres columnas estrechas */
+  .prod-calculo { grid-template-columns: minmax(0, 1fr); }
+  .prod-calculo__celda { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .prod-calculo dd { font-size: var(--fs-lg); }
+
+  /* Interruptores en una columna */
+  .prod-opciones { grid-template-columns: minmax(0, 1fr); }
+
+  /* Galería de fotos en rejilla de 3 */
+  .prod-galeria,
+  .prod-galeria-esqueleto { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+
+  /* Pie fijo abajo: Guardar ocupa el ancho sobrante, Cancelar a su tamaño */
+  .adm-panel__pie { flex-wrap: nowrap; justify-content: stretch; }
+  .adm-panel__pie .adm-btn { justify-content: center; }
+  .adm-panel__pie .adm-btn--primario { flex: 1 1 auto; }
+  .adm-panel__pie .adm-btn--suave { flex: none; }
+}
+
+/* ── R7 · Tabla con la ficha abierta (≥ 1200 px: la página reserva 408 px a la derecha) ──
+   Quedan ~700 px: se ocultan por CSS las columnas menos importantes, sin tocar la plantilla. */
+@media (min-width: 1200px) {
+  .adm-pagina--con-ficha .prod-col-secundaria,
+  .adm-pagina--con-ficha .prod-col-estado { display: none; }
+
+  .adm-pagina--con-ficha .prod-td-producto { min-width: 0; }
+
+  /* El estado se lee igual: la fila inactiva se atenúa y lleva «inactivo» junto al nombre */
+  .adm-pagina--con-ficha .prod-fila--inactiva .prod-nombre,
+  .adm-pagina--con-ficha .prod-fila--inactiva .prod-precio { color: var(--adm-texto-tenue); }
+  .adm-pagina--con-ficha .prod-fila--inactiva .prod-foto { opacity: 0.6; }
+  .adm-pagina--con-ficha .prod-fila--inactiva .prod-nombre::after {
+    content: ' · inactivo';
+    font-weight: 400;
+    font-size: var(--adm-fs-ayuda);
+  }
+}

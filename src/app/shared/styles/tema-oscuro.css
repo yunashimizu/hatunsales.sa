@@ -9,7 +9,8 @@
 
    Familias
    - Tienda (--t-*)  → carbón cálido (#121110 → #232120), texto crema.
-   - Panel (--adm-*) → tinta azulada (#0a0e1a → #1a233d), texto frío.
+   - Panel (--adm-*) → grafito cálido «Acero y oro» (#161716 → #262726),
+     texto crema, primario invertido y oro #d4b878.
    - Rellenos con texto blanco (botones índigo, CTA naranja) conservan su
      tono; los TEXTOS de color de marca usan --t-primario-texto / --adm-primario
      (aclarados) para mantener ≥ 4,5:1 sobre las superficies oscuras.
@@ -72,71 +73,83 @@
   --t-sombra-lg: 0 24px 50px -12px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.35);
   --t-sombra-xl: 0 40px 80px -18px rgba(0, 0, 0, 0.75);
 
-  /* ── Panel: tinta azulada ────────────────────────────────────── */
-  --adm-fondo: #0a0e1a;
-  --adm-fondo-2: #0d1220;
-  --adm-superficie: #11172a;
-  --adm-superficie-2: #151c32;
-  --adm-superficie-3: #1a233d;
-  --adm-borde: #232d49;
-  --adm-borde-fuerte: #34416a;
+  /* ── Panel: «Acero y oro» oscuro (grafito cálido, oro, primario invertido) ── */
+  --adm-fondo: #161716;
+  --adm-fondo-2: #121312;
+  --adm-superficie: #1f201f;
+  --adm-superficie-2: #1a1b1a;
+  --adm-superficie-3: #262726;
+  --adm-borde: #2c2d29;
+  --adm-borde-fuerte: #3d3e38;
 
-  --adm-texto: #e9edf7;
-  --adm-texto-2: #d6dcec;
-  --adm-texto-suave: #a7b1c8;
-  --adm-texto-tenue: #8893ad;
+  --adm-texto: #eceae4;
+  --adm-texto-2: #d8d5cc;
+  --adm-texto-suave: #b5b2a9;
+  --adm-texto-tenue: #8c8a82;
 
-  --adm-primario: #60a5fa;
-  --adm-primario-osc: #93c5fd;
-  --adm-primario-claro: #12244d;
-  --adm-primario-suave: #1a3a7a;
-  --adm-primario-borde: #2c56b0;
-  --adm-violeta: #b79cff;
+  --adm-primario: #eceae4;
+  --adm-primario-osc: #ffffff;
+  --adm-primario-claro: #3a3225;
+  --adm-primario-suave: #4a3f2c;
+  --adm-primario-borde: #5a4a2b;
+  --adm-primario-texto: #1f201f;
+  --adm-violeta: #d4b878;
+  --adm-gradiente: #eceae4;
+  --adm-gradiente-vivo: #d4b878;
 
-  --adm-exito: #34d399;
-  --adm-exito-texto: #4ade9d;
-  --adm-exito-claro: rgba(16, 185, 129, 0.14);
-  --adm-exito-borde: rgba(16, 185, 129, 0.38);
-  --adm-peligro: #f87171;
-  --adm-peligro-texto: #fca5a5;
-  --adm-peligro-claro: rgba(239, 68, 68, 0.14);
-  --adm-peligro-borde: rgba(239, 68, 68, 0.4);
-  --adm-aviso: #fbbf24;
-  --adm-aviso-texto: #fcd34d;
-  --adm-aviso-claro: rgba(245, 158, 11, 0.14);
-  --adm-aviso-borde: rgba(245, 158, 11, 0.4);
-  --adm-info: #38bdf8;
-  --adm-info-texto: #7dd3fc;
-  --adm-info-claro: rgba(14, 165, 233, 0.14);
-  --adm-info-borde: rgba(14, 165, 233, 0.4);
+  --adm-marca: #d4b878;
+  --adm-marca-osc: #e9d6a4;
+  --adm-marca-texto: #e9d6a4;
+  --adm-marca-claro: #3a3225;
+  --adm-marca-borde: #5a4a2b;
 
-  --adm-sombra-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
-  --adm-sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px -4px rgba(0, 0, 0, 0.5);
-  --adm-sombra-md: 0 8px 22px -4px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
-  --adm-sombra-lg: 0 26px 60px -14px rgba(0, 0, 0, 0.7), 0 8px 20px -8px rgba(0, 0, 0, 0.45);
-  --adm-sombra-primario: 0 8px 20px -6px rgba(59, 130, 246, 0.55);
-  --adm-anillo: 0 0 0 4px rgba(96, 165, 250, 0.3);
+  --adm-exito: #2e9a4c;
+  --adm-exito-texto: #7fd39a;
+  --adm-exito-claro: #1c2f22;
+  --adm-exito-borde: #2b5a37;
+  --adm-peligro: #d64545;
+  --adm-peligro-texto: #f08a80;
+  --adm-peligro-claro: #2f1d1b;
+  --adm-peligro-borde: #5a2b27;
+  --adm-aviso: #c98a2e;
+  --adm-aviso-texto: #e4b96e;
+  --adm-aviso-claro: #2f2719;
+  --adm-aviso-borde: #5a4a2b;
+  --adm-info: #6f93b0;
+  --adm-info-texto: #a9c4d9;
+  --adm-info-claro: #1b252d;
+  --adm-info-borde: #2f4455;
+
+  --adm-sombra-sm: 0 0 0 0 transparent;
+  --adm-sombra: 0 0 0 0 transparent;
+  --adm-sombra-md: 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --adm-sombra-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
+  --adm-sombra-primario: 0 0 0 0 transparent;
+  --adm-anillo: 0 0 0 3px rgba(212, 184, 120, 0.22);
 
   /* Tokens del panel que en claro eran colores sueltos */
-  --adm-borde-hover: #3d4a72;
-  --adm-borde-campo-hover: #4a5a88;
-  --adm-borde-boton-hover: #4a5a88;
-  --adm-interruptor-off: #3a4663;
-  --adm-hover-fila: #161e36;
-  --adm-zebra: #0f1526;
-  --adm-hover-fila-zebra: #1a2340;
-  --adm-esqueleto-fondo: #1b2440;
-  --adm-esqueleto-brillo: rgba(255, 255, 255, 0.07);
-  --adm-velo-carga: rgba(10, 14, 26, 0.72);
-  --adm-oscuro-fondo: #e9edf7;
+  --adm-borde-hover: #34352f;
+  --adm-borde-campo-hover: #55564e;
+  --adm-borde-boton-hover: #55564e;
+  --adm-interruptor-off: #3d3e38;
+  --adm-hover-fila: #242524;
+  --adm-zebra: #1c1d1c;
+  --adm-hover-fila-zebra: #282927;
+  --adm-esqueleto-fondo: #262726;
+  --adm-esqueleto-brillo: rgba(255, 255, 255, 0.06);
+  --adm-velo-carga: rgba(22, 23, 22, 0.72);
+  --adm-oscuro-fondo: #eceae4;
   --adm-oscuro-fondo-hover: #ffffff;
-  --adm-oscuro-texto: #0a0e1a;
-  --adm-aviso-info-texto: #bae6fd;
-  --adm-aviso-exito-texto: #a7f3d0;
-  --adm-aviso-aviso-texto: #fde68a;
-  --adm-aviso-peligro-texto: #fecaca;
-  --adm-peligro-suave-hover: rgba(239, 68, 68, 0.24);
-  --adm-punteado: rgba(255, 255, 255, 0.05);
+  --adm-oscuro-texto: #1f201f;
+  --adm-aviso-info-texto: #a9c4d9;
+  --adm-aviso-exito-texto: #7fd39a;
+  --adm-aviso-aviso-texto: #e4b96e;
+  --adm-aviso-peligro-texto: #f08a80;
+  --adm-peligro-suave-hover: rgba(214, 69, 69, 0.24);
+  --adm-punteado: rgba(255, 255, 255, 0.04);
+  --adm-exito-solido: #1e7b34;
+  --adm-peligro-solido: #b42318;
+  --adm-aviso-solido: #9a5b13;
 
   /* Esqueletos y brillos del sistema de movimiento */
   --mov-esqueleto-fondo: #232120;

@@ -1,7 +1,7 @@
-<div class="adm-pagina">
+<div class="adm-pagina" [class.adm-pagina--con-ficha]="!!proveedorHistorial">
 
   <!-- Cabecera de página -->
-  <header class="adm-cabecera">
+  <header class="adm-cabecera adm-cabecera--barra">
     <div class="adm-cabecera__principal">
       <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-truck-front"></i></span>
       <div class="prov-cabecera__texto">
@@ -226,13 +226,13 @@
               <tr>
                 <th>Proveedor</th>
                 <th>RUC</th>
-                <th>Contacto</th>
+                <th class="prov-col-sec">Contacto</th>
                 <th class="adm-centro">Acciones</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let p of proveedoresFiltrados; trackBy: identificarProveedor" [class.adm-recien-creado]="idDestacado === p.id_proveedor"
-                  [class.adm-fila--seleccionada]="editandoId === p.id_proveedor">
+                  [class.adm-fila--seleccionada]="editandoId === p.id_proveedor || proveedorHistorial?.id_proveedor === p.id_proveedor">
                 <td data-etiqueta="Proveedor" class="prov-td-proveedor">
                   <div class="prov-proveedor">
                     <span class="adm-avatar" aria-hidden="true">{{ p.nombre?.[0] || '?' }}</span>
@@ -257,7 +257,7 @@
                     </span>
                   </div>
                 </td>
-                <td data-etiqueta="Contacto" class="prov-td-contacto">
+                <td data-etiqueta="Contacto" class="prov-td-contacto prov-col-sec">
                   <div class="prov-contacto">
                     <span class="prov-contacto__dato" *ngIf="p.telefono">
                       <i class="bi bi-telephone" aria-hidden="true"></i> {{ p.telefono }}
@@ -295,9 +295,9 @@
 </div>
 
 <!-- Historial de recepciones del proveedor -->
-<div class="adm-velo" *ngIf="proveedorHistorial" (click)="cerrarRecepciones()"></div>
+<div class="adm-velo adm-velo--ficha" *ngIf="proveedorHistorial" (click)="cerrarRecepciones()"></div>
 
-<aside class="adm-panel adm-panel--ancho" *ngIf="proveedorHistorial" role="dialog" aria-modal="true"
+<aside class="adm-panel adm-panel--ancho adm-panel--ficha prov-ficha" *ngIf="proveedorHistorial" role="dialog" aria-modal="true"
        aria-labelledby="prov-historial-titulo">
   <div class="adm-panel__cabecera">
     <div class="adm-tarjeta__encabezado">

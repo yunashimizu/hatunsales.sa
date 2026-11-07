@@ -1,7 +1,7 @@
-<div class="adm-pagina">
+<div class="adm-pagina" [class.adm-pagina--con-ficha]="panelAbierto">
 
   <!-- Cabecera de página -->
-  <header class="adm-cabecera">
+  <header class="adm-cabecera adm-cabecera--barra">
     <div class="adm-cabecera__principal">
       <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-box-seam"></i></span>
       <div class="prod-cabecera__texto">
@@ -196,16 +196,18 @@
         <thead>
           <tr>
             <th>Producto</th>
-            <th>Categoría</th>
+            <th class="prod-col-secundaria">Categoría</th>
             <th class="adm-num">Precio</th>
             <th class="adm-num">Stock</th>
-            <th>Estado</th>
+            <th class="prod-col-estado">Estado</th>
             <th class="adm-centro">Acciones</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let p of productosFiltrados; trackBy: identificarProducto"
-              [class.adm-recien-creado]="idDestacado === p.id_producto">
+              [class.adm-recien-creado]="idDestacado === p.id_producto"
+              [class.adm-fila--seleccionada]="panelAbierto && !!editando && editando.id_producto === p.id_producto"
+              [class.prod-fila--inactiva]="!p.estado">
 
             <td data-etiqueta="Producto" class="prod-td-producto">
               <div class="prod-celda">
@@ -231,7 +233,7 @@
               </div>
             </td>
 
-            <td data-etiqueta="Categoría">
+            <td data-etiqueta="Categoría" class="prod-col-secundaria">
               <span class="prod-cat" *ngIf="p.categoria; else prodSinDato"><i class="bi bi-tag" aria-hidden="true"></i> {{ p.categoria }}</span>
             </td>
 
@@ -263,7 +265,7 @@
               </div>
             </td>
 
-            <td data-etiqueta="Estado">
+            <td data-etiqueta="Estado" class="prod-col-estado">
               <div class="prod-estado">
                 <span class="adm-insignia adm-insignia--punto" [ngClass]="p.estado ? 'adm-insignia--exito' : 'adm-insignia--neutra'">
                   {{ p.estado ? 'Activo' : 'Inactivo' }}
@@ -308,16 +310,22 @@
 </div>
 
 <!-- Panel de creación y edición -->
-<div class="adm-velo" *ngIf="panelAbierto" (click)="cerrarPanel()"></div>
+<div class="adm-velo adm-velo--ficha" *ngIf="panelAbierto" (click)="cerrarPanel()"></div>
 
-<aside class="adm-panel adm-panel--ancho" *ngIf="panelAbierto" role="dialog" aria-modal="true" aria-labelledby="prod-panel-titulo">
+<aside class="adm-panel adm-panel--ancho adm-panel--ficha" *ngIf="panelAbierto" role="dialog" aria-labelledby="prod-panel-titulo">
   <div class="adm-panel__cabecera">
-    <div class="adm-tarjeta__encabezado">
-      <h2 class="adm-tarjeta__titulo" id="prod-panel-titulo">
-        <i class="bi" [ngClass]="!puedeEditar ? 'bi-eye' : (editando ? 'bi-pencil-square' : 'bi-plus-square')"></i>
-        {{ !puedeEditar ? 'Ver producto' : (editando ? 'Editar producto' : 'Nuevo producto') }}
-      </h2>
-      <p class="adm-panel__sub">{{ editando?.nombre || 'Datos básicos, precios, stock e imágenes.' }}</p>
+    <div class="adm-tarjeta__encabezado prod-panel__encabezado">
+      <div class="prod-panel__titulo-fila">
+        <h2 class="adm-tarjeta__titulo prod-panel__titulo" id="prod-panel-titulo">
+          <i class="bi" [ngClass]="!puedeEditar ? 'bi-eye' : (editando ? 'bi-pencil-square' : 'bi-plus-square')"></i>
+          {{ !puedeEditar ? 'Ver producto' : (editando ? 'Editar producto' : 'Nuevo producto') }}
+        </h2>
+        <span class="adm-insignia adm-insignia--punto adm-insignia--sm prod-panel__estado" *ngIf="editando"
+              [ngClass]="formulario.estado ? 'adm-insignia--exito' : 'adm-insignia--neutra'">
+          {{ formulario.estado ? 'Activo' : 'Inactivo' }}
+        </span>
+      </div>
+      <p class="adm-panel__sub prod-panel__sub">{{ editando?.nombre || 'Datos básicos, precios, stock e imágenes.' }}</p>
     </div>
     <button type="button" class="adm-btn-icono" (click)="cerrarPanel()" aria-label="Cerrar" title="Cerrar">
       <i class="bi bi-x-lg"></i>
@@ -366,13 +374,12 @@
                      placeholder="Taladro percutor 750 W" [(ngModel)]="formulario.nombre">
             </div>
 
-            <div class="adm-fila prod-fila">
+            <div class="adm-fila prod-fila prod-fila--par">
               <div class="adm-campo">
                 <label class="adm-etiqueta" for="f-sku">SKU <span class="adm-etiqueta__opcional">opcional</span></label>
                 <input id="f-sku" class="adm-input" type="text" autocomplete="off"
                        placeholder="TAL-750"
                        [(ngModel)]="formulario.sku">
-                <p class="adm-ayuda">Código interno de la tienda. No es el de la etiqueta del fabricante.</p>
               </div>
               <div class="adm-campo">
                 <label class="adm-etiqueta" for="f-barras">Código de barras <span class="adm-etiqueta__opcional">opcional</span></label>
@@ -392,7 +399,6 @@
                     Generar código
                   </button>
                 </div>
-                <p class="adm-ayuda">El que lee el lector. Debe coincidir con la etiqueta del producto. Si no trae código de fábrica, genere uno interno e imprima su etiqueta.</p>
               </div>
             </div>
 
@@ -402,11 +408,17 @@
                 <input id="f-codigo-sunat" class="adm-input" type="text" inputmode="numeric" maxlength="8"
                        autocomplete="off" placeholder="8 dígitos (UNSPSC)"
                        [(ngModel)]="formulario.codigo_sunat">
-                <p class="adm-ayuda">Catálogo 25 de SUNAT (UNSPSC). Desde el 1/1/2027 es obligatorio en cada comprobante; si no lo conoce, déjelo vacío y fije un código por defecto en Facturación SUNAT › Configuración.</p>
               </div>
             </div>
 
-            <div class="adm-fila prod-fila">
+            <details class="adm-mas-info">
+              <summary class="adm-mas-info__resumen">Sobre SKU, código de barras y código SUNAT</summary>
+              <p class="adm-ayuda">Código interno de la tienda. No es el de la etiqueta del fabricante.</p>
+              <p class="adm-ayuda">El que lee el lector. Debe coincidir con la etiqueta del producto. Si no trae código de fábrica, genere uno interno e imprima su etiqueta.</p>
+              <p class="adm-ayuda">Catálogo 25 de SUNAT (UNSPSC). Desde el 1/1/2027 es obligatorio en cada comprobante; si no lo conoce, déjelo vacío y fije un código por defecto en Facturación SUNAT › Configuración.</p>
+            </details>
+
+            <div class="adm-fila prod-fila prod-fila--par">
               <div class="adm-campo">
                 <label class="adm-etiqueta" for="f-categoria">Categoría</label>
                 <select id="f-categoria" class="adm-select" [(ngModel)]="formulario.id_categoria">
@@ -433,7 +445,7 @@
         <div class="adm-bloque">
           <h3 class="adm-bloque__titulo"><i class="bi bi-cash-coin"></i> Precios</h3>
           <div class="prod-bloque__cuerpo">
-            <div class="adm-fila prod-fila">
+            <div class="adm-fila prod-fila prod-fila--par">
               <div class="adm-campo">
                 <label class="adm-etiqueta" for="f-compra">Precio de compra</label>
                 <div class="adm-input-grupo">
@@ -454,7 +466,7 @@
               </div>
             </div>
 
-            <div class="adm-fila prod-fila">
+            <div class="adm-fila prod-fila prod-fila--par">
               <div class="adm-campo">
                 <label class="adm-etiqueta" for="f-descuento">Descuento</label>
                 <div class="adm-input-grupo">
@@ -651,10 +663,13 @@
                 </div>
               </div>
             </div>
-            <p class="adm-ayuda prod-galeria__ayuda" *ngIf="fotosPendientes.length > 1">
-              <i class="bi bi-arrows-move" aria-hidden="true"></i>
-              Arrastre las miniaturas para cambiar el orden. La n.º 1 es la principal.
-            </p>
+            <details class="adm-mas-info" *ngIf="fotosPendientes.length > 1">
+              <summary class="adm-mas-info__resumen">Cómo ordenar las fotos</summary>
+              <p class="adm-ayuda prod-galeria__ayuda">
+                <i class="bi bi-arrows-move" aria-hidden="true"></i>
+                Arrastre las miniaturas para cambiar el orden. La n.º 1 es la principal.
+              </p>
+            </details>
 
             <ng-container *ngIf="editando">
               <div class="prod-galeria-esqueleto" *ngIf="cargandoImagenes" aria-busy="true" aria-label="Cargando imágenes">
@@ -707,10 +722,13 @@
                 </div>
               </div>
 
-              <p class="adm-ayuda prod-galeria__ayuda" *ngIf="imagenes.length > 1 && puedeEditar">
-                <i class="bi bi-arrows-move" aria-hidden="true"></i>
-                Arrastre las miniaturas para cambiar el orden en que se ven en la tienda. La n.º 1 es la principal.
-              </p>
+              <details class="adm-mas-info" *ngIf="imagenes.length > 1 && puedeEditar">
+                <summary class="adm-mas-info__resumen">Cómo ordenar las fotos</summary>
+                <p class="adm-ayuda prod-galeria__ayuda">
+                  <i class="bi bi-arrows-move" aria-hidden="true"></i>
+                  Arrastre las miniaturas para cambiar el orden en que se ven en la tienda. La n.º 1 es la principal.
+                </p>
+              </details>
             </ng-container>
           </div>
         </div>

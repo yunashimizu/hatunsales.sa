@@ -4,14 +4,14 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--adm-primario);
+  color: var(--adm-marca-texto);
   font: inherit;
   font-weight: var(--fw-semi);
   text-align: left;
   cursor: pointer;
 }
 .gre-tabla__enlace:hover { text-decoration: underline; }
-.gre-tabla__enlace:focus-visible { outline: 2px solid var(--adm-primario); outline-offset: 2px; border-radius: 4px; }
+.gre-tabla__enlace:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; border-radius: 4px; }
 
 .gre-tabla__texto {
   display: -webkit-box;

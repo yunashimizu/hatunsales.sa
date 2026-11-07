@@ -9,7 +9,7 @@
 
 /* Filtros */
 .stk-filtros__resumen { margin-left: auto; padding-bottom: 10px; white-space: nowrap; }
-.stk-filtros__resumen i { margin-right: 4px; color: var(--adm-primario); }
+.stk-filtros__resumen i { margin-right: 4px; color: var(--adm-marca-texto); }
 .stk-filtros__resumen strong { color: var(--adm-texto); font-weight: 700; }
 
 /* Cabecera del listado: la leyenda va a la derecha; si baja de línea, queda a la izquierda */
@@ -24,7 +24,7 @@
   display: inline-grid; place-items: center; min-width: 22px; height: 18px; padding: 0 6px; border-radius: 999px;
   background: var(--adm-superficie-3); color: var(--adm-texto-suave); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
-.adm-chip--activo .stk-chip__n { background: color-mix(in srgb, var(--adm-primario) 16%, transparent); color: var(--adm-primario); }
+.adm-chip--activo .stk-chip__n { background: color-mix(in srgb, var(--adm-primario-texto) 22%, transparent); color: var(--adm-primario-texto); }
 
 /* Producto */
 .stock-prod { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }

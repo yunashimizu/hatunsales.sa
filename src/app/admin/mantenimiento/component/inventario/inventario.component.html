@@ -1,7 +1,7 @@
-<div class="adm-pagina">
+<div class="adm-pagina" [class.adm-pagina--con-ficha]="panelAbierto">
 
   <!-- Cabecera de página -->
-  <header class="adm-cabecera">
+  <header class="adm-cabecera adm-cabecera--barra">
     <div class="adm-cabecera__principal">
       <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-boxes"></i></span>
       <div class="inv-cabecera__texto">
@@ -173,17 +173,17 @@
       </ng-container>
     </div>
 
-    <div class="adm-tabla-envoltorio inv-lista" *ngIf="filasVisibles.length">
+    <div class="adm-tabla-envoltorio inv-lista" [class.inv-lista--ficha]="panelAbierto" *ngIf="filasVisibles.length">
       <table class="adm-tabla adm-tabla--adaptable inv-tabla">
         <thead>
           <tr>
-            <th class="inv-col-img"><span class="visually-hidden">Imagen</span></th>
+            <th class="inv-col-img inv-col--sec"><span class="visually-hidden">Imagen</span></th>
             <th>Producto</th>
             <th>Almacén</th>
             <th class="adm-num">Stock</th>
             <th class="adm-num">Mínimo</th>
-            <th class="adm-num">Valorizado</th>
-            <th>Estado</th>
+            <th class="adm-num inv-col--sec">Valorizado</th>
+            <th class="inv-col--sec">Estado</th>
             <th class="adm-centro">Acciones</th>
           </tr>
         </thead>
@@ -191,9 +191,10 @@
           <tr *ngFor="let fila of filasVisibles; trackBy: identificarFila"
               [class.inv-fila--bajo]="fila.estado === 'bajo'"
               [class.inv-fila--sin]="fila.estado === 'sin_stock'"
+              [class.adm-fila--seleccionada]="panelAbierto && seleccionada?.id_inventario === fila.id_inventario"
               [class.adm-recien-creado]="idDestacado === fila.id_inventario">
 
-            <td data-etiqueta="Imagen" class="inv-col-img">
+            <td data-etiqueta="Imagen" class="inv-col-img inv-col--sec">
               <div class="inv-miniatura">
                 <img *ngIf="fila.imagen_url"
                      class="adm-img-clic"
@@ -255,9 +256,9 @@
               </span>
             </td>
 
-            <td data-etiqueta="Valorizado" class="adm-num">S/ {{ fila.valorizado | number:'1.2-2' }}</td>
+            <td data-etiqueta="Valorizado" class="adm-num inv-col--sec">S/ {{ fila.valorizado | number:'1.2-2' }}</td>
 
-            <td data-etiqueta="Estado">
+            <td data-etiqueta="Estado" class="inv-col--sec">
               <span class="adm-insignia adm-insignia--punto" [ngClass]="claseEstado(fila.estado)">
                 {{ textoEstado(fila.estado) }}
               </span>
@@ -301,11 +302,11 @@
 </div>
 
 <!-- Panel lateral: ajuste, transferencia y movimientos -->
-<div class="adm-velo" *ngIf="panelAbierto" (click)="cerrarPanel()"></div>
+<div class="adm-velo adm-velo--ficha" *ngIf="panelAbierto" (click)="cerrarPanel()"></div>
 
-<aside class="adm-panel" *ngIf="panelAbierto && seleccionada"
-       role="dialog" aria-modal="true" aria-labelledby="inv-panel-titulo">
-  <div class="adm-panel__cabecera">
+<aside class="adm-panel adm-panel--ficha" *ngIf="panelAbierto && seleccionada"
+       role="dialog" aria-labelledby="inv-panel-titulo">
+  <div class="adm-panel__cabecera inv-ficha-cab">
     <div class="adm-tarjeta__encabezado">
       <h2 class="adm-tarjeta__titulo" id="inv-panel-titulo">
         <i class="bi" [ngClass]="{
@@ -325,9 +326,12 @@
             : 'Historial del producto en el kardex.' }}
       </p>
     </div>
-    <button type="button" class="adm-btn-icono" (click)="cerrarPanel()" aria-label="Cerrar" title="Cerrar">
-      <i class="bi bi-x-lg"></i>
-    </button>
+    <div class="inv-ficha-cab__acciones">
+      <span class="adm-insignia adm-insignia--punto" [ngClass]="claseEstado(seleccionada.estado)">{{ textoEstado(seleccionada.estado) }}</span>
+      <button type="button" class="adm-btn-icono" (click)="cerrarPanel()" aria-label="Cerrar" title="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
   </div>
 
   <div class="adm-panel__cuerpo">
@@ -513,7 +517,7 @@
     </ng-container>
   </div>
 
-  <div class="adm-panel__pie" *ngIf="modo !== 'movimientos'">
+  <div class="adm-panel__pie inv-ficha-pie" *ngIf="modo !== 'movimientos'">
     <button type="button" class="adm-btn adm-btn--suave" (click)="cerrarPanel()" [disabled]="procesando">
       Cancelar
     </button>
