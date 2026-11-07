@@ -12,8 +12,13 @@
    con sus variables --swal2-* fijadas en el contenedor, que heredan el popup
    y sus hijos.
 
-   Movimiento: entrada scale .98 → 1 con fundido (220 ms, desaceleración) y
-   salida corta (160 ms, aceleración); con prefers-reduced-motion, solo fundido.
+   Piel «Acero y oro» (R12a): superficie blanca/grafito, radio 18 px, borde de
+   1 px, sin azules; icono de 64 px en círculo tintado; botones de 44 px
+   (confirmar grafito, cancelar suave, peligro rojo; confirmar a la derecha);
+   foco dorado.
+
+   Movimiento: entrada scale .98 → 1 con fundido (160 ms, desaceleración) y
+   salida corta (160 ms, aceleración); con prefers-reduced-motion, sin movimiento.
    =========================================================================== */
 
 :root {
@@ -29,48 +34,47 @@
   z-index: var(--z-alerta, 2000);
   padding: 16px;
 
-  --swal2-backdrop: rgba(15, 23, 42, 0.46);
-  --swal2-backdrop-transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1);
-  --swal2-width: min(30rem, 100%);
+  --swal2-backdrop: rgba(31, 32, 31, 0.46);
+  --swal2-backdrop-transition: background-color 160ms cubic-bezier(0.2, 0, 0, 1);
+  --swal2-width: min(28rem, 100%);
   --swal2-padding: 28px 24px 22px;
-  --swal2-border: 1px solid var(--adm-borde, #e4e8f0);
-  --swal2-border-radius: var(--adm-r-xl, 22px);
+  --swal2-border: 1px solid var(--adm-borde, #e4e2dc);
+  --swal2-border-radius: 18px;
   --swal2-background: var(--adm-superficie, #ffffff);
-  --swal2-color: var(--adm-texto, #0f172a);
+  --swal2-color: var(--adm-texto, #1f201f);
   --swal2-title-padding: 0 4px;
   --swal2-html-container-padding: 8px 4px 0;
-  --swal2-icon-zoom: 0.78;
+  /* Caja del icono: (5 em + bordes de .25 em) con el popup a 15 px = 82,5 px × .7758 = 64 px */
+  --swal2-icon-zoom: 0.7758;
   --swal2-actions-margin: 22px 0 0;
   --swal2-actions-width: 100%;
-  --swal2-input-border: 1px solid var(--adm-borde-fuerte, #cfd6e2);
-  --swal2-input-border-radius: var(--adm-r-sm, 9px);
-  --swal2-input-box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --swal2-input-hover-box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --swal2-input-focus-border: 1px solid var(--adm-primario, #2563eb);
-  --swal2-input-focus-box-shadow: var(--adm-anillo, 0 0 0 4px rgba(37, 99, 235, 0.14));
+  --swal2-input-border: 1px solid var(--adm-borde-fuerte, #cfccc4);
+  --swal2-input-border-radius: 12px;
+  --swal2-input-box-shadow: none;
+  --swal2-input-hover-box-shadow: none;
+  --swal2-input-focus-border: 1px solid var(--adm-marca, #b8975a);
+  --swal2-input-focus-box-shadow: var(--adm-anillo, 0 0 0 3px rgba(184, 151, 90, 0.18));
   --swal2-input-background: var(--adm-superficie, #ffffff);
-  --swal2-validation-message-background: var(--adm-peligro-claro, #fef2f2);
-  --swal2-validation-message-color: var(--adm-peligro-texto, #b91c1c);
-  --swal2-timer-progress-bar-background: rgba(37, 99, 235, 0.45);
-  --swal2-show-animation: hs-swal-entrar 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  --swal2-validation-message-background: var(--adm-peligro-claro, #fbeae7);
+  --swal2-validation-message-color: var(--adm-peligro-texto, #b42318);
+  --swal2-timer-progress-bar-background: var(--adm-marca, #b8975a);
+  --swal2-show-animation: hs-swal-entrar 160ms cubic-bezier(0.16, 1, 0.3, 1);
   --swal2-hide-animation: hs-swal-salir 160ms cubic-bezier(0.4, 0, 1, 1) forwards;
-  --swal2-outline: 0 0 0 4px rgba(37, 99, 235, 0.18);
+  --swal2-outline: var(--adm-anillo, 0 0 0 3px rgba(184, 151, 90, 0.18));
 
   /* Colores de botones (también los usa el hover de Swal con color-mix) */
-  --swal2-confirm-button-background-color: var(--adm-primario, #2563eb);
+  --swal2-confirm-button-background-color: var(--adm-primario, #2b2c2b);
   --swal2-confirm-button-color: var(--adm-primario-texto, #ffffff);
-  --swal2-deny-button-background-color: #ffffff;
-  --swal2-deny-button-color: var(--adm-texto-2, #1e293b);
-  --swal2-cancel-button-background-color: #ffffff;
-  --swal2-cancel-button-color: var(--adm-texto-2, #1e293b);
+  --swal2-deny-button-background-color: var(--adm-superficie, #ffffff);
+  --swal2-deny-button-color: var(--adm-texto-2, #3e403f);
+  --swal2-cancel-button-background-color: var(--adm-superficie, #ffffff);
+  --swal2-cancel-button-color: var(--adm-texto-2, #3e403f);
 }
 
 /* ── Popup ──────────────────────────────────────────────────────────────── */
 
 .swal2-container .swal2-popup {
-  box-shadow:
-    0 24px 60px -18px rgba(15, 23, 42, 0.32),
-    0 8px 22px -10px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 24px 48px -24px rgba(31, 32, 31, 0.35);
   font-family: var(--hs-fuente, 'Inter', 'Segoe UI', Roboto, sans-serif);
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
@@ -81,25 +85,27 @@
 }
 
 .swal2-container .swal2-title {
-  font-family: var(--hs-fuente-titulos, 'Plus Jakarta Sans', 'Inter', sans-serif);
-  font-size: 1.2rem;
+  font-family: var(--adm-fuente-titulos, var(--hs-fuente-titulos, 'Plus Jakarta Sans', 'Inter', sans-serif));
+  font-size: 18px;
   font-weight: 700;
   line-height: 1.3;
   letter-spacing: -0.015em;
-  color: var(--adm-texto, #0f172a);
+  color: var(--adm-texto, #1f201f);
   overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .swal2-container .swal2-html-container {
-  font-size: 0.94rem;
-  line-height: 1.55;
-  color: var(--adm-texto-suave, #5b6578);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--adm-texto-suave, #5a5c5b);
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
 }
 
 .swal2-container .swal2-html-container strong {
-  color: var(--adm-texto, #0f172a);
+  color: var(--adm-texto, #1f201f);
   font-weight: 600;
 }
 
@@ -109,22 +115,22 @@
   margin-top: 10px;
   font-size: 0.85em;
   line-height: 1.5;
-  color: #64748b; /* 4,8:1 sobre blanco */
+  color: var(--adm-texto-tenue, #75777a); /* 4,6:1 sobre blanco */
 }
 
 .swal2-container .swal2-html-container .hs-swal-pista {
   padding: 8px 10px;
-  border-radius: var(--adm-r-sm, 9px);
-  background: var(--adm-superficie-3, #f1f4f9);
-  color: var(--adm-texto-2, #1e293b);
+  border-radius: var(--adm-r-sm, 10px);
+  background: var(--adm-superficie-3, #f0eee8);
+  color: var(--adm-texto-2, #3e403f);
   text-align: left;
 }
 
 .swal2-container .swal2-html-container .hs-swal-soporte code {
   padding: 1px 6px;
   border-radius: 6px;
-  background: var(--adm-superficie-3, #f1f4f9);
-  color: var(--adm-texto-2, #1e293b);
+  background: var(--adm-superficie-3, #f0eee8);
+  color: var(--adm-texto-2, #3e403f);
   font-family: var(--hs-fuente-mono, ui-monospace, monospace);
   font-size: 0.95em;
   user-select: all;
@@ -141,33 +147,46 @@
   margin-top: 4px;
 }
 
-/* ── Iconos: mismo dibujo de Swal, más pequeño y con la paleta del sistema ── */
+/* ── Iconos: dibujo de Swal dentro de un círculo tintado de 64 px ───────────
+   El círculo es el propio .swal2-icon (fondo del tono claro, borde transparente);
+   la raya/«!»/«?» llevan el tono. En el éxito se oculta el anillo y las cuñas
+   de la animación original (llevan un fondo blanco en línea que taparía el
+   tinte), que dibujaban el círculo con un borde. */
 
 .swal2-container .swal2-icon {
-  --hs-icono: var(--adm-primario, #2563eb);
+  --hs-icono: var(--adm-marca-texto, #8a6f3c);
+  --hs-icono-fondo: var(--adm-marca-claro, #f3ecdc);
   margin: 0 auto 18px;
-  border-color: color-mix(in srgb, var(--hs-icono) 30%, transparent);
+  border-color: transparent;
+  background: var(--hs-icono-fondo);
   color: var(--hs-icono);
 }
 
 .swal2-container .swal2-icon.swal2-success {
-  --hs-icono: var(--adm-exito, #059669);
+  --hs-icono: var(--adm-dinero, #1e7b34);
+  --hs-icono-fondo: var(--adm-dinero-claro, #e8f4ea);
 }
 .swal2-container .swal2-icon.swal2-error {
-  --hs-icono: var(--adm-peligro, #dc2626);
+  --hs-icono: var(--adm-peligro, #b42318);
+  --hs-icono-fondo: var(--adm-peligro-claro, #fbeae7);
 }
 .swal2-container .swal2-icon.swal2-warning {
-  --hs-icono: var(--adm-aviso, #d97706);
+  --hs-icono: var(--adm-aviso, #9a5b13);
+  --hs-icono-fondo: var(--adm-aviso-claro, #fbf3e4);
 }
-.swal2-container .swal2-icon.swal2-info {
-  --hs-icono: var(--adm-info, #0284c7);
-}
+.swal2-container .swal2-icon.swal2-info,
 .swal2-container .swal2-icon.swal2-question {
-  --hs-icono: var(--adm-primario, #2563eb);
+  --hs-icono: var(--adm-marca-texto, #8a6f3c);
+  --hs-icono-fondo: var(--adm-marca-claro, #f3ecdc);
 }
 
 .swal2-container .swal2-icon.swal2-success .swal2-success-ring {
-  border-color: color-mix(in srgb, var(--hs-icono) 30%, transparent);
+  border-color: transparent;
+}
+
+.swal2-container .swal2-icon.swal2-success [class^='swal2-success-circular-line'],
+.swal2-container .swal2-icon.swal2-success .swal2-success-fix {
+  display: none;
 }
 
 .swal2-container .swal2-icon.swal2-success [class^='swal2-success-line'],
@@ -178,18 +197,25 @@
 /* ── Botones (equivalentes a adm-btn--primario / --suave / --peligro) ───── */
 
 .swal2-container .swal2-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
   padding: 0 4px;
 }
 
+/* Confirmar siempre a la derecha, lleve o no reverseButtons */
+.swal2-container .swal2-actions .swal2-cancel { order: 1; }
+.swal2-container .swal2-actions .swal2-deny { order: 2; }
+.swal2-container .swal2-actions .swal2-confirm { order: 3; }
+
 .swal2-container .swal2-actions .swal2-styled {
-  min-height: 42px;
+  min-height: 44px;
   margin: 0;
-  padding: 10px 18px;
+  padding: 10px 20px;
   border: 1px solid transparent;
-  border-radius: var(--adm-r-sm, 9px);
+  border-radius: 12px;
   font-family: inherit;
-  font-size: 0.92rem;
+  font-size: 15px;
   font-weight: 600;
   line-height: 1.2;
   box-shadow: none;
@@ -200,59 +226,48 @@
     transform 140ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-.swal2-container .swal2-actions .swal2-styled:hover:not([disabled]) {
-  transform: translateY(-1px);
-}
-
 .swal2-container .swal2-actions .swal2-styled:active:not([disabled]) {
   transform: scale(0.98);
 }
 
 .swal2-container .swal2-actions .swal2-styled:focus-visible {
-  outline: 2px solid var(--hs-foco, #2563eb);
+  border-color: var(--adm-marca, #b8975a);
+  outline: 2px solid var(--adm-marca, #b8975a);
   outline-offset: 2px;
-  box-shadow: none;
+  box-shadow: var(--adm-anillo, 0 0 0 3px rgba(184, 151, 90, 0.18));
 }
 
 .swal2-container .swal2-actions .swal2-confirm {
-  background: var(--adm-gradiente, linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%));
-  color: #ffffff;
-  box-shadow: 0 1px 2px rgba(29, 78, 216, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  background: var(--adm-primario, #2b2c2b);
+  color: var(--adm-primario-texto, #ffffff);
 }
 
 .swal2-container .swal2-actions .swal2-confirm:hover:not([disabled]) {
-  background: var(--adm-gradiente, linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%));
-  box-shadow: var(--adm-sombra-primario, 0 6px 16px -4px rgba(37, 99, 235, 0.45)), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  background: var(--adm-primario-osc, #1f201f);
 }
 
 /* Acción destructiva (confirmarPeligro / danger): rojo sólido, foco en Cancelar */
 .swal2-container .swal2-actions .swal2-confirm.hs-swal-peligro {
-  background: var(--adm-peligro-solido, #dc2626);
-  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.35);
+  background: var(--adm-peligro-solido, #b42318);
+  color: #ffffff;
 }
 
 .swal2-container .swal2-actions .swal2-confirm.hs-swal-peligro:hover:not([disabled]) {
-  background: #b91c1c;
-  box-shadow: 0 6px 16px -4px rgba(220, 38, 38, 0.45);
-}
-
-.swal2-container .swal2-actions .swal2-confirm.hs-swal-peligro:focus-visible {
-  outline-color: var(--adm-peligro, #dc2626);
+  background: #8f1d14;
 }
 
 .swal2-container .swal2-actions .swal2-cancel,
 .swal2-container .swal2-actions .swal2-deny {
   background: var(--adm-superficie, #ffffff);
-  color: var(--adm-texto-2, #1e293b);
-  border-color: var(--adm-borde-fuerte, #cfd6e2);
-  box-shadow: var(--adm-sombra-sm, 0 1px 2px rgba(15, 23, 42, 0.05));
+  color: var(--adm-texto-2, #3e403f);
+  border-color: var(--adm-borde-fuerte, #cfccc4);
 }
 
 .swal2-container .swal2-actions .swal2-cancel:hover:not([disabled]),
 .swal2-container .swal2-actions .swal2-deny:hover:not([disabled]) {
-  background: var(--adm-superficie-2, #f8fafc);
-  border-color: #b3bdcc;
-  color: var(--adm-texto, #0f172a);
+  background: var(--adm-superficie-2, #faf9f6);
+  border-color: var(--adm-borde-boton-hover, #b5b2a9);
+  color: var(--adm-texto, #1f201f);
 }
 
 .swal2-container .swal2-actions .swal2-styled[disabled] {
@@ -262,7 +277,7 @@
 
 /* Spinner de alerta.loading / conCarga */
 .swal2-container .swal2-loader {
-  border-color: var(--adm-primario, #2563eb) transparent var(--adm-primario, #2563eb) transparent;
+  border-color: var(--adm-marca, #b8975a) transparent var(--adm-marca, #b8975a) transparent;
 }
 
 /* ── Campos (pedirTexto / prompt) ───────────────────────────────────────── */
@@ -270,9 +285,9 @@
 .swal2-container .swal2-input-label {
   margin: 18px 4px 0;
   justify-content: flex-start;
-  font-size: 0.86rem;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--adm-texto-2, #1e293b);
+  color: var(--adm-texto, #1f201f);
 }
 
 .swal2-container .swal2-input,
@@ -282,7 +297,7 @@
   padding: 9px 12px;
   font-family: inherit;
   font-size: 15px;
-  color: var(--adm-texto, #0f172a);
+  color: var(--adm-texto, #1f201f);
 }
 
 .swal2-container .swal2-input {
@@ -296,28 +311,28 @@
 
 .swal2-container .swal2-input::placeholder,
 .swal2-container .swal2-textarea::placeholder {
-  color: var(--adm-texto-tenue, #667085);
+  color: var(--adm-texto-tenue, #75777a);
 }
 
 .swal2-container .swal2-input.swal2-inputerror,
 .swal2-container .swal2-textarea.swal2-inputerror {
-  border-color: var(--adm-peligro, #dc2626) !important; /* Swal lo marca con !important */
-  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.14) !important;
+  border-color: var(--adm-peligro, #b42318) !important; /* Swal lo marca con !important */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-peligro, #b42318) 18%, transparent) !important;
 }
 
 .swal2-container .swal2-validation-message {
   justify-content: flex-start;
   margin: 10px 4px 0;
   padding: 8px 10px;
-  border-radius: var(--adm-r-sm, 9px);
-  font-size: 0.86rem;
+  border-radius: var(--adm-r-sm, 10px);
+  font-size: 13px;
   font-weight: 500;
   text-align: left;
 }
 
 .swal2-container .swal2-validation-message::before {
   flex-shrink: 0;
-  background-color: var(--adm-peligro, #dc2626);
+  background-color: var(--adm-peligro, #b42318);
 }
 
 /* ── Tienda: más redondeada, botones en píldora y marca --t-* ───────────── */
@@ -327,6 +342,14 @@
   --swal2-border: 1px solid var(--t-borde, #e6e9f2);
   --swal2-border-radius: var(--t-r-lg, 24px);
   --swal2-color: var(--t-texto, #0d1220);
+  --swal2-background: var(--t-superficie, #ffffff);
+}
+
+/* En la tienda los avisos informativos usan su azul de marca, no el oro del panel */
+.swal2-container.hs-swal-contenedor--tienda .swal2-icon.swal2-info,
+.swal2-container.hs-swal-contenedor--tienda .swal2-icon.swal2-question {
+  --hs-icono: var(--t-primario-texto, #1d4ed8);
+  --hs-icono-fondo: var(--t-primario-claro, #eaf0ff);
 }
 
 .swal2-container .hs-swal--tienda .swal2-title {
@@ -346,7 +369,6 @@
 .swal2-container .hs-swal--tienda .swal2-actions .swal2-confirm:not(.hs-swal-peligro),
 .swal2-container .hs-swal--tienda .swal2-actions .swal2-confirm:not(.hs-swal-peligro):hover:not([disabled]) {
   background: var(--t-primario, #2563eb);
-  box-shadow: 0 6px 16px -6px rgba(37, 99, 235, 0.5);
 }
 
 .swal2-container .hs-swal--tienda .swal2-actions .swal2-confirm:not(.hs-swal-peligro):hover:not([disabled]) {
@@ -375,15 +397,9 @@
   }
 }
 
-@keyframes hs-swal-fundido {
-  from {
-    opacity: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .swal2-container {
-    --swal2-show-animation: hs-swal-fundido 120ms linear;
+    --swal2-show-animation: none;
     --swal2-hide-animation: none;
     --swal2-backdrop-transition: none;
   }
@@ -393,7 +409,10 @@
     animation: none !important;
   }
 
-  .swal2-container .swal2-actions .swal2-styled:hover:not([disabled]),
+  .swal2-container .swal2-actions .swal2-styled {
+    transition: none;
+  }
+
   .swal2-container .swal2-actions .swal2-styled:active:not([disabled]) {
     transform: none;
   }
@@ -404,14 +423,14 @@
 @media (max-width: 640px) {
   .swal2-container {
     --swal2-padding: 24px 18px 18px;
-    --swal2-border-radius: 20px;
+    --swal2-border-radius: 18px;
     padding: 12px;
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   }
 
   /* Botones a todo el ancho, el principal arriba (Swal los ordena cancelar → confirmar). */
   .swal2-container .swal2-actions {
-    flex-direction: column-reverse;
+    flex-direction: column-reverse; /* con el orden de arriba, confirmar queda primero */
     align-items: stretch;
   }
 

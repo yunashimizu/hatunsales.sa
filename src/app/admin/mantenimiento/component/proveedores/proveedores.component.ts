@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  HostListener,
   OnInit,
   inject,
 } from '@angular/core';
@@ -29,6 +30,8 @@ export class ProveedoresComponent implements OnInit {
   /** La última carga de la lista falló (solo para mostrar el estado de error en pantalla). */
   errorCarga = false;
   guardando = false;
+  /** Ficha lateral de alta/edición abierta. */
+  panelAbierto = false;
   consultandoRuc = false;
   editandoId: number | null = null;
   idDestacado: number | null = null;
@@ -105,11 +108,13 @@ export class ProveedoresComponent implements OnInit {
     });
   }
 
+  /** Abre la ficha en blanco para un alta. */
   nuevo(): void {
-    this.editandoId = null;
-    this.modelo = { nombre: '', ruc: '', telefono: '', email: '', direccion: '' };
+    this.reiniciarModelo();
+    this.abrirPanel('prov-ruc');
   }
 
+  /** Abre la ficha con los datos del proveedor. */
   editar(p: any): void {
     this.editandoId = Number(p.id_proveedor);
     this.modelo = {
@@ -119,10 +124,40 @@ export class ProveedoresComponent implements OnInit {
       email: p.email ?? '',
       direccion: p.direccion ?? '',
     };
+    this.abrirPanel('prov-nombre');
   }
 
   cancelar(): void {
-    this.nuevo();
+    this.cerrarPanel();
+  }
+
+  /** Esc cierra la ficha, salvo que haya un diálogo (SweetAlert) abierto: ese se queda con la tecla. */
+  @HostListener('document:keydown.escape')
+  alPulsarEscape(): void {
+    if (document.querySelector('.swal2-container')) return;
+    this.cerrarPanel();
+  }
+
+  /** Cierra la ficha y deja el formulario en blanco. */
+  cerrarPanel(): void {
+    if (!this.panelAbierto) return;
+    this.panelAbierto = false;
+    this.reiniciarModelo();
+    this.cdr.markForCheck();
+  }
+
+  private reiniciarModelo(): void {
+    this.editandoId = null;
+    this.modelo = { nombre: '', ruc: '', telefono: '', email: '', direccion: '' };
+  }
+
+  /** La ficha y el historial comparten el mismo lugar: se abre una y se cierra la otra. */
+  private abrirPanel(idCampo: string): void {
+    this.proveedorHistorial = null;
+    this.recepcionesProv = [];
+    this.panelAbierto = true;
+    this.cdr.markForCheck();
+    setTimeout(() => document.getElementById(idCampo)?.focus(), 0);
   }
 
   buscarRuc(): void {
@@ -188,7 +223,7 @@ export class ProveedoresComponent implements OnInit {
           type: 'success',
           title: this.editandoId ? 'Proveedor actualizado' : 'Proveedor creado',
         });
-        this.nuevo();
+        this.cerrarPanel();
         this.cargar();
       },
       error: (e) => {
@@ -200,6 +235,7 @@ export class ProveedoresComponent implements OnInit {
   }
 
   verRecepciones(p: any): void {
+    if (this.panelAbierto) this.cerrarPanel();
     this.proveedorHistorial = p;
     this.cargandoRecepciones = true;
     this.recepcionesProv = [];
@@ -242,7 +278,7 @@ export class ProveedoresComponent implements OnInit {
         this.cdr.markForCheck();
         this.alerta.toast({ type: 'success', title: 'Proveedor eliminado' });
         this.cargar();
-        if (this.editandoId === Number(p.id_proveedor)) this.nuevo();
+        if (this.editandoId === Number(p.id_proveedor)) this.cerrarPanel();
       },
       error: (e) => {
         this.cdr.markForCheck();

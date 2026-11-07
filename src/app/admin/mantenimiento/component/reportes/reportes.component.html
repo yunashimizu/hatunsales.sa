@@ -1,8 +1,8 @@
 <div class="adm-pagina">
 
-  <!-- Escenario: contexto del reporte (periodo, rango y descargas) -->
-  <header class="adm-escenario x-grano x-plano rep-escenario">
-    <div class="adm-cabecera__principal rep-escenario__principal">
+  <!-- Barra de la página: periodo a la izquierda, descargas a la derecha (el título vive en la barra superior) -->
+  <header class="adm-cabecera adm-cabecera--barra rep-barra">
+    <div class="adm-cabecera__principal">
       <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-bar-chart-line"></i></span>
       <div class="reporte-cabecera__texto">
         <span class="adm-cabecera__eyebrow">Reportes</span>
@@ -12,7 +12,27 @@
         </p>
       </div>
     </div>
-    <div class="adm-acciones rep-escenario__acciones">
+
+    <!-- Periodo -->
+    <div class="adm-acciones rep-barra__periodo">
+      <span class="rep-sr" id="reporte-periodo-titulo">Periodo del reporte</span>
+      <div class="adm-segmentado rep-segmentado" role="group" aria-labelledby="reporte-periodo-titulo">
+        <button type="button"
+                class="adm-segmento rep-seg"
+                *ngFor="let p of periodos"
+                [class.adm-segmento--activo]="periodo === p.id"
+                [attr.aria-pressed]="periodo === p.id"
+                [title]="p.plan"
+                (click)="elegirPeriodo(p.id)"
+                [disabled]="cargando">
+          <i class="bi rep-seg__icono" [ngClass]="p.icono" aria-hidden="true"></i>
+          <span>{{ p.etiqueta }}</span>
+          <span class="adm-spinner adm-spinner--sm rep-seg__cargando" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="adm-acciones rep-barra__acciones">
       <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando"
               title="Volver a consultar el periodo seleccionado">
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
@@ -33,36 +53,16 @@
         PDF
       </button>
     </div>
-
-    <!-- Periodo -->
-    <div class="rep-periodo">
-      <div class="rep-periodo__selector">
-        <span class="rep-periodo__rotulo" id="reporte-periodo-titulo">Periodo del reporte</span>
-        <div class="adm-segmentado rep-segmentado" role="group" aria-labelledby="reporte-periodo-titulo">
-          <button type="button"
-                  class="adm-segmento rep-seg"
-                  *ngFor="let p of periodos"
-                  [class.adm-segmento--activo]="periodo === p.id"
-                  [attr.aria-pressed]="periodo === p.id"
-                  [title]="p.plan"
-                  (click)="elegirPeriodo(p.id)"
-                  [disabled]="cargando">
-            <i class="bi rep-seg__icono" [ngClass]="p.icono" aria-hidden="true"></i>
-            <span>{{ p.etiqueta }}</span>
-            <span class="adm-spinner adm-spinner--sm rep-seg__cargando" aria-hidden="true"></span>
-          </button>
-        </div>
-      </div>
-
-      <div class="rep-periodo__info" *ngIf="planTexto" aria-label="Plan del periodo" aria-live="polite">
-        <p class="rep-periodo__plan"><strong>{{ periodoActivo.etiqueta }}</strong> · {{ planTexto }}</p>
-        <span class="reporte-rango" *ngIf="fechaInicio && fechaFin">
-          <i class="bi bi-calendar-range" aria-hidden="true"></i>
-          <span>{{ fechaCorta(fechaInicio) }} — {{ fechaCorta(fechaFin) }}</span>
-        </span>
-      </div>
-    </div>
   </header>
+
+  <!-- Plan del periodo y rango de fechas -->
+  <div class="rep-periodo__info" *ngIf="planTexto" aria-label="Plan del periodo" aria-live="polite">
+    <p class="rep-periodo__plan"><strong>{{ periodoActivo.etiqueta }}</strong> · {{ planTexto }}</p>
+    <span class="reporte-rango" *ngIf="fechaInicio && fechaFin">
+      <i class="bi bi-calendar-range" aria-hidden="true"></i>
+      <span>{{ fechaCorta(fechaInicio) }} — {{ fechaCorta(fechaFin) }}</span>
+    </span>
+  </div>
 
   <!-- Error de carga: sustituye a los indicadores en cero y a los vacíos engañosos -->
   <ng-container *ngIf="!errorCarga; else reporteError">

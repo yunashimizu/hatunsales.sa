@@ -908,4 +908,168 @@ describe('VentasComponent', () => {
       expect((component as any).escaneandoCodigo).toBe(false);
     });
   });
+  describe('R13 · atajo F9, categorías y ventas en espera', () => {
+    function omitirCargaInicial(): void {
+      for (const carga of ['cargarMetodosPago', 'cargarSeriesFiscales', 'cargarContextoPos', 'cargarChipCaja']) {
+        vi.spyOn(component as any, carga).mockImplementation(() => undefined);
+      }
+    }
+    function producto(id: number, nombre: string, extra: Record<string, unknown> = {}) {
+      return {
+        id_producto: id, nombre, sku: `S${id}`, codigo_barras: '', unidad_medida: 'NIU',
+        precio_venta: 10, descuento: 0, precio_final: 10, stock_disponible: 5, imagen_url: '', ...extra,
+      };
+    }
+    function linea(id: number, cantidad = 1) {
+      return {
+        id_producto: id, descripcion: `PRODUCTO ${id}`, sku: `S${id}`, unidad_medida: 'NIU',
+        cantidad, precio_unitario: 10, descuento: 0, stock_disponible: 10,
+      };
+    }
+    function receptorDni() {
+      return {
+        origen: 'cliente', tipo: 'cliente', id_cliente: 7, tipo_documento: 1, numero_documento: '12345678',
+        denominacion: 'MARIA PEREZ', direccion: '', email: '', telefono: '', admite_factura: false,
+      } as any;
+    }
+
+    beforeEach(() => {
+      localStorage.removeItem('hs.pos.espera');
+    });
+
+    it('F9 cobra solo cuando el botón estaría habilitado y evita la acción del navegador', () => {
+      const cobrar = vi.spyOn(component, 'cobrar').mockImplementation(() => undefined);
+      const evento = new KeyboardEvent('keydown', { key: 'F9', cancelable: true });
+
+      vi.spyOn(component, 'puedeEmitir', 'get').mockReturnValue(false);
+      component.alPulsarF9(evento);
+      expect(cobrar).not.toHaveBeenCalled();
+      expect(evento.defaultPrevented).toBe(true);
+
+      vi.spyOn(component, 'puedeEmitir', 'get').mockReturnValue(true);
+      component.alPulsarF9(new KeyboardEvent('keydown', { key: 'F9', cancelable: true }));
+      expect(cobrar).toHaveBeenCalledTimes(1);
+
+      // Mantener la tecla pulsada no repite el cobro
+      component.alPulsarF9(new KeyboardEvent('keydown', { key: 'F9', repeat: true, cancelable: true }));
+      expect(cobrar).toHaveBeenCalledTimes(1);
+    });
+
+    it('con categoría en el catálogo dibuja los chips y filtra hasta 12 con stock; «Frecuentes» sigue a destacado', () => {
+      const catalogo = [
+        ...Array.from({ length: 14 }, (_, i) => producto(100 + i, `TUBO ${i}`, { categoria: 'Tuberías' })),
+        producto(200, 'AGOTADO', { categoria: 'Tuberías', stock_disponible: 0 }),
+        producto(300, 'MARTILLO', { categoria: 'Herramientas', destacado: true }),
+        producto(301, 'ALICATE', { categoria: 'Herramientas' }),
+      ];
+      puntoVentaMock['tieneCatalogo'] = true;
+      puntoVentaMock['catalogoCacheado'] = catalogo;
+      omitirCargaInicial();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+
+      expect(component.categorias).toEqual(['Tuberías', 'Herramientas']);
+      const chips = Array.from(el.querySelectorAll('.pv-categoria')).map((c) => c.textContent!.trim());
+      expect(chips).toEqual(['Frecuentes', 'Tuberías', 'Herramientas']);
+      // Frecuentes = los marcados como destacados
+      expect(component.tiles.map((p) => p.nombre)).toEqual(['MARTILLO']);
+
+      component.elegirCategoria('Tuberías');
+      fixture.detectChanges();
+      expect(component.tiles.length).toBe(12);
+      expect(component.tiles.every((p) => p.categoria === 'Tuberías' && p.stock_disponible > 0)).toBe(true);
+      expect(el.querySelectorAll('.pv-tile:not(.pv-tile--nuevo)').length).toBe(12);
+    });
+
+    it('sin categoría en el catálogo no dibuja chips y «Frecuentes» sigue por stock', () => {
+      puntoVentaMock['tieneCatalogo'] = true;
+      puntoVentaMock['catalogoCacheado'] = [
+        producto(1, 'SIN STOCK', { stock_disponible: 0 }),
+        ...Array.from({ length: 9 }, (_, i) => producto(10 + i, `ARTICULO ${i}`)),
+      ];
+      omitirCargaInicial();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+
+      expect(component.categorias).toEqual([]);
+      expect(el.querySelector('.pv-categorias')).toBeNull();
+      expect(component.tiles.length).toBe(7);
+      expect(component.tiles.some((p) => p.nombre === 'SIN STOCK')).toBe(false);
+    });
+
+    it('«En espera» guarda carrito, cliente, tipo y observaciones, vacía el ticket y muestra el chip', () => {
+      component.lineas = [linea(1, 2), linea(2)];
+      component.receptor = receptorDni();
+      component.observaciones = 'Entrega mañana';
+      component.idTipo = 2;
+      omitirCargaInicial();
+
+      component.ponerEnEspera();
+
+      const guardado = JSON.parse(localStorage.getItem('hs.pos.espera')!);
+      expect(guardado.length).toBe(1);
+      expect(guardado[0]).toEqual(expect.objectContaining({
+        tipo: 2, observaciones: 'Entrega mañana',
+        lineas: [expect.objectContaining({ id_producto: 1, cantidad: 2 }), expect.objectContaining({ id_producto: 2 })],
+        receptor: expect.objectContaining({ denominacion: 'MARIA PEREZ' }),
+      }));
+      expect(component.lineas).toEqual([]);
+      expect(component.receptor).toBeNull();
+      expect(component.observaciones).toBe('');
+
+      fixture.detectChanges();
+      const chip = (fixture.nativeElement as HTMLElement).querySelector('.pv-espera-chip');
+      expect(chip?.textContent).toContain('1 en espera');
+    });
+
+    it('guarda como máximo 5 ventas en espera: la sexta no se guarda y el carrito se conserva', () => {
+      omitirCargaInicial();
+      for (let i = 1; i <= 5; i++) {
+        component.lineas = [linea(i)];
+        component.ponerEnEspera();
+      }
+      expect(component.enEspera.length).toBe(5);
+
+      component.lineas = [linea(99)];
+      component.ponerEnEspera();
+
+      expect(component.enEspera.length).toBe(5);
+      expect(JSON.parse(localStorage.getItem('hs.pos.espera')!).length).toBe(5);
+      expect(component.lineas.map((l) => l.id_producto)).toEqual([99]);
+    });
+
+    it('«Retomar» restaura la venta; con el carrito ocupado pregunta antes y, si se cancela, no cambia nada', async () => {
+      const alerta = TestBed.inject(AlertService) as any;
+      const confirmar = vi.spyOn(alerta, 'confirm');
+      omitirCargaInicial();
+      component.lineas = [linea(1, 3)];
+      component.receptor = receptorDni();
+      component.observaciones = 'Obra norte';
+      component.ponerEnEspera();
+      expect(component.lineas).toEqual([]);
+
+      // Carrito vacío: vuelve sin preguntar
+      await component.retomarEspera(component.enEspera[0]);
+      expect(confirmar).not.toHaveBeenCalled();
+      expect(component.lineas.map((l) => [l.id_producto, l.cantidad])).toEqual([[1, 3]]);
+      expect(component.receptor?.denominacion).toBe('MARIA PEREZ');
+      expect(component.observaciones).toBe('Obra norte');
+      expect(component.enEspera.length).toBe(0);
+      expect(localStorage.getItem('hs.pos.espera')).toBeNull();
+
+      // Carrito ocupado: pregunta; al cancelar se queda todo como estaba
+      component.ponerEnEspera();
+      component.lineas = [linea(5)];
+      confirmar.mockResolvedValueOnce({ isConfirmed: false } as any);
+      await component.retomarEspera(component.enEspera[0]);
+      expect(confirmar).toHaveBeenCalledTimes(1);
+      expect(component.lineas.map((l) => l.id_producto)).toEqual([5]);
+      expect(component.enEspera.length).toBe(1);
+
+      // Al aceptar reemplaza el carrito
+      await component.retomarEspera(component.enEspera[0]);
+      expect(confirmar).toHaveBeenCalledTimes(2);
+      expect(component.lineas.map((l) => l.id_producto)).toEqual([1]);
+    });
+  });
 });

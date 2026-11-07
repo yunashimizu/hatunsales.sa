@@ -102,6 +102,8 @@
   --adm-marca-texto: #e9d6a4;
   --adm-marca-claro: #3a3225;
   --adm-marca-borde: #5a4a2b;
+  --adm-marca-contorno: rgba(212, 184, 120, 0.35);
+  --adm-marca-halo: rgba(212, 184, 120, 0.08);
 
   --adm-exito: #2e9a4c;
   --adm-exito-texto: #7fd39a;
@@ -230,17 +232,10 @@
   color: #ffffff;
 }
 
-/* Avisos nt-* (toasts) */
+/* Avisos nt-* (toasts): en el panel salen de los tokens --adm-* (ya oscuros);
+   solo la tienda necesita sus propias superficies. */
 :root[data-tema='oscuro'] .nt-pila {
-  --nt-superficie: #171d33;
-  --nt-borde: #2a3558;
-  --nt-borde-fuerte: #3a4670;
-  --nt-texto: #e9edf7;
-  --nt-texto-2: #c4cde3;
-  --nt-texto-3: #9aa6c2;
-  --nt-hover: #1f2845;
-  --nt-foco: #93c5fd;
-  --nt-sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 40px -14px rgba(0, 0, 0, 0.7);
+  --nt-sombra: 0 8px 24px -8px rgba(0, 0, 0, 0.6);
 }
 
 :root[data-tema='oscuro'] .nt-pila[data-tema='tienda'] {
@@ -254,20 +249,20 @@
   --nt-foco: var(--t-primario-texto);
 }
 
-:root[data-tema='oscuro'] .nt-aviso { --nt-acento-texto: #7dd3fc; --nt-fondo-icono: rgba(14, 165, 233, 0.18); }
-:root[data-tema='oscuro'] .nt-aviso[data-tipo='exito'] { --nt-acento: #34d399; --nt-acento-texto: #4ade9d; --nt-fondo-icono: rgba(16, 185, 129, 0.18); }
-:root[data-tema='oscuro'] .nt-aviso[data-tipo='error'] { --nt-acento: #f87171; --nt-acento-texto: #fca5a5; --nt-fondo-icono: rgba(239, 68, 68, 0.18); }
-:root[data-tema='oscuro'] .nt-aviso[data-tipo='advertencia'] { --nt-acento: #fbbf24; --nt-acento-texto: #fcd34d; --nt-fondo-icono: rgba(245, 158, 11, 0.18); }
-:root[data-tema='oscuro'] .nt-aviso[data-tipo='cargando'] { --nt-acento: #60a5fa; --nt-acento-texto: #93c5fd; --nt-fondo-icono: rgba(59, 130, 246, 0.2); }
+/* Avisos en página (.adm-aviso): fondo del tono al 12 %, borde al 35 %, texto del tono claro (--adm-aviso-*-texto).
+   Solo el elemento .adm-aviso: otras piezas que reusan la clase de tono (p. ej. .pv-cobertura) conservan los fondos sólidos. */
+:root[data-tema='oscuro'] .adm-aviso {
+  background: color-mix(in srgb, var(--adm-aviso-tono) 12%, transparent);
+  border-color: color-mix(in srgb, var(--adm-aviso-tono) 35%, transparent);
+}
 
 /* Modales de SweetAlert */
 :root[data-tema='oscuro'] .swal2-container {
-  --swal2-backdrop: rgba(4, 6, 14, 0.68);
+  --swal2-backdrop: rgba(0, 0, 0, 0.66);
   --swal2-deny-button-background-color: var(--adm-superficie-2);
   --swal2-cancel-button-background-color: var(--adm-superficie-2);
   --swal2-input-box-shadow: none;
   --swal2-input-hover-box-shadow: none;
-  --swal2-outline: 0 0 0 4px rgba(96, 165, 250, 0.3);
 }
 
 :root[data-tema='oscuro'] .swal2-container.hs-swal-contenedor--tienda {
@@ -278,5 +273,5 @@
   --swal2-cancel-button-background-color: var(--t-superficie-2);
 }
 
-:root[data-tema='oscuro'] .swal2-container .swal2-html-container small { color: var(--adm-texto-suave); }
-:root[data-tema='oscuro'] .swal2-container .swal2-popup { box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.04); }
+:root[data-tema='oscuro'] .swal2-container .swal2-html-container small { color: var(--adm-texto-tenue); }
+:root[data-tema='oscuro'] .swal2-container .swal2-popup { box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.75); }

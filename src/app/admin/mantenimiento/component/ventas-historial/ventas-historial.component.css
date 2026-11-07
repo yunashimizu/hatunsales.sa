@@ -129,6 +129,15 @@
 .vh-lista li > .adm-tabla__secundario { flex: 1 1 200px; min-width: 0; }
 
 @media (max-width: 640px) {
+  /* R12b H2 (respaldo local): en modo tarjeta la tabla y el tbody dejan de tener ancho intrínseco */
+  .vh-tabla, .vh-tabla tbody { display: block; width: 100%; }
+  .vh-tabla tbody td > * { min-width: 0; overflow-wrap: anywhere; }
+  /* La insignia de estado («Aceptado por SUNAT») es nowrap y ensanchaba la tarjeta: que pueda partirse. */
+  .vh-tabla .adm-insignia { white-space: normal; max-width: 100%; }
+  /* Celda «Comprobante»: número en una línea y estado debajo, alineado a la derecha, sin partir «B001-00000312». */
+  .vh-tabla tbody td[data-etiqueta='Comprobante'] { flex-wrap: wrap; }
+  .vh-tabla tbody td[data-etiqueta='Comprobante'] .adm-tabla__principal { overflow-wrap: normal; white-space: nowrap; }
+  .vh-tabla tbody td[data-etiqueta='Comprobante'] .vh-estado { flex: 1 1 100%; justify-content: flex-end; }
   .vh-cliente { max-width: none; }
   .vh-documento { flex-direction: column; }
 }

@@ -16,6 +16,8 @@ import { InventarioAdminService } from '../../service/inventario-admin.service';
 import { ComprobanteService } from '../../service/comprobante.service';
 import { CajaSesionService, SesionCaja } from '../../service/caja-sesion.service';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
+import { ReportesService } from '../../service/reportes.service';
+import { VentaPorHora, VentasPorHora } from '../../models/admin.models';
 import { urlConstants } from '../../../constants/urlConstants';
 import { opcionesHttp } from '../../service/api-base.service';
 
@@ -96,6 +98,29 @@ export interface BarraSemana {
   etiqueta: string;
   titulo: string;
   esHoy: boolean;
+}
+
+/** Una hora del gráfico «Ventas por hora»: hoy (grafito, oro si es la hora pico) y la semana pasada (gris). */
+export interface BarraHora {
+  hora: number;
+  etiqueta: string;
+  /** Centro horizontal de la hora (para el rótulo). */
+  xc: number;
+  ancho: number;
+  xHoy: number;
+  yHoy: number;
+  altoHoy: number;
+  xPrev: number;
+  yPrev: number;
+  altoPrev: number;
+  totalHoy: number;
+  totalPrev: number;
+  /** Rótulo del valor sobre la barra de hoy (solo la hora pico lo muestra). */
+  valorCorto: string;
+  yValor: number;
+  esPico: boolean;
+  mostrarEtiqueta: boolean;
+  titulo: string;
 }
 
 export interface MarcaEje {
@@ -197,6 +222,13 @@ export class DashboardComponent implements OnInit {
   resumenSemana = '';
   hallazgoSemana = '';
 
+  // ── Ventas por hora (B2; si falla o viene vacío se queda el gráfico semanal) ──
+  horaConDatos = false;
+  barrasHora: BarraHora[] = [];
+  marcasEjeHora: MarcaEje[] = [];
+  resumenHora = '';
+  hallazgoHora = '';
+
   // ── Lo más vendido ──
   topProductos: ProductoTop[] = [];
   topCargado = false;
@@ -204,6 +236,7 @@ export class DashboardComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fiscal = inject(FiscalEstadoService);
+  private readonly reportes = inject(ReportesService);
 
   constructor(
     private readonly authService: AuthService,
@@ -454,6 +487,8 @@ export class DashboardComponent implements OnInit {
       caja: sinPermiso(this.veCaja, () => this.caja.sesion()),
       hoy: sinPermiso(this.veReportes, () => reporte('diario')),
       semana: sinPermiso(this.veReportes, () => reporte('semana')),
+      // Opcional: si el servidor aún no la tiene (404), falla o tarda, vale null y se muestra la semana.
+      hora: sinPermiso(this.veReportes, () => this.reportes.ventasPorHora()),
       cxc: sinPermiso(this.veCxc, () =>
         this.http.get<CuentasCobrarApi>(urlConstants.credito.cuentas, {
           ...opcionesHttp(),
@@ -462,13 +497,14 @@ export class DashboardComponent implements OnInit {
       ),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(({ inv, cpe, caja, hoy, semana, cxc }) => {
+      .subscribe(({ inv, cpe, caja, hoy, semana, hora, cxc }) => {
         this.sinStock = inv?.sin_stock ?? null;
         this.bajoStock = inv?.bajo_stock ?? null;
         this.cpeAtencion = cpe?.total ?? null;
         this.aplicarCaja(caja);
         this.aplicarVentasHoy(hoy);
         this.aplicarSemana(semana);
+        this.aplicarHoras(hora);
         this.aplicarCuentas(cxc);
         const ahora = new Date();
         this.actualizadoA = `${dosDigitos(ahora.getHours())}:${dosDigitos(ahora.getMinutes())}`;
@@ -603,6 +639,85 @@ export class DashboardComponent implements OnInit {
     const mejor = dias.reduce((a, b) => (b.total > a.total ? b : a));
     this.resumenSemana = `Ventas netas de lunes a hoy: ${this.soles(total)}.`;
     this.hallazgoSemana = `El mejor día fue el ${DIAS_LARGOS[mejor.fecha.getDay()]} ${mejor.fecha.getDate()}, con ${this.soles(mejor.total)}.`;
+  }
+
+  /** Barras por hora de hoy contra el mismo día de la semana pasada. Eje de 7 a 21 h, ampliado si hay ventas fuera. */
+  private aplicarHoras(datos: VentasPorHora | null): void {
+    this.horaConDatos = false;
+    this.barrasHora = [];
+    this.marcasEjeHora = [];
+    this.resumenHora = '';
+    this.hallazgoHora = '';
+    if (!datos || !Array.isArray(datos.horas)) return;
+
+    const porHora = (lista: VentaPorHora[] | undefined): Map<number, { total: number; ventas: number }> => {
+      const mapa = new Map<number, { total: number; ventas: number }>();
+      for (const h of Array.isArray(lista) ? lista : []) {
+        const hora = Math.trunc(numero(h?.hora));
+        if (hora < 0 || hora > 23) continue;
+        const previo = mapa.get(hora) ?? { total: 0, ventas: 0 };
+        mapa.set(hora, { total: previo.total + numero(h.total), ventas: previo.ventas + numero(h.ventas) });
+      }
+      return mapa;
+    };
+    const hoy = porHora(datos.horas);
+    const prev = porHora(datos.comparacion?.horas);
+    const conVentas = [...hoy.entries(), ...prev.entries()].filter(([, v]) => v.total > 0).map(([h]) => h);
+    if (!conVentas.length) return;
+
+    const desde = Math.min(7, ...conVentas);
+    const hasta = Math.max(21, ...conVentas);
+    const cantidad = hasta - desde + 1;
+    const maximo = Math.max(...conVentas.map((h) => Math.max(hoy.get(h)?.total ?? 0, prev.get(h)?.total ?? 0)));
+    const paso = pasoRedondo(maximo / 3);
+    const tope = paso * 3;
+    const alto = G_Y_ABAJO - G_Y_ARRIBA;
+    this.marcasEjeHora = [3, 2, 1, 0].map((nivel) => ({
+      y: G_Y_ABAJO - (alto * nivel) / 3,
+      texto: this.entero(paso * nivel),
+    }));
+
+    const totalHoy = [...hoy.values()].reduce((s, v) => s + v.total, 0);
+    const totalPrev = [...prev.values()].reduce((s, v) => s + v.total, 0);
+    let pico = -1;
+    for (const [h, v] of hoy) if (v.total > 0 && (pico < 0 || v.total > (hoy.get(pico)?.total ?? 0))) pico = h;
+
+    const hueco = (G_X1 - G_X0) / cantidad;
+    const ancho = Math.min(16, hueco * 0.34);
+    const cadaDos = cantidad > 16;
+    const rotulo = (h: number) => `${dosDigitos(h)}:00`;
+    this.barrasHora = Array.from({ length: cantidad }, (_, i) => {
+      const hora = desde + i;
+      const vHoy = hoy.get(hora) ?? { total: 0, ventas: 0 };
+      const vPrev = prev.get(hora) ?? { total: 0, ventas: 0 };
+      const altoHoy = Math.max(0, (vHoy.total / tope) * alto);
+      const altoPrev = Math.max(0, (vPrev.total / tope) * alto);
+      const xc = G_X0 + hueco * i + hueco / 2;
+      return {
+        hora,
+        etiqueta: `${hora}h`,
+        xc,
+        ancho,
+        xHoy: xc + 1,
+        yHoy: G_Y_ABAJO - altoHoy,
+        altoHoy,
+        xPrev: xc - ancho - 1,
+        yPrev: G_Y_ABAJO - altoPrev,
+        altoPrev,
+        totalHoy: vHoy.total,
+        totalPrev: vPrev.total,
+        valorCorto: this.entero(vHoy.total),
+        yValor: G_Y_ABAJO - altoHoy - 6,
+        esPico: hora === pico,
+        mostrarEtiqueta: !cadaDos || i % 2 === 0,
+        titulo: `${rotulo(hora)} a ${dosDigitos(hora)}:59 · hoy ${this.soles(vHoy.total)} (${vHoy.ventas} ${vHoy.ventas === 1 ? 'venta' : 'ventas'}) · semana pasada ${this.soles(vPrev.total)}`,
+      };
+    });
+    this.horaConDatos = true;
+    this.resumenHora = `Hoy ${this.soles(totalHoy)} · el mismo día de la semana pasada, ${this.soles(totalPrev)}.`;
+    this.hallazgoHora = pico >= 0
+      ? `La hora pico fue ${rotulo(pico)}, con ${this.soles(hoy.get(pico)?.total ?? 0)}.`
+      : 'Hoy todavía no hay ventas; en gris, el mismo día de la semana pasada.';
   }
 
   private aplicarCuentas(cxc: CuentasCobrarApi | null): void {

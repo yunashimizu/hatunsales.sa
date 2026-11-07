@@ -1,15 +1,21 @@
 /*
  * Avisos nt-* (encapsulación desactivada: todo va con prefijo nt-).
  *
+ * Piel «Acero y oro» (R12a): colores de los tokens --adm-* (también en oscuro),
+ * 360 px de ancho, borde y barra lateral de 3 px del tono, icono en círculo,
+ * barra de tiempo dorada de 3 px. Escritorio: abajo a la derecha (máx. 3
+ * visibles); bajo 640 px: arriba y centrado.
+ *
  * Variables que pueden fijar el shell o una página (en :root o en body):
- *   --hs-avisos-arriba          distancia al borde superior en el panel (76px: cabecera de 64px + 12)
+ *   --hs-avisos-arriba          distancia al borde superior bajo 640 px (76px: cabecera de 64px + 12)
  *   --hs-avisos-lado            margen lateral en escritorio (20px)
- *   --hs-avisos-abajo           distancia al borde inferior en móvil (12px)
+ *   --hs-avisos-abajo           distancia al borde inferior en escritorio (20px)
  *   --hs-avisos-abajo-reserva   idem cuando hay una barra fija inferior (.hs-reserva-inferior, 84px)
+ *   --hs-avisos-abajo-cobro     idem sobre el bloque de cobro fijo de Vender (.pv-cobro, 1201px+, 220px)
  *   --t-cabecera-alto           alto de la cabecera sticky de la tienda (la escribe su header)
  * Marcadores:
- *   .hs-reserva-inferior        barra fija abajo en móvil (p. ej. total del POS): los avisos suben
- *   .hs-cajon-abierto, .adm-panel  cajón/panel lateral derecho abierto: los avisos pasan al otro lado
+ *   .hs-reserva-inferior        barra fija abajo (p. ej. total del POS): los avisos suben
+ *   .hs-cajon-abierto, .adm-panel  cajón/panel lateral derecho abierto: los avisos pasan al borde izquierdo
  */
 
 app-toasts {
@@ -19,27 +25,28 @@ app-toasts {
 .nt-pila {
   --nt-arriba: var(--hs-avisos-arriba, 76px);
   --nt-lado: var(--hs-avisos-lado, 20px);
-  --nt-abajo: var(--hs-avisos-abajo, 12px);
-  --nt-ancho: 384px;
+  --nt-abajo: var(--hs-avisos-abajo, 20px);
+  --nt-ancho: 360px;
   --nt-radio: 12px;
-  --nt-superficie: #fff;
-  --nt-borde: #e2e8f0;
-  --nt-borde-fuerte: #cbd5e1;
-  --nt-texto: #0f172a;
-  --nt-texto-2: #475569;
-  --nt-texto-3: #64748b;
-  --nt-hover: #f1f5f9;
-  --nt-foco: #2563eb;
-  --nt-sombra: 0 1px 2px rgb(15 23 42 / 0.06), 0 12px 32px -12px rgb(15 23 42 / 0.28);
+  --nt-superficie: var(--adm-superficie, #fff);
+  --nt-borde: var(--adm-borde, #e4e2dc);
+  --nt-borde-fuerte: var(--adm-borde-fuerte, #cfccc4);
+  --nt-texto: var(--adm-texto, #1f201f);
+  --nt-texto-2: var(--adm-texto-suave, #5a5c5b);
+  --nt-texto-3: var(--adm-texto-tenue, #75777a);
+  --nt-hover: var(--adm-superficie-3, #f0eee8);
+  --nt-foco: var(--adm-marca, #b8975a);
+  --nt-progreso: var(--adm-marca, #b8975a);
+  --nt-sombra: var(--adm-sombra-md, 0 8px 24px -8px rgb(31 32 31 / 0.2));
   --nt-fuente: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  /* Dirección de entrada/salida: desde arriba en escritorio */
-  --nt-entrada: translate3d(0, -8px, 0) scale(0.98);
-  --nt-salida: translate3d(12px, 0, 0) scale(0.98);
+  /* Entrada/salida: 8 px desde el borde de anclaje (abajo en escritorio) */
+  --nt-entrada: translate3d(0, 8px, 0);
+  --nt-salida: translate3d(0, 4px, 0);
 
   position: fixed;
   z-index: 2100;
-  top: var(--nt-arriba);
   right: var(--nt-lado);
+  bottom: calc(var(--nt-abajo) + env(safe-area-inset-bottom, 0px));
   width: min(var(--nt-ancho), calc(100vw - 2 * var(--nt-lado)));
   pointer-events: none;
   font-family: var(--nt-fuente);
@@ -57,12 +64,11 @@ app-toasts {
   --nt-borde: var(--t-borde, #e6e9f2);
   --nt-texto: var(--t-texto, #0d1220);
   --nt-foco: var(--t-primario, #2563eb);
-  --nt-sombra: 0 1px 2px rgb(13 18 32 / 0.05), 0 18px 40px -14px rgb(13 18 32 / 0.26);
 }
 
 .nt-lista {
   display: flex;
-  flex-direction: column-reverse; /* el más nuevo, junto al borde de anclaje */
+  flex-direction: column; /* anclada abajo: el más nuevo, abajo */
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -72,46 +78,63 @@ app-toasts {
 /* ---------------------------------------------------------------- aviso */
 
 .nt-aviso {
-  --nt-acento: #0284c7;
-  --nt-acento-texto: #0369a1;
-  --nt-fondo-icono: #e0f2fe;
+  /* Tono por defecto = aviso informativo: oro de la marca */
+  --nt-acento: var(--adm-marca, #b8975a);
+  --nt-acento-texto: var(--adm-marca-texto, #8a6f3c);
+  --nt-fondo-icono: var(--adm-marca-claro, #f3ecdc);
 
   position: relative;
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 12px 8px 12px 12px;
+  padding: 12px 8px 12px 15px;
   overflow: hidden;
   background: var(--nt-superficie);
-  border: 1px solid var(--nt-borde);
+  border: 1px solid color-mix(in srgb, var(--nt-acento) 40%, var(--nt-borde));
   border-radius: var(--nt-radio);
   box-shadow: var(--nt-sombra);
   color: var(--nt-texto);
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1.45;
   pointer-events: auto;
   font-variant-numeric: tabular-nums;
 }
 
+/* Barra lateral de 3 px del tono */
+.nt-aviso::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--nt-acento);
+}
+
+/* Solo se ven 3: los más viejos quedan ocultos hasta que se cierren los nuevos */
+.nt-aviso:nth-last-child(n + 4) {
+  display: none;
+}
+
 .nt-aviso[data-tipo='exito'] {
-  --nt-acento: #059669;
-  --nt-acento-texto: #047857;
-  --nt-fondo-icono: #d1fae5;
+  --nt-acento: var(--adm-dinero, #1e7b34);
+  --nt-acento-texto: var(--adm-exito-texto, #1e7b34);
+  --nt-fondo-icono: var(--adm-dinero-claro, #e8f4ea);
 }
 .nt-aviso[data-tipo='error'] {
-  --nt-acento: #dc2626;
-  --nt-acento-texto: #b91c1c;
-  --nt-fondo-icono: #fee2e2;
+  --nt-acento: var(--adm-peligro, #b42318);
+  --nt-acento-texto: var(--adm-peligro-texto, #b42318);
+  --nt-fondo-icono: var(--adm-peligro-claro, #fbeae7);
 }
 .nt-aviso[data-tipo='advertencia'] {
-  --nt-acento: #d97706;
-  --nt-acento-texto: #b45309;
-  --nt-fondo-icono: #fef3c7;
+  --nt-acento: var(--adm-aviso, #9a5b13);
+  --nt-acento-texto: var(--adm-aviso-texto, #9a5b13);
+  --nt-fondo-icono: var(--adm-aviso-claro, #fbf3e4);
 }
 .nt-aviso[data-tipo='cargando'] {
-  --nt-acento: #2563eb;
-  --nt-acento-texto: #1d4ed8;
-  --nt-fondo-icono: #dbeafe;
+  --nt-acento: var(--adm-texto-suave, #5a5c5b);
+  --nt-acento-texto: var(--adm-texto-2, #3e403f);
+  --nt-fondo-icono: var(--adm-superficie-3, #f0eee8);
 }
 
 .nt-aviso__icono {
@@ -120,9 +143,9 @@ app-toasts {
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  border-radius: 9px;
+  border-radius: 50%;
   background: var(--nt-fondo-icono);
-  color: var(--nt-acento);
+  color: var(--nt-acento-texto);
   font-size: 15px;
 }
 
@@ -142,18 +165,21 @@ app-toasts {
   flex-wrap: wrap;
   gap: 6px;
   margin: 0;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
   color: var(--nt-texto);
   overflow-wrap: anywhere;
 }
 
 .nt-aviso--simple .nt-aviso__titulo {
-  padding-top: 6px;
+  padding-top: 5px;
 }
 
 .nt-aviso__texto {
   margin: 0;
   font-size: 13px;
+  line-height: 1.45;
   color: var(--nt-texto-2);
   overflow-wrap: anywhere;
 }
@@ -177,7 +203,7 @@ app-toasts {
   margin-top: 6px;
   padding: 4px 11px;
   border: 1px solid var(--nt-borde-fuerte);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--nt-superficie);
   color: var(--nt-acento-texto);
   font: 600 12.5px/1.2 var(--nt-fuente);
@@ -191,7 +217,6 @@ app-toasts {
 .nt-aviso__accion:hover {
   background: var(--nt-hover);
   border-color: var(--nt-acento);
-  transform: translateY(-1px);
 }
 
 .nt-aviso__accion:active {
@@ -210,7 +235,7 @@ app-toasts {
   height: 28px;
   margin: -2px 0 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   color: var(--nt-texto-3);
   font-size: 12px;
@@ -241,9 +266,8 @@ app-toasts {
   right: 0;
   bottom: 0;
   left: 0;
-  height: 2px;
-  background: var(--nt-acento);
-  opacity: 0.55;
+  height: 3px;
+  background: var(--nt-progreso);
   transform-origin: left center;
   animation: nt-progreso var(--nt-dur, 4000ms) linear forwards;
 }
@@ -345,39 +369,36 @@ app-toasts {
   body:has(.adm-panel, .hs-cajon-abierto) .nt-pila {
     right: auto;
     left: var(--nt-lado);
-    --nt-salida: translate3d(-12px, 0, 0) scale(0.98);
   }
 }
 
+/* Con una barra fija abajo (total del POS en móvil/tablet) o el cobro fijo de Vender, los avisos suben */
+body:has(.hs-reserva-inferior) .nt-pila {
+  --nt-abajo: var(--hs-avisos-abajo-reserva, 84px);
+}
+
+@media (min-width: 1201px) {
+  body:has(.pv-cobro) .nt-pila {
+    --nt-abajo: var(--hs-avisos-abajo-cobro, 220px);
+  }
+}
+
+/* Teléfono: arriba y centrados bajo la barra superior */
 @media (max-width: 640px) {
   .nt-pila,
   .nt-pila[data-tema] {
-    top: auto;
-    right: 12px;
-    bottom: calc(var(--nt-abajo) + env(safe-area-inset-bottom, 0px));
-    left: 12px;
-    width: auto;
-    --nt-entrada: translate3d(0, 10px, 0) scale(0.98);
-    --nt-salida: translate3d(0, 10px, 0) scale(0.98);
-  }
-
-  .nt-lista {
-    flex-direction: column; /* anclada abajo: el más nuevo, abajo */
-  }
-
-  body:has(.hs-reserva-inferior) .nt-pila {
-    --nt-abajo: var(--hs-avisos-abajo-reserva, 84px);
-  }
-
-  /* Con un panel abierto su barra de acciones queda abajo: los avisos van arriba */
-  body:has(.adm-panel, .hs-cajon-abierto) .nt-pila {
-    top: calc(12px + env(safe-area-inset-top, 0px));
+    top: calc(var(--nt-arriba) + env(safe-area-inset-top, 0px));
+    right: 0;
     bottom: auto;
-    --nt-entrada: translate3d(0, -10px, 0) scale(0.98);
-    --nt-salida: translate3d(0, -10px, 0) scale(0.98);
+    left: 0;
+    width: min(var(--nt-ancho), calc(100vw - 24px));
+    margin-inline: auto;
+    --nt-entrada: translate3d(0, -8px, 0);
+    --nt-salida: translate3d(0, -4px, 0);
   }
 
-  body:has(.adm-panel, .hs-cajon-abierto) .nt-lista {
+  /* Anclada arriba: el más nuevo, arriba */
+  .nt-lista {
     flex-direction: column-reverse;
   }
 }

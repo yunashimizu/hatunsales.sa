@@ -1,4 +1,4 @@
-<div class="adm-pagina" [class.adm-pagina--con-ficha]="!!proveedorHistorial">
+<div class="adm-pagina" [class.adm-pagina--con-ficha]="panelAbierto || !!proveedorHistorial">
 
   <!-- Cabecera de página -->
   <header class="adm-cabecera adm-cabecera--barra">
@@ -61,237 +61,141 @@
   </section>
   <ng-template #provEsqueletoValor><span class="adm-esqueleto prov-esqueleto-valor" aria-hidden="true"></span></ng-template>
 
-  <!-- Formulario + listado (lado a lado cuando hay espacio) -->
-  <div class="prov-area">
-    <div class="prov-disposicion">
+  <!-- Listado -->
+  <section class="adm-tarjeta adm-tarjeta--acento" aria-labelledby="prov-lista-titulo">
+    <div class="adm-tarjeta__cabecera">
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo" id="prov-lista-titulo">
+          <i class="bi bi-list-ul"></i> Proveedores registrados
+          <span class="adm-insignia adm-insignia--neutra">{{ proveedoresFiltrados.length }}</span>
+        </h2>
+        <p class="adm-tarjeta__sub">Use las acciones de la fila para ver sus recepciones, editar o eliminar.</p>
+      </div>
+    </div>
 
-      <!-- Alta y edición -->
-      <section class="adm-tarjeta prov-form" [class.prov-form--editando]="editandoId" aria-labelledby="prov-form-titulo">
-        <div class="adm-tarjeta__cabecera">
-          <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo" id="prov-form-titulo">
-              <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
-              {{ editandoId ? 'Editar proveedor' : 'Nuevo proveedor' }}
-            </h2>
-            <p class="adm-tarjeta__sub">
-              {{ editandoId ? 'Modifique los datos y guarde los cambios.' : 'Consulte el RUC en SUNAT o complete los datos a mano.' }}
-            </p>
-          </div>
-          <span class="adm-insignia adm-insignia--primaria adm-insignia--punto" *ngIf="editandoId">Editando</span>
+    <div class="prov-buscador">
+      <div class="adm-campo prov-buscador__campo">
+        <label class="adm-etiqueta" for="prov-filtro">Buscar proveedor</label>
+        <div class="adm-input-icono">
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <input id="prov-filtro" class="adm-input" type="search" autocomplete="off" [(ngModel)]="filtro"
+                 placeholder="Nombre, RUC, teléfono o correo">
         </div>
+      </div>
+      <p class="prov-buscador__resumen">
+        <i class="bi bi-funnel" aria-hidden="true"></i>
+        <strong class="adm-tabular">{{ proveedoresFiltrados.length }}</strong> de {{ proveedores.length }}
+      </p>
+    </div>
 
-        <div class="adm-tarjeta__cuerpo prov-form__cuerpo">
-          <h3 class="adm-bloque__titulo prov-form__grupo"><i class="bi bi-building"></i> Identificación</h3>
-          <div class="adm-fila prov-fila">
-            <div class="adm-campo prov-campo--ruc">
-              <label class="adm-etiqueta" for="prov-ruc">
-                RUC <span class="adm-etiqueta__opcional">opcional</span>
-              </label>
-              <div class="adm-input-grupo prov-ruc">
-                <input id="prov-ruc" #provRuc class="adm-input adm-tabular" type="text" maxlength="11"
-                       inputmode="numeric" autocomplete="off"
-                       [(ngModel)]="modelo.ruc" placeholder="20123456789">
-                <button type="button" class="adm-btn adm-btn--suave prov-ruc__boton" (click)="buscarRuc()"
-                        [disabled]="consultandoRuc"
-                        title="Consultar el RUC en SUNAT" aria-label="Consultar el RUC en SUNAT">
-                  <i class="bi" [ngClass]="consultandoRuc ? 'bi-arrow-repeat adm-girando' : 'bi-search'" aria-hidden="true"></i>
-                  SUNAT
+    <div class="adm-esqueletos" *ngIf="cargando && !proveedores.length" aria-busy="true" aria-label="Cargando proveedores">
+      <div class="prov-esqueleto" *ngFor="let n of [1,2,3]">
+        <span class="adm-esqueleto adm-esqueleto--circulo"></span>
+        <span class="prov-esqueleto__texto">
+          <span class="adm-esqueleto adm-esqueleto--titulo"></span>
+          <span class="adm-esqueleto adm-esqueleto--linea"></span>
+        </span>
+        <span class="adm-esqueleto prov-esqueleto__cifra"></span>
+      </div>
+    </div>
+
+    <!-- Error de carga (la lista no llegó) -->
+    <div class="adm-vacio adm-vacio--error" *ngIf="errorCarga && !cargando && !proveedores.length" role="alert">
+      <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">No se pudieron cargar los proveedores</div>
+      <p>Revise la conexión e intente de nuevo.</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+      </button>
+    </div>
+
+    <div class="adm-vacio" *ngIf="!cargando && !errorCarga && !proveedores.length">
+      <div class="adm-vacio__icono"><i class="bi bi-truck-front"></i></div>
+      <div class="adm-vacio__titulo">Todavía no hay proveedores</div>
+      <p>Registre el primero o consulte su RUC en SUNAT para traer sus datos.</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="nuevo()">
+        <i class="bi bi-search" aria-hidden="true"></i> Empezar por el RUC
+      </button>
+    </div>
+
+    <div class="adm-vacio adm-vacio--compacto" *ngIf="!cargando && proveedores.length && !proveedoresFiltrados.length">
+      <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-search"></i></div>
+      <div class="adm-vacio__titulo">Ningún proveedor coincide con la búsqueda</div>
+      <p>Pruebe con otro nombre, el RUC, el teléfono o el correo.</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="filtro = ''">
+        <i class="bi bi-x-lg" aria-hidden="true"></i> Limpiar búsqueda
+      </button>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="proveedoresFiltrados.length">
+      <table class="adm-tabla adm-tabla--adaptable">
+        <thead>
+          <tr>
+            <th>Proveedor</th>
+            <th>RUC</th>
+            <th class="prov-col-sec">Contacto</th>
+            <th class="adm-centro">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of proveedoresFiltrados; trackBy: identificarProveedor" [class.adm-recien-creado]="idDestacado === p.id_proveedor"
+              [class.adm-fila--seleccionada]="editandoId === p.id_proveedor || proveedorHistorial?.id_proveedor === p.id_proveedor">
+            <td data-etiqueta="Proveedor" class="prov-td-proveedor">
+              <div class="prov-proveedor">
+                <span class="adm-avatar" aria-hidden="true">{{ p.nombre?.[0] || '?' }}</span>
+                <div class="prov-proveedor__texto">
+                  <div class="adm-tabla__principal">{{ p.nombre }}</div>
+                  <div class="adm-tabla__secundario" *ngIf="p.direccion">
+                    <i class="bi bi-geo-alt" aria-hidden="true"></i> {{ p.direccion }}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td data-etiqueta="RUC">
+              <div class="prov-ruc-bloque">
+                <span class="adm-tabla__mono prov-ruc-celda">{{ p.ruc || '—' }}</span>
+                <span class="adm-insignia adm-insignia--punto adm-insignia--sm"
+                      [ngClass]="{
+                        'adm-insignia--exito': estadoRuc(p) === 'valido',
+                        'adm-insignia--aviso': estadoRuc(p) === 'incompleto',
+                        'adm-insignia--neutra': estadoRuc(p) === 'vacio'
+                      }">
+                  {{ estadoRuc(p) === 'valido' ? 'RUC válido' : estadoRuc(p) === 'incompleto' ? 'RUC incompleto' : 'Sin RUC' }}
+                </span>
+              </div>
+            </td>
+            <td data-etiqueta="Contacto" class="prov-td-contacto prov-col-sec">
+              <div class="prov-contacto">
+                <span class="prov-contacto__dato" *ngIf="p.telefono">
+                  <i class="bi bi-telephone" aria-hidden="true"></i> {{ p.telefono }}
+                </span>
+                <span class="prov-contacto__dato prov-contacto__dato--suave" *ngIf="p.email">
+                  <i class="bi bi-envelope" aria-hidden="true"></i> {{ p.email }}
+                </span>
+                <span class="prov-sin-dato" *ngIf="!p.telefono && !p.email">Sin datos de contacto</span>
+              </div>
+            </td>
+            <td data-etiqueta="Acciones" class="adm-centro">
+              <div class="adm-tabla__acciones">
+                <button type="button" class="adm-btn-icono" (click)="verRecepciones(p)"
+                        title="Ver recepciones" [attr.aria-label]="'Ver recepciones de ' + p.nombre">
+                  <i class="bi bi-box-arrow-in-down"></i>
+                </button>
+                <button type="button" class="adm-btn-icono adm-btn-icono--primario" (click)="editar(p)"
+                        title="Editar" [attr.aria-label]="'Editar ' + p.nombre">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="eliminar(p)"
+                        title="Eliminar" [attr.aria-label]="'Eliminar ' + p.nombre">
+                  <i class="bi bi-trash"></i>
                 </button>
               </div>
-              <p class="adm-ayuda">Con los 11 dígitos, SUNAT completa la razón social y la dirección.</p>
-            </div>
-            <div class="adm-campo prov-campo--nombre">
-              <label class="adm-etiqueta adm-etiqueta--requerida" for="prov-nombre">Nombre o razón social</label>
-              <input id="prov-nombre" class="adm-input" type="text" autocomplete="off"
-                     [(ngModel)]="modelo.nombre"
-                     placeholder="Ej.: Distribuidora Ferretera del Sur S.A.C.">
-            </div>
-          </div>
-
-          <h3 class="adm-bloque__titulo prov-form__grupo"><i class="bi bi-person-lines-fill"></i> Contacto</h3>
-          <div class="adm-fila prov-fila">
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="prov-tel">
-                Teléfono <span class="adm-etiqueta__opcional">opcional</span>
-              </label>
-              <div class="adm-input-icono">
-                <i class="bi bi-telephone" aria-hidden="true"></i>
-                <input id="prov-tel" class="adm-input" type="text" inputmode="tel" autocomplete="off"
-                       [(ngModel)]="modelo.telefono" placeholder="Ej.: 987 654 321">
-              </div>
-            </div>
-            <div class="adm-campo">
-              <label class="adm-etiqueta" for="prov-email">
-                Correo <span class="adm-etiqueta__opcional">opcional</span>
-              </label>
-              <div class="adm-input-icono">
-                <i class="bi bi-envelope" aria-hidden="true"></i>
-                <input id="prov-email" class="adm-input" type="email" autocomplete="off"
-                       [(ngModel)]="modelo.email" placeholder="ventas@proveedor.com">
-              </div>
-            </div>
-            <div class="adm-campo prov-campo--direccion">
-              <label class="adm-etiqueta" for="prov-dir">
-                Dirección <span class="adm-etiqueta__opcional">opcional</span>
-              </label>
-              <div class="adm-input-icono">
-                <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                <input id="prov-dir" class="adm-input" type="text" autocomplete="off"
-                       [(ngModel)]="modelo.direccion" placeholder="Av., jirón o calle, distrito">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="adm-tarjeta__pie">
-          <button type="button" class="adm-btn adm-btn--suave" *ngIf="editandoId" (click)="cancelar()">
-            Cancelar
-          </button>
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
-            <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
-            {{ guardando ? 'Guardando…' : (editandoId ? 'Guardar cambios' : 'Crear proveedor') }}
-          </button>
-        </div>
-      </section>
-
-      <!-- Listado -->
-      <section class="adm-tarjeta adm-tarjeta--acento" aria-labelledby="prov-lista-titulo">
-        <div class="adm-tarjeta__cabecera">
-          <div class="adm-tarjeta__encabezado">
-            <h2 class="adm-tarjeta__titulo" id="prov-lista-titulo">
-              <i class="bi bi-list-ul"></i> Proveedores registrados
-              <span class="adm-insignia adm-insignia--neutra">{{ proveedoresFiltrados.length }}</span>
-            </h2>
-            <p class="adm-tarjeta__sub">Use las acciones de la fila para ver sus recepciones, editar o eliminar.</p>
-          </div>
-        </div>
-
-        <div class="prov-buscador">
-          <div class="adm-campo prov-buscador__campo">
-            <label class="adm-etiqueta" for="prov-filtro">Buscar proveedor</label>
-            <div class="adm-input-icono">
-              <i class="bi bi-search" aria-hidden="true"></i>
-              <input id="prov-filtro" class="adm-input" type="search" autocomplete="off" [(ngModel)]="filtro"
-                     placeholder="Nombre, RUC, teléfono o correo">
-            </div>
-          </div>
-          <p class="prov-buscador__resumen">
-            <i class="bi bi-funnel" aria-hidden="true"></i>
-            <strong class="adm-tabular">{{ proveedoresFiltrados.length }}</strong> de {{ proveedores.length }}
-          </p>
-        </div>
-
-        <div class="adm-esqueletos" *ngIf="cargando && !proveedores.length" aria-busy="true" aria-label="Cargando proveedores">
-          <div class="prov-esqueleto" *ngFor="let n of [1,2,3]">
-            <span class="adm-esqueleto adm-esqueleto--circulo"></span>
-            <span class="prov-esqueleto__texto">
-              <span class="adm-esqueleto adm-esqueleto--titulo"></span>
-              <span class="adm-esqueleto adm-esqueleto--linea"></span>
-            </span>
-            <span class="adm-esqueleto prov-esqueleto__cifra"></span>
-          </div>
-        </div>
-
-        <!-- Error de carga (la lista no llegó) -->
-        <div class="adm-vacio adm-vacio--error" *ngIf="errorCarga && !cargando && !proveedores.length" role="alert">
-          <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
-          <div class="adm-vacio__titulo">No se pudieron cargar los proveedores</div>
-          <p>Revise la conexión e intente de nuevo.</p>
-          <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
-            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
-          </button>
-        </div>
-
-        <div class="adm-vacio" *ngIf="!cargando && !errorCarga && !proveedores.length">
-          <div class="adm-vacio__icono"><i class="bi bi-truck-front"></i></div>
-          <div class="adm-vacio__titulo">Todavía no hay proveedores</div>
-          <p>Registre el primero con el formulario o consulte su RUC en SUNAT para traer sus datos.</p>
-          <button type="button" class="adm-btn adm-btn--suave" (click)="provRuc.focus()">
-            <i class="bi bi-search" aria-hidden="true"></i> Empezar por el RUC
-          </button>
-        </div>
-
-        <div class="adm-vacio adm-vacio--compacto" *ngIf="!cargando && proveedores.length && !proveedoresFiltrados.length">
-          <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-search"></i></div>
-          <div class="adm-vacio__titulo">Ningún proveedor coincide con la búsqueda</div>
-          <p>Pruebe con otro nombre, el RUC, el teléfono o el correo.</p>
-          <button type="button" class="adm-btn adm-btn--suave" (click)="filtro = ''">
-            <i class="bi bi-x-lg" aria-hidden="true"></i> Limpiar búsqueda
-          </button>
-        </div>
-
-        <div class="adm-tabla-envoltorio" *ngIf="proveedoresFiltrados.length">
-          <table class="adm-tabla adm-tabla--adaptable">
-            <thead>
-              <tr>
-                <th>Proveedor</th>
-                <th>RUC</th>
-                <th class="prov-col-sec">Contacto</th>
-                <th class="adm-centro">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let p of proveedoresFiltrados; trackBy: identificarProveedor" [class.adm-recien-creado]="idDestacado === p.id_proveedor"
-                  [class.adm-fila--seleccionada]="editandoId === p.id_proveedor || proveedorHistorial?.id_proveedor === p.id_proveedor">
-                <td data-etiqueta="Proveedor" class="prov-td-proveedor">
-                  <div class="prov-proveedor">
-                    <span class="adm-avatar" aria-hidden="true">{{ p.nombre?.[0] || '?' }}</span>
-                    <div class="prov-proveedor__texto">
-                      <div class="adm-tabla__principal">{{ p.nombre }}</div>
-                      <div class="adm-tabla__secundario" *ngIf="p.direccion">
-                        <i class="bi bi-geo-alt" aria-hidden="true"></i> {{ p.direccion }}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td data-etiqueta="RUC">
-                  <div class="prov-ruc-bloque">
-                    <span class="adm-tabla__mono prov-ruc-celda">{{ p.ruc || '—' }}</span>
-                    <span class="adm-insignia adm-insignia--punto adm-insignia--sm"
-                          [ngClass]="{
-                            'adm-insignia--exito': estadoRuc(p) === 'valido',
-                            'adm-insignia--aviso': estadoRuc(p) === 'incompleto',
-                            'adm-insignia--neutra': estadoRuc(p) === 'vacio'
-                          }">
-                      {{ estadoRuc(p) === 'valido' ? 'RUC válido' : estadoRuc(p) === 'incompleto' ? 'RUC incompleto' : 'Sin RUC' }}
-                    </span>
-                  </div>
-                </td>
-                <td data-etiqueta="Contacto" class="prov-td-contacto prov-col-sec">
-                  <div class="prov-contacto">
-                    <span class="prov-contacto__dato" *ngIf="p.telefono">
-                      <i class="bi bi-telephone" aria-hidden="true"></i> {{ p.telefono }}
-                    </span>
-                    <span class="prov-contacto__dato prov-contacto__dato--suave" *ngIf="p.email">
-                      <i class="bi bi-envelope" aria-hidden="true"></i> {{ p.email }}
-                    </span>
-                    <span class="prov-sin-dato" *ngIf="!p.telefono && !p.email">Sin datos de contacto</span>
-                  </div>
-                </td>
-                <td data-etiqueta="Acciones" class="adm-centro">
-                  <div class="adm-tabla__acciones">
-                    <button type="button" class="adm-btn-icono" (click)="verRecepciones(p)"
-                            title="Ver recepciones" [attr.aria-label]="'Ver recepciones de ' + p.nombre">
-                      <i class="bi bi-box-arrow-in-down"></i>
-                    </button>
-                    <button type="button" class="adm-btn-icono adm-btn-icono--primario" (click)="editar(p)"
-                            title="Editar" [attr.aria-label]="'Editar ' + p.nombre">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="adm-btn-icono adm-btn-icono--peligro" (click)="eliminar(p)"
-                            title="Eliminar" [attr.aria-label]="'Eliminar ' + p.nombre">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-  </div>
+  </section>
 </div>
 
 <!-- Historial de recepciones del proveedor -->
@@ -360,5 +264,100 @@
     <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/recepcion">
       <i class="bi bi-box-arrow-in-down" aria-hidden="true"></i> Ir a recepción
     </a>
+  </div>
+</aside>
+
+<!-- Alta y edición: ficha lateral (en ≥ 1200 px anclada sin velo; debajo, cajón con velo) -->
+<div class="adm-velo adm-velo--ficha" *ngIf="panelAbierto" (click)="cancelar()"></div>
+
+<aside class="adm-panel adm-panel--ancho adm-panel--ficha prov-form" *ngIf="panelAbierto" role="dialog"
+       aria-labelledby="prov-form-titulo">
+  <div class="adm-panel__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="prov-form-titulo">
+        <i class="bi" [ngClass]="editandoId ? 'bi-pencil-square' : 'bi-plus-circle'"></i>
+        {{ editandoId ? 'Editar proveedor' : 'Nuevo proveedor' }}
+        <span class="adm-insignia adm-insignia--primaria adm-insignia--punto adm-insignia--sm" *ngIf="editandoId">Editando</span>
+      </h2>
+      <p class="adm-panel__sub">
+        {{ editandoId ? 'Modifique los datos y guarde los cambios.' : 'Consulte el RUC en SUNAT o complete los datos a mano.' }}
+      </p>
+    </div>
+    <button type="button" class="adm-btn-icono" (click)="cancelar()" title="Cerrar" aria-label="Cerrar formulario">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="adm-panel__cuerpo prov-form__cuerpo">
+    <h3 class="adm-bloque__titulo prov-form__grupo"><i class="bi bi-building"></i> Identificación</h3>
+    <div class="adm-fila prov-fila">
+      <div class="adm-campo prov-campo--ruc">
+        <label class="adm-etiqueta" for="prov-ruc">
+          RUC <span class="adm-etiqueta__opcional">opcional</span>
+        </label>
+        <div class="adm-input-grupo prov-ruc">
+          <input id="prov-ruc" class="adm-input adm-tabular" type="text" maxlength="11"
+                 inputmode="numeric" autocomplete="off"
+                 [(ngModel)]="modelo.ruc" placeholder="20123456789">
+          <button type="button" class="adm-btn adm-btn--suave prov-ruc__boton" (click)="buscarRuc()"
+                  [disabled]="consultandoRuc"
+                  title="Consultar el RUC en SUNAT" aria-label="Consultar el RUC en SUNAT">
+            <i class="bi" [ngClass]="consultandoRuc ? 'bi-arrow-repeat adm-girando' : 'bi-search'" aria-hidden="true"></i>
+            SUNAT
+          </button>
+        </div>
+        <p class="adm-ayuda">Con los 11 dígitos, SUNAT completa la razón social y la dirección.</p>
+      </div>
+      <div class="adm-campo prov-campo--nombre">
+        <label class="adm-etiqueta adm-etiqueta--requerida" for="prov-nombre">Nombre o razón social</label>
+        <input id="prov-nombre" class="adm-input" type="text" autocomplete="off"
+               [(ngModel)]="modelo.nombre"
+               placeholder="Ej.: Distribuidora Ferretera del Sur S.A.C.">
+      </div>
+    </div>
+
+    <h3 class="adm-bloque__titulo prov-form__grupo"><i class="bi bi-person-lines-fill"></i> Contacto</h3>
+    <div class="adm-fila prov-fila">
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="prov-tel">
+          Teléfono <span class="adm-etiqueta__opcional">opcional</span>
+        </label>
+        <div class="adm-input-icono">
+          <i class="bi bi-telephone" aria-hidden="true"></i>
+          <input id="prov-tel" class="adm-input" type="text" inputmode="tel" autocomplete="off"
+                 [(ngModel)]="modelo.telefono" placeholder="Ej.: 987 654 321">
+        </div>
+      </div>
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="prov-email">
+          Correo <span class="adm-etiqueta__opcional">opcional</span>
+        </label>
+        <div class="adm-input-icono">
+          <i class="bi bi-envelope" aria-hidden="true"></i>
+          <input id="prov-email" class="adm-input" type="email" autocomplete="off"
+                 [(ngModel)]="modelo.email" placeholder="ventas@proveedor.com">
+        </div>
+      </div>
+      <div class="adm-campo prov-campo--direccion">
+        <label class="adm-etiqueta" for="prov-dir">
+          Dirección <span class="adm-etiqueta__opcional">opcional</span>
+        </label>
+        <div class="adm-input-icono">
+          <i class="bi bi-geo-alt" aria-hidden="true"></i>
+          <input id="prov-dir" class="adm-input" type="text" autocomplete="off"
+                 [(ngModel)]="modelo.direccion" placeholder="Av., jirón o calle, distrito">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="adm-panel__pie">
+    <button type="button" class="adm-btn adm-btn--suave" (click)="cancelar()" [disabled]="guardando">
+      Cancelar
+    </button>
+    <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+      <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
+      {{ guardando ? 'Guardando…' : (editandoId ? 'Guardar cambios' : 'Crear proveedor') }}
+    </button>
   </div>
 </aside>

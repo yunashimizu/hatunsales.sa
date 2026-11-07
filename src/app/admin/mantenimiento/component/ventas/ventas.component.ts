@@ -40,6 +40,21 @@ import { HojaComprobanteComponent } from '../doc/hoja-comprobante/hoja-comproban
 import { HojaComprobante, hojaDesdePreview } from '../doc/hoja-comprobante/hoja-comprobante.model';
 
 const LS_ALMACEN = 'pos_id_almacen';
+/** Ventas en espera (carritos guardados para atender a otro cliente): se conservan en este navegador. */
+const LS_ESPERA = 'hs.pos.espera';
+const MAX_EN_ESPERA = 5;
+/** Tiles que muestra una categoría elegida. */
+const MAX_TILES_CATEGORIA = 12;
+
+/** Carrito guardado en espera. */
+export interface VentaEnEspera {
+  id: string;
+  fecha: string;
+  lineas: LineaVenta[];
+  receptor: Receptor | null;
+  tipo: number;
+  observaciones: string;
+}
 
 /** Un escaneo en cola: código ya normalizado y cantidad del multiplicador `5*código` (1 si no hay). */
 interface EscaneoPendiente {
@@ -156,6 +171,10 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   // ── Carrito ───────────────────────────────────────────────────
   lineas: LineaVenta[] = [];
+
+  // ── Ventas en espera ──────────────────────────────────────────
+  enEspera: VentaEnEspera[] = [];
+  panelEspera = false;
 
   // ── Cobro ─────────────────────────────────────────────────────
   metodosPago: { id_metodo: number; nombre: string; tipo: string }[] = [];
@@ -281,6 +300,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.cargarSeriesFiscales();
     this.cargarContextoPos();
     this.cargarChipCaja();
+    this.enEspera = this.leerEspera();
     this.route.queryParamMap.pipe(takeUntil(this.destruir$)).subscribe((params) => {
       const id = Number(params.get('cotizacion') || 0);
       if (id > 0 && id !== this.idCotizacionCargada) {
@@ -487,6 +507,19 @@ export class VentasComponent implements OnInit, OnDestroy {
         if (lista) this.sincronizarStockCarritoDesdeCatalogo(false);
         this.refrescarVista();
       });
+  }
+
+  /**
+   * F9 = Cobrar, igual que el botón: mismo método y misma condición de habilitado.
+   * No actúa con un diálogo abierto (la confirmación del cobro, el alta rápida…) ni al mantener la tecla.
+   */
+  @HostListener('document:keydown.F9', ['$event'])
+  alPulsarF9(evento: Event): void {
+    evento.preventDefault();
+    if ((evento as KeyboardEvent).repeat) return;
+    if (this.panelAltaRapida || document.querySelector('.swal2-container')) return;
+    if (!this.puedeEmitir) return;
+    this.cobrar();
   }
 
   private cargarContextoPos(): void {
@@ -2259,10 +2292,177 @@ export class VentasComponent implements OnInit, OnDestroy {
     if (catalogo !== this.frecuentesBase) {
       this.frecuentesBase = catalogo;
       const conStock = catalogo.filter((p) => Number(p.stock_disponible) > 0);
-      const destacados = conStock.filter((p) => (p as ProductoVenta & { destacado?: boolean }).destacado === true);
+      const destacados = conStock.filter((p) => p.destacado === true);
       this.frecuentesCalculados = (destacados.length ? destacados : conStock).slice(0, 7);
     }
     return this.frecuentesCalculados;
+  }
+
+  // ── Chips de categoría (solo si el catálogo trae `categoria`) ──────────
+
+  /** Categoría elegida; null = «Frecuentes». */
+  categoriaActiva: string | null = null;
+  private categoriasBase: readonly ProductoVenta[] | null = null;
+  private categoriasCalculadas: string[] = [];
+  private tilesCategoriaBase: readonly ProductoVenta[] | null = null;
+  private tilesCategoriaClave = '';
+  private tilesCategoriaCalculados: ProductoVenta[] = [];
+
+  /** Categorías con al menos un producto con stock, de más a menos productos. Vacía si el servidor no envía `categoria`. */
+  get categorias(): string[] {
+    if (!this.puntoVenta.tieneCatalogo) return [];
+    const catalogo = this.puntoVenta.catalogoCacheado;
+    if (!Array.isArray(catalogo) || !catalogo.length) return [];
+    if (catalogo !== this.categoriasBase) {
+      this.categoriasBase = catalogo;
+      const cuenta = new Map<string, number>();
+      for (const p of catalogo) {
+        const nombre = typeof p.categoria === 'string' ? p.categoria.trim() : '';
+        if (!nombre || !(Number(p.stock_disponible) > 0)) continue;
+        cuenta.set(nombre, (cuenta.get(nombre) ?? 0) + 1);
+      }
+      this.categoriasCalculadas = [...cuenta.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'es'))
+        .map(([nombre]) => nombre);
+    }
+    return this.categoriasCalculadas;
+  }
+
+  /** Productos de los tiles: los de la categoría elegida (hasta 12 con stock) o, sin elegir, «Frecuentes». */
+  get tiles(): ProductoVenta[] {
+    const activa = this.categoriaActiva;
+    if (!activa || !this.categorias.includes(activa)) return this.frecuentes;
+    const catalogo = this.puntoVenta.catalogoCacheado;
+    if (catalogo !== this.tilesCategoriaBase || activa !== this.tilesCategoriaClave) {
+      this.tilesCategoriaBase = catalogo;
+      this.tilesCategoriaClave = activa;
+      this.tilesCategoriaCalculados = catalogo
+        .filter((p) => (p.categoria ?? '').trim() === activa && Number(p.stock_disponible) > 0)
+        .slice(0, MAX_TILES_CATEGORIA);
+    }
+    return this.tilesCategoriaCalculados;
+  }
+
+  elegirCategoria(categoria: string | null): void {
+    this.categoriaActiva = categoria;
+    this.refrescarVista();
+  }
+
+  // ── Ventas en espera ───────────────────────────────────────────────
+
+  private leerEspera(): VentaEnEspera[] {
+    try {
+      const crudo = localStorage.getItem(LS_ESPERA);
+      const lista = crudo ? JSON.parse(crudo) : [];
+      if (!Array.isArray(lista)) return [];
+      return lista
+        .filter((v) => v && typeof v.id === 'string' && Array.isArray(v.lineas) && v.lineas.length > 0)
+        .slice(0, MAX_EN_ESPERA);
+    } catch {
+      return [];
+    }
+  }
+
+  private guardarEspera(): void {
+    try {
+      if (this.enEspera.length) localStorage.setItem(LS_ESPERA, JSON.stringify(this.enEspera));
+      else localStorage.removeItem(LS_ESPERA);
+    } catch { /* sin almacenamiento: la lista vive solo en esta pantalla */ }
+  }
+
+  /** Guarda el carrito actual y deja la pantalla lista para otro cliente. No toca el cobro. */
+  ponerEnEspera(): void {
+    if (!this.lineas.length || this.emitiendo) return;
+    if (this.enEspera.length >= MAX_EN_ESPERA) {
+      this.alerta.toast({
+        type: 'warning',
+        title: `Ya hay ${MAX_EN_ESPERA} ventas en espera`,
+        message: 'Retome o descarte una antes de guardar otra.',
+        timer: 3500,
+      });
+      return;
+    }
+    const venta: VentaEnEspera = {
+      id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      fecha: new Date().toISOString(),
+      lineas: this.lineas.map((l) => ({ ...l })),
+      receptor: this.receptor ? { ...this.receptor } : null,
+      tipo: this.idTipo,
+      observaciones: this.observaciones,
+    };
+    this.enEspera = [...this.enEspera, venta];
+    this.guardarEspera();
+    this.limpiarParaSiguienteVenta();
+    this.alerta.toast({ type: 'info', title: 'Venta en espera', timer: 2500 });
+    this.refrescarVista();
+  }
+
+  /** Trae de vuelta una venta en espera; si el carrito actual tiene productos, pregunta antes de reemplazarlo. */
+  async retomarEspera(venta: VentaEnEspera): Promise<void> {
+    if (this.emitiendo) return;
+    if (this.lineas.length) {
+      const resultado = await this.alerta.confirm({
+        title: '¿Reemplazar el carrito actual?',
+        message: 'Los productos del carrito actual se quitarán para retomar la venta en espera.',
+        confirmText: 'Sí, retomar',
+      });
+      if (!resultado.isConfirmed) return;
+    }
+    this.limpiarParaSiguienteVenta();
+    this.lineas = venta.lineas.map((l) => ({ ...l }));
+    this.receptor = venta.receptor ? { ...venta.receptor } : null;
+    this.idTipo = venta.tipo === TIPO_FACTURA ? TIPO_FACTURA : TIPO_BOLETA;
+    this.aplicarSeriePorTipo();
+    this.observaciones = venta.observaciones || '';
+    this.enEspera = this.enEspera.filter((v) => v.id !== venta.id);
+    this.guardarEspera();
+    if (!this.enEspera.length) this.panelEspera = false;
+    if (this.puntoVenta.tieneCatalogo) this.sincronizarStockCarritoDesdeCatalogo(false);
+    this.cargarLineaCredito();
+    this.pedirRecalculo();
+    this.refrescarVista();
+  }
+
+  async descartarEspera(venta: VentaEnEspera): Promise<void> {
+    const resultado = await this.alerta.confirm({
+      title: '¿Descartar la venta en espera?',
+      message: 'Se perderán los productos guardados.',
+      confirmText: 'Sí, descartar',
+    });
+    if (!resultado.isConfirmed) return;
+    this.enEspera = this.enEspera.filter((v) => v.id !== venta.id);
+    this.guardarEspera();
+    if (!this.enEspera.length) this.panelEspera = false;
+    this.refrescarVista();
+  }
+
+  alternarPanelEspera(): void {
+    this.panelEspera = !this.panelEspera;
+    this.refrescarVista();
+  }
+
+  nombreEspera(venta: VentaEnEspera): string {
+    const nombre = venta.receptor?.denominacion?.trim();
+    return nombre && venta.receptor?.numero_documento !== '00000000' ? nombre : 'Sin identificar';
+  }
+
+  horaEspera(venta: VentaEnEspera): string {
+    const f = new Date(venta.fecha);
+    if (Number.isNaN(f.getTime())) return '';
+    return f.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
+  resumenEspera(venta: VentaEnEspera): string {
+    const productos = venta.lineas.length;
+    const total = venta.lineas.reduce(
+      (suma, l) => suma + Math.max(0, Number(l.cantidad) * (Number(l.precio_unitario) - Number(l.descuento || 0))),
+      0,
+    );
+    return `${productos} ${productos === 1 ? 'producto' : 'productos'} · S/ ${total.toFixed(2)}`;
+  }
+
+  identificarEspera(_i: number, venta: VentaEnEspera): string {
+    return venta.id;
   }
 
   identificarReceptorSugerido(_i: number, r: SugerenciaReceptor): string {

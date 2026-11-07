@@ -237,9 +237,12 @@
 @media (max-width: 640px) {
   .inv-alertas { flex: 1 1 auto; min-height: 44px; }
   .inv-filtros__resumen { margin-left: 0; padding-bottom: 0; }
-  .inv-minimo { min-height: 36px; }
   .inv-minimo-input { min-height: 40px; }
   .inv-ficha__stock strong, .inv-proyeccion strong { font-size: 19px; }
+}
+/* R12b H4: objetivo táctil de 44 x 44 en el mínimo editable */
+@media (pointer: coarse), (max-width: 768px) {
+  .inv-minimo { min-height: 44px; min-width: 44px; justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) {
   .inv-recarga::after { animation: none; width: 100%; opacity: 0.6; }

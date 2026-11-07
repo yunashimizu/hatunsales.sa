@@ -15,39 +15,15 @@
   border-radius: var(--adm-r-xs);
 }
 
-/* ── Disposición: formulario + listado ───────────────────────── */
+/* ── Ficha de alta y edición (adm-panel--ficha) ─────────────── */
 
-/* El ancho útil (no la ventana) decide si el formulario va al costado:
-   con el menú lateral abierto o plegado la tabla conserva su ancho. */
-.prov-area { container-type: inline-size; }
-
-.prov-disposicion {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
-}
-
-@container (min-width: 1060px) {
-  .prov-disposicion { grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); }
-  .prov-form { position: sticky; top: 16px; }
-}
-
-/* ── Formulario ──────────────────────────────────────────────── */
-
-.prov-form {
-  transition: border-color var(--adm-transicion), box-shadow var(--adm-transicion);
-}
-
-/* Modo edición: la tarjeta se tiñe para que no se confunda con un alta */
-.prov-form--editando {
-  border-color: var(--adm-primario-borde);
-  box-shadow: var(--adm-anillo), var(--adm-sombra);
-}
-
-.prov-form--editando .adm-tarjeta__cabecera {
-  background: linear-gradient(180deg, var(--adm-superficie) 0%, var(--adm-primario-claro) 100%);
-  border-bottom-color: var(--adm-primario-borde);
+.prov-form .adm-panel__cabecera { align-items: flex-start; padding: 16px 20px; }
+.prov-form .adm-panel__cabecera .adm-tarjeta__titulo { flex-wrap: wrap; font-size: 17px; font-weight: 700; }
+.prov-form .adm-panel__sub { margin-left: 0; }
+.prov-form .adm-panel__pie { position: sticky; bottom: 0; }
+.prov-form .adm-panel__pie > .adm-btn { min-height: 44px; }
+@media (min-width: 1200px) {
+  .prov-form .adm-panel__pie > .adm-btn { flex: 1 1 auto; justify-content: center; }
 }
 
 /* Subtítulos de grupo (Identificación / Contacto) */
@@ -60,9 +36,13 @@
 /* Campos alineados arriba: la ayuda del RUC no desnivela el resto de la fila */
 .prov-fila { align-items: flex-start; }
 
-.prov-fila > .prov-campo--ruc { flex: 1 1 240px; }
-.prov-fila > .prov-campo--nombre,
-.prov-fila > .prov-campo--direccion { flex: 2 1 260px; }
+/* En la ficha (400 px) cada campo ocupa su propia fila; en el cajón ancho se reparten */
+.prov-fila > .adm-campo { flex: 1 1 100%; min-width: 0; }
+@container ficha (min-width: 560px) {
+  .prov-fila > .prov-campo--ruc { flex: 1 1 220px; }
+  .prov-fila > .prov-campo--nombre,
+  .prov-fila > .prov-campo--direccion { flex: 2 1 260px; }
+}
 
 /* RUC + botón SUNAT pegados en un solo control */
 .prov-ruc > .adm-input { flex: 1 1 auto; min-width: 0; }

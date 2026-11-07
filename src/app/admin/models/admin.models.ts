@@ -42,6 +42,10 @@ export interface ProductoVenta {
   reglas_mayoristas?: { id_regla: number; cantidad_minima: number; descuento_unitario: number }[];
   stock_disponible: number;
   imagen_url: string;
+  /** Nombre de la categoría (B1 del catálogo del POS); puede faltar si el servidor aún no lo envía. */
+  categoria?: string | null;
+  /** Marcado como destacado (alimenta «Frecuentes» en Vender). */
+  destacado?: boolean;
 }
 
 /** Línea del carrito del mostrador, antes de calcular impuestos. */
@@ -308,3 +312,17 @@ export const TIPO_FACTURA = 1;
 export const TIPO_BOLETA = 2;
 export const TIPO_NOTA_CREDITO = 7;
 export const TIPO_NOTA_DEBITO = 8;
+
+/** Ventas netas de una hora del día (0-23). */
+export interface VentaPorHora {
+  hora: number;
+  total: number;
+  ventas: number;
+}
+
+/** Respuesta de `GET reportes/ventas-por-hora` (contrato B2). `comparacion` = mismo día de la semana anterior. */
+export interface VentasPorHora {
+  fecha: string;
+  horas: VentaPorHora[];
+  comparacion: { fecha: string; horas: VentaPorHora[] };
+}

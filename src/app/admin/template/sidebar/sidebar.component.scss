@@ -238,8 +238,10 @@
         &:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: -2px; }
       }
 
+      /* Pantalla actual: contorno dorado, barra izquierda e icono dorados */
       &.active a {
-        background: var(--adm-superficie);
+        background: var(--adm-marca-claro);
+        box-shadow: inset 0 0 0 1.5px var(--adm-marca-borde);
         color: var(--adm-texto);
         font-weight: 700;
 
@@ -254,10 +256,17 @@
           background: var(--adm-marca);
         }
 
+        &:hover { background: var(--adm-marca-claro); }
+        .sb-nav-icon { color: var(--adm-marca-texto); }
         .sb-nav-ext { color: var(--adm-texto-suave); }
       }
     }
   }
+
+  /* La cabecera del grupo que contiene la pantalla activa va en dorado */
+  .sb-section:has(.sb-menu li.active) > .sb-section-label,
+  .sb-section:has(.sb-menu li.active) > .sb-section-toggle { color: var(--adm-marca-texto); }
+  .sb-section:has(.sb-menu li.active) > .sb-section-toggle i { color: var(--adm-marca-texto); }
 
   /* ── Pie: usuario ──────────────────────────────────────── */
   .sb-footer {
@@ -319,6 +328,15 @@
   color: var(--adm-marca-texto);
 }
 
+/* Tema oscuro: oro suave translúcido sobre el menú. */
+:host-context([data-tema='oscuro']) .sidebar .sb-menu li.active a {
+  background: rgba(212, 184, 120, 0.14);
+  box-shadow: inset 0 0 0 1.5px rgba(212, 184, 120, 0.45);
+
+  &:hover { background: rgba(212, 184, 120, 0.14); }
+  .sb-nav-icon { color: #d4b878; }
+}
+
 /* ── Escritorio: modo compacto («rail» de 56 px, solo iconos) ───── */
 @media (min-width: 901px) {
   .sidebar.collapsed {
@@ -355,6 +373,21 @@
         height: 16px;
         padding: 0 4px;
         font-size: 10px;
+      }
+    }
+
+    /* Rail: el activo es un cuadrado dorado de 40×40 alrededor del icono, con un punto dorado debajo */
+    .sb-menu li.active a {
+      border-radius: 10px;
+
+      &::before {
+        top: auto;
+        bottom: 3px;
+        left: 50%;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        transform: translateX(-50%);
       }
     }
 

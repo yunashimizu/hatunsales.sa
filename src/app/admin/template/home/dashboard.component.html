@@ -34,7 +34,7 @@
   <!-- Indicadores del día -->
   <section class="ini-kpis" aria-label="Indicadores del día" [style.--ini-kpis]="kpisVisibles" [attr.aria-busy]="cargando">
     @if (veReportes) {
-      <div class="ini-kpi">
+      <div class="ini-kpi ini-kpi--principal">
         <span class="ini-kpi__etiqueta">Ventas de hoy</span>
         @if (cargando) {
           <span class="adm-esqueleto ini-esqueleto-valor" aria-hidden="true"></span>
@@ -121,8 +121,14 @@
     @if (veReportes) {
       <section class="ini-tarjeta" aria-labelledby="ini-semana-titulo" [attr.aria-busy]="cargando">
         <div class="ini-tarjeta__cabecera">
-          <h2 id="ini-semana-titulo" class="ini-tarjeta__titulo">Ventas de la semana</h2>
-          @if (semanaConDatos) {
+          <h2 id="ini-semana-titulo" class="ini-tarjeta__titulo">{{ horaConDatos ? 'Ventas por hora' : 'Ventas de la semana' }}</h2>
+          @if (horaConDatos && !cargando) {
+            <div class="ini-leyenda" aria-hidden="true">
+              <span><i class="ini-leyenda__punto"></i>Hoy</span>
+              <span><i class="ini-leyenda__punto ini-leyenda__punto--hoy"></i>Hora pico</span>
+              <span><i class="ini-leyenda__punto ini-leyenda__punto--prev"></i>Semana pasada</span>
+            </div>
+          } @else if (semanaConDatos) {
             <div class="ini-leyenda" aria-hidden="true">
               <span><i class="ini-leyenda__punto ini-leyenda__punto--hoy"></i>Hoy</span>
               <span><i class="ini-leyenda__punto"></i>Días anteriores</span>
@@ -132,6 +138,51 @@
 
         @if (cargando) {
           <span class="adm-esqueleto ini-esqueleto-grafico" aria-hidden="true"></span>
+        } @else if (horaConDatos) {
+          <svg class="ini-grafico" viewBox="0 0 640 200" preserveAspectRatio="xMidYMid meet" role="img"
+               aria-label="Gráfico de barras con las ventas de hoy hora por hora, comparadas con el mismo día de la semana pasada. Los valores están en la tabla que sigue.">
+            <g class="ini-grafico__rejilla">
+              @for (m of marcasEjeHora; track m.y) {
+                <line x1="40" [attr.y1]="m.y" x2="640" [attr.y2]="m.y" />
+              }
+            </g>
+            <g class="ini-grafico__texto ini-grafico__texto--eje" text-anchor="end">
+              @for (m of marcasEjeHora; track m.y) {
+                <text x="34" [attr.y]="m.y + 4">{{ m.texto }}</text>
+              }
+            </g>
+            @for (b of barrasHora; track b.hora) {
+              @if (b.altoPrev > 0) {
+                <rect class="ini-grafico__barra ini-grafico__barra--prev" [attr.x]="b.xPrev" [attr.y]="b.yPrev"
+                      [attr.width]="b.ancho" [attr.height]="b.altoPrev" rx="2" />
+              }
+              @if (b.altoHoy > 0) {
+                <rect class="ini-grafico__barra" [class.ini-grafico__barra--hoy]="b.esPico"
+                      [attr.x]="b.xHoy" [attr.y]="b.yHoy" [attr.width]="b.ancho" [attr.height]="b.altoHoy" rx="2" />
+              }
+              <rect class="ini-grafico__zona" [attr.x]="b.xPrev" y="20" [attr.width]="b.ancho * 2 + 2" height="150">
+                <title>{{ b.titulo }}</title>
+              </rect>
+              @if (b.esPico) {
+                <text class="ini-grafico__texto ini-grafico__texto--valor" text-anchor="middle"
+                      [attr.x]="b.xHoy + b.ancho / 2" [attr.y]="b.yValor">{{ b.valorCorto }}</text>
+              }
+              @if (b.mostrarEtiqueta) {
+                <text class="ini-grafico__texto ini-grafico__texto--dia" text-anchor="middle"
+                      [class.ini-grafico__texto--hoy]="b.esPico" [attr.x]="b.xc" y="192">{{ b.etiqueta }}</text>
+              }
+            }
+          </svg>
+          <table class="ini-solo-lectores">
+            <caption>Ventas netas por hora, hoy y el mismo día de la semana pasada</caption>
+            <thead><tr><th scope="col">Hora</th><th scope="col">Hoy</th><th scope="col">Semana pasada</th></tr></thead>
+            <tbody>
+              @for (b of barrasHora; track b.hora) {
+                <tr><th scope="row">{{ b.etiqueta }}{{ b.esPico ? ' (hora pico)' : '' }}</th><td>{{ soles(b.totalHoy) }}</td><td>{{ soles(b.totalPrev) }}</td></tr>
+              }
+            </tbody>
+          </table>
+          <p class="ini-pie">{{ hallazgoHora }} <span class="ini-pie__aparte">{{ resumenHora }}</span></p>
         } @else if (semanaConDatos) {
           <svg class="ini-grafico" viewBox="0 0 640 200" preserveAspectRatio="xMidYMid meet" role="img"
                aria-label="Gráfico de barras con las ventas de cada día de esta semana, de lunes a hoy. Los valores están en la tabla que sigue.">

@@ -79,6 +79,9 @@
   border-radius: var(--adm-r-lg);
 }
 
+/* KPI principal: línea superior dorada suave (guía la vista); el resto conserva el borde neutro */
+.ini-kpi--principal { border-top: 2px solid var(--adm-marca-contorno); padding-top: 17px; }
+
 .ini-kpi__etiqueta {
   font-size: var(--adm-fs-etiqueta);
   font-weight: 600;
@@ -158,6 +161,8 @@
 }
 
 .ini-tarjeta__enlace {
+  display: inline-flex;
+  align-items: center;
   font-size: var(--adm-fs-etiqueta);
   font-weight: 600;
   color: var(--adm-marca-texto);
@@ -185,6 +190,10 @@
   background: var(--adm-marca);
 }
 
+.ini-leyenda__punto--prev {
+  background: var(--adm-borde-fuerte);
+}
+
 .ini-grafico {
   display: block;
   width: 100%;
@@ -205,6 +214,16 @@
 
 .ini-grafico__barra--hoy {
   fill: var(--adm-marca);
+}
+
+/* Ventas por hora: hoy en grafito, semana pasada en gris claro, hora pico en oro */
+.ini-grafico__barra--prev {
+  fill: var(--adm-borde-fuerte);
+}
+
+/* Zona invisible por hora: le da el título (tooltip) a toda la columna, aunque la barra sea baja */
+.ini-grafico__zona {
+  fill: transparent;
 }
 
 .ini-grafico__texto {
@@ -277,7 +296,16 @@
 }
 
 .ini-lista__accion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
   color: var(--adm-marca-texto);
+}
+
+/* R12b H4: objetivo táctil de 44 px (en escritorio con puntero fino no cambia la altura de las filas) */
+@media (pointer: coarse), (max-width: 768px) {
+  .ini-tarjeta__enlace,
+  .ini-lista__accion { min-height: 44px; }
 }
 
 /* Lo más vendido: nombre · barra · monto */

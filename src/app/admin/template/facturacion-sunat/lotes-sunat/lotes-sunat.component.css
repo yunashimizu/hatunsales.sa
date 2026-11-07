@@ -60,3 +60,8 @@
     border-left: 3px solid var(--adm-aviso);
   }
 }
+
+/* R12b: botones de 44 px en táctil (los de icono medían 38 px de ancho y los «sm» 40 px de alto). */
+@media (pointer: coarse), (max-width: 768px) {
+  .adm-btn { min-height: 44px; min-width: 44px; }
+}

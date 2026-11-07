@@ -119,6 +119,14 @@ export class ToastsComponent {
     this.cerrar(aviso);
   }
 
+  /** Tocar el cuerpo del aviso lo cierra (igual que la ×); los botones y enlaces internos hacen lo suyo. */
+  protected alTocarAviso(aviso: Aviso, evento: Event): void {
+    if (!aviso.cerrable) return;
+    const destino = evento.target;
+    if (destino instanceof Element && destino.closest('a, button')) return;
+    this.cerrar(aviso);
+  }
+
   protected cerrar(aviso: Aviso): void {
     this.conFocoGestionado(aviso, () => this.avisos.cerrar(aviso.id));
   }

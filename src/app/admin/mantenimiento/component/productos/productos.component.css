@@ -611,3 +611,8 @@
     font-size: var(--adm-fs-ayuda);
   }
 }
+
+/* R12b H6: en teléfono los atajos se envuelven en vez de deslizarse sin pista visual */
+@media (max-width: 720px) {
+  .prod-chips { flex-wrap: wrap; overflow: visible; }
+}

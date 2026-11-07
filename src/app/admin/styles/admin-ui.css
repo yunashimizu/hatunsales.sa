@@ -65,6 +65,9 @@
   --adm-marca-texto: #8a6f3c;
   --adm-marca-claro: #f3ecdc;
   --adm-marca-borde: #e3d3ab;
+  /* Contorno dorado suave: solo para piezas que guían la vista (ticket, escáner, total, KPI principal, menú activo) */
+  --adm-marca-contorno: #e3d3ab;
+  --adm-marca-halo: rgba(184, 151, 90, 0.08);
 
   /* Estados: el color base es para iconos, puntos, barras y fondos sólidos;
      el «-texto» es el que se usa en letras. «dinero» = éxito (Cobrar, vuelto, caja abierta). */
@@ -1390,29 +1393,29 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   color: var(--adm-texto-suave);
 }
 
-.adm-vacio p { margin: 0; max-width: 46ch; text-wrap: pretty; }
+.adm-vacio p { margin: 0; max-width: 46ch; font-size: 14px; line-height: 1.5; color: var(--adm-texto-suave); text-wrap: pretty; }
 
 .adm-vacio__icono {
   position: relative;
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   margin-bottom: 6px;
   border-radius: 50%;
-  background: linear-gradient(160deg, var(--adm-primario-claro), var(--adm-superficie));
+  background: var(--adm-marca-claro);
   color: var(--adm-marca-texto);
-  font-size: 26px;
-  box-shadow: inset 0 0 0 1px var(--adm-primario-borde), 0 0 0 8px rgba(184, 151, 90, 0.08);
+  font-size: 24px;
 }
 
-.adm-vacio__icono--neutro { background: linear-gradient(160deg, var(--adm-superficie-3), var(--adm-superficie)); color: var(--adm-texto-tenue); box-shadow: inset 0 0 0 1px var(--adm-borde), 0 0 0 8px rgba(15, 23, 42, 0.03); }
-.adm-vacio__icono--aviso  { background: linear-gradient(160deg, var(--adm-aviso-claro), var(--adm-superficie)); color: var(--adm-aviso); box-shadow: inset 0 0 0 1px var(--adm-aviso-borde), 0 0 0 8px rgba(217, 119, 6, 0.06); }
-.adm-vacio__icono--exito  { background: linear-gradient(160deg, var(--adm-exito-claro), var(--adm-superficie)); color: var(--adm-exito); box-shadow: inset 0 0 0 1px var(--adm-exito-borde), 0 0 0 8px rgba(5, 150, 105, 0.06); }
+/* Neutro = oro suave (el de siempre); aviso = ámbar; error = rojo; éxito = verde. Círculo plano, sin halo. */
+.adm-vacio__icono--neutro { background: var(--adm-marca-claro); color: var(--adm-marca-texto); }
+.adm-vacio__icono--aviso  { background: var(--adm-aviso-claro); color: var(--adm-aviso); }
+.adm-vacio__icono--exito  { background: var(--adm-exito-claro); color: var(--adm-exito); }
 
 .adm-vacio__titulo {
   font-family: var(--adm-fuente-titulos);
-  font-size: var(--fs-lg);
+  font-size: 16px;
   font-weight: var(--fw-negrita);
   line-height: 1.3;
   letter-spacing: var(--tracking-ajustado);
@@ -1421,7 +1424,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 }
 .adm-vacio .adm-btn { margin-top: 8px; }
 .adm-vacio--compacto { padding: 26px 16px; }
-.adm-vacio--compacto .adm-vacio__icono { width: 48px; height: 48px; font-size: 20px; }
+.adm-vacio--compacto .adm-vacio__icono { width: 44px; height: 44px; font-size: 19px; }
 
 /* Error de carga inline (la lista principal no llegó): icono rojo, título en
    rojo oscuro (7,6:1) y botón Reintentar. Sin modal.
@@ -1432,17 +1435,17 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar</button>
    </div> */
 .adm-vacio__icono--peligro {
-  background: linear-gradient(160deg, var(--adm-peligro-claro), var(--adm-superficie));
+  background: var(--adm-peligro-claro);
   color: var(--adm-peligro);
-  box-shadow: inset 0 0 0 1px var(--adm-peligro-borde), 0 0 0 8px rgba(220, 38, 38, 0.06);
 }
 .adm-vacio--error .adm-vacio__titulo { color: var(--adm-aviso-peligro-texto); }
 .adm-vacio--error p { color: var(--adm-texto-suave); }
 
-/* Los estados vacío/error aparecen con un fundido corto (no al cargar la página:
-   la animación de .adm-pagina ya cubre esa entrada). */
+/* Los estados vacío/error aparecen solo con un fundido corto (no al cargar la página:
+   la animación de .adm-pagina ya cubre esa entrada). El icono no flota. */
+@keyframes adm-vacio-fundido { from { opacity: 0; } }
 .adm-vacio--error,
-.adm-vacio--animado { animation: mov-aparecer-arriba var(--mov-entrada, 240ms) var(--ease-entrada, cubic-bezier(0.16, 1, 0.3, 1)) backwards; }
+.adm-vacio--animado { animation: adm-vacio-fundido var(--mov-entrada, 240ms) var(--ease-entrada, cubic-bezier(0.16, 1, 0.3, 1)) backwards; }
 
 /* Esqueleto: bloque gris con una banda clara que lo recorre. La banda se mueve
    con translate (compositor), no con background-position (repintado). El
@@ -1612,13 +1615,23 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   border-radius: 0 0 var(--adm-r-md) var(--adm-r-md);
 }
 
-/* ── Avisos ──────────────────────────────────────────────────── */
+/* ── Avisos en página ────────────────────────────────────────────
+   <div class="adm-aviso adm-aviso--aviso" role="status">
+     <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+     <span><strong class="adm-aviso__titulo">Título corto</strong>Una línea de texto.</span>
+     <a class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion">Acción</a>
+   </div>
+   Icono en círculo de 32 px tintado con el tono; el texto se limita a 2 líneas
+   (3 si lleva título). Variante --compacto (dentro del ticket): 36 px, icono de
+   18 px sin círculo, texto 13 px. En oscuro: fondo del tono al 12 %, borde al
+   35 % (tema-oscuro.css). */
 
 .adm-aviso {
+  --adm-aviso-tono: var(--adm-texto-suave);
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 11px 14px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
   font-size: var(--adm-fs-etiqueta);
   line-height: 1.45;
   border-radius: var(--adm-r-md);
@@ -1626,23 +1639,48 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   text-wrap: pretty;
 }
 
-.adm-aviso > i { flex-shrink: 0; margin-top: 1px; font-size: 15px; }
-.adm-aviso > span, .adm-aviso > div { min-width: 0; flex: 1; }
-.adm-aviso__titulo { display: block; font-weight: var(--fw-negrita); margin-bottom: 1px; }
+.adm-aviso > i {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--adm-aviso-tono) 14%, transparent);
+  color: var(--adm-aviso-tono);
+  font-size: 15px;
+  line-height: 1;
+}
+.adm-aviso > span,
+.adm-aviso > div { min-width: 0; flex: 1; }
+.adm-aviso > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.adm-aviso > span:has(> .adm-aviso__titulo) { -webkit-line-clamp: 3; line-clamp: 3; }
+/* Los errores se leen completos: sin recorte de líneas */
+.adm-aviso--peligro > span,
+.adm-aviso--peligro > span:has(> .adm-aviso__titulo) { display: block; -webkit-line-clamp: unset; line-clamp: unset; overflow: visible; }
+.adm-aviso__titulo { display: block; font-weight: var(--fw-negrita); }
 .adm-aviso__accion { margin-left: auto; flex-shrink: 0; }
 
-/* Acción dentro del aviso («Reintentar»): botón compacto alineado al texto.
-   <button type="button" class="adm-btn adm-btn--suave adm-aviso__accion" (click)="cargar()">Reintentar</button> */
-.adm-aviso__accion.adm-btn { min-height: 30px; margin-block: -3px; padding: 4px 10px; font-size: var(--adm-fs-ayuda); }
+/* Acción dentro del aviso («Reintentar»): botón .adm-btn--sm (36 px) a la derecha.
+   <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargar()">Reintentar</button> */
+.adm-aviso__accion.adm-btn { min-height: var(--adm-h-boton-chico); padding: 6px 12px; font-size: var(--adm-fs-etiqueta); }
 .adm-aviso--peligro .adm-aviso__accion { color: var(--adm-aviso-peligro-texto); }
 
-.adm-aviso--info    { background: var(--adm-info-claro);    border-color: var(--adm-info-borde);    color: var(--adm-aviso-info-texto); }
-.adm-aviso--exito   { background: var(--adm-exito-claro);   border-color: var(--adm-exito-borde);   color: var(--adm-aviso-exito-texto); }
-.adm-aviso--aviso   { background: var(--adm-aviso-claro);   border-color: var(--adm-aviso-borde);   color: var(--adm-aviso-aviso-texto); }
-.adm-aviso--peligro { background: var(--adm-peligro-claro); border-color: var(--adm-peligro-borde); color: var(--adm-aviso-peligro-texto); }
-.adm-aviso--neutro  { background: var(--adm-superficie-2);  border-color: var(--adm-borde);         color: var(--adm-texto-2); }
+.adm-aviso--info    { --adm-aviso-tono: var(--adm-info);    background: var(--adm-info-claro);    border-color: var(--adm-info-borde);    color: var(--adm-aviso-info-texto); }
+.adm-aviso--exito   { --adm-aviso-tono: var(--adm-exito);   background: var(--adm-exito-claro);   border-color: var(--adm-exito-borde);   color: var(--adm-aviso-exito-texto); }
+.adm-aviso--aviso   { --adm-aviso-tono: var(--adm-aviso);   background: var(--adm-aviso-claro);   border-color: var(--adm-aviso-borde);   color: var(--adm-aviso-aviso-texto); }
+.adm-aviso--peligro { --adm-aviso-tono: var(--adm-peligro); background: var(--adm-peligro-claro); border-color: var(--adm-peligro-borde); color: var(--adm-aviso-peligro-texto); }
+.adm-aviso--neutro  { --adm-aviso-tono: var(--adm-texto-suave); background: var(--adm-superficie-2); border-color: var(--adm-borde); color: var(--adm-texto-2); }
 
-.adm-aviso--compacto { padding: 8px 12px; font-size: var(--adm-fs-etiqueta); border-radius: var(--adm-r-sm); }
+/* Compacto: 36 px de alto mínimo, icono de 18 px sin círculo, texto de 13 px (el aviso del ticket en Vender) */
+.adm-aviso--compacto { gap: 8px; min-height: 36px; padding: 6px 12px; font-size: var(--adm-fs-etiqueta); border-radius: var(--adm-r-sm); }
+.adm-aviso--compacto > i { width: auto; height: auto; border-radius: 0; background: none; font-size: 18px; }
 
 /* ── Galería de imágenes ─────────────────────────────────────── */
 
@@ -2315,11 +2353,6 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 /* Velo de paneles y modales: más desenfoque */
 .adm-velo { backdrop-filter: blur(6px); }
 
-/* Estados vacíos: el icono flota despacio */
-@media (prefers-reduced-motion: no-preference) {
-  .adm-vacio__icono { animation: x-flota 6s var(--x-ease-in-out, ease-in-out) infinite alternate; --x-flota-dist: 8px; }
-}
-
 /* Escenario: cabecera oscura con aurora para pantallas «de resumen»
    <header class="adm-escenario x-grano x-plano"> … </header> */
 .adm-escenario {
@@ -2402,7 +2435,6 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-segmento--activo { animation: none; }
 
 .adm-atajo:hover .adm-atajo__icono { transform: scale(1.04); }
-.adm-vacio__icono { animation: none; }
 
 .adm-escenario {
   background: var(--adm-superficie);
@@ -2513,6 +2545,8 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 }
 
 .adm-panel--ficha .adm-panel__cuerpo { padding: 16px 20px; }
+/* El botón de cerrar de la ficha mide 44 px también en escritorio */
+.adm-panel--ficha .adm-panel__cabecera .adm-btn-icono { min-width: 44px; min-height: 44px; }
 
 /* La ficha es estrecha: cualquier rejilla de formulario dentro cae a una columna salvo pares cortos */
 @container ficha (max-width: 460px) {
@@ -2533,10 +2567,15 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   .adm-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .adm-tarjeta__cuerpo { padding: 16px; }
   .adm-tarjeta__cabecera { padding: 12px 16px; }
+}
 
-  /* Opt-in para tablas de 6+ columnas: fichas apiladas desde tablet (≤ 900 px),
-     no solo en móvil. Uso: class="adm-tabla adm-tabla--adaptable-tablet" con
-     data-etiqueta en cada td. */
+@media (max-width: 1100px) {
+  /* Opt-in para tablas de 6+ columnas: fichas apiladas desde tablet (≤ 1100 px: con el
+     sidebar fijo de 240 px quedan < 860 px de contenido), no solo en móvil.
+     Uso: class="adm-tabla adm-tabla--adaptable-tablet" con data-etiqueta en cada td. */
+  .adm-tabla--adaptable-tablet,
+  .adm-tabla--adaptable-tablet tbody { display: block; width: 100%; }
+  .adm-tabla--adaptable-tablet tbody td > * { min-width: 0; overflow-wrap: anywhere; }
   .adm-tabla--adaptable-tablet thead { display: none; }
   .adm-tabla--adaptable-tablet tbody tr {
     display: block;
@@ -2634,7 +2673,11 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   .adm-seccion__titulo { white-space: normal; font-size: var(--fs-lg); }
   .adm-vacio { padding: 36px 16px; }
 
-  /* En móvil la tabla se convierte en fichas apiladas, sin scroll lateral. */
+  /* En móvil la tabla se convierte en fichas apiladas, sin scroll lateral.
+     La <table> y el <tbody> también pasan a bloque: si no, conservan su ancho intrínseco y recortan la tarjeta. */
+  .adm-tabla--adaptable,
+  .adm-tabla--adaptable tbody { display: block; width: 100%; }
+  .adm-tabla--adaptable tbody td > * { min-width: 0; overflow-wrap: anywhere; }
   .adm-tabla--adaptable thead { display: none; }
   .adm-tabla--adaptable tbody tr {
     display: block;
@@ -2688,13 +2731,14 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
    escritorio. Va después de los bloques por ancho para ganarles. */
 @media (pointer: coarse) {
   .adm-btn { min-height: 44px; }
-  .adm-btn--sm { min-height: 40px; }
-  .adm-aviso__accion.adm-btn { min-height: 40px; margin-block: 0; }
-  .adm-btn-icono { width: 44px; height: 44px; }
+  .adm-btn--sm { min-height: 44px; }
+  .adm-aviso__accion.adm-btn { min-height: 44px; margin-block: 0; }
+  .adm-btn-icono { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
   .adm-btn-icono--sm { width: 40px; height: 40px; }
   .adm-tabla__acciones,
   .adm-acciones-fila { gap: 6px; }
-  .adm-chip { min-height: 40px; padding-inline: 14px; }
+  .adm-chip { min-height: 44px; padding-inline: 14px; }
+  summary.adm-mas-info__resumen { min-height: 44px; }
   .adm-pestania,
   .adm-segmento { min-height: 44px; }
   .adm-paginacion__pagina { min-width: 44px; height: 44px; }

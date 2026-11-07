@@ -20,6 +20,7 @@
         [attr.data-tipo]="a.tipo"
         [class.nt-aviso--simple]="!a.mensaje"
         (keydown.escape)="alPulsarEscape(a, $event)"
+        (click)="alTocarAviso(a, $event)"
       >
         <span class="nt-aviso__icono" aria-hidden="true">
           @if (a.tipo === 'cargando') {

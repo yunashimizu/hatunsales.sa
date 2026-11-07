@@ -181,7 +181,7 @@
 .mar-slug {
   margin: 3px 0 0;
   font-family: var(--x-mono, var(--adm-fuente-mono));
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.02em;
   color: var(--adm-texto-tenue);
   overflow-wrap: anywhere;

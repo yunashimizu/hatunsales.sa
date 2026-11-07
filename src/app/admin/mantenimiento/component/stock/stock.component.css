@@ -70,3 +70,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) { .stk-nivel > i { transition: none; } }
+
+/* R12b H6: en teléfono los atajos se envuelven en vez de deslizarse sin pista visual */
+@media (max-width: 720px) {
+  .stk-chips { flex-wrap: wrap; overflow: visible; }
+}

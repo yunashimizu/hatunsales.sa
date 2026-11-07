@@ -203,6 +203,7 @@
               <span><kbd class="adm-kbd">↑</kbd><kbd class="adm-kbd">↓</kbd> elegir de la lista</span>
               <span><kbd class="adm-kbd">Esc</kbd> cerrar la lista</span>
               <span *ngIf="puedeCrearRapido"><kbd class="adm-kbd">F2</kbd> crear producto</span>
+              <span><kbd class="adm-kbd">F9</kbd> cobrar</span>
             </div>
             <p class="adm-ayuda pv-atajos__cliente">
               Cliente: con 8 dígitos (DNI) u 11 (RUC) se busca solo; si no está registrado se consulta a SUNAT y queda guardado para la próxima venta.
@@ -217,7 +218,7 @@
 
       <!-- Contexto operativo: caja y almacén de esta venta -->
       <section class="pv-contexto"
-               *ngIf="almacenes.length || cajaChip || cargandoContextoPos"
+               *ngIf="almacenes.length || cajaChip || cargandoContextoPos || enEspera.length"
                aria-label="Caja y almacén de la venta">
         <div class="pv-contexto__chips">
           <a *ngIf="cajaChip"
@@ -228,6 +229,11 @@
              [title]="cajaChip.modo === 'estricto' ? 'Modo estricto: abrir caja antes de cobrar' : 'Modo blando: puedes cobrar sin abrir'">
             <i class="bi bi-cash-stack" aria-hidden="true"></i> {{ cajaChip.etiqueta }}
           </a>
+          <button type="button" class="pv-espera-chip" *ngIf="enEspera.length"
+                  [attr.aria-expanded]="panelEspera" aria-controls="pv-espera-lista"
+                  (click)="alternarPanelEspera()">
+            <i class="bi bi-pause-circle" aria-hidden="true"></i> {{ enEspera.length }} en espera
+          </button>
           <span class="adm-insignia adm-insignia--neutra pv-contexto__insignia" *ngIf="nombreAlmacenActivo && !cambiandoAlmacen">
             <i class="bi bi-building" aria-hidden="true"></i>
             <span class="adm-truncar">{{ nombreAlmacenActivo }}</span>
@@ -240,6 +246,20 @@
             <span class="adm-esqueleto pv-contexto__esqueleto" aria-hidden="true"></span>
           </ng-container>
         </div>
+
+        <ul class="pv-espera" id="pv-espera-lista" *ngIf="panelEspera && enEspera.length" aria-label="Ventas en espera">
+          <li class="pv-espera__fila" *ngFor="let venta of enEspera; trackBy: identificarEspera">
+            <span class="pv-espera__texto">
+              <strong class="adm-truncar">{{ nombreEspera(venta) }}</strong>
+              <small>{{ horaEspera(venta) }} · {{ resumenEspera(venta) }}</small>
+            </span>
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="emitiendo" (click)="retomarEspera(venta)">Retomar</button>
+            <button type="button" class="adm-btn-icono adm-btn-icono--peligro" aria-label="Descartar venta en espera"
+                    title="Descartar" (click)="descartarEspera(venta)">
+              <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+          </li>
+        </ul>
 
         <div class="adm-campo pv-contexto__almacen" *ngIf="almacenes.length">
           <label class="adm-etiqueta" for="adm-almacen-pos">Almacén / sede</label>
@@ -268,10 +288,19 @@
       </section>
 
       <!-- Productos frecuentes: mismo método que elegir una sugerencia del buscador -->
-      <section class="pv-frecuentes" *ngIf="frecuentes.length" aria-label="Productos frecuentes">
+      <section class="pv-frecuentes" *ngIf="frecuentes.length || categorias.length" aria-label="Productos frecuentes">
+        <div class="pv-categorias" *ngIf="categorias.length" role="group" aria-label="Categorías">
+          <button type="button" class="pv-categoria" [class.pv-categoria--activa]="!categoriaActiva || !categorias.includes(categoriaActiva)"
+                  [attr.aria-pressed]="!categoriaActiva || !categorias.includes(categoriaActiva)"
+                  (click)="elegirCategoria(null)">Frecuentes</button>
+          <button type="button" class="pv-categoria" *ngFor="let categoria of categorias"
+                  [class.pv-categoria--activa]="categoriaActiva === categoria"
+                  [attr.aria-pressed]="categoriaActiva === categoria"
+                  (click)="elegirCategoria(categoria)">{{ categoria }}</button>
+        </div>
         <div class="pv-frecuentes__rejilla">
           <button type="button" class="pv-tile"
-                  *ngFor="let producto of frecuentes; trackBy: identificarProductoSugerido"
+                  *ngFor="let producto of tiles; trackBy: identificarProductoSugerido"
                   [disabled]="emitiendo"
                   (click)="agregarProducto(producto)">
             <span class="pv-tile__texto">
@@ -430,7 +459,7 @@
         </div>
       </div>
 
-      <div class="adm-aviso adm-aviso--aviso" *ngIf="avisoFactura">
+      <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto" *ngIf="avisoFactura">
         <i class="bi bi-exclamation-triangle" aria-hidden="true"></i><span>{{ avisoFactura }}</span>
       </div>
 
@@ -554,14 +583,6 @@
                 [class.adm-recien-creado]="linea.id_producto === idLineaDestacada">
               <div class="pv-linea__info">
                 <div class="pv-linea__nombre" title="{{ linea.descripcion }}">{{ linea.descripcion }}</div>
-                <div class="pv-linea__detalle">
-                  <span>{{ linea.cantidad }} × S/ {{ linea.precio_unitario | number:'1.2-2' }}</span>
-                  <span *ngIf="linea.unidad_medida"> · {{ linea.unidad_medida }}</span>
-                  <span *ngIf="linea.sku"> · {{ linea.sku }}</span>
-                  · Stock {{ linea.stock_disponible }}
-                  <span class="adm-insignia adm-insignia--peligro adm-insignia--sm"
-                        *ngIf="linea.cantidad > linea.stock_disponible">Excede el stock</span>
-                </div>
               </div>
 
               <div class="pv-linea__cantidad">
@@ -584,8 +605,16 @@
               <div class="pv-linea__monto">S/ {{ subtotalLinea(linea) | number:'1.2-2' }}</div>
 
               <div class="pv-linea__extra">
+                <div class="pv-linea__detalle">
+                  <span>{{ linea.cantidad }} × S/ {{ linea.precio_unitario | number:'1.2-2' }}</span>
+                  <span *ngIf="linea.unidad_medida"> · {{ linea.unidad_medida }}</span>
+                  <span *ngIf="linea.sku"> · {{ linea.sku }}</span>
+                  · Stock {{ linea.stock_disponible }}
+                  <span class="adm-insignia adm-insignia--peligro adm-insignia--sm"
+                        *ngIf="linea.cantidad > linea.stock_disponible">Excede el stock</span>
+                </div>
                 <label class="pv-linea__desc" title="Descuento por unidad, en soles">
-                  <span>Desc. c/u S/</span>
+                  <span>Dto. c/u S/</span>
                   <input class="adm-input adm-input--chico adm-input--num pv-descuento-input"
                          type="number"
                          min="0"
@@ -600,11 +629,12 @@
                 <div class="pv-descuento-detalle pv-descuento-detalle--aviso" *ngIf="descuentoExcede(linea)" role="status">
                   No puede superar el precio: se aplica S/ {{ descuentoUnitarioEfectivo(linea) | number:'1.2-2' }}
                 </div>
-                <button type="button" class="adm-btn-icono adm-btn-icono--peligro adm-btn-icono--sm"
-                        (click)="quitarLinea(linea)" aria-label="Quitar producto" title="Quitar del carrito">
-                  <i class="bi bi-x-lg" aria-hidden="true"></i>
-                </button>
               </div>
+
+              <button type="button" class="adm-btn-icono adm-btn-icono--peligro adm-btn-icono--sm pv-linea__quitar"
+                      (click)="quitarLinea(linea)" aria-label="Quitar producto" title="Quitar del carrito">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+              </button>
             </li>
           </ul>
         </section>
@@ -906,13 +936,13 @@
       <section class="pv-cobro" aria-label="Total y cobro">
         <ul class="adm-resumen pv-filas">
             <li class="adm-resumen__fila" *ngIf="descuentoCarrito > 0">
-              <span>Descuentos</span><span>− S/ {{ descuentoCarrito | number:'1.2-2' }}</span>
+              <span>Dto.</span><span>− S/ {{ descuentoCarrito | number:'1.2-2' }}</span>
             </li>
             <li class="adm-resumen__fila pv-resumen__recargo" *ngIf="recargoMostrado > 0">
               <span>Recargo por tarjeta ({{ recargoPctMostrado }}%)</span><span>+ S/ {{ recargoMostrado | number:'1.2-2' }}</span>
             </li>
             <li class="adm-resumen__fila" [class.pv-resumen__desactualizado]="calculandoPreview" *ngIf="preview">
-              <span>IGV incluido ({{ preview.porcentaje_igv }}%)</span><span>S/ {{ preview.totales.igv | number:'1.2-2' }}</span>
+              <span>IGV</span><span>S/ {{ preview.totales.igv | number:'1.2-2' }}</span>
             </li>
         </ul>
 
@@ -932,13 +962,19 @@
 
         <button type="button" class="pv-cobrar"
                 [class.pv-cobrar--lista]="puedeEmitir && !emitiendo"
-                [disabled]="!puedeEmitir" (click)="cobrar()">
+                [disabled]="!puedeEmitir" (click)="cobrar()" aria-keyshortcuts="F9">
           <i class="bi" [ngClass]="emitiendo ? 'bi-arrow-repeat adm-girando' : 'bi-cash-coin'" aria-hidden="true"></i>
           <span>{{ emitiendo ? 'Procesando…' : 'Cobrar y emitir' }}</span>
+          <kbd class="pv-cobrar__tecla" aria-hidden="true">F9</kbd>
           <span class="pv-cobrar__monto" *ngIf="puedeEmitir && !emitiendo">S/ {{ total | number:'1.2-2' }}</span>
         </button>
 
         <div class="pv-secundarias">
+          <button type="button" class="adm-btn adm-btn--fantasma pv-secundaria pv-espera-boton"
+                  [disabled]="!lineas.length || emitiendo" (click)="ponerEnEspera()"
+                  title="Guardar esta venta y atender a otro cliente">
+            <i class="bi bi-pause-circle" aria-hidden="true"></i> En espera
+          </button>
           <button type="button" class="adm-btn adm-btn--fantasma pv-secundaria pv-cotizar"
                   [disabled]="!lineas.length || emitiendo" (click)="irACotizarCarrito()"
                   title="Cotizar este carrito">

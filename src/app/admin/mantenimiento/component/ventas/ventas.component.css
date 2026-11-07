@@ -18,15 +18,12 @@
 /* ── Rejilla de dos paneles ── */
 .pv-grid { display: flex; flex-direction: column; align-items: stretch; gap: 20px; }
 
-/* Escritorio: izquierda flexible, Ticket de 400-440 px fijo a la vista (el total y Cobrar no se desplazan) */
+/* Escritorio: izquierda flexible; el Ticket fluye con la página (sin scroll interno) y su bloque de total + Cobrar
+   se pega al fondo de la ventana (.pv-cobro, sticky) para que siempre se vea, haya o no avisos arriba */
 @media (min-width: 1201px) {
-  .pv-grid { flex-direction: row; align-items: flex-start; }
-  .pv-izquierda { flex: 1 1 0; }
-  .pv-ticket {
-    flex: 1 1 400px; max-width: 440px;
-    position: sticky; top: 8px; align-self: flex-start;
-    max-height: calc(100dvh - 136px);   /* total y Cobrar a la vista a 1366×768; la cabecera de página ya no ocupa fila */
-  }
+  .pv-grid { flex-direction: row; align-items: stretch; }
+  .pv-izquierda { flex: 1 1 0; min-width: 0; }
+  .pv-ticket { flex: 0 0 clamp(400px, 32%, 480px); max-width: 480px; align-self: stretch; }
 }
 
 /* ── Buscador / escáner ── */
@@ -43,8 +40,9 @@
 .pv-busqueda .pv-buscador__input {
   min-height: var(--adm-h-input-escaner); padding: 0 150px 0 54px;
   font-size: 1.0625rem; font-weight: 500;
-  border: 2px solid var(--adm-marca); border-radius: var(--adm-r-md); box-shadow: var(--adm-anillo);
+  border: 1.5px solid var(--adm-marca-contorno); border-radius: var(--adm-r-md);
 }
+.pv-busqueda .pv-buscador__input:focus { border: 2px solid var(--adm-marca); box-shadow: var(--adm-anillo); }
 .pv-busqueda .pv-buscador > i:first-child { left: 18px; font-size: 22px; color: var(--adm-marca-texto); }
 .pv-busqueda .pv-buscador__estado { left: auto; right: 120px; color: var(--adm-marca-texto); }
 .pv-buscador__estado { left: auto; right: 14px; color: var(--adm-marca-texto); }
@@ -94,7 +92,32 @@
 .pv-contexto__aviso { flex: 1 1 260px; }
 .pv-contexto__info[open] { flex: 1 1 100%; order: 5; }
 
-/* ── Frecuentes: rejilla de tiles ── */
+/* Ventas en espera: chip junto al de Caja y su lista */
+.pv-espera-chip {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 12px;
+  font-family: var(--adm-fuente); font-size: var(--adm-fs-etiqueta); font-weight: 600; cursor: pointer;
+  color: var(--adm-marca-texto); background: var(--adm-marca-claro); border: 1px solid var(--adm-marca-borde); border-radius: 999px;
+}
+.pv-espera-chip:hover { border-color: var(--adm-marca); }
+.pv-espera-chip:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
+.pv-espera { flex: 1 1 100%; order: 4; margin: 0; padding: 4px 12px; list-style: none; background: var(--adm-superficie); border: 1px solid var(--adm-borde); border-radius: var(--adm-r-md); }
+.pv-espera__fila { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+.pv-espera__fila + .pv-espera__fila { border-top: 1px solid var(--adm-borde); }
+.pv-espera__texto { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.pv-espera__texto strong { font-size: var(--adm-fs-cuerpo); color: var(--adm-texto); }
+.pv-espera__texto small { font-size: var(--adm-fs-ayuda); color: var(--adm-texto-tenue); font-variant-numeric: tabular-nums; }
+
+/* ── Frecuentes: chips de categoría y rejilla de tiles ── */
+.pv-categorias { display: flex; gap: 8px; margin-bottom: 12px; padding-bottom: 2px; overflow-x: auto; scrollbar-width: thin; }
+.pv-categoria {
+  flex: 0 0 auto; min-height: 36px; padding: 0 14px; white-space: nowrap; cursor: pointer;
+  font-family: var(--adm-fuente); font-size: var(--adm-fs-etiqueta); font-weight: 600; text-transform: none; letter-spacing: 0;
+  color: var(--adm-texto-2); background: var(--adm-superficie); border: 1px solid var(--adm-borde-fuerte); border-radius: 999px;
+}
+.pv-categoria:hover { border-color: var(--adm-marca); }
+.pv-categoria:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
+.pv-categoria--activa { color: var(--adm-primario-texto, #fff); background: var(--adm-primario); border-color: var(--adm-primario); }
+@media (pointer: coarse) { .pv-categoria { min-height: 44px; } }
 .pv-frecuentes__rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 12px; }
 .pv-tile {
   display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
@@ -155,18 +178,21 @@
 
 /* ═════════ Ticket (panel derecho) ═════════ */
 .pv-ticket {
+  container: pv-ticket / inline-size;
   gap: 0;
-  background: var(--adm-superficie); border: 1px solid var(--adm-borde); border-radius: var(--adm-r-xl);
+  background: var(--adm-superficie); border: 1.5px solid var(--adm-marca-contorno); border-radius: var(--adm-r-xl);
+  box-shadow: 0 0 0 4px var(--adm-marca-halo);   /* halo dorado muy tenue: guía la vista hacia el cobro */
   /* Sin overflow: hidden, para que la lista de sugerencias de cliente pueda salirse del panel */
 }
 .pv-ticket__cabecera {
   display: flex; align-items: center; gap: 10px; padding: 12px 18px;
-  border-bottom: 1px solid var(--adm-borde); border-radius: calc(var(--adm-r-xl) - 1px) calc(var(--adm-r-xl) - 1px) 0 0;
+  border-bottom: 1px solid var(--adm-marca-contorno); border-radius: calc(var(--adm-r-xl) - 1.5px) calc(var(--adm-r-xl) - 1.5px) 0 0;
 }
 .pv-ticket__titulo { margin: 0; font-family: var(--adm-fuente-titulos); font-size: var(--adm-fs-titulo-tarjeta); font-weight: 700; color: var(--adm-texto); }
 .pv-ticket__cuenta { font-size: var(--adm-fs-etiqueta); color: var(--adm-texto-tenue); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pv-ticket__cabecera .pv-tipos { flex: 0 0 190px; width: 190px; margin-left: auto; padding: 3px; gap: 3px; border-radius: var(--adm-r-md); }
 .pv-tipos .adm-segmento { min-height: 38px; font-size: var(--adm-fs-etiqueta); font-weight: 600; }
+@media (pointer: coarse) { .pv-tipos .adm-segmento { min-height: 44px; } }
 .pv-ticket > .adm-aviso { margin: 10px 18px 0; }
 
 /* Cliente */
@@ -186,12 +212,21 @@
   .pv-cliente .pv-pila .adm-acciones .adm-btn { min-height: 36px; height: 36px; white-space: nowrap; align-self: start; }
   .pv-cliente .pv-pila .pv-buscador__input { min-height: 36px; height: 36px; }
 }
-/* Ticket angosto (400-440 px, solo en escritorio): «Buscar en SUNAT» queda como icono; el texto sigue para lectores de pantalla y en el title */
+/* Ticket angosto (400-439 px, solo escritorio): «Buscar en SUNAT» queda como icono; el texto sigue para lectores de pantalla y en el title.
+   Desde 440 px de ticket vuelve el texto. Se mide el propio ticket (container query), no la ventana. */
 @media (min-width: 1201px) {
-  .pv-cliente .pv-btn-texto {
-    position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  /* Con texto no cabe todo en una fila sin dejar el buscador en ~110 px: el buscador ocupa su fila y los dos botones la siguiente */
+  @container pv-ticket (min-width: 437px) {
+    .pv-cliente .pv-pila { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .pv-cliente .pv-pila > .adm-campo { grid-column: 1 / -1; }
+    .pv-cliente .pv-pila .adm-acciones .adm-btn { justify-content: center; }
   }
-  .pv-cliente .pv-pila .adm-acciones .adm-btn--primario { width: 40px; padding-inline: 0; }
+  @container pv-ticket (max-width: 436px) {
+    .pv-cliente .pv-btn-texto {
+      position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+    }
+    .pv-cliente .pv-pila .adm-acciones .adm-btn--primario { width: 40px; padding-inline: 0; }
+  }
 }
 .pv-receptor {
   display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px 8px 12px;
@@ -206,29 +241,35 @@
 .pv-receptor__nombre { font-weight: 700; line-height: 1.3; color: var(--adm-texto); overflow-wrap: anywhere; }
 .pv-receptor__doc { font-size: var(--adm-fs-ayuda); color: var(--adm-texto-suave); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 
-/* Zona central: las líneas, «Más opciones» y el pago se desplazan; el total y Cobrar no */
-.pv-ticket__cuerpo { display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; min-height: 190px; padding: 0 18px 12px; }
-@media (min-width: 1201px) {
-  .pv-ticket__cuerpo { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
-}
+/* Zona central: líneas, «Más opciones» y pago fluyen con la página */
+.pv-ticket__cuerpo { display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; padding: 0 18px 12px; }
 
 /* Líneas del carrito */
 .pv-lineas { margin: 0; padding: 0; list-style: none; }
+/* Rejilla de 2 filas × 3 columnas: nombre | contador | precio  /  detalle + descuento | (vacío) | quitar */
 .pv-linea {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 2px 12px;
-  padding: 5px 0; border-bottom: 1px solid var(--adm-borde);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 80px; align-items: center; gap: 6px 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--adm-borde);
 }
 .pv-linea:last-child { border-bottom: 0; }
-.pv-linea__nombre { font-size: var(--adm-fs-cuerpo); font-weight: 600; line-height: 1.3; color: var(--adm-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pv-linea__detalle { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--adm-fs-ayuda); line-height: 1.4; color: var(--adm-texto-tenue); font-variant-numeric: tabular-nums; }
+.pv-linea__info { grid-column: 1; grid-row: 1; min-width: 0; }
+.pv-linea__cantidad { grid-column: 2; grid-row: 1; }
+.pv-linea__monto { grid-column: 3; grid-row: 1; }
+.pv-linea__extra { grid-column: 1 / 3; grid-row: 2; min-width: 0; }
+.pv-linea__quitar { grid-column: 3; grid-row: 2; justify-self: end; }
+.pv-linea__nombre {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+  font-size: var(--adm-fs-cuerpo); font-weight: 600; line-height: 1.3; color: var(--adm-texto); overflow-wrap: anywhere;
+}
+.pv-linea__monto { font-size: var(--adm-fs-cuerpo); font-weight: 700; text-align: right; white-space: nowrap; color: var(--adm-texto); font-variant-numeric: tabular-nums; }
+.pv-linea__extra { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.pv-linea__detalle { font-size: 0.78125rem; line-height: 1.4; color: var(--adm-texto-tenue); font-variant-numeric: tabular-nums; }
 .pv-linea__detalle .adm-insignia { margin-left: 4px; }
-.pv-linea__monto { min-width: 76px; font-size: var(--adm-fs-cuerpo); font-weight: 700; text-align: right; color: var(--adm-texto); font-variant-numeric: tabular-nums; }
-.pv-linea__extra { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
-.pv-linea__desc { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: var(--adm-fs-ayuda); color: var(--adm-texto-tenue); }
-.pv-linea__extra > .adm-btn-icono { margin-left: auto; }
-.pv-descuento-input { width: 80px; min-height: 28px; }
+.pv-linea__desc { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 0.78125rem; white-space: nowrap; color: var(--adm-texto-tenue); }
+.pv-linea__quitar { width: 32px; height: 32px; color: var(--adm-texto-tenue); }
+.pv-descuento-input { width: 64px; min-height: 32px; height: 32px; padding: 4px 8px; }
 .pv-descuento-detalle {
-  font-size: var(--adm-fs-ayuda); line-height: 1.3; text-align: left;
+  flex: 1 1 100%; font-size: var(--adm-fs-ayuda); line-height: 1.3; text-align: left;
   color: var(--adm-texto-suave); font-variant-numeric: tabular-nums;
 }
 .pv-descuento-detalle--aviso { color: var(--adm-aviso); }
@@ -249,13 +290,10 @@
 }
 .pv-contador__input:focus { box-shadow: none; }
 
-/* Sin flechas en los numéricos del carrito */
-.pv-contador__input::-webkit-outer-spin-button,
-.pv-contador__input::-webkit-inner-spin-button,
-.pv-descuento-input::-webkit-outer-spin-button,
-.pv-descuento-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.pv-contador__input,
-.pv-descuento-input { appearance: textfield; -moz-appearance: textfield; }
+/* Sin flechas (spinner) en ningún numérico del ticket ni del pago */
+.pv-ticket input[type=number]::-webkit-outer-spin-button,
+.pv-ticket input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pv-ticket input[type=number] { appearance: textfield; -moz-appearance: textfield; }
 
 /* Más opciones */
 .pv-mas-opciones { border-top: 1px solid var(--adm-borde); padding-top: 8px; }
@@ -295,6 +333,10 @@
 }
 .pv-pago-linea__acciones { display: flex; align-items: center; gap: 4px; }
 .pv-pago-linea .adm-fila > .adm-campo { flex-basis: 130px; }
+.pv-pago-linea .adm-etiqueta { font-size: 0.8125rem; font-weight: 600; }
+.pv-pago-linea .adm-select,
+.pv-pago-linea .adm-input { min-height: 40px; height: 40px; }
+.pv-pago-linea .adm-input-grupo__afijo { min-height: 40px; box-sizing: border-box; }
 
 .pv-vuelto {
   display: flex; align-items: center; justify-content: flex-end; min-height: var(--adm-h-input); padding: 0 12px;
@@ -355,15 +397,29 @@
 
 /* ── Total y cobro (siempre a la vista) ── */
 .pv-cobro {
-  display: flex; flex-direction: column; gap: 10px; flex: none; padding: 12px 18px 16px;
-  background: var(--adm-superficie-2); border-top: 1px solid var(--adm-borde);
-  border-radius: 0 0 calc(var(--adm-r-xl) - 1px) calc(var(--adm-r-xl) - 1px);
+  position: relative;
+  display: flex; flex-direction: column; gap: 8px; flex: none; margin-top: auto; padding: 8px 18px 12px;
+  background: var(--adm-superficie); border-top: 2px solid var(--adm-marca-contorno);
+  border-radius: 0 0 calc(var(--adm-r-xl) - 1.5px) calc(var(--adm-r-xl) - 1.5px);
+}
+/* Escritorio: pegado al fondo de la ventana mientras el resto del ticket se desplaza con la página */
+@media (min-width: 1201px) {
+  /* -34px = padding inferior de .main-content (el sticky se mide desde su borde de contenido) */
+  .pv-cobro { position: sticky; bottom: -34px; z-index: 2; }
+  /* Degradado de 16 px sobre el borde superior: la línea que queda tapada se corta con intención */
+  .pv-cobro::before {
+    content: ''; position: absolute; left: 0; right: 0; top: -18px; height: 16px; pointer-events: none;
+    background: linear-gradient(to top, var(--adm-superficie), transparent);
+  }
 }
 .pv-filas:empty { display: none; }
+/* Descuentos · recargo · IGV en UNA fila de 13 px, alineada a la derecha: «Dto. −S/ 3.00 · IGV S/ 68.22» */
+.pv-cobro .pv-filas { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; column-gap: 0; row-gap: 2px; }
 .pv-cobro .adm-resumen__fila {
-  padding: 3px 0; font-size: var(--adm-fs-etiqueta); font-weight: 400; color: var(--adm-texto-suave);
+  display: inline-flex; gap: 4px; padding: 0; font-size: var(--adm-fs-etiqueta); font-weight: 400; color: var(--adm-texto-suave);
   border: 0; font-variant-numeric: tabular-nums;
 }
+.pv-cobro .adm-resumen__fila + .adm-resumen__fila::before { content: '·'; margin-inline: 8px; color: var(--adm-texto-tenue); }
 .pv-cobro .adm-resumen__fila > span:last-child { font-weight: 600; color: var(--adm-texto); }
 .pv-resumen__recargo,
 .pv-cobro .pv-resumen__recargo > span:last-child { color: var(--adm-info); }
@@ -393,14 +449,21 @@
   margin-left: auto; padding: 4px 12px; border-radius: 999px;
   background: rgba(255, 255, 255, 0.18); font-size: var(--adm-fs-cuerpo); font-variant-numeric: tabular-nums;
 }
+.pv-cobrar__tecla {
+  padding: 1px 7px; font-family: var(--adm-fuente); font-size: var(--adm-fs-rotulo); font-weight: 700; line-height: 1.5;
+  color: inherit; border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 6px; opacity: 0.85;
+}
+.pv-cobrar:disabled .pv-cobrar__tecla { border-color: var(--adm-borde-fuerte); }
+@media (pointer: coarse) { .pv-cobrar__tecla { display: none; } }
 .pv-cobrar > span:first-of-type:not(:last-child) { margin-right: auto; }
 .pv-cobrar:disabled {
   color: var(--adm-texto-suave); background: var(--adm-superficie-3); border-color: var(--adm-borde); cursor: not-allowed;
 }
 
-/* Acciones secundarias: fantasma, 40 px, a partes iguales */
+/* Acciones secundarias: icono + texto, 36 px, en una fila bajo Cobrar, a partes iguales */
 .pv-secundarias { display: flex; gap: 8px; }
-.pv-secundaria { flex: 1 1 0; min-height: 40px; justify-content: center; font-size: var(--adm-fs-etiqueta); }
+.pv-secundaria { flex: 1 1 0; min-height: var(--adm-h-boton-chico); justify-content: center; font-size: var(--adm-fs-etiqueta); }
+@media (pointer: coarse) { .pv-secundaria { min-height: 44px; } }
 .pv-carrito__vaciar { color: var(--adm-peligro); }
 
 /* Barra fija con el total: solo en pantallas chicas */
@@ -415,7 +478,7 @@
 
 /* Una columna: el Ticket baja debajo del panel de productos, sin sticky ni scroll interno */
 @media (max-width: 1200px) {
-  .pv-ticket { position: static; max-height: none; max-width: none; }
+  .pv-ticket { position: static; max-width: none; }
 }
 
 @media (max-width: 900px) {
@@ -466,4 +529,14 @@
   .pv-recargo-resultado,
   .pv-total-movil { animation: none; }
   .pv-hoja { transition: none; }
+}
+
+/* Táctil: los controles de Vender que quedaban cortos llegan a 44 px (con ratón se quedan como están) */
+@media (pointer: coarse) {
+  .pv-atajos__guias,
+  .pv-cliente .pv-pila .adm-acciones .adm-btn { min-height: 44px; height: 44px; }
+  .pv-cliente .pv-pila .pv-buscador__input { min-height: 44px; height: 44px; }
+  .pv-contexto__almacen .adm-select { min-height: 44px; }
+  .pv-contexto__caja,
+  .pv-espera-chip { min-height: 44px; padding-inline: 14px; }
 }

@@ -243,3 +243,8 @@
     border-top: 1px dashed var(--adm-borde);
   }
 }
+
+/* R12b H4: objetivo táctil de 44 px en los enlaces de la tarjeta apilada (tablet/móvil) */
+@media (pointer: coarse), (max-width: 1100px) {
+  .doc-enlace { display: inline-flex; align-items: center; min-height: 44px; }
+}
