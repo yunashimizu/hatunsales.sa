@@ -220,6 +220,7 @@ const PAGINAS: Array<{ fragmento: string; pagina: PaginaPanel }> = [
   { fragmento: '/mantenimiento/ventas', pagina: { titulo: 'Vender', icono: 'bi-receipt', grupo: 'Hoy' } },
   { fragmento: '/mantenimiento/caja-sesion', pagina: { titulo: 'Caja', icono: 'bi-cash-stack', grupo: 'Hoy' } },
   { fragmento: '/mantenimiento/arqueo-caja', pagina: { titulo: 'Arqueo de caja', icono: 'bi-calculator', grupo: 'Hoy' } },
+  { fragmento: '/mantenimiento/pedidos', pagina: { titulo: 'Pedidos web', icono: 'bi-bag-check', grupo: 'Hoy' } },
   { fragmento: '/mantenimiento/cotizaciones', pagina: { titulo: 'Cotizaciones', icono: 'bi-file-earmark-ruled', grupo: 'Hoy' } },
   { fragmento: '/mantenimiento/doc', pagina: { titulo: 'Documentos', icono: 'bi-file-earmark-text', grupo: 'Hoy' } },
   { fragmento: '/mantenimiento/guias-remision', pagina: { titulo: 'Guías de remisión', icono: 'bi-truck', grupo: 'SUNAT' } },

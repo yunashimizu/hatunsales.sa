@@ -389,13 +389,25 @@
 @media (max-width: 640px) {
   .caja-resumen > .caja-turno { grid-column: 1 / -1; padding: 16px 16px 16px 20px; }
 
+  /* R16e: fila 1 = icono + «Abierta» y su detalle (ocupan todo lo que sobra); fila 2 = total con borde superior */
+  .caja-turno { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  .caja-turno > div:not(.adm-metrica__icono):not(.caja-turno__total) { align-self: auto; flex: 1 1 0; min-width: 0; }
+  .caja-turno .adm-metrica__icono { width: 44px; height: 44px; font-size: 20px; border-radius: 14px; }
+  .caja-turno__estado.adm-metrica__valor { font-size: 1.5rem; overflow-wrap: normal; white-space: nowrap; }
+  .caja-turno__detalle { margin-top: 4px; gap: 0 10px; }
+
   .adm-metrica > .caja-turno__total {
+    flex: 1 1 100%;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
     align-self: stretch;
-    padding: 12px 0 0;
+    padding: 10px 0 0;
     border-left: 0;
     border-top: 1px solid color-mix(in srgb, var(--caja-estado) 30%, var(--adm-borde));
     text-align: left;
   }
+  .caja-turno__total-valor { order: 2; font-size: var(--fs-2xl); }
 
   .caja-cifras { grid-template-columns: minmax(0, 1fr); }
 

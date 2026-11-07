@@ -28,6 +28,7 @@ export const urlConstants = {
     rolesUsuarios: `${dominio}admin/roles/usuarios`,
     crearUsuarioAdmin: `${dominio}admin/roles/usuarios`,
     cambiarRolAdmin: (id: string | number) => `${dominio}admin/roles/usuarios/${id}/rol`,
+    pedidos: `${dominio}admin/pedidos`,
   },
 
   usuario: {

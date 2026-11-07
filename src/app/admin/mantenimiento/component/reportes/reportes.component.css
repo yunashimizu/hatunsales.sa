@@ -382,17 +382,16 @@
   .reporte-barras { padding: 14px; }
   .reporte-top__pie { padding: 14px; }
 
-  /* En el ranking, el cliente encabeza la ficha (puesto, nombre y barra) sin etiqueta */
-  .reporte-top .adm-tabla--adaptable tbody td:first-child {
-    display: block;
-    padding: 10px 12px 9px;
-    margin-bottom: 4px;
-    text-align: left;
-    border-bottom: 1px dashed var(--adm-borde);
-  }
-
-  .reporte-top .adm-tabla--adaptable tbody td:first-child::before { content: none; }
+  /* En el ranking, el cliente encabeza la ficha: lo resuelve el bloque global de fichas (R16a) */
+  .reporte-top .reporte-cliente { flex: 1 1 auto; min-width: 0; }
   .reporte-top .reporte-cliente .adm-tabla__principal { text-align: left; }
+}
+
+/* R16e: periodo en 2×2 y las tres acciones en una fila */
+@media (max-width: 480px) {
+  .rep-segmentado { display: grid; grid-template-columns: 1fr 1fr; }
+  .rep-barra__acciones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .rep-barra__acciones > .adm-btn { min-width: 0; padding-inline: 8px; justify-content: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {

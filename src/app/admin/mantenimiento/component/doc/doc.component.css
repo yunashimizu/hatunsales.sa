@@ -218,33 +218,29 @@
   .doc-td-documento,
   .doc-td-cliente { min-width: 0; max-width: none; }
 
-  /* La celda del documento encabeza la ficha, sin etiqueta y alineada a la izquierda */
-  .adm-tabla--adaptable tbody td.doc-td-documento {
-    display: block;
-    padding: 10px 12px 9px;
-    margin-bottom: 4px;
-    text-align: left;
-    border-bottom: 1px dashed var(--adm-borde);
-  }
+  /* La celda del documento encabeza la ficha: lo resuelve el bloque global de fichas (R16a) */
+  .doc-error { max-width: none; }
+}
 
-  .adm-tabla--adaptable tbody td.doc-td-documento::before { content: none; }
-  .doc-td-documento .adm-tabla__principal { text-align: left; }
-
+/* Ficha compacta (≤ 480): valores a la derecha; con dos columnas (481–640) quedan a la izquierda */
+@media (max-width: 480px) {
   .doc-celda { text-align: right; }
   .doc-td-documento .doc-celda { text-align: left; }
-
   .doc-estado { align-items: flex-end; }
-  .doc-error { max-width: none; text-align: right; }
-
-  /* Las acciones cierran la ficha */
-  .adm-tabla--adaptable tbody td.doc-td-acciones {
-    margin-top: 4px;
-    padding-top: 9px;
-    border-top: 1px dashed var(--adm-borde);
-  }
+  .doc-error { text-align: right; }
 }
 
 /* R12b H4: objetivo táctil de 44 px en los enlaces de la tarjeta apilada (tablet/móvil) */
 @media (pointer: coarse), (max-width: 1100px) {
   .doc-enlace { display: inline-flex; align-items: center; min-height: 44px; }
+}
+
+/* R16a: la tabla de documentos tiene 9 columnas; con 861–1200 px útiles (menú en rail o abierto) las celdas se aprietan un poco más */
+@container tabla (min-width: 861px) and (max-width: 1200px) {
+  .doc-tabla thead th,
+  .doc-tabla tbody td { padding-inline: 6px; }
+  .doc-tabla thead th:first-child,
+  .doc-tabla tbody td:first-child { padding-left: 14px; }
+  .doc-tabla thead th:last-child,
+  .doc-tabla tbody td:last-child { padding-right: 14px; }
 }

@@ -143,59 +143,61 @@
 
   /* Papel cálido (tienda «Taller»): superficies blancas sobre fondo crema, tinta
      casi negra. El tema oscuro (tema-oscuro.css) cambia estos mismos tokens. */
-  --t-fondo: #f6f4ef;
+  --t-fondo: #f4f3ef;
   --t-superficie: #ffffff;
-  --t-superficie-2: #f0ede6;
-  --t-borde: #e5e1d8;
-  --t-borde-fuerte: #d3cec2;
+  --t-superficie-2: #faf9f6;
+  --t-borde: #e4e2dc;
+  --t-borde-fuerte: #cfccc4;
   /* Fondo de la foto de producto: blanco de catálogo en claro, papel apagado en oscuro. */
   --t-imagen-fondo: #ffffff;
   /* Vidrio del encabezado fijo */
-  --t-vidrio: rgba(246, 244, 239, 0.78);
+  --t-vidrio: rgba(244, 243, 239, 0.8);
 
-  --t-texto: #14120f;
-  --t-texto-suave: #5a554c;        /* 7,4:1 sobre blanco · 6,3:1 sobre --t-superficie-2 */
-  --t-texto-tenue: #6a655b;        /* 5,8:1 sobre blanco · 4,95:1 sobre --t-superficie-2 */
+  --t-texto: #1f201f;
+  --t-texto-suave: #5a5c5b;        /* 7,4:1 sobre blanco · 6,3:1 sobre --t-superficie-2 */
+  --t-texto-tenue: #75777a;        /* 5,8:1 sobre blanco · 4,95:1 sobre --t-superficie-2 */
 
-  --t-primario: #2563eb;           /* relleno (texto blanco encima: 6,3:1) */
-  --t-primario-osc: #1d4ed8;
-  --t-primario-claro: #eff6ff;
-  --t-primario-texto: #2563eb;     /* letras e iconos sobre superficie (en oscuro se aclara) */
+  /* «Acero y oro»: grafito para la acción, oro mate para la marca (mismos valores que el panel). */
+  --t-primario: #2b2c2b;           /* relleno (texto --t-primario-on encima: 13:1) */
+  --t-primario-osc: #1f201f;
+  --t-primario-claro: #f3ecdc;     /* tinte oro de «activo» */
+  --t-primario-texto: #8a6f3c;     /* letras e iconos de marca (5,2:1 sobre blanco; en oscuro se aclara) */
+  --t-primario-on: #ffffff;        /* letra sobre un relleno --t-primario */
 
-  /* Naranja de marca: vivo solo con texto oscuro o sobre fondo oscuro (6,7:1
-     contra #0d1220). Para texto naranja sobre claro, --t-acento-texto. */
-  --t-acento: #f97316;
-  --t-acento-texto: #b43a08;       /* 5,9:1 sobre blanco · 5,1:1 sobre --t-superficie-2 */
+  /* Oro de marca: relleno, bordes e iconos; para letras, --t-acento-texto. */
+  --t-acento: #b8975a;
+  --t-acento-texto: #8a6f3c;       /* 5,2:1 sobre blanco */
 
-  /* Botón de compra (CTA): naranja oscuro con texto blanco (5,2:1; hover 7,3:1). */
-  --t-cta: #c2410c;
-  --t-cta-hover: #9a3412;
+  /* Botón de compra (CTA): grafito con letra blanca. */
+  --t-cta: #2b2c2b;
+  --t-cta-hover: #1f201f;
   --t-cta-texto: #ffffff;
 
   /* Estados: el color vivo es para iconos/puntos/bordes; el «-texto» para letras. */
-  --t-exito: #10b981;
-  --t-exito-texto: #047857;        /* 5,5:1 sobre blanco · 4,7:1 sobre --t-superficie-2 */
-  --t-exito-claro: #ecfdf5;
-  --t-aviso: #f59e0b;
-  --t-aviso-texto: #a8480a;        /* 5,8:1 sobre blanco · 5,0:1 sobre --t-superficie-2 */
-  --t-aviso-claro: #fffbeb;
-  --t-peligro: #ef4444;
-  --t-peligro-texto: #b91c1c;      /* 6,5:1 sobre blanco · 5,5:1 sobre --t-superficie-2 */
-  --t-peligro-claro: #fef2f2;
-  --t-info-texto: #0369a1;         /* 5,9:1 */
-  --t-info-claro: #f0f9ff;
-  --t-estrella: #f5a60b;
+  --t-exito: #1e7b34;
+  --t-exito-texto: #1e7b34;        /* 5,5:1 sobre blanco · 4,7:1 sobre --t-superficie-2 */
+  --t-exito-claro: #e8f4ea;
+  --t-aviso: #9a5b13;
+  --t-aviso-texto: #9a5b13;        /* 5,8:1 sobre blanco · 5,0:1 sobre --t-superficie-2 */
+  --t-aviso-claro: #fbf3e4;
+  --t-peligro: #b42318;
+  --t-peligro-texto: #b42318;      /* 6,5:1 sobre blanco · 5,5:1 sobre --t-superficie-2 */
+  --t-peligro-claro: #fbeae7;
+  --t-info-texto: #2f4b63;         /* 5,9:1 */
+  --t-info-claro: #eef3f7;
+  --t-estrella: #b8975a;
 
-  --t-r-sm: 12px;
-  --t-r-md: 18px;
-  --t-r-lg: 28px;
-  --t-r-xl: 36px;
+  --t-r-sm: 10px;
+  --t-r-md: 12px;
+  --t-r-lg: 16px;
+  --t-r-xl: 20px;
   --t-r-full: 999px;
 
-  --t-sombra-sm: 0 1px 2px rgba(20, 18, 15, 0.05), 0 1px 3px rgba(20, 18, 15, 0.06);
-  --t-sombra-md: 0 4px 12px rgba(20, 18, 15, 0.07), 0 2px 4px rgba(20, 18, 15, 0.04);
-  --t-sombra-lg: 0 20px 44px -12px rgba(20, 18, 15, 0.16), 0 4px 12px rgba(20, 18, 15, 0.06);
-  --t-sombra-xl: 0 36px 70px -18px rgba(20, 18, 15, 0.28);
+  /* Sin sombra ornamental: el borde separa. Solo menús, paneles y modales. */
+  --t-sombra-sm: 0 0 0 0 transparent;
+  --t-sombra-md: 0 4px 12px -6px rgba(31, 32, 31, 0.12);
+  --t-sombra-lg: 0 8px 24px -8px rgba(31, 32, 31, 0.2);
+  --t-sombra-xl: 0 16px 40px -12px rgba(31, 32, 31, 0.28);
 
   /* Transición de micro-interacciones de la tienda (sistema de movimiento). */
   --t-transicion: var(--mov-micro, 140ms) var(--ease-salida-suave, cubic-bezier(0.2, 0, 0, 1));

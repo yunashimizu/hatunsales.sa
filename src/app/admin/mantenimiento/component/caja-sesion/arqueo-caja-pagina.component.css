@@ -66,8 +66,8 @@
 /* ── Filtros: apilados en una columna; se reparten al ensanchar ───────────── */
 .arq-filtros {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* R16f: dos columnas también en teléfono */
+  gap: 12px 10px;
 }
 
 .arq-filtros .adm-campo,
@@ -79,12 +79,15 @@
 
 .arq-filtros__acciones {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  grid-column: 1 / -1;
   gap: 8px;
 }
 
 .arq-filtros__acciones .adm-btn {
-  flex: 0 0 auto;
+  flex: 1 1 0;
+  justify-content: center;
+  padding-inline: 8px;
   white-space: nowrap;
 }
 

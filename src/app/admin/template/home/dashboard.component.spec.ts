@@ -47,3 +47,41 @@ describe('DashboardComponent · ventas por hora', () => {
     expect(c.horaConDatos).toBe(false);
   });
 });
+
+/** Fila «Necesita tu atención» y acceso rápido de los pedidos web (lógica pura, sin montar la pantalla). */
+describe('DashboardComponent · pedidos web', () => {
+  function crear(): any {
+    const c = Object.create(DashboardComponent.prototype);
+    c.fiscal = { estado: () => null };
+    return c;
+  }
+
+  it('suma pendientes y pagados en una fila que lleva a Pedidos', () => {
+    const c = crear();
+    c.vePedidos = true;
+    c.pedidosWeb = { pendientes: 1, pagados: 2, total: 3 };
+    const fila = c.filasAtencion.find((f: any) => f.id === 'pedidos-web');
+
+    expect(fila.texto).toBe('3 pedidos web por preparar');
+    expect(fila.detalle).toBe('2 pagados, a preparar · 1 por cobrar');
+    expect(fila.ruta).toBe('/dashboard/mantenimiento/pedidos');
+    expect(fila.tono).toBe('aviso');
+  });
+
+  it('sin pedidos por atender, o sin permiso, no hay fila', () => {
+    const c = crear();
+    c.vePedidos = true;
+    c.pedidosWeb = { pendientes: 0, pagados: 0, total: 0 };
+    expect(c.filasAtencion.some((f: any) => f.id === 'pedidos-web')).toBe(false);
+
+    c.vePedidos = false;
+    c.pedidosWeb = { pendientes: 1, pagados: 0, total: 1 };
+    expect(c.filasAtencion.some((f: any) => f.id === 'pedidos-web')).toBe(false);
+  });
+
+  it('cuenta como lectura hecha para no decir «todo en orden» a ciegas', () => {
+    const c = crear();
+    c.pedidosWeb = { pendientes: 0, pagados: 0, total: 0 };
+    expect(c.atencionRevisada).toBe(true);
+  });
+});

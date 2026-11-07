@@ -1,0 +1,215 @@
+:host { display: block; }
+
+.ped-cabecera__texto { min-width: 0; }
+
+/* ── Buscador ────────────────────────────────────────────────── */
+
+.ped-limpiar { align-self: flex-end; margin-bottom: 3px; }
+
+.ped-resumen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.ped-resumen > i { color: var(--adm-marca-texto); font-size: 13px; }
+.ped-resumen > strong { color: var(--adm-texto); font-weight: 700; }
+
+/* ── Chips de estado con su conteo ───────────────────────────── */
+
+.ped-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--adm-superficie-2);
+  border-bottom: 1px solid var(--adm-borde);
+}
+
+.ped-chips .adm-chip { gap: 7px; }
+
+.ped-chip__n {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--adm-superficie-3);
+  color: var(--adm-texto-suave);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-chip--activo .ped-chip__n {
+  background: color-mix(in srgb, var(--adm-primario-texto) 22%, transparent);
+  color: var(--adm-primario-texto);
+}
+
+/* ── Carga ───────────────────────────────────────────────────── */
+
+.ped-esqueleto-fila { display: flex; align-items: center; gap: 14px; padding: 4px 0; }
+.ped-esqueleto-codigo { width: 84px; height: 20px; flex: none; }
+.ped-esqueleto-texto { display: flex; flex: 1; flex-direction: column; gap: 8px; min-width: 0; }
+.ped-esqueleto-cifra { width: 72px; height: 20px; flex: none; }
+
+/* ── Tabla ───────────────────────────────────────────────────── */
+
+.ped-fila { cursor: pointer; }
+.ped-td-cliente { min-width: 180px; }
+.ped-celda { min-width: 0; }
+.ped-cliente { overflow-wrap: anywhere; }
+.ped-codigo { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ped-fecha { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--adm-texto-2); }
+.ped-total { font-weight: 700; color: var(--adm-texto); white-space: nowrap; }
+.ped-sin-dato { color: var(--adm-texto-tenue); }
+
+/* Con la ficha abierta (≥ 1200 px) la tabla cede ancho: se ocultan por CSS las columnas
+   secundarias; el detalle completo está en la ficha. */
+@media (min-width: 1200px) {
+  .adm-pagina--con-ficha .ped-col-sec { display: none; }
+  .adm-pagina--con-ficha .ped-td-cliente { min-width: 0; }
+}
+
+/* ── Ficha ───────────────────────────────────────────────────── */
+
+.ped-ficha .adm-panel__cabecera { align-items: flex-start; padding: 16px 20px; }
+.ped-ficha .adm-panel__cabecera .adm-tarjeta__titulo { font-size: 17px; font-weight: 700; }
+.ped-ficha .adm-panel__sub { margin-left: 0; overflow-wrap: anywhere; }
+.ped-ficha__titulo-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.ped-ficha__cuerpo { gap: 18px; }
+
+/* Bloque del paso a dar: destaca del resto con el fondo de la superficie 2 */
+.ped-paso {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--adm-superficie-2);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+}
+
+.ped-datos { margin: 0; }
+.ped-datos .adm-dato__valor { margin: 0; }
+.ped-dato__extra { color: var(--adm-texto-suave); font-weight: 400; }
+
+/* Pie fijo con la acción principal a todo el ancho */
+.ped-ficha .adm-panel__pie { position: sticky; bottom: 0; }
+.ped-ficha .adm-panel__pie > .adm-btn { flex: 1 1 100%; min-height: 44px; justify-content: center; }
+
+/* Cancelar vive al final del cuerpo, separado del paso principal */
+.ped-cancelar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--adm-borde);
+}
+.ped-cancelar > p { margin: 0; }
+.ped-cancelar > .adm-btn { min-height: 44px; }
+
+/* Productos */
+.ped-items { display: flex; flex-direction: column; margin: 0 0 10px; padding: 0; list-style: none; }
+
+.ped-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--adm-borde);
+}
+
+.ped-item__nombre { min-width: 0; font-weight: 600; color: var(--adm-texto); overflow-wrap: anywhere; }
+.ped-item__nombre > small {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--adm-fs-ayuda);
+  font-weight: 400;
+  color: var(--adm-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.ped-item__total { flex: none; font-weight: 600; color: var(--adm-texto); white-space: nowrap; }
+
+/* Historial: línea de tiempo, lo más reciente arriba */
+.ped-historial { margin: 0; padding: 0; list-style: none; }
+
+.ped-historial__paso {
+  --ped-tono: var(--adm-texto-tenue);
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  gap: 0 10px;
+  padding: 0 0 14px;
+}
+
+.ped-historial__paso::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  bottom: 0;
+  left: 6px;
+  width: 2px;
+  background: var(--adm-borde);
+}
+
+.ped-historial__paso:last-child { padding-bottom: 0; }
+.ped-historial__paso:last-child::before { display: none; }
+
+.ped-historial__paso--aviso { --ped-tono: var(--adm-aviso); }
+.ped-historial__paso--primaria { --ped-tono: var(--adm-marca); }
+.ped-historial__paso--info { --ped-tono: var(--adm-info); }
+.ped-historial__paso--exito { --ped-tono: var(--adm-exito); }
+
+.ped-historial__punto {
+  width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  border-radius: 50%;
+  background: var(--ped-tono);
+  border: 3px solid var(--adm-superficie);
+  box-shadow: 0 0 0 1px var(--ped-tono);
+}
+
+.ped-historial__texto { min-width: 0; color: var(--adm-texto); overflow-wrap: anywhere; }
+.ped-historial__texto > strong { font-weight: 600; }
+.ped-historial__texto > small { display: block; margin-top: 2px; font-size: var(--adm-fs-ayuda); color: var(--adm-texto-suave); }
+.ped-historial__fecha { font-size: var(--adm-fs-ayuda); color: var(--adm-texto-suave); white-space: nowrap; padding-top: 2px; }
+
+/* ── Móvil ───────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .ped-chips { padding: 10px 16px; }
+}
+
+@media (max-width: 640px) {
+  .ped-resumen { flex: 1 1 100%; min-height: 0; margin: 0; }
+  .ped-limpiar { align-self: stretch; margin: 0; min-height: 44px; flex: 1 1 100%; }
+  .ped-chips { padding: 10px 14px; }
+
+  .ped-td-cliente { min-width: 0; }
+  .ped-td-cliente .ped-celda { text-align: right; }
+
+  /* La celda del código encabeza la ficha de cada pedido: sin etiqueta */
+  .adm-tabla--adaptable tbody td.ped-td-codigo {
+    display: block;
+    padding: 10px 12px 9px;
+    margin-bottom: 4px;
+    text-align: left;
+    border-bottom: 1px dashed var(--adm-borde);
+  }
+
+  .adm-tabla--adaptable tbody td.ped-td-codigo::before { content: none; }
+  .ped-td-codigo .adm-tabla__principal,
+  .ped-td-codigo .adm-tabla__secundario { text-align: left; }
+
+  .ped-cancelar > .adm-btn { width: 100%; justify-content: center; }
+}

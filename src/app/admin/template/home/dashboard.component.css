@@ -360,6 +360,9 @@
   margin-top: 4px;
 }
 
+/* Con «Pedidos web» hay cinco accesos: el último, solo en su fila, ocupa todo el ancho */
+.ini-acceso:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
 .ini-acceso {
   display: flex;
   align-items: center;
@@ -504,10 +507,6 @@
 }
 
 @media (max-width: 600px) {
-  .ini-kpis {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .ini-saludo__titulo {
     font-size: 22px;
   }
@@ -518,10 +517,6 @@
 
   .ini-saludo__acciones .adm-btn {
     flex: 1 1 140px;
-  }
-
-  .ini-accesos {
-    grid-template-columns: minmax(0, 1fr);
   }
 
   .ini-lista__fila--top {
@@ -535,4 +530,45 @@
   .ini-lista__fila {
     gap: 10px;
   }
+}
+
+/* ───────────────────────────────────────────────── R16d · teléfono */
+
+@media (max-width: 600px) {
+  /* Los cuatro indicadores en 2×2 (se leen de un vistazo) */
+  .ini-kpis { gap: 10px; }
+  .ini-kpi { padding: 14px 14px; }
+  .ini-kpi--principal { padding-top: 13px; }
+
+  /* Gráfico: el SVG se escala (viewBox 640 de ancho), así que los textos van en unidades de viewBox */
+  .ini-grafico__texto { font-size: 18px; }
+
+  /* Accesos: 2 columnas compactas, icono arriba y texto debajo */
+  .ini-accesos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .ini-acceso { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; }
+  .ini-acceso__texto small { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+}
+
+@media (max-width: 480px) {
+  .ini-kpi__etiqueta { font-size: 12.5px; }
+  .ini-kpi { padding-inline: 12px; }
+  .ini-kpi__valor { font-size: 22px; }
+  .ini-kpi__detalle { font-size: var(--adm-fs-ayuda); }
+
+  .ini-grafico__texto { font-size: 22px; }
+  .ini-grafico__texto--eje { display: none; }
+  .ini-grafico__texto--dia { font-size: 19px; }
+  /* Etiquetas de hora alternas ocultas (la hora pico siempre se ve): a 360 caben la mitad */
+  .ini-grafico text.ini-grafico__texto--dia:nth-of-type(even):not(.ini-grafico__texto--hoy) { display: none; }
+
+  /* «Necesita tu atención»: título y detalle arriba; chip y acción abajo, a la derecha */
+  .ini-lista__fila:not(.ini-lista__fila--top) { grid-template-columns: minmax(0, 1fr) auto auto; row-gap: 6px; }
+  .ini-lista__fila:not(.ini-lista__fila--top) > .ini-lista__texto { grid-column: 1 / -1; }
+  .ini-lista__fila:not(.ini-lista__fila--top) > .ini-tag { grid-column: 2; }
+  .ini-lista__fila:not(.ini-lista__fila--top) > .ini-lista__accion { grid-column: 3; }
+
+  /* «Lo más vendido»: nombre y unidades a todo el ancho; barra e importe en la segunda línea */
+  .ini-lista__fila--top { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; }
+  .ini-lista__fila--top > .ini-lista__texto { grid-column: 1 / -1; }
+  .ini-lista__fila--top > .ini-barra { width: auto; }
 }

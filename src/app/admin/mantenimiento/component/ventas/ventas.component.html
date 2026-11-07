@@ -933,7 +933,7 @@
       </div>
 
       <!-- Total y cobro -->
-      <section class="pv-cobro" aria-label="Total y cobro">
+      <section class="pv-cobro" #cobro aria-label="Total y cobro">
         <ul class="adm-resumen pv-filas">
             <li class="adm-resumen__fila" *ngIf="descuentoCarrito > 0">
               <span>Dto.</span><span>− S/ {{ descuentoCarrito | number:'1.2-2' }}</span>
@@ -992,16 +992,20 @@
 
 
 <!-- Total siempre a la vista en pantallas chicas. Va fuera de .adm-pagina: su animación deja un transform
-     que convertiría el position: fixed en absoluto. Solo muestra datos; el cobro sigue en la tarjeta. -->
-<div class="pv-total-movil" *ngIf="lineas.length" aria-hidden="true">
-  <div class="pv-total-movil__texto">
+     que convertiría el position: fixed en absoluto. Es un botón: lleva al bloque de cobro (irACobro). -->
+<button type="button" class="pv-total-movil" *ngIf="lineas.length" (click)="irACobro()"
+        [attr.aria-label]="'Total a pagar ' + (total | number:'1.2-2') + ' soles. ' + (pagoCubierto ? 'Cobrar' : 'Ir a cobrar')">
+  <span class="pv-total-movil__texto">
     <span class="pv-total-movil__etiqueta">Total a pagar</span>
     <span class="pv-total-movil__detalle">
       {{ lineas.length }} {{ lineas.length === 1 ? 'producto' : 'productos' }}<ng-container *ngIf="!pagoCubierto"> · resta S/ {{ restantePago | number:'1.2-2' }}</ng-container>
     </span>
-  </div>
-  <strong class="pv-total-movil__monto">S/ {{ total | number:'1.2-2' }}</strong>
-</div>
+  </span>
+  <span class="pv-total-movil__derecha">
+    <strong class="pv-total-movil__monto">S/ {{ total | number:'1.2-2' }}</strong>
+    <span class="pv-total-movil__accion" aria-hidden="true">{{ pagoCubierto ? 'Cobrar' : 'Ir a cobrar' }} <i class="bi bi-chevron-right"></i></span>
+  </span>
+</button>
 
 <!-- Alta rápida de producto. Fuera de .adm-pagina: su host no genera caja y el velo/panel son fixed. -->
 <app-producto-rapido

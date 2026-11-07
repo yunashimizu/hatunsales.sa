@@ -291,7 +291,7 @@
 .x-boton {
   --b-fondo: var(--t-primario);
   --b-fondo-hover: var(--t-primario-osc);
-  --b-texto: #ffffff;
+  --b-texto: var(--t-primario-on);
   --b-borde: transparent;
   --b-sombra: 0 10px 24px -10px color-mix(in srgb, var(--t-primario) 70%, transparent);
   position: relative;
@@ -370,7 +370,7 @@
   --b-fondo: var(--x-coral);
   --b-fondo-hover: var(--x-ambar);
   --b-texto: var(--x-tinta);
-  --b-sombra: 0 14px 34px -12px rgba(255, 125, 54, 0.65);
+  --b-sombra: 0 14px 34px -12px rgba(184, 151, 90, 0.65);
 }
 
 .x-boton--contorno {

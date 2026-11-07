@@ -1030,8 +1030,8 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 34px;
-  padding: 6px 14px;
+  min-height: 30px;
+  padding: 5px 14px;
   font-family: inherit;
   font-size: var(--adm-fs-etiqueta);
   font-weight: var(--fw-semi);
@@ -2569,39 +2569,66 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   .adm-tarjeta__cabecera { padding: 12px 16px; }
 }
 
-@media (max-width: 1100px) {
-  /* Opt-in para tablas de 6+ columnas: fichas apiladas desde tablet (≤ 1100 px: con el
-     sidebar fijo de 240 px quedan < 860 px de contenido), no solo en móvil.
-     Uso: class="adm-tabla adm-tabla--adaptable-tablet" con data-etiqueta en cada td. */
+/* Tablas en fichas desde tablet: el corte depende del ancho REAL de la tabla (su envoltorio), no de la
+   ventana, así con el menú plegado (rail de 56 px) una tabla de 900 px vuelve a ser tabla y con la ficha
+   lateral abierta (≥ 1200 px) sigue siendo ficha.
+   Opt-in para tablas de 6+ columnas: class="adm-tabla adm-tabla--adaptable-tablet" con data-etiqueta en cada td. */
+.adm-tabla-envoltorio { container-type: inline-size; container-name: tabla; }
+
+/* Entre 861 y 1200 px (tablet horizontal con el menú en rail, portátil con el menú abierto) sigue siendo tabla, pero más densa: así caben 7 columnas sin scroll lateral */
+@container tabla (min-width: 861px) and (max-width: 1200px) {
+  .adm-tabla--adaptable-tablet thead th,
+  .adm-tabla--adaptable-tablet tbody td { padding-inline: 8px; }
+  .adm-tabla--adaptable-tablet thead th:first-child,
+  .adm-tabla--adaptable-tablet tbody td:first-child { padding-left: 16px; }
+  .adm-tabla--adaptable-tablet thead th:last-child,
+  .adm-tabla--adaptable-tablet tbody td:last-child { padding-right: 16px; }
+}
+
+@container tabla (max-width: 860px) {
   .adm-tabla--adaptable-tablet,
   .adm-tabla--adaptable-tablet tbody { display: block; width: 100%; }
   .adm-tabla--adaptable-tablet tbody td > * { min-width: 0; overflow-wrap: anywhere; }
-  .adm-tabla--adaptable-tablet thead { display: none; }
+  .adm-tabla--adaptable-tablet thead,
+  .adm-tabla--adaptable-tablet tfoot { display: none; }
+  /* Fichas: una columna a ≤ 480 y rejilla de fichas desde 481; cada ficha es una tarjeta con cabecera propia */
+  .adm-tabla--adaptable-tablet tbody {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+    gap: 12px;
+    padding: 12px;
+  }
   .adm-tabla--adaptable-tablet tbody tr {
-    display: block;
-    margin: 10px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
     border: 1px solid var(--adm-borde);
     border-radius: var(--adm-r-md);
-    padding: 6px 2px;
     background: var(--adm-superficie);
     box-shadow: var(--adm-sombra-sm);
   }
   .adm-tabla--adaptable-tablet tbody tr:hover { background: var(--adm-superficie); }
-  .adm-tabla--adaptable-tablet tbody tr:first-child { margin-top: 12px; }
   .adm-tabla--adaptable-tablet tbody td {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     gap: 14px;
-    padding: 7px 12px;
+    height: auto;
+    min-height: 30px;
+    padding: 5px 14px;
     border-bottom: none;
     text-align: right;
   }
   .adm-tabla--adaptable-tablet tbody td:first-child,
-  .adm-tabla--adaptable-tablet tbody td:last-child { padding-left: 12px; padding-right: 12px; }
+  .adm-tabla--adaptable-tablet tbody td:last-child { padding-left: 14px; padding-right: 14px; }
   .adm-tabla--adaptable-tablet tbody td::before {
     content: attr(data-etiqueta);
-    flex-shrink: 0;
+    flex: 0 1 auto;
+  max-width: 46%;
+    padding-top: 2px;
     font-size: var(--adm-fs-rotulo);
     font-weight: var(--fw-negrita);
     text-transform: uppercase;
@@ -2613,8 +2640,59 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   .adm-tabla--adaptable-tablet tbody td:not([data-etiqueta])::before { content: none; }
   .adm-tabla--adaptable-tablet tbody td .adm-tabla__principal { text-align: right; }
   .adm-tabla--adaptable-tablet tbody td.adm-centro { justify-content: space-between; }
-  .adm-tabla--adaptable-tablet tfoot { display: none; }
   .adm-tabla--adaptable-tablet .adm-tabla__con-miniatura { justify-content: flex-end; }
+  /* Identidad: la primera celda es la cabecera de la ficha (sin rótulo, a la izquierda) */
+  .adm-tabla--adaptable-tablet tbody td:first-child {
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    text-align: left;
+    background: var(--adm-superficie-2);
+    border-bottom: 1px solid var(--adm-borde);
+  }
+  .adm-tabla--adaptable-tablet tbody td:first-child::before { content: none; }
+  .adm-tabla--adaptable-tablet tbody td:first-child .adm-tabla__principal { text-align: left; }
+  .adm-tabla--adaptable-tablet tbody td:first-child .adm-tabla__con-miniatura { justify-content: flex-start; flex: 1 1 auto; }
+  /* Acciones: fila propia al pie de la ficha, a la derecha */
+  .adm-tabla--adaptable-tablet tbody td:last-child:is([data-etiqueta='Acciones'], [data-etiqueta='Acción']) {
+    align-items: center;
+    justify-content: flex-end;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    border-top: 1px solid var(--adm-borde);
+  }
+  .adm-tabla--adaptable-tablet tbody td:last-child:is([data-etiqueta='Acciones'], [data-etiqueta='Acción'])::before { content: none; }
+  @media (min-width: 481px) {
+    /* Con ancho de sobra: los datos van en dos columnas (rótulo arriba, valor debajo) */
+    .adm-tabla--adaptable-tablet tbody tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .adm-tabla--adaptable-tablet tbody td {
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: flex-start;
+      gap: 3px;
+      padding: 10px 14px;
+      text-align: left;
+    }
+    .adm-tabla--adaptable-tablet tbody td::before { padding-top: 0; max-width: none; }
+    .adm-tabla--adaptable-tablet tbody td .adm-tabla__principal { text-align: left; }
+    .adm-tabla--adaptable-tablet tbody td.adm-centro { justify-content: flex-start; }
+    .adm-tabla--adaptable-tablet .adm-tabla__con-miniatura { justify-content: flex-start; }
+    .adm-tabla--adaptable-tablet tbody td:first-child,
+    .adm-tabla--adaptable-tablet tbody td:last-child:is([data-etiqueta='Acciones'], [data-etiqueta='Acción']) { grid-column: 1 / -1; }
+    /* Texto largo: la celda ocupa la fila completa para no partirse en una columna estrecha */
+    .adm-tabla--adaptable-tablet tbody td[data-etiqueta='Dirección'],
+    .adm-tabla--adaptable-tablet tbody td[data-etiqueta='Observación'],
+    .adm-tabla--adaptable-tablet tbody td[data-etiqueta='Motivo'],
+    .adm-tabla--adaptable-tablet tbody td[data-etiqueta='Por qué no tiene comprobante'],
+    .adm-tabla--adaptable-tablet tbody td[data-etiqueta='Notas y guías'],
+    .adm-tabla--adaptable-tablet tbody td[data-etiqueta='Evidencia'],
+    .adm-tabla--adaptable-tablet tbody td[data-etiqueta='Situación'],
+    .adm-tabla--adaptable-tablet tbody td[data-etiqueta='Cliente']:not(:first-child),
+    .adm-tabla--adaptable-tablet tbody td[data-etiqueta='Proveedor']:not(:first-child) { grid-column: 1 / -1; }
+    .adm-tabla--adaptable-tablet tbody td:first-child { flex-direction: row; align-items: center; }
+    .adm-tabla--adaptable-tablet tbody td:last-child:is([data-etiqueta='Acciones'], [data-etiqueta='Acción']) { flex-direction: row; align-items: center; justify-content: flex-end; }
+  }
 }
 
 @media (max-width: 640px) {
@@ -2654,6 +2732,18 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   .adm-pestania { flex: 1 1 auto; justify-content: center; min-height: 40px; }
   .adm-segmento { min-height: 40px; }
   .adm-filtros { padding: 12px 14px; }
+  /* Filtros en dos columnas: el buscador, el resumen y las acciones ocupan la fila completa */
+  .adm-filtros {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: end;
+  }
+  .adm-filtros > .adm-campo--grande,
+  .adm-filtros > .adm-campo--ancho,
+  .adm-filtros > .adm-campo--completo,
+  .adm-filtros > .adm-campo--accion,
+  .adm-filtros > :not(.adm-campo) { grid-column: 1 / -1; }
   .adm-ticket__cabecera { flex-direction: column; }
   .adm-ticket__recuadro { min-width: 0; }
   .adm-ticket__totales { max-width: none; }
@@ -2673,37 +2763,51 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   .adm-seccion__titulo { white-space: normal; font-size: var(--fs-lg); }
   .adm-vacio { padding: 36px 16px; }
 
-  /* En móvil la tabla se convierte en fichas apiladas, sin scroll lateral.
-     La <table> y el <tbody> también pasan a bloque: si no, conservan su ancho intrínseco y recortan la tarjeta. */
+  /* En móvil la tabla se convierte en fichas (R16a): ver el bloque de fichas de tablet arriba; mismas reglas.
+     La <table> y el <tbody> también pasan a bloque/rejilla: si no, conservan su ancho intrínseco y recortan la tarjeta. */
   .adm-tabla--adaptable,
   .adm-tabla--adaptable tbody { display: block; width: 100%; }
   .adm-tabla--adaptable tbody td > * { min-width: 0; overflow-wrap: anywhere; }
-  .adm-tabla--adaptable thead { display: none; }
+  .adm-tabla--adaptable thead,
+  .adm-tabla--adaptable tfoot { display: none; }
+  /* Fichas: una columna a ≤ 480 y rejilla de fichas desde 481; cada ficha es una tarjeta con cabecera propia */
+  .adm-tabla--adaptable tbody {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+    gap: 12px;
+    padding: 12px;
+  }
   .adm-tabla--adaptable tbody tr {
-    display: block;
-    margin: 10px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
     border: 1px solid var(--adm-borde);
     border-radius: var(--adm-r-md);
-    padding: 6px 2px;
     background: var(--adm-superficie);
     box-shadow: var(--adm-sombra-sm);
   }
   .adm-tabla--adaptable tbody tr:hover { background: var(--adm-superficie); }
-  .adm-tabla--adaptable tbody tr:first-child { margin-top: 12px; }
   .adm-tabla--adaptable tbody td {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     gap: 14px;
-    padding: 7px 12px;
+    height: auto;
+    min-height: 30px;
+    padding: 5px 14px;
     border-bottom: none;
     text-align: right;
   }
   .adm-tabla--adaptable tbody td:first-child,
-  .adm-tabla--adaptable tbody td:last-child { padding-left: 12px; padding-right: 12px; }
+  .adm-tabla--adaptable tbody td:last-child { padding-left: 14px; padding-right: 14px; }
   .adm-tabla--adaptable tbody td::before {
     content: attr(data-etiqueta);
-    flex-shrink: 0;
+    flex: 0 1 auto;
+  max-width: 46%;
+    padding-top: 2px;
     font-size: var(--adm-fs-rotulo);
     font-weight: var(--fw-negrita);
     text-transform: uppercase;
@@ -2715,15 +2819,86 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   .adm-tabla--adaptable tbody td:not([data-etiqueta])::before { content: none; }
   .adm-tabla--adaptable tbody td .adm-tabla__principal { text-align: right; }
   .adm-tabla--adaptable tbody td.adm-centro { justify-content: space-between; }
-  .adm-tabla--adaptable tfoot { display: none; }
   .adm-tabla--adaptable .adm-tabla__con-miniatura { justify-content: flex-end; }
+  /* Identidad: la primera celda es la cabecera de la ficha (sin rótulo, a la izquierda) */
+  .adm-tabla--adaptable tbody td:first-child {
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    text-align: left;
+    background: var(--adm-superficie-2);
+    border-bottom: 1px solid var(--adm-borde);
+  }
+  .adm-tabla--adaptable tbody td:first-child::before { content: none; }
+  .adm-tabla--adaptable tbody td:first-child .adm-tabla__principal { text-align: left; }
+  .adm-tabla--adaptable tbody td:first-child .adm-tabla__con-miniatura { justify-content: flex-start; flex: 1 1 auto; }
+  /* Acciones: fila propia al pie de la ficha, a la derecha */
+  .adm-tabla--adaptable tbody td:last-child:is([data-etiqueta='Acciones'], [data-etiqueta='Acción']) {
+    align-items: center;
+    justify-content: flex-end;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    border-top: 1px solid var(--adm-borde);
+  }
+  .adm-tabla--adaptable tbody td:last-child:is([data-etiqueta='Acciones'], [data-etiqueta='Acción'])::before { content: none; }
+  @media (min-width: 481px) {
+    /* Con ancho de sobra: los datos van en dos columnas (rótulo arriba, valor debajo) */
+    .adm-tabla--adaptable tbody tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .adm-tabla--adaptable tbody td {
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: flex-start;
+      gap: 3px;
+      padding: 10px 14px;
+      text-align: left;
+    }
+    .adm-tabla--adaptable tbody td::before { padding-top: 0; max-width: none; }
+    .adm-tabla--adaptable tbody td .adm-tabla__principal { text-align: left; }
+    .adm-tabla--adaptable tbody td.adm-centro { justify-content: flex-start; }
+    .adm-tabla--adaptable .adm-tabla__con-miniatura { justify-content: flex-start; }
+    .adm-tabla--adaptable tbody td:first-child,
+    .adm-tabla--adaptable tbody td:last-child:is([data-etiqueta='Acciones'], [data-etiqueta='Acción']) { grid-column: 1 / -1; }
+    /* Texto largo: la celda ocupa la fila completa para no partirse en una columna estrecha */
+    .adm-tabla--adaptable tbody td[data-etiqueta='Dirección'],
+    .adm-tabla--adaptable tbody td[data-etiqueta='Observación'],
+    .adm-tabla--adaptable tbody td[data-etiqueta='Motivo'],
+    .adm-tabla--adaptable tbody td[data-etiqueta='Por qué no tiene comprobante'],
+    .adm-tabla--adaptable tbody td[data-etiqueta='Notas y guías'],
+    .adm-tabla--adaptable tbody td[data-etiqueta='Evidencia'],
+    .adm-tabla--adaptable tbody td[data-etiqueta='Situación'],
+    .adm-tabla--adaptable tbody td[data-etiqueta='Cliente']:not(:first-child),
+    .adm-tabla--adaptable tbody td[data-etiqueta='Proveedor']:not(:first-child) { grid-column: 1 / -1; }
+    .adm-tabla--adaptable tbody td:first-child { flex-direction: row; align-items: center; }
+    .adm-tabla--adaptable tbody td:last-child:is([data-etiqueta='Acciones'], [data-etiqueta='Acción']) { flex-direction: row; align-items: center; justify-content: flex-end; }
+  }
 }
 
-@media (max-width: 360px) {
-  .adm-grid--3:has(> .adm-metrica),
-  .adm-grid--4:has(> .adm-metrica) { grid-template-columns: minmax(0, 1fr); }
-  .adm-metrica { flex-direction: row; align-items: center; }
-  .adm-metrica > div:not(.adm-metrica__icono) { align-self: auto; }
+/* ── R16a · Teléfono (≤ 480 px): métricas compactas, avisos que no pierden texto, pestañas en rejilla ── */
+@media (max-width: 480px) {
+  .adm-metrica { gap: 8px; padding: 12px 12px 12px 14px; }
+  .adm-metrica::before { top: 12px; bottom: 12px; }
+  .adm-metrica__icono { width: 32px; height: 32px; font-size: 15px; border-radius: 10px; }
+  .adm-metrica__valor { font-size: clamp(1.125rem, 0.4rem + 8.5cqi, 1.375rem); }
+  .adm-metrica__etiqueta { margin-top: 2px; font-size: 0.6875rem; letter-spacing: 0.05em; }
+  .adm-metrica__delta { display: block; max-width: 100%; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .adm-aviso { flex-wrap: wrap; }
+  .adm-aviso > span { -webkit-line-clamp: unset; line-clamp: unset; }
+  .adm-aviso > span:has(> .adm-aviso__titulo) { -webkit-line-clamp: unset; line-clamp: unset; }
+  .adm-aviso > .adm-btn,
+  .adm-aviso > a.adm-btn { flex: 1 1 100%; margin-left: 0; margin-top: 4px; justify-content: center; }
+
+  .adm-pestanias:has(> .adm-pestania:nth-child(2):last-child) { display: grid; grid-template-columns: 1fr 1fr; }
+  .adm-pestania { white-space: normal; text-align: center; }
+}
+
+/* ── R16i · Barra inferior del teléfono: los avisos suben para no taparla ── */
+@media (max-width: 900px) {
+  body:has(app-barra-inferior) {
+    --hs-avisos-abajo: calc(76px + env(safe-area-inset-bottom, 0px));
+    --hs-avisos-abajo-reserva: calc(140px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* ── Pantallas táctiles (puntero grueso): objetivos de 44 px ─────────────────

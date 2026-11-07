@@ -10,11 +10,16 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, interval, of } from 'rxjs';
 import { catchError, filter } from 'rxjs/operators';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
 import { ComprobanteService } from '../../service/comprobante.service';
+import { PedidoAdminService, ResumenPedidosWeb } from '../../service/pedido-admin.service';
 import { InventarioAdminService } from '../../service/inventario-admin.service';
+
+/** Cada cuánto se renueva el número de «Pedidos web» del menú. */
+const PERIODO_PEDIDOS_MS = 60_000;
+const ROLES_PEDIDOS_MENU = ['admin', 'superadmin', 'vendedor', 'caja'];
 
 export interface ItemMenu {
   /** Texto del ítem (también lo usa la paleta de comandos). */
@@ -78,6 +83,13 @@ export const SECCIONES_MENU: SeccionMenu[] = [
         ruta: '/dashboard/mantenimiento/arqueo-caja',
         icono: 'bi-calculator',
         roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+      },
+      {
+        etiqueta: 'Pedidos web',
+        ruta: '/dashboard/mantenimiento/pedidos',
+        icono: 'bi-bag-check',
+        roles: ['admin', 'superadmin', 'vendedor', 'caja'],
+        badgeKey: 'pedidos_web',
       },
       {
         etiqueta: 'Cotizaciones',
@@ -251,6 +263,7 @@ export class SidebarComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly comprobantes = inject(ComprobanteService);
   private readonly inventario = inject(InventarioAdminService);
+  private readonly pedidos = inject(PedidoAdminService);
 
   sesion: SesionUsuario = {
     idUsuario: 0,
@@ -286,6 +299,16 @@ export class SidebarComponent implements OnInit {
       this.cdr.markForCheck();
     });
 
+    // El número de «Pedidos web» lo publica el servicio: lo recalcula la propia pantalla de pedidos
+    // al cargar o al cambiar un estado, y aquí se renueva cada minuto (sin WebSocket).
+    this.pedidos.resumen.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((r) => {
+      this.aplicarPedidos(r);
+      this.cdr.markForCheck();
+    });
+    interval(PERIODO_PEDIDOS_MS)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.cargarBadgePedidos());
+
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -298,6 +321,7 @@ export class SidebarComponent implements OnInit {
           u.includes('/mantenimiento/doc')
           || u.includes('/mantenimiento/stock')
           || u.includes('/mantenimiento/inventario')
+          || u.includes('/mantenimiento/pedidos')
         ) {
           this.cargarBadges();
         }
@@ -341,6 +365,7 @@ export class SidebarComponent implements OnInit {
       return Number(this.badges['stock_sin'] ?? 0) > 0 ? 'peligro' : 'aviso';
     }
     if (item.badgeKey === 'cpe_atencion') return 'peligro';
+    if (item.badgeKey === 'pedidos_web') return 'aviso';
     return 'neutra';
   }
 
@@ -350,6 +375,11 @@ export class SidebarComponent implements OnInit {
       const sin = Number(this.badges['stock_sin'] ?? 0);
       const bajo = Number(this.badges['stock_bajo'] ?? 0);
       return `Stock: ${sin} en cero · ${bajo} bajo mínimo (${n} alertas)`;
+    }
+    if (item.badgeKey === 'pedidos_web') {
+      const pend = Number(this.badges['pedidos_pendientes'] ?? 0);
+      const pag = Number(this.badges['pedidos_pagados'] ?? 0);
+      return `Pedidos web: ${pend} por cobrar · ${pag} pagados por preparar`;
     }
     return `${n} por revisar`;
   }
@@ -365,12 +395,32 @@ export class SidebarComponent implements OnInit {
     }
   }
 
+  private aplicarPedidos(r: ResumenPedidosWeb | null): void {
+    if (!r) return;
+    this.badges = {
+      ...this.badges,
+      pedidos_pendientes: r.pendientes,
+      pedidos_pagados: r.pagados,
+      pedidos_web: r.total,
+    };
+  }
+
+  /** Lee el resumen de pedidos web (el servicio lo publica y `aplicarPedidos` lo recibe). */
+  private cargarBadgePedidos(): void {
+    if (!this.sesion.idUsuario || !this.auth.puedeVer(ROLES_PEDIDOS_MENU)) return;
+    this.pedidos
+      .porPreparar()
+      .pipe(catchError(() => of(null)))
+      .subscribe();
+  }
+
   private refrescar(): void {
     this.sesion = this.auth.getSesion();
   }
 
   private cargarBadges(): void {
     if (!this.sesion.idUsuario) return;
+    this.cargarBadgePedidos();
 
     const veDocumentos = this.auth.puedeVer(['admin', 'superadmin', 'vendedor', 'caja']);
     const veStock = this.auth.puedeVer(['admin', 'superadmin', 'vendedor', 'consulta']);

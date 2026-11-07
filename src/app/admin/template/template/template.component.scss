@@ -66,14 +66,16 @@
     animation: sb-fade 0.25s ease;
   }
 
+  /* La barra inferior fija (56 px + zona segura) tapa el pie: se oculta y el contenido deja su sitio */
+  #main-wrapper > app-footer { display: none; }
   #main-wrapper .main-content {
-    padding: 18px 16px 28px;
+    padding: 18px 16px calc(28px + 56px + env(safe-area-inset-bottom, 0px));
   }
 }
 
 @media (max-width: 640px) {
   #main-wrapper .main-content {
-    padding: 14px 12px calc(28px + env(safe-area-inset-bottom, 0px));
+    padding: 14px 12px calc(28px + 56px + env(safe-area-inset-bottom, 0px));
   }
 }
 

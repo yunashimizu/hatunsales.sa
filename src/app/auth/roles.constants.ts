@@ -20,6 +20,9 @@ export const STAFF_ROL_IDS: number[] = [
 
 export const STAFF_ROL_NOMBRES = ['admin', 'superadmin', 'consulta', 'vendedor', 'caja'];
 
+/** Roles que gestionan los pedidos web en el panel (ruta, menú y avisos del Inicio). */
+export const ROLES_PEDIDOS_WEB = ['admin', 'vendedor', 'caja'];
+
 /** Alias de BD / UI → rol canónico. */
 const ALIAS_ROL: Record<string, string> = {
   administrador: 'admin',

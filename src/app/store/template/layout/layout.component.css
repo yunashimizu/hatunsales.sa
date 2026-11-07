@@ -17,7 +17,7 @@ main {
   padding: 10px 18px;
   border-radius: 0 0 var(--t-r-sm) var(--t-r-sm);
   background: var(--t-primario);
-  color: #fff;
+  color: var(--t-primario-on);
   font-size: 0.85rem;
   font-weight: 600;
   text-decoration: none;

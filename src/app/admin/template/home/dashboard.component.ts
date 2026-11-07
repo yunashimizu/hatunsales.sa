@@ -17,6 +17,7 @@ import { ComprobanteService } from '../../service/comprobante.service';
 import { CajaSesionService, SesionCaja } from '../../service/caja-sesion.service';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
 import { ReportesService } from '../../service/reportes.service';
+import { PedidoAdminService, ResumenPedidosWeb } from '../../service/pedido-admin.service';
 import { VentaPorHora, VentasPorHora } from '../../models/admin.models';
 import { urlConstants } from '../../../constants/urlConstants';
 import { opcionesHttp } from '../../service/api-base.service';
@@ -30,6 +31,7 @@ const ROLES_INVENTARIO = ['admin', 'superadmin', 'vendedor'];
 const ROLES_STOCK = ['admin', 'superadmin', 'vendedor', 'consulta'];
 const ROLES_RECEPCION = ['admin', 'superadmin', 'vendedor'];
 const ROLES_FISCAL_PANEL = ['admin', 'superadmin'];
+const ROLES_PEDIDOS = ['admin', 'superadmin', 'vendedor', 'caja'];
 
 const RUTA = '/dashboard/mantenimiento';
 
@@ -189,6 +191,7 @@ export class DashboardComponent implements OnInit {
   veInventario = false;
   veStock = false;
   veFiscalPanel = false;
+  vePedidos = false;
   accesos: Acceso[] = [];
 
   cargando = true;
@@ -204,6 +207,8 @@ export class DashboardComponent implements OnInit {
   sinStock: number | null = null;
   bajoStock: number | null = null;
   cpeAtencion: number | null = null;
+  /** Pedidos web por cobrar y por preparar (null = no cargó / sin permiso). */
+  pedidosWeb: ResumenPedidosWeb | null = null;
   cajaAbierta: boolean | null = null;
   cajaNombre = '';
   turnoDesde = '';
@@ -237,6 +242,7 @@ export class DashboardComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly fiscal = inject(FiscalEstadoService);
   private readonly reportes = inject(ReportesService);
+  private readonly pedidos = inject(PedidoAdminService);
 
   constructor(
     private readonly authService: AuthService,
@@ -266,6 +272,7 @@ export class DashboardComponent implements OnInit {
     this.veInventario = puede(ROLES_INVENTARIO);
     this.veStock = puede(ROLES_STOCK);
     this.veFiscalPanel = puede(ROLES_FISCAL_PANEL);
+    this.vePedidos = puede(ROLES_PEDIDOS);
 
     const todos: { acceso: Acceso; roles: string[] }[] = [
       {
@@ -285,6 +292,20 @@ export class DashboardComponent implements OnInit {
         roles: ROLES_VENTAS,
       },
     ];
+    // El acceso a los pedidos web solo aparece si hay alguno por atender.
+    if (this.pedidosWeb?.total) {
+      const n = this.pedidosWeb.total;
+      todos.unshift({
+        acceso: {
+          titulo: 'Pedidos web',
+          desc: n === 1 ? '1 por atender' : `${n} por atender`,
+          ruta: `${RUTA}/pedidos`,
+          icono: 'bi-bag-check',
+          tono: 'marca',
+        },
+        roles: ROLES_PEDIDOS,
+      });
+    }
     this.accesos = todos.filter((a) => puede(a.roles)).map((a) => a.acceso);
   }
 
@@ -343,6 +364,22 @@ export class DashboardComponent implements OnInit {
         detalle: 'Pendientes de envío o con error',
         accion: 'Revisar',
         ruta: `${RUTA}/doc`,
+      });
+    }
+
+    if (this.vePedidos && this.pedidosWeb?.total) {
+      const { pendientes, pagados, total } = this.pedidosWeb;
+      const partes: string[] = [];
+      if (pagados) partes.push(pagados === 1 ? '1 pagado, a preparar' : `${pagados} pagados, a preparar`);
+      if (pendientes) partes.push(pendientes === 1 ? '1 por cobrar' : `${pendientes} por cobrar`);
+      filas.push({
+        id: 'pedidos-web',
+        tono: 'aviso',
+        etiqueta: 'Pedidos',
+        texto: total === 1 ? '1 pedido web por preparar' : `${total} pedidos web por preparar`,
+        detalle: partes.join(' · '),
+        accion: 'Ver',
+        ruta: `${RUTA}/pedidos`,
       });
     }
 
@@ -461,6 +498,7 @@ export class DashboardComponent implements OnInit {
       this.sinStock != null ||
       this.bajoStock != null ||
       this.cpeAtencion != null ||
+      this.pedidosWeb != null ||
       this.cxcVencidoCuentas != null ||
       this.fiscal.estado() != null
     );
@@ -484,6 +522,7 @@ export class DashboardComponent implements OnInit {
     forkJoin({
       inv: sinPermiso(this.veStock, () => this.inventario.resumen()),
       cpe: sinPermiso(this.veDocumentos, () => this.comprobantes.monitorAtencion()),
+      pedidos: sinPermiso(this.vePedidos, () => this.pedidos.porPreparar()),
       caja: sinPermiso(this.veCaja, () => this.caja.sesion()),
       hoy: sinPermiso(this.veReportes, () => reporte('diario')),
       semana: sinPermiso(this.veReportes, () => reporte('semana')),
@@ -497,10 +536,12 @@ export class DashboardComponent implements OnInit {
       ),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(({ inv, cpe, caja, hoy, semana, hora, cxc }) => {
+      .subscribe(({ inv, cpe, pedidos, caja, hoy, semana, hora, cxc }) => {
         this.sinStock = inv?.sin_stock ?? null;
         this.bajoStock = inv?.bajo_stock ?? null;
         this.cpeAtencion = cpe?.total ?? null;
+        this.pedidosWeb = pedidos;
+        this.aplicarSesion(); // vuelve a armar los accesos: «Pedidos web» aparece si hay alguno
         this.aplicarCaja(caja);
         this.aplicarVentasHoy(hoy);
         this.aplicarSemana(semana);

@@ -1,0 +1,13 @@
+<nav class="bn" aria-label="Navegación principal">
+  @for (e of entradas; track e.ruta) {
+    <a class="bn__item" [routerLink]="e.ruta" routerLinkActive="bn__item--activo"
+       [routerLinkActiveOptions]="{ exact: e.exacta }" ariaCurrentWhenActive="page">
+      <i class="bi" [ngClass]="e.icono" aria-hidden="true"></i>
+      <span>{{ e.etiqueta }}</span>
+    </a>
+  }
+  <button type="button" class="bn__item bn__item--menu" aria-label="Abrir el menú" (click)="menu.emit()">
+    <i class="bi bi-list" aria-hidden="true"></i>
+    <span>Menú</span>
+  </button>
+</nav>

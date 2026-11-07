@@ -78,6 +78,14 @@ describe('PaletaComandosComponent', () => {
     expect(el().querySelector('.pc__vacio')).not.toBeNull();
   });
 
+  it('encuentra «Pedidos web» por sus sinónimos (pedidos, tienda, web)', async () => {
+    await abrir();
+    for (const palabra of ['pedidos', 'tienda', 'web']) {
+      escribir(palabra);
+      expect(etiquetas()).toContain('Pedidos web');
+    }
+  });
+
   it('solo muestra las pantallas a las que el rol tiene acceso', async () => {
     permitido = (roles) => roles.includes('caja');
     await abrir();

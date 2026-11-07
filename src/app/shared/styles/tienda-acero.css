@@ -1,0 +1,78 @@
+/* ===========================================================================
+   Tienda · «Acero y oro»
+
+   La tienda comparte la identidad del panel: grafito cálido + oro mate del
+   logo. Los tokens --t-* están en tokens.css y tema-oscuro.css. Este archivo
+   solo cubre lo que NO sale de --t-*: la capa expresiva (--x-*, stickers,
+   cinta del ticker) y el foco/enlaces globales, acotado a la tienda (.tienda)
+   para que el login y el panel no cambien.
+   =========================================================================== */
+
+.tienda {
+  /* Foco, enlaces y selección en oro (texto oro oscuro sobre claro) */
+  --hs-foco: #8a6f3c;
+  --hs-enlace: #8a6f3c;
+  --hs-enlace-hover: #6e5730;
+  --hs-seleccion: rgba(184, 151, 90, 0.28);
+
+  /* La rampa viva pasa a oro, plata y los estados de la marca */
+  --x-coral: #d4b878;
+  --x-ambar: #b8975a;
+  --x-amarillo: #e9d6a4;
+  --x-lima: #d4b878;
+  --x-menta: #7fd39a;
+  --x-cian: #a9c4d9;
+  --x-azul: #a9c4d9;
+  --x-violeta: #d4b878;
+  --x-rosa: #e9d6a4;
+  --x-tinta: #1f201f;
+
+  /* Lienzo (hero, ticker, pie): grafito del panel en lugar de negro café */
+  --x-lienzo: #1f201f;
+  --x-lienzo-2: #262726;
+  --x-lienzo-3: #2c2d29;
+  --x-lienzo-4: #3d3e38;
+
+  /* Stickers: tintes de la marca, sin pasteles de colores */
+  --x-sticker-rosa: #f3ecdc;
+  --x-sticker-naranja: #e8ddbf;
+  --x-sticker-limon: #f3ecdc;
+  --x-sticker-menta: #e8f4ea;
+  --x-sticker-cielo: #eef3f7;
+  --x-sticker-lila: #f3ecdc;
+  --x-sticker-lima: #e8ddbf;
+
+  --x-r-tarjeta: 16px;
+  --x-r-grande: 20px;
+}
+
+/* Todo recto y plano: nada inclinado, sin sombras ornamentales */
+.tienda .x-sticker {
+  rotate: 0deg;
+  box-shadow: none;
+  border: 1px solid rgba(31, 32, 31, 0.08);
+}
+
+.tienda .x-boton::before { display: none; }
+.tienda .x-boton,
+.tienda .x-boton--cta,
+.tienda .x-boton--vivo { --b-sombra: 0 0 0 0 transparent; }
+
+/* Cinta del ticker: grafito con letra oro claro (antes verde lima) */
+.tienda .x-banda-lima {
+  background: #2b2c2b;
+  color: #e9d6a4;
+}
+
+:root[data-tema='oscuro'] .tienda .x-banda-lima {
+  background: #1f201f;
+  border-block: 1px solid #3d3e38;
+}
+
+/* Foco y enlaces en tema oscuro: oro claro */
+:root[data-tema='oscuro'] .tienda {
+  --hs-foco: #e9d6a4;
+  --hs-enlace: #e9d6a4;
+  --hs-enlace-hover: #f3ecdc;
+  --hs-seleccion: rgba(212, 184, 120, 0.34);
+}

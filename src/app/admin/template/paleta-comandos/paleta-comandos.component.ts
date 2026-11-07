@@ -44,6 +44,7 @@ const PALABRAS: Record<string, string> = {
   '/dashboard/mantenimiento/ventas-historial': 'ventas anteriores historial buscar comprobante reimprimir',
   '/dashboard/mantenimiento/caja-sesion': 'turno efectivo apertura cierre caja dinero',
   '/dashboard/mantenimiento/arqueo-caja': 'arqueo cuadre conteo billetes cierre',
+  '/dashboard/mantenimiento/pedidos': 'pedidos tienda web online ecommerce cobrar preparar envio entrega',
   '/dashboard/mantenimiento/cotizaciones': 'proforma presupuesto cotizar',
   '/dashboard/mantenimiento/doc': 'documentos boletas facturas notas credito sunat cpe comprobantes',
   '/dashboard/mantenimiento/guias-remision': 'guia remision traslado transporte gre',

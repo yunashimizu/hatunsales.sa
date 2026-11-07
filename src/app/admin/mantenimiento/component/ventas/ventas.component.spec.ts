@@ -1072,4 +1072,11 @@ describe('VentasComponent', () => {
       expect(component.lineas.map((l) => l.id_producto)).toEqual([1]);
     });
   });
+
+  it('irACobro lleva el bloque de cobro a la vista (barra «Total a pagar» del teléfono)', () => {
+    const scrollIntoView = vi.fn();
+    (component as unknown as { cobro: unknown }).cobro = { nativeElement: { scrollIntoView } };
+    component.irACobro();
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+  });
 });

@@ -323,7 +323,7 @@
 
 .agregar:hover:not(:disabled) {
   background: var(--t-primario);
-  color: #fff;
+  color: var(--t-primario-on);
   box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--t-primario) 80%, transparent);
 }
 

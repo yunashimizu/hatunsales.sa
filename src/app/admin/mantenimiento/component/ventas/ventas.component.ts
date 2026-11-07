@@ -83,6 +83,7 @@ interface EscaneoPendiente {
 export class VentasComponent implements OnInit, OnDestroy {
 
   @ViewChild('inputProducto') private inputProducto?: ElementRef<HTMLInputElement>;
+  @ViewChild('cobro') private cobro?: ElementRef<HTMLElement>;
 
   private readonly cdr = inject(ChangeDetectorRef);
   /** Pitidos del lector (ok / error / aviso) con interruptor junto al campo. */
@@ -1546,6 +1547,13 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   get restantePago(): number {
     return Math.max(0, Math.round((this.total - this.sumaPagos + Number.EPSILON) * 100) / 100);
+  }
+
+  /** Barra «Total a pagar» del teléfono: lleva al bloque de cobro y deja el primer monto vacío listo para escribir. */
+  irACobro(): void {
+    this.cobro?.nativeElement.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    const monto = document.getElementById('pv-monto-0') as HTMLInputElement | null;
+    if (monto && !monto.value) monto.focus({ preventScroll: true });
   }
 
   get pagoCubierto(): boolean {

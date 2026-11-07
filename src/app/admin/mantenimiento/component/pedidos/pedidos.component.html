@@ -1,0 +1,313 @@
+<div class="adm-pagina" [class.adm-pagina--con-ficha]="panelAbierto">
+
+  <!-- Cabecera de página -->
+  <header class="adm-cabecera adm-cabecera--barra">
+    <div class="adm-cabecera__principal">
+      <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-bag-check"></i></span>
+      <div class="ped-cabecera__texto">
+        <span class="adm-cabecera__eyebrow">Hoy</span>
+        <h1 class="adm-cabecera__titulo">Pedidos web</h1>
+        <p class="adm-cabecera__sub">
+          Pedidos de la tienda en línea: confirme el pago, prepárelos y avance su estado hasta la entrega.
+        </p>
+      </div>
+    </div>
+    <div class="adm-acciones">
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
+        Actualizar
+      </button>
+    </div>
+  </header>
+
+  <!-- Filtros -->
+  <section class="adm-filtros" aria-label="Buscar pedidos">
+    <div class="adm-campo adm-campo--grande">
+      <label class="adm-etiqueta" for="ped-buscar">Buscar</label>
+      <div class="adm-input-icono">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input id="ped-buscar" class="adm-input" type="search" autocomplete="off"
+               placeholder="Código, cliente o documento" [(ngModel)]="filtro">
+      </div>
+    </div>
+
+    <button type="button" class="adm-btn adm-btn--fantasma adm-btn--sm ped-limpiar" *ngIf="hayFiltros" (click)="limpiarFiltros()">
+      <i class="bi bi-x-circle" aria-hidden="true"></i> Limpiar
+    </button>
+
+    <p class="adm-filtros__resumen ped-resumen">
+      <i class="bi bi-funnel" aria-hidden="true"></i>
+      <strong class="adm-tabular">{{ pedidosFiltrados.length }}</strong> de {{ pedidos.length }}
+    </p>
+  </section>
+
+  <!-- Listado -->
+  <section class="adm-tarjeta adm-tarjeta--acento" aria-labelledby="ped-lista-titulo">
+    <div class="adm-tarjeta__cabecera">
+      <div class="adm-tarjeta__encabezado">
+        <h2 class="adm-tarjeta__titulo" id="ped-lista-titulo">
+          <i class="bi bi-list-ul"></i> Pedidos
+          <span class="adm-insignia adm-insignia--neutra">{{ pedidosFiltrados.length }}</span>
+        </h2>
+        <p class="adm-tarjeta__sub">Toque un pedido para ver su detalle y pasarlo al siguiente paso.</p>
+      </div>
+    </div>
+
+    <!-- Atajos por estado, con sus conteos -->
+    <div class="ped-chips" role="group" aria-label="Filtrar por estado" *ngIf="pedidos.length">
+      <button type="button" class="adm-chip" [class.adm-chip--activo]="filtroEstado === ''"
+              [attr.aria-pressed]="filtroEstado === ''" (click)="elegirEstado('')">
+        Todos <span class="ped-chip__n">{{ pedidos.length }}</span>
+      </button>
+      <button type="button" class="adm-chip" *ngFor="let e of chips"
+              [class.adm-chip--activo]="filtroEstado === e" [attr.aria-pressed]="filtroEstado === e"
+              (click)="elegirEstado(e)">
+        {{ meta[e].chip }} <span class="ped-chip__n">{{ conteo(e) }}</span>
+      </button>
+    </div>
+
+    <div class="adm-esqueletos" *ngIf="cargando && !pedidos.length" aria-busy="true" aria-label="Cargando pedidos">
+      <div class="ped-esqueleto-fila" *ngFor="let n of [1,2,3,4,5]">
+        <span class="adm-esqueleto ped-esqueleto-codigo"></span>
+        <span class="ped-esqueleto-texto">
+          <span class="adm-esqueleto adm-esqueleto--titulo"></span>
+          <span class="adm-esqueleto adm-esqueleto--linea"></span>
+        </span>
+        <span class="adm-esqueleto ped-esqueleto-cifra"></span>
+      </div>
+    </div>
+
+    <!-- Error de carga (la lista no llegó) -->
+    <div class="adm-vacio adm-vacio--error" *ngIf="errorCarga && !cargando && !pedidos.length" role="alert">
+      <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">No se pudieron cargar los pedidos</div>
+      <p>Revise la conexión e intente de nuevo.</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+      </button>
+    </div>
+
+    <!-- Aún no hay pedidos -->
+    <div class="adm-vacio" *ngIf="!cargando && !errorCarga && !pedidos.length">
+      <div class="adm-vacio__icono"><i class="bi bi-bag"></i></div>
+      <div class="adm-vacio__titulo">Todavía no hay pedidos web</div>
+      <p>Cuando un cliente compre en la tienda en línea, su pedido aparecerá aquí para cobrarlo, prepararlo y enviarlo.</p>
+      <a class="adm-btn adm-btn--suave" routerLink="/store">
+        <i class="bi bi-shop" aria-hidden="true"></i> Ver la tienda online
+      </a>
+    </div>
+
+    <!-- Hay pedidos pero el filtro no deja ninguno -->
+    <div class="adm-vacio adm-vacio--compacto" *ngIf="!cargando && pedidos.length && !pedidosFiltrados.length">
+      <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-search"></i></div>
+      <div class="adm-vacio__titulo">
+        {{ filtro.trim() ? 'Ningún pedido coincide con la búsqueda' : 'No hay pedidos ' + meta[filtroEstado || 'pendiente'].chip.toLowerCase() }}
+      </div>
+      <p>{{ filtro.trim() ? 'Pruebe con el código, el nombre o el documento del cliente.' : 'Los pedidos aparecen aquí cuando pasan a ese estado.' }}</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="limpiarFiltros()">
+        <i class="bi bi-x-lg" aria-hidden="true"></i> {{ filtro.trim() ? 'Limpiar búsqueda' : 'Ver todos los pedidos' }}
+      </button>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="pedidosFiltrados.length">
+      <table class="adm-tabla adm-tabla--adaptable adm-tabla--adaptable-tablet ped-tabla">
+        <thead>
+          <tr>
+            <th>Pedido</th>
+            <th class="ped-col-sec">Fecha</th>
+            <th>Cliente</th>
+            <th class="adm-num ped-col-sec">Ítems</th>
+            <th class="adm-num">Total</th>
+            <th class="ped-col-sec">Pago</th>
+            <th>Estado</th>
+            <th class="adm-centro">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of pedidosFiltrados; trackBy: identificar" class="ped-fila" (click)="abrir(p)"
+              [class.adm-recien-creado]="idDestacado === p.id_pedido"
+              [class.adm-fila--seleccionada]="panelAbierto && seleccionado?.id_pedido === p.id_pedido">
+            <td data-etiqueta="Pedido" class="ped-td-codigo">
+              <div class="adm-tabla__principal ped-codigo">{{ p.codigo }}</div>
+              <div class="adm-tabla__secundario" *ngIf="etiquetaComprobante(p)">{{ etiquetaComprobante(p) }}</div>
+            </td>
+            <td data-etiqueta="Fecha" class="ped-col-sec ped-fecha">{{ p.creado_en | date:'dd/MM HH:mm' }}</td>
+            <td data-etiqueta="Cliente" class="ped-td-cliente">
+              <div class="ped-celda">
+                <div class="adm-tabla__principal ped-cliente">{{ cliente(p) }}</div>
+                <div class="adm-tabla__secundario" *ngIf="p.nombre_receptor && p.documento_receptor">{{ p.documento_receptor }}</div>
+              </div>
+            </td>
+            <td data-etiqueta="Ítems" class="adm-num ped-col-sec"><span class="adm-tabular">{{ p.cantidad_items }}</span></td>
+            <td data-etiqueta="Total" class="adm-num"><span class="adm-tabular ped-total">S/ {{ p.total | number:'1.2-2' }}</span></td>
+            <td data-etiqueta="Pago" class="ped-col-sec">
+              <span *ngIf="p.metodo_pago; else pedSinDato">{{ p.metodo_pago }}</span>
+            </td>
+            <td data-etiqueta="Estado">
+              <span class="adm-insignia adm-insignia--punto" [ngClass]="'adm-insignia--' + meta[p.estado].tono">
+                {{ meta[p.estado].etiqueta }}
+              </span>
+            </td>
+            <td data-etiqueta="Acciones" class="adm-centro">
+              <div class="adm-tabla__acciones">
+                <button type="button" class="adm-btn-icono adm-btn-icono--primario" (click)="abrir(p); $event.stopPropagation()"
+                        title="Ver pedido" [attr.aria-label]="'Ver el pedido ' + p.codigo">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #pedSinDato><span class="ped-sin-dato">—</span></ng-template>
+  </section>
+</div>
+
+<!-- Ficha del pedido (en ≥ 1200 px anclada sin velo; debajo, cajón con velo) -->
+<div class="adm-velo adm-velo--ficha" *ngIf="panelAbierto" (click)="cerrarPanel()"></div>
+
+<aside class="adm-panel adm-panel--ancho adm-panel--ficha ped-ficha" *ngIf="panelAbierto && seleccionado as p" role="dialog"
+       aria-labelledby="ped-ficha-titulo">
+  <div class="adm-panel__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <div class="ped-ficha__titulo-fila">
+        <h2 class="adm-tarjeta__titulo" id="ped-ficha-titulo">
+          <i class="bi" [ngClass]="meta[p.estado].icono"></i> {{ p.codigo }}
+        </h2>
+        <span class="adm-insignia adm-insignia--punto adm-insignia--sm" [ngClass]="'adm-insignia--' + meta[p.estado].tono">
+          {{ meta[p.estado].etiqueta }}
+        </span>
+      </div>
+      <p class="adm-panel__sub">{{ p.creado_en | date:'dd/MM HH:mm' }} · {{ cliente(p) }}</p>
+    </div>
+    <button type="button" class="adm-btn-icono" (click)="cerrarPanel()" title="Cerrar" aria-label="Cerrar el pedido">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="adm-panel__cuerpo ped-ficha__cuerpo">
+
+    <!-- Siguiente paso -->
+    <section class="ped-paso" *ngIf="p.estado === 'pendiente'" aria-label="Confirmar el pago">
+      <h3 class="adm-bloque__titulo"><i class="bi bi-cash-coin"></i> Falta cobrar este pedido</h3>
+      <p class="adm-ayuda">
+        Si el cliente ya pagó por transferencia, Yape o contra entrega, confirme el pago: queda registrado el cobro y se genera la venta.
+      </p>
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="ped-referencia">
+          Referencia del pago <span class="adm-etiqueta__opcional">opcional</span>
+        </label>
+        <input id="ped-referencia" class="adm-input" type="text" maxlength="120" autocomplete="off"
+               [(ngModel)]="referencia" placeholder="N.º de operación o nota">
+      </div>
+    </section>
+
+    <section class="ped-paso" *ngIf="siguiente" aria-label="Avanzar el pedido">
+      <h3 class="adm-bloque__titulo"><i class="bi" [ngClass]="meta[siguiente].icono"></i> Siguiente paso: {{ meta[siguiente].etiqueta.toLowerCase() }}</h3>
+      <div class="adm-campo">
+        <label class="adm-etiqueta" for="ped-comentario">
+          Comentario <span class="adm-etiqueta__opcional">opcional</span>
+        </label>
+        <input id="ped-comentario" class="adm-input" type="text" maxlength="250" autocomplete="off"
+               [(ngModel)]="comentario" placeholder="Queda en el historial del pedido">
+      </div>
+    </section>
+
+    <div class="adm-aviso adm-aviso--neutro adm-aviso--compacto" *ngIf="esFinal" role="status">
+      <i class="bi" [ngClass]="p.estado === 'entregado' ? 'bi-bag-check' : 'bi-x-circle'" aria-hidden="true"></i>
+      <span>{{ p.estado === 'entregado' ? 'Pedido entregado: ya no cambia de estado.' : 'Pedido cancelado: ya no cambia de estado.' }}</span>
+    </div>
+
+    <!-- Cliente y entrega -->
+    <section aria-label="Cliente y entrega">
+      <h3 class="adm-bloque__titulo"><i class="bi bi-person"></i> Cliente y entrega</h3>
+      <dl class="adm-datos adm-datos--columna ped-datos">
+        <div class="adm-dato">
+          <dt class="adm-dato__etiqueta">Cliente</dt>
+          <dd class="adm-dato__valor">{{ cliente(p) }}<span class="ped-dato__extra" *ngIf="p.nombre_receptor && p.documento_receptor"> · {{ p.documento_receptor }}</span></dd>
+        </div>
+        <div class="adm-dato" *ngIf="etiquetaComprobante(p)">
+          <dt class="adm-dato__etiqueta">Comprobante</dt>
+          <dd class="adm-dato__valor">{{ etiquetaComprobante(p) }}</dd>
+        </div>
+        <div class="adm-dato" *ngIf="p.metodo_envio">
+          <dt class="adm-dato__etiqueta">Envío</dt>
+          <dd class="adm-dato__valor">{{ p.metodo_envio }}</dd>
+        </div>
+        <div class="adm-dato" *ngIf="p.direccion_envio">
+          <dt class="adm-dato__etiqueta">Dirección</dt>
+          <dd class="adm-dato__valor">{{ p.direccion_envio }}</dd>
+        </div>
+        <div class="adm-dato" *ngIf="p.metodo_pago">
+          <dt class="adm-dato__etiqueta">Forma de pago</dt>
+          <dd class="adm-dato__valor">{{ p.metodo_pago }}</dd>
+        </div>
+        <div class="adm-dato" *ngIf="p.notas">
+          <dt class="adm-dato__etiqueta">Notas del cliente</dt>
+          <dd class="adm-dato__valor">{{ p.notas }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Productos -->
+    <section aria-label="Productos del pedido">
+      <h3 class="adm-bloque__titulo">
+        <i class="bi bi-box-seam"></i> Productos
+        <span class="adm-insignia adm-insignia--neutra adm-insignia--sm">{{ p.cantidad_items }}</span>
+      </h3>
+      <ul class="ped-items">
+        <li class="ped-item" *ngFor="let it of p.items; trackBy: identificarItem">
+          <span class="ped-item__nombre">{{ it.nombre }}
+            <small>{{ it.cantidad | number:'1.0-2' }} × S/ {{ it.precio_unitario | number:'1.2-2' }}</small>
+          </span>
+          <span class="ped-item__total adm-tabular">S/ {{ it.total | number:'1.2-2' }}</span>
+        </li>
+      </ul>
+      <ul class="adm-resumen ped-totales">
+        <li class="adm-resumen__fila"><span>Subtotal</span><span>S/ {{ p.subtotal | number:'1.2-2' }}</span></li>
+        <li class="adm-resumen__fila" *ngIf="p.descuento > 0"><span>Descuento</span><span>− S/ {{ p.descuento | number:'1.2-2' }}</span></li>
+        <li class="adm-resumen__fila"><span>IGV</span><span>S/ {{ p.igv | number:'1.2-2' }}</span></li>
+        <li class="adm-resumen__fila"><span>Envío</span><span>{{ p.costo_envio > 0 ? 'S/ ' + (p.costo_envio | number:'1.2-2') : 'Gratis' }}</span></li>
+        <li class="adm-resumen__fila adm-resumen__fila--total"><span>Total</span><span>S/ {{ p.total | number:'1.2-2' }}</span></li>
+      </ul>
+    </section>
+
+    <!-- Historial -->
+    <section aria-label="Historial del pedido">
+      <h3 class="adm-bloque__titulo"><i class="bi bi-clock-history"></i> Historial</h3>
+      <ol class="ped-historial" *ngIf="historialOrdenado(p).length; else pedSinHistorial">
+        <li class="ped-historial__paso" *ngFor="let h of historialOrdenado(p)" [ngClass]="'ped-historial__paso--' + meta[h.estado].tono">
+          <span class="ped-historial__punto" aria-hidden="true"></span>
+          <span class="ped-historial__texto">
+            <strong>{{ meta[h.estado].etiqueta }}</strong>
+            <small *ngIf="h.comentario">{{ h.comentario }}</small>
+          </span>
+          <time class="ped-historial__fecha adm-tabular">{{ h.fecha | date:'dd/MM HH:mm' }}</time>
+        </li>
+      </ol>
+      <ng-template #pedSinHistorial><p class="adm-ayuda">Todavía no hay movimientos registrados.</p></ng-template>
+    </section>
+
+    <!-- Cancelar: aparte del paso principal para no pulsarlo por error -->
+    <section class="ped-cancelar" *ngIf="cancelable" aria-label="Cancelar el pedido">
+      <p class="adm-ayuda">¿El cliente ya no lo quiere o no se puede atender? Se devuelve el stock reservado.</p>
+      <button type="button" class="adm-btn adm-btn--peligro-suave" (click)="cancelar()" [disabled]="procesando">
+        <i class="bi bi-x-circle" aria-hidden="true"></i> Cancelar pedido
+      </button>
+    </section>
+  </div>
+
+  <div class="adm-panel__pie ped-ficha__pie">
+    <button type="button" class="adm-btn adm-btn--suave" *ngIf="esFinal" (click)="cerrarPanel()">Cerrar</button>
+
+    <button type="button" class="adm-btn adm-btn--primario ped-principal" *ngIf="p.estado === 'pendiente'" (click)="confirmarPago()" [disabled]="procesando">
+      <i class="bi" [ngClass]="procesando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
+      {{ procesando ? 'Confirmando…' : 'Confirmar pago' }}
+    </button>
+    <button type="button" class="adm-btn adm-btn--primario ped-principal" *ngIf="siguiente" (click)="avanzar()" [disabled]="procesando">
+      <i class="bi" [ngClass]="procesando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-right'" aria-hidden="true"></i>
+      {{ procesando ? 'Guardando…' : textoAvanzar }}
+    </button>
+  </div>
+</aside>

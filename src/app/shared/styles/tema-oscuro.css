@@ -8,7 +8,7 @@
    sin tocar su CSS.
 
    Familias
-   - Tienda (--t-*)  → carbón cálido (#121110 → #232120), texto crema.
+   - Tienda (--t-*)  → mismo grafito cálido que el panel, oro #d4b878, texto crema.
    - Panel (--adm-*) → grafito cálido «Acero y oro» (#161716 → #262726),
      texto crema, primario invertido y oro #d4b878.
    - Rellenos con texto blanco (botones índigo, CTA naranja) conservan su
@@ -31,42 +31,44 @@
   --hs-enlace-hover: #bfdbfe;
   --hs-seleccion: rgba(96, 165, 250, 0.38);
 
-  /* ── Tienda: carbón cálido ───────────────────────────────────── */
-  --t-fondo: #121110;
-  --t-superficie: #1b1a18;
-  --t-superficie-2: #232120;
-  --t-borde: #33302c;
-  --t-borde-fuerte: #4a4640;
+  /* ── Tienda: grafito cálido «Acero y oro» (igual que el panel) ── */
+  --t-fondo: #161716;
+  --t-superficie: #1f201f;
+  --t-superficie-2: #262726;
+  --t-borde: #2c2d29;
+  --t-borde-fuerte: #3d3e38;
   --t-imagen-fondo: #f1eee7;
-  --t-vidrio: rgba(18, 17, 16, 0.76);
+  --t-vidrio: rgba(22, 23, 22, 0.78);
 
-  --t-texto: #f4f1ea;
-  --t-texto-suave: #b9b3a8;
-  --t-texto-tenue: #99938a;
+  --t-texto: #eceae4;
+  --t-texto-suave: #b5b2a9;
+  --t-texto-tenue: #8c8a82;
 
-  --t-primario: #2563eb;
-  --t-primario-osc: #2563eb;
-  --t-primario-claro: #172554;
-  --t-primario-texto: #93c5fd;
+  /* Acción invertida: oro claro con letra grafito */
+  --t-primario: #d4b878;
+  --t-primario-osc: #e9d6a4;
+  --t-primario-claro: #3a3225;
+  --t-primario-texto: #e9d6a4;
+  --t-primario-on: #1f201f;
 
-  --t-acento: #fb923c;
-  --t-acento-texto: #ff9a5c;
-  --t-cta: #c2410c;
-  --t-cta-hover: #a8380a;
-  --t-cta-texto: #ffffff;
+  --t-acento: #d4b878;
+  --t-acento-texto: #e9d6a4;
+  --t-cta: #d4b878;
+  --t-cta-hover: #e9d6a4;
+  --t-cta-texto: #1f201f;
 
-  --t-exito: #34d399;
-  --t-exito-texto: #34d399;
-  --t-exito-claro: rgba(16, 185, 129, 0.14);
-  --t-aviso: #fbbf24;
-  --t-aviso-texto: #fbbf24;
-  --t-aviso-claro: rgba(245, 158, 11, 0.14);
-  --t-peligro: #f87171;
-  --t-peligro-texto: #f87171;
-  --t-peligro-claro: rgba(239, 68, 68, 0.14);
-  --t-info-texto: #7dd3fc;
-  --t-info-claro: rgba(14, 165, 233, 0.14);
-  --t-estrella: #fbbf24;
+  --t-exito: #2e9a4c;
+  --t-exito-texto: #7fd39a;
+  --t-exito-claro: rgba(46, 154, 76, 0.16);
+  --t-aviso: #c98a2e;
+  --t-aviso-texto: #e4b96e;
+  --t-aviso-claro: rgba(201, 138, 46, 0.16);
+  --t-peligro: #d64545;
+  --t-peligro-texto: #f08a80;
+  --t-peligro-claro: rgba(214, 69, 69, 0.16);
+  --t-info-texto: #a9c4d9;
+  --t-info-claro: rgba(111, 147, 176, 0.16);
+  --t-estrella: #d4b878;
 
   --t-sombra-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.35);
   --t-sombra-md: 0 6px 16px rgba(0, 0, 0, 0.42), 0 2px 4px rgba(0, 0, 0, 0.3);

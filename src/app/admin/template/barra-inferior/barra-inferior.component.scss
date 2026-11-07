@@ -1,0 +1,64 @@
+/* Barra inferior del teléfono (R16i): solo existe a ≤ 900 px, el mismo corte que el cajón del menú. */
+:host { display: none; }
+
+@media (max-width: 900px) {
+  :host {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 80; /* sobre el contenido; bajo el velo (90) y el cajón del menú */
+  }
+
+  .bn {
+    display: flex;
+    background: var(--adm-superficie);
+    border-top: 1px solid var(--adm-borde);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .bn__item {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 2px 4px;
+    font: 600 11px/1.1 var(--adm-fuente);
+    letter-spacing: 0;
+    color: var(--adm-texto-suave);
+    text-decoration: none;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .bn__item i { font-size: 22px; line-height: 1; }
+  .bn__item span { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bn__item:active { background: var(--adm-superficie-2); }
+  .bn__item:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: -3px; }
+
+  /* Activo: icono y texto en oro de texto, con un punto dorado de 4 px encima (sin fondo) */
+  .bn__item--activo { color: var(--adm-marca-texto); }
+  .bn__item--activo::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    margin-left: -2px;
+    border-radius: 50%;
+    background: var(--adm-marca);
+  }
+
+  @media (max-width: 380px) {
+    .bn__item { font-size: 10.5px; }
+  }
+}

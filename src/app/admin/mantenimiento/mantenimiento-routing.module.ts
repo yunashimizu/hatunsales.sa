@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { ROLES_PEDIDOS_WEB } from '../../auth/roles.constants';
 import { roleGuard } from '../../guard/role.guard';
 
 /**
@@ -141,6 +142,17 @@ const routes: Routes = [
     },
     loadComponent: () =>
       import('./component/ventas-historial/ventas-historial.component').then((c) => c.VentasHistorialComponent),
+  },
+  {
+    path: 'pedidos',
+    canActivate: [roleGuard],
+    data: {
+      roles: ROLES_PEDIDOS_WEB,
+      title: 'Pedidos web',
+      subtitle: 'Cobre, prepare y entregue los pedidos de la tienda en línea.',
+      icon: 'bi-bag-check',
+    },
+    loadComponent: () => import('./component/pedidos/pedidos.component').then((c) => c.PedidosComponent),
   },
   {
     path: 'cotizaciones',

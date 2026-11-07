@@ -663,7 +663,7 @@
 
 .boton-mega:hover {
   background: var(--t-primario);
-  color: #fff;
+  color: var(--t-primario-on);
 }
 
 .boton-mega:active {
@@ -734,7 +734,7 @@
 
 .mega-item:hover .mega-icono {
   background: var(--t-primario);
-  color: #fff;
+  color: var(--t-primario-on);
   rotate: -8deg;
 }
 
@@ -789,7 +789,7 @@
   min-height: 220px;
   padding: 20px;
   border-radius: 18px;
-  background: radial-gradient(120% 90% at 100% 0%, rgba(255, 125, 54, 0.4), transparent 60%), var(--x-lienzo);
+  background: radial-gradient(120% 90% at 100% 0%, rgba(184, 151, 90, 0.4), transparent 60%), var(--x-lienzo);
   color: var(--x-lienzo-texto);
   text-decoration: none;
   overflow: hidden;
