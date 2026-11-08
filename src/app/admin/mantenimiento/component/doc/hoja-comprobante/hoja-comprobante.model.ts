@@ -1,5 +1,5 @@
 import { ComprobanteDetalle } from '../../../../models/documentos.models';
-import { PreviewComprobante } from '../../../../models/admin.models';
+import { PagoDetalle, PreviewComprobante } from '../../../../models/admin.models';
 
 /**
  * Modelo de vista de la hoja del comprobante y sus adaptadores.
@@ -35,6 +35,8 @@ export interface HojaCliente {
   numDoc: string;
   nombre: string;
   direccion: string;
+  /** Correo del cliente (fila CORREO); vacío si no hay. */
+  email?: string;
 }
 
 export interface HojaReferencia {
@@ -109,6 +111,14 @@ export interface HojaComprobante {
   cuotas: HojaCuota[];
   medioPago: string | null;
   observaciones: string | null;
+  /** «T001-00000045»: guía de remisión relacionada (fila GUÍA DE REMISIÓN). */
+  guiaRemision: string | null;
+  /** Fila ATENDIDO POR. */
+  atendidoPor: string | null;
+  /** Fila SUCURSAL. */
+  sucursal: string | null;
+  /** Solo si SUNAT lo aceptó; `fecha` = dd/mm/aaaa hh:mm de la constancia si se conoce. */
+  aceptado: { fecha: string | null } | null;
   ambiente: 'beta' | 'produccion' | null;
   /** Aviso de estado (ámbar), p. ej. «PENDIENTE DE ENVÍO A SUNAT». */
   aviso: string | null;
@@ -138,6 +148,12 @@ export interface OpcionesHojaDetalle {
 
 /** Texto de la marca de las pruebas en BETA (AVISO_BETA_PDF del PDF). */
 export const AVISO_BETA_HOJA = 'PRUEBA SUNAT BETA - SIN VALIDEZ TRIBUTARIA';
+
+/** Pie común de los documentos (MENSAJE_PIE_DOCUMENTO del back). */
+export const MENSAJE_PIE_HOJA = 'Gracias por su preferencia';
+
+/** Línea del estado aceptado (TEXTO_ACEPTADO_SUNAT del PDF). */
+export const TEXTO_ACEPTADO_HOJA = 'Aceptado por SUNAT';
 
 export const TITULOS: Record<TipoHoja, string> = {
   '01': 'FACTURA ELECTRÓNICA',
@@ -283,6 +299,39 @@ export function conSon(letras: string | null | undefined): string {
   return /^SON\b/i.test(texto) ? texto : `SON: ${texto}`;
 }
 
+/** «1 ítem» / «7 ítems» (`textoCantidadItems` del PDF). */
+export function textoCantidadItems(cantidadItems: number): string {
+  const n = Math.max(0, Math.trunc(Number(cantidadItems) || 0));
+  return `${n} ${n === 1 ? 'ítem' : 'ítems'}`;
+}
+
+/** Medio de pago con montos, recibido y vuelto (`describirMedioPago` del PDF). */
+export function describirMedioPago(pagos: PagoDetalle[] | null | undefined, simbolo = 'S/'): string {
+  const validos = (pagos ?? []).filter((p) => limpiar(p?.metodo));
+  if (!validos.length) return '';
+  const partes = validos.map((p) =>
+    Number(p.monto) > 0 ? `${limpiar(p.metodo)} ${simbolo} ${monto(Number(p.monto))}` : limpiar(p.metodo),
+  );
+  const recibido = validos.reduce((s, p) => s + (Number(p.monto_recibido) || 0), 0);
+  const vuelto = validos.reduce((s, p) => s + (Number(p.vuelto) || 0), 0);
+  if (recibido > 0) partes.push(`Recibido ${simbolo} ${monto(recibido)}`);
+  if (vuelto > 0) partes.push(`Vuelto ${simbolo} ${monto(vuelto)}`);
+  return partes.join(' · ');
+}
+
+/** Instante ISO a «dd/mm/aaaa hh:mm» en hora de Lima ('' si no se puede leer). */
+export function fechaHoraLima(valor: string | null | undefined): string {
+  if (!valor) return '';
+  const d = new Date(valor);
+  if (Number.isNaN(d.getTime())) return '';
+  const p: Record<string, string> = {};
+  for (const parte of new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d)) p[parte.type] = parte.value;
+  return `${p['day']}/${p['month']}/${p['year']} ${p['hour'] === '24' ? '00' : p['hour']}:${p['minute']}`;
+}
+
 /** Párrafos de un texto libre: respeta los saltos de línea que escribió el usuario. */
 export function parrafos(valor: string | null | undefined): string[] {
   return String(valor ?? '')
@@ -324,17 +373,20 @@ export function filasCliente(c: HojaCliente): FilaHoja[] {
   if (esConsumidorFinal(tipo, numero)) filas.push(['Documento', 'Sin documento']);
   else filas.push([TIPOS_DOCUMENTO[tipo] ?? 'Documento', numero]);
   if (limpiar(c.direccion)) filas.push(['Dirección', limpiar(c.direccion)]);
+  if (limpiar(c.email)) filas.push(['Correo', limpiar(c.email)]);
   return filas;
 }
 
-/** `filasDocumento` del PDF. */
+/** `filasDocumento` del PDF (la hora va en su propia fila, como en el PDF). */
 export function filasDocumento(h: HojaComprobante): FilaHoja[] {
-  const fecha = limpiar(h.fechaEmision);
-  const hora = limpiar(h.horaEmision);
-  const filas: FilaHoja[] = [['Fecha de emisión', hora ? `${fecha} ${hora}` : fecha]];
+  const filas: FilaHoja[] = [['Fecha de emisión', limpiar(h.fechaEmision)]];
+  if (limpiar(h.horaEmision)) filas.push(['Hora', limpiar(h.horaEmision)]);
   if (limpiar(h.fechaVencimiento)) filas.push(['Fecha de vencimiento', limpiar(h.fechaVencimiento)]);
   filas.push(['Moneda', h.moneda.nombre]);
   if (h.formaPago) filas.push(['Forma de pago', h.formaPago === 'Credito' ? 'Crédito' : 'Contado']);
+  if (limpiar(h.guiaRemision)) filas.push(['Guía de remisión', limpiar(h.guiaRemision)]);
+  if (limpiar(h.atendidoPor)) filas.push(['Atendido por', limpiar(h.atendidoPor)]);
+  if (limpiar(h.sucursal)) filas.push(['Sucursal', limpiar(h.sucursal)]);
   return filas;
 }
 
@@ -395,6 +447,11 @@ export interface VistaHoja {
   observaciones: string[];
   leyenda: string;
   pie: string;
+  /** «7 ítems» bajo la tabla ('' sin líneas). */
+  cantidadItems: string;
+  /** «Aceptado por SUNAT · 08/11/2026 14:36» o ''. */
+  aceptado: string;
+  mensajePie: string;
 }
 
 export function construirVista(h: HojaComprobante): VistaHoja {
@@ -440,6 +497,11 @@ export function construirVista(h: HojaComprobante): VistaHoja {
     observaciones: parrafos(h.observaciones),
     leyenda: leyendaHoja(h.tipo, h.titulo),
     pie: `${h.titulo} ${h.serieNumero} · ${razon}`,
+    cantidadItems: h.items.length ? textoCantidadItems(h.items.length) : '',
+    aceptado: h.aceptado
+      ? (limpiar(h.aceptado.fecha) ? `${TEXTO_ACEPTADO_HOJA} · ${limpiar(h.aceptado.fecha)}` : TEXTO_ACEPTADO_HOJA)
+      : '',
+    mensajePie: MENSAJE_PIE_HOJA,
   };
 }
 
@@ -516,6 +578,7 @@ export function hojaDesdePreview(
       numDoc: limpiar(p.receptor?.numero_documento),
       nombre: limpiar(p.receptor?.denominacion),
       direccion: limpiar(p.receptor?.direccion),
+      email: limpiar(p.receptor?.email),
     },
     referencia: nota
       ? { documento: limpiar(nota.documento_modificado), motivo: limpiar(nota.motivo_texto), sustento: '' }
@@ -542,13 +605,25 @@ export function hojaDesdePreview(
     importeEnLetras: limpiar(p.importe_en_letras),
     formaPago: p.forma_pago ?? null,
     cuotas: [],
-    medioPago: textoONulo(opciones.medioPago),
+    medioPago: textoONulo(opciones.medioPago) ?? textoONulo(describirMedioPago(p.pagos_detalle, monedaDe(p.moneda).simbolo)),
     observaciones: textoONulo(p.observaciones),
+    guiaRemision: null,
+    atendidoPor: textoONulo(p.atendido_por),
+    sucursal: null,
+    aceptado: null,
     ambiente: ambienteDe(p.ambiente_fiscal),
     aviso: null,
     mostrarCredito: opciones.mostrarCredito ?? true,
     qr: opciones.mostrarQr === false ? null : { modo: 'pendiente', hash: null },
   };
+}
+
+/** Guía relacionada que imprime el PDF (`guiaImpresa` del back): la primera no anulada ni rechazada. */
+function guiaImpresa(guias: ComprobanteDetalle['guias'] | null | undefined): string | null {
+  const guia = (guias ?? []).find(
+    (g) => limpiar(g.numero_formateado) && !/anulad|rechazad|baja/i.test(String(g.estado ?? '')),
+  );
+  return guia ? limpiar(guia.numero_formateado) : null;
 }
 
 /** Detalle del comprobante emitido (`ComprobanteDetalle`) a la hoja. */
@@ -587,6 +662,7 @@ export function hojaDesdeDetalle(
       numDoc: limpiar(d.receptor?.numero_documento),
       nombre: limpiar(d.receptor?.denominacion),
       direccion: limpiar(d.receptor?.direccion),
+      email: limpiar(d.receptor?.email),
     },
     referencia: ref
       ? {
@@ -626,8 +702,12 @@ export function hojaDesdeDetalle(
           fechaPago: fechaDdMmAaaa(c.fecha_pago),
         }))
       : [],
-    medioPago: null,
+    medioPago: textoONulo(describirMedioPago(d.pagos_detalle, monedaDe(d.moneda).simbolo)),
     observaciones: textoONulo(d.observaciones),
+    guiaRemision: guiaImpresa(d.guias),
+    atendidoPor: textoONulo(d.atendido_por),
+    sucursal: textoONulo(d.sucursal),
+    aceptado: d.aceptada_sunat && !d.anulado ? { fecha: textoONulo(fechaHoraLima(d.aceptado_en)) } : null,
     ambiente: ambienteDe(d.ambiente_fiscal),
     aviso: textoONulo(d.aviso),
     mostrarCredito: opciones.mostrarCredito ?? false,

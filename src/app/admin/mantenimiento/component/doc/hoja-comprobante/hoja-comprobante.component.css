@@ -47,10 +47,12 @@
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
-/* Franja superior: grafito con el tramo corto en dorado */
+/* Franja superior (estilo B «oro presente», igual que el PDF): grafito con el primer tercio en dorado
+   y, debajo, un hilo dorado a todo el ancho. */
 .hoja__franja {
-  height: 6px;
-  background: linear-gradient(90deg, var(--doc-dorado) 0 22%, var(--doc-grafito) 22% 100%);
+  height: 7px;
+  background: linear-gradient(90deg, var(--doc-dorado) 0 33.333%, var(--doc-grafito) 33.333% 100%);
+  border-bottom: 1.5px solid var(--doc-dorado);
 }
 
 /* ── Encabezado ─────────────────────────────────────────────────── */
@@ -62,7 +64,9 @@
   padding: 16px 18px 12px;
 }
 .hoja__marca { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
-.hoja__logo { width: 84px; max-height: 68px; object-fit: contain; flex-shrink: 0; }
+.hoja__logo { width: 110px; max-height: 76px; object-fit: contain; flex-shrink: 0; }
+/* Barra vertical dorada de 3 px entre el logo y los textos del emisor */
+.hoja__barra { align-self: stretch; flex: 0 0 3px; min-height: 56px; border-radius: 1px; background: var(--doc-dorado); }
 .hoja__emisor { display: flex; flex-direction: column; min-width: 0; }
 .hoja__razon {
   font-size: 15px; font-weight: 800; line-height: 1.25; color: var(--doc-grafito);
@@ -72,18 +76,19 @@
 .hoja__linea { margin-top: 2px; font-size: 12px; color: var(--doc-gris); overflow-wrap: anywhere; }
 .hoja__emisor > .hoja__linea:first-of-type { margin-top: 4px; }
 
+/* Recuadro del documento: marco dorado, banda grafito con hilo dorado y serie en doradoOscuro */
 .hoja__recuadro {
   display: flex; flex-direction: column; flex-shrink: 0; width: 220px; overflow: hidden; text-align: center;
-  border: 1.5px solid var(--doc-grafito); border-radius: 8px;
+  border: 2px solid var(--doc-dorado); border-radius: 8px;
 }
 .hoja__ruc { padding: 8px 10px 6px; font-size: 13px; font-weight: 700; color: var(--doc-grafito); }
 .hoja__tipo {
   padding: 6px 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.06em;
-  color: #fff; background: var(--doc-grafito); border-bottom: 2px solid var(--doc-dorado);
+  color: #fff; background: var(--doc-grafito); border-bottom: 3px solid var(--doc-dorado);
 }
 .hoja__codigo {
-  padding: 9px 10px 10px; font-size: 16px; font-weight: 800; letter-spacing: 0.01em;
-  color: var(--doc-grafito); font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+  padding: 9px 10px 10px; font-size: 17px; font-weight: 800; letter-spacing: 0.01em;
+  color: var(--doc-dorado-oscuro); font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
 }
 
 /* ── Avisos dentro de la hoja ───────────────────────────────────── */
@@ -98,22 +103,24 @@
 /* ── Cliente y documento ────────────────────────────────────────── */
 .hoja__datos {
   margin: 0 18px 12px; padding: 10px 12px;
-  border: 1px solid var(--doc-linea); border-radius: 6px; background: var(--doc-fondo);
+  border: 1px solid var(--doc-dorado-claro); border-radius: 6px; background: var(--doc-dorado-suave);
 }
 .hoja__datos--doble { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; }
 .hoja__bloque { display: flex; flex-direction: column; gap: 4px; min-width: 0; margin: 0; }
 .hoja__dato { display: flex; gap: 8px; }
 .hoja__dato dt {
-  flex: 0 0 38%; max-width: 128px; margin: 0; font-size: 11px; font-weight: 700;
-  letter-spacing: 0.02em; text-transform: uppercase; color: var(--doc-gris);
+  flex: 0 0 38%; max-width: 132px; margin: 0; font-size: 11px; font-weight: 800;
+  letter-spacing: 0.02em; text-transform: uppercase; color: var(--doc-grafito);
 }
-.hoja__dato dd { min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--doc-texto); }
+.hoja__dato dd { min-width: 0; margin: 0; overflow-wrap: anywhere; font-weight: 500; color: var(--doc-texto); }
 
+/* Título de sección único (estilo B): barrita dorada de 4 px y texto doradoOscuro 800 */
 .hoja__titulo {
   display: flex; align-items: center; gap: 7px; margin: 0 0 6px;
-  font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--doc-grafito);
+  font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--doc-dorado-oscuro);
 }
-.hoja__titulo::before { content: ''; width: 3px; height: 11px; border-radius: 2px; background: var(--doc-dorado); }
+.hoja__titulo::before { content: ''; flex: 0 0 4px; height: 12px; border-radius: 1px; background: var(--doc-dorado); }
+.hoja__datos--ref .hoja__titulo { padding-bottom: 6px; border-bottom: 1px solid var(--doc-dorado-claro); }
 
 /* ── Tabla de detalle ───────────────────────────────────────────── */
 .hoja__tabla-caja { position: relative; margin: 0 18px; }
@@ -124,8 +131,8 @@
 .hoja__col-desc { width: 9.5%; }
 .hoja__col-importe { width: 12.5%; }
 .hoja__tabla th {
-  padding: 7px 6px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.03em;
-  color: #fff; background: var(--doc-grafito); border-bottom: 2px solid var(--doc-dorado);
+  padding: 7px 6px; text-align: left; font-size: 11px; font-weight: 800; letter-spacing: 0.03em;
+  color: #fff; background: var(--doc-grafito); border-bottom: 3px solid var(--doc-dorado);
 }
 .hoja__tabla td {
   padding: 7px 6px; vertical-align: top; color: var(--doc-texto);
@@ -134,8 +141,10 @@
 .hoja__tabla tbody tr:nth-child(even) { background: var(--doc-cebra); }
 .hoja__tabla .hoja__num { text-align: right; font-variant-numeric: tabular-nums; }
 .hoja__tabla .hoja__centro { text-align: center; }
-.hoja__tabla .hoja__importe { font-weight: 700; }
-.hoja__descripcion { display: block; white-space: pre-line; }
+.hoja__tabla .hoja__importe, .hoja__tabla .hoja__c-cant { font-weight: 700; }
+.hoja__tabla tbody tr:last-child td { border-bottom: 2px solid var(--doc-dorado); }
+.hoja__descripcion { display: block; white-space: pre-line; font-weight: 700; }
+.hoja__cantidad { margin: 4px 0 0; padding-left: 6px; font-size: 10.5px; font-weight: 700; color: var(--doc-gris); }
 .hoja__codigo-prod { display: block; margin-top: 2px; font-size: 11px; color: var(--doc-gris-claro); }
 .hoja__sin-lineas td { padding: 12px 6px; font-style: italic; color: var(--doc-gris); }
 
@@ -147,28 +156,33 @@
 .hoja__son {
   flex: 1 1 0; min-width: 0; margin: 0; padding: 8px 12px;
   font-size: 12px; font-weight: 700; color: var(--doc-texto);
-  background: var(--doc-fondo); border-radius: 6px; overflow-wrap: anywhere;
+  background: var(--doc-dorado-suave); border-left: 3px solid var(--doc-dorado); border-radius: 4px;
+  overflow-wrap: anywhere;
 }
 .hoja__totales { flex: 0 0 270px; max-width: 100%; margin-left: auto; }
 .hoja__filas { margin: 0; padding: 0 6px; }
 .hoja__fila { display: flex; justify-content: space-between; gap: 14px; padding: 2px 0; }
-.hoja__fila dt { margin: 0; color: var(--doc-gris); }
-.hoja__fila dd { margin: 0; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--doc-texto); }
+.hoja__fila dt { margin: 0; font-weight: 600; color: var(--doc-texto); }
+.hoja__fila dd { margin: 0; text-align: right; white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--doc-texto); }
+.hoja__fila--aviso dt, .hoja__fila--aviso dd { color: var(--doc-aviso); }
 .hoja__total {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   margin-top: 5px; padding: 8px 10px; border-radius: 6px;
   font-size: 13.5px; font-weight: 800; color: #fff; background: var(--doc-grafito);
+  box-shadow: inset 0 0 0 1.5px var(--doc-dorado);
 }
-.hoja__total > span:last-child { color: var(--doc-dorado-claro); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hoja__total > span:last-child {
+  font-size: 15px; color: var(--doc-dorado-claro); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
 
 /* ── Crédito y notas ────────────────────────────────────────────── */
 .hoja__credito, .hoja__nota { margin: 14px 18px 0; }
 .hoja__texto { margin: 0 0 2px; color: var(--doc-texto); overflow-wrap: anywhere; }
-.hoja__rotulo { margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--doc-gris); }
+.hoja__nota .hoja__titulo { margin-bottom: 3px; }
 .hoja__cuotas { width: 100%; max-width: 330px; margin-top: 6px; border-collapse: collapse; }
 .hoja__cuotas th {
-  padding: 5px 8px; text-align: left; font-size: 11px; font-weight: 700;
-  color: #fff; background: var(--doc-grafito); border-bottom: 2px solid var(--doc-dorado);
+  padding: 5px 8px; text-align: left; font-size: 11px; font-weight: 800;
+  color: #fff; background: var(--doc-grafito); border-bottom: 3px solid var(--doc-dorado);
 }
 .hoja__cuotas td { padding: 5px 8px; border-bottom: 1px solid var(--doc-linea); font-variant-numeric: tabular-nums; }
 .hoja__cuotas .hoja__num { text-align: right; }
@@ -176,8 +190,9 @@
 /* ── QR ─────────────────────────────────────────────────────────── */
 .hoja__qr {
   display: flex; align-items: center; gap: 14px; margin: 14px 18px 0; padding: 10px;
-  border: 1px solid var(--doc-linea); border-radius: 6px;
+  border: 1px solid var(--doc-dorado-claro); border-radius: 6px;
 }
+.hoja__aceptado { margin: 0 0 8px; font-size: 12px; font-weight: 800; color: var(--doc-dorado-oscuro); }
 .hoja__qr-caja {
   display: flex; align-items: center; justify-content: center; flex: 0 0 112px; min-height: 92px; padding: 6px;
   text-align: center; font-size: 11px; font-weight: 700; line-height: 1.3; color: var(--doc-gris);
@@ -189,12 +204,14 @@
 .hoja__leyenda { margin: 0; font-size: 11px; color: var(--doc-gris); }
 
 /* ── Pie ────────────────────────────────────────────────────────── */
+/* Pie: documento a la izquierda y el agradecimiento al centro (la hoja no numera páginas) */
 .hoja__pie {
-  display: flex; justify-content: space-between; gap: 12px; margin: 14px 18px 0; padding: 8px 0 12px;
-  font-size: 11px; color: var(--doc-gris-claro); border-top: 1px solid var(--doc-linea);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: baseline; gap: 12px;
+  margin: 14px 18px 0; padding: 8px 0 12px;
+  font-size: 11px; color: var(--doc-gris-claro); border-top: 1px solid var(--doc-dorado);
 }
 .hoja__pie-doc { min-width: 0; overflow-wrap: anywhere; }
-.hoja__pie > span:last-child { flex-shrink: 0; }
+.hoja__pie-gracias { flex-shrink: 0; font-weight: 700; color: var(--doc-dorado-oscuro); }
 
 /* ── Hoja angosta (columna del POS, panel lateral, móvil) ───────── */
 @container (max-width: 620px) {
@@ -216,7 +233,8 @@
     display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; padding: 10px 8px;
     border-bottom: 1px solid var(--doc-linea);
   }
-  .hoja__tabla td { display: block; padding: 0; border: 0; text-align: left; }
+  .hoja__tabla td, .hoja__tabla tbody tr:last-child td { display: block; padding: 0; border: 0; text-align: left; }
+  .hoja__tabla tbody tr:last-child { border-bottom: 2px solid var(--doc-dorado); }
   .hoja__tabla td::before {
     content: attr(data-etiqueta); display: block; margin-bottom: 1px;
     font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--doc-gris);
@@ -226,8 +244,15 @@
   .hoja__tabla .hoja__sin-lineas { display: block; }
   .hoja__tabla .hoja__sin-lineas td::before { content: none; }
 
+  .hoja__pie { display: flex; flex-direction: column-reverse; align-items: center; gap: 4px; text-align: center; }
   .hoja__pie-totales { flex-direction: column; align-items: stretch; }
   .hoja__totales { flex-basis: auto; width: 100%; }
   .hoja__qr { flex-direction: column; align-items: stretch; }
   .hoja__qr-caja { flex-basis: auto; }
+}
+
+/* Hoja muy angosta (móvil): el logo cede espacio a la razón social */
+@container (max-width: 420px) {
+  .hoja__logo { width: 76px; max-height: 56px; }
+  .hoja__marca { gap: 10px; }
 }

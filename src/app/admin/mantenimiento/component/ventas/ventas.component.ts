@@ -37,7 +37,7 @@ import {
   ModoAltaRapida, ProductoRapidoComponent, ResultadoAltaRapida,
 } from './producto-rapido/producto-rapido.component';
 import { HojaComprobanteComponent } from '../doc/hoja-comprobante/hoja-comprobante.component';
-import { HojaComprobante, hojaDesdePreview } from '../doc/hoja-comprobante/hoja-comprobante.model';
+import { HojaComprobante, describirMedioPago, hojaDesdePreview } from '../doc/hoja-comprobante/hoja-comprobante.model';
 
 const LS_ALMACEN = 'pos_id_almacen';
 /** Ventas en espera (carritos guardados para atender a otro cliente): se conservan en este navegador. */
@@ -231,11 +231,33 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   /** Hoja del comprobante para la vista previa (memoizada por referencia de `preview`). */
   get hojaPreview(): HojaComprobante | null {
-    if (this.preview !== this.hojaDePreview) {
+    // MEDIO DE PAGO con montos, recibido y vuelto tal como los escribe el cajero (el recibido no recalcula la vista previa).
+    const medio = this.preview ? this.medioPagoHoja() : '';
+    if (this.preview !== this.hojaDePreview || medio !== this.medioDeHoja) {
       this.hojaDePreview = this.preview;
-      this.hojaMemo = this.preview ? hojaDesdePreview(this.preview) : null;
+      this.medioDeHoja = medio;
+      this.hojaMemo = this.preview ? hojaDesdePreview(this.preview, medio ? { medioPago: medio } : {}) : null;
     }
     return this.hojaMemo;
+  }
+
+  /** «Efectivo S/ 100.00 · Yape S/ 40.00 · Recibido … · Vuelto …» de las líneas de pago elegidas ('' si no hay). */
+  private medioPagoHoja(): string {
+    const simbolo = this.preview?.moneda?.simbolo || 'S/';
+    return describirMedioPago(
+      this.lineasPago
+        .filter((l) => !!l.id_metodo)
+        .map((l) => {
+          const efectivo = this.esEfectivo(l.id_metodo);
+          return {
+            metodo: this.metodosPago.find((m) => m.id_metodo === l.id_metodo)?.nombre ?? '',
+            monto: Number(l.monto) || 0,
+            monto_recibido: efectivo && l.monto_recibido != null ? Number(l.monto_recibido) : null,
+            vuelto: efectivo ? this.vueltoDe(l) : null,
+          };
+        }),
+      simbolo,
+    );
   }
 
   /** @deprecated compat: se deriva de lineasPago[0] */
@@ -253,6 +275,8 @@ export class VentasComponent implements OnInit, OnDestroy {
   /** Última vista previa convertida: la hoja solo se recalcula cuando llega una nueva, no en cada detección. */
   private hojaDePreview: PreviewComprobante | null = null;
   private hojaMemo: HojaComprobante | null = null;
+  /** Texto de MEDIO DE PAGO con el que se armó `hojaMemo`. */
+  private medioDeHoja = '';
   errorPreview = '';
   emitiendo = false;
   ultimaVenta: VentaRegistrada | null = null;

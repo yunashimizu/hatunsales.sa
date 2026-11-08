@@ -9,6 +9,7 @@
           @if (mostrarLogo) {
             <img class="hoja__logo" [src]="logoSrc" [alt]="v.h.emisor.razonSocial" (error)="alFallarLogo()" />
           }
+          <span class="hoja__barra" aria-hidden="true"></span>
           <div class="hoja__emisor">
             <strong class="hoja__razon">{{ v.h.emisor.razonSocial }}</strong>
             @if (v.nombreComercial) {
@@ -117,6 +118,9 @@
             }
           </tbody>
         </table>
+        @if (v.cantidadItems) {
+          <p class="hoja__cantidad">{{ v.cantidadItems }}</p>
+        }
       </div>
 
       <!-- «SON: …» a la izquierda y totales a la derecha -->
@@ -127,7 +131,7 @@
         <div class="hoja__totales">
           <dl class="hoja__filas">
             @for (fila of v.filasTotales; track fila[0]) {
-              <div class="hoja__fila">
+              <div class="hoja__fila" [class.hoja__fila--aviso]="fila[0] === 'Descuentos'">
                 <dt>{{ fila[0] }}</dt>
                 <dd>{{ fila[1] }}</dd>
               </div>
@@ -171,7 +175,7 @@
       <!-- Notas -->
       @if (v.medioPago.length) {
         <section class="hoja__nota">
-          <h3 class="hoja__rotulo">MEDIO DE PAGO</h3>
+          <h3 class="hoja__titulo">MEDIO DE PAGO</h3>
           @for (linea of v.medioPago; track $index) {
             <p class="hoja__texto">{{ linea }}</p>
           }
@@ -179,7 +183,7 @@
       }
       @if (v.observaciones.length) {
         <section class="hoja__nota">
-          <h3 class="hoja__rotulo">OBSERVACIONES</h3>
+          <h3 class="hoja__titulo">OBSERVACIONES</h3>
           @for (linea of v.observaciones; track $index) {
             <p class="hoja__texto">{{ linea }}</p>
           }
@@ -203,6 +207,9 @@
             }
           </div>
           <div class="hoja__qr-texto">
+            @if (v.aceptado) {
+              <p class="hoja__aceptado">{{ v.aceptado }}</p>
+            }
             @if (qr.modo === 'emitido') {
               <p class="hoja__hash">Resumen (hash): {{ qr.hash || 'no disponible' }}</p>
             }
@@ -213,6 +220,7 @@
 
       <footer class="hoja__pie">
         <span class="hoja__pie-doc">{{ v.pie }}</span>
+        <span class="hoja__pie-gracias">{{ v.mensajePie }}</span>
       </footer>
     </article>
   </div>

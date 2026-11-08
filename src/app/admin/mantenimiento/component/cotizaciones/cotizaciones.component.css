@@ -189,10 +189,11 @@
   border: 1px solid var(--doc-linea);
 }
 
-/* Franja superior: grafito con el tramo corto en dorado */
+/* Franja superior (estilo B «oro presente», igual que el PDF): primer tercio dorado e hilo dorado debajo */
 .cot-ticket__franja {
-  height: 6px;
-  background: linear-gradient(90deg, var(--doc-dorado) 0 22%, var(--doc-grafito) 22% 100%);
+  height: 7px;
+  background: linear-gradient(90deg, var(--doc-dorado) 0 33.333%, var(--doc-grafito) 33.333% 100%);
+  border-bottom: 1.5px solid var(--doc-dorado);
 }
 
 /* Encabezado */
@@ -201,39 +202,43 @@
   padding: 16px 16px 14px;
 }
 .cot-ticket__marca { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
-.cot-ticket__logo { width: 84px; max-height: 64px; object-fit: contain; flex-shrink: 0; }
-.cot-ticket__emisor { min-width: 0; }
+.cot-ticket__logo { width: 110px; max-height: 76px; object-fit: contain; flex-shrink: 0; }
+/* Barra vertical dorada entre el logo y los textos (en el borde izquierdo del bloque del emisor) */
+.cot-ticket__emisor { min-width: 0; padding-left: 12px; border-left: 3px solid var(--doc-dorado); }
 .cot-ticket__razon { display: block; font-size: 14.5px; color: var(--doc-grafito); letter-spacing: 0.01em; }
 .cot-ticket__emisor-linea { display: block; margin-top: 2px; font-size: 11.5px; color: var(--doc-gris); }
 .cot-ticket__recuadro {
   display: flex; flex-direction: column; flex-shrink: 0; min-width: 150px; overflow: hidden; text-align: center;
-  border: 1.5px solid var(--doc-grafito); border-radius: 8px;
+  border: 2px solid var(--doc-dorado); border-radius: 8px;
 }
-.cot-ticket__ruc { padding: 6px 10px; font-size: 12px; font-weight: 700; color: var(--doc-texto); }
+.cot-ticket__ruc { padding: 6px 10px; font-size: 12px; font-weight: 700; color: var(--doc-grafito); }
 .cot-ticket__tipo {
   padding: 5px 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.22em;
-  color: #fff; background: var(--doc-grafito); border-bottom: 2px solid var(--doc-dorado);
+  color: #fff; background: var(--doc-grafito); border-bottom: 3px solid var(--doc-dorado);
 }
-.cot-ticket__codigo { padding: 7px 10px; font-size: 15px; letter-spacing: 0.01em; color: var(--doc-grafito); font-variant-numeric: tabular-nums; }
+.cot-ticket__codigo {
+  padding: 7px 10px; font-size: 16px; font-weight: 800; letter-spacing: 0.01em;
+  color: var(--doc-dorado-oscuro); font-variant-numeric: tabular-nums;
+}
 
-/* Títulos de bloque: grafito con barrita dorada */
+/* Títulos de bloque (estilo B): barrita dorada de 4 px y texto doradoOscuro 800 */
 .cot-ticket__titulo {
   display: flex; align-items: center; gap: 7px;
   margin: 0 0 6px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--doc-grafito);
+  color: var(--doc-dorado-oscuro);
 }
-.cot-ticket__titulo::before { content: ''; width: 3px; height: 11px; border-radius: 2px; background: var(--doc-dorado); }
-.cot-ticket__titulo--linea { padding-bottom: 5px; border-bottom: 1px solid var(--doc-linea); }
+.cot-ticket__titulo::before { content: ''; flex: 0 0 4px; height: 12px; border-radius: 1px; background: var(--doc-dorado); }
+.cot-ticket__titulo--linea { padding-bottom: 5px; border-bottom: 1px solid var(--doc-dorado-claro); }
 
-/* Caja gris con datos del cliente y de la proforma */
+/* Caja doradoSuave con datos del cliente y de la proforma */
 .cot-ticket__datos {
-  margin: 0 16px; padding: 12px 14px; border: 1px solid var(--doc-linea); border-radius: 8px;
-  background: var(--doc-fondo);
+  margin: 0 16px; padding: 12px 14px; border: 1px solid var(--doc-dorado-claro); border-radius: 8px;
+  background: var(--doc-dorado-suave);
 }
 .cot-ticket__datos--doble { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .cot-ticket__bloque { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .cot-ticket__dato { display: flex; gap: 8px; font-size: 12px; }
-.cot-ticket__dato > span:first-child { min-width: 112px; flex-shrink: 0; font-weight: 700; color: var(--doc-gris); }
+.cot-ticket__dato > span:first-child { min-width: 112px; flex-shrink: 0; font-weight: 800; color: var(--doc-grafito); }
 .cot-ticket__dato > span:last-child { min-width: 0; overflow-wrap: anywhere; color: var(--doc-texto); font-weight: 500; }
 .cot-ticket__dato > .cot-ticket__estado--vencida { color: var(--doc-aviso); font-weight: 700; }
 .cot-ticket__dato > .cot-ticket__estado--anulada { color: var(--doc-peligro); font-weight: 700; }
@@ -249,12 +254,13 @@
 .cot-ticket__tabla--detalle { min-width: 540px; font-size: 12px; }
 .cot-ticket__tabla--detalle th {
   padding: 7px 8px; text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: none;
-  color: #fff; background: var(--doc-grafito); border-bottom: 2px solid var(--doc-dorado);
+  color: #fff; background: var(--doc-grafito); border-bottom: 3px solid var(--doc-dorado);
 }
 .cot-ticket__tabla--detalle td { padding: 7px 8px; vertical-align: top; border-bottom: 1px solid var(--doc-linea); color: var(--doc-texto); }
+.cot-ticket__tabla--detalle tbody tr:last-child td { border-bottom: 2px solid var(--doc-dorado); }
 .cot-ticket__tabla--detalle .cot-col-n { width: 28px; text-align: center; }
 .cot-ticket__tabla--detalle .cot-col-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.cot-ticket__tabla--detalle .cot-col-desc { min-width: 120px; overflow-wrap: anywhere; text-align: left; }
+.cot-ticket__tabla--detalle .cot-col-desc { min-width: 120px; overflow-wrap: anywhere; text-align: left; font-weight: 700; }
 .cot-ticket__tabla--detalle .cot-col-dto--con { color: var(--doc-aviso); font-weight: 600; }
 .cot-ticket__tabla--detalle tbody tr:nth-child(even) { background: var(--doc-cebra); }
 
@@ -268,19 +274,20 @@
 }
 .cot-ticket__fila {
   display: flex; justify-content: space-between; gap: 16px; padding: 6px 12px; font-size: 12.5px;
-  color: var(--doc-gris); border-bottom: 1px solid var(--doc-linea);
+  color: var(--doc-texto); border-bottom: 1px solid var(--doc-linea);
 }
-.cot-ticket__fila > span:last-child { color: var(--doc-texto); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.cot-ticket__fila > span:last-child { color: var(--doc-texto); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
 .cot-ticket__fila.cot-ticket__total {
-  align-items: center; padding: 9px 12px; border: 0; border-left: 4px solid var(--doc-dorado);
-  color: #fff; background: var(--doc-grafito); font-weight: 700;
+  align-items: center; padding: 9px 12px; border: 0;
+  color: #fff; background: var(--doc-grafito); font-weight: 800; box-shadow: inset 0 0 0 1.5px var(--doc-dorado);
 }
 .cot-ticket__fila.cot-ticket__total > span { color: var(--doc-dorado-claro); }
 .cot-ticket__fila.cot-ticket__total > span:last-child { font-size: 1.15rem; }
 
 .cot-ticket__son {
   margin: 12px 16px 0; padding: 8px 12px; font-size: 11.5px; text-transform: uppercase; color: var(--doc-texto);
-  background: var(--doc-dorado-suave); border: 1px solid var(--doc-plata); border-left: 4px solid var(--doc-dorado); border-radius: 8px;
+  font-weight: 700;
+  background: var(--doc-dorado-suave); border: 1px solid var(--doc-dorado-claro); border-left: 3px solid var(--doc-dorado); border-radius: 6px;
 }
 
 /* Cuentas para depósito o transferencia: banda grafito con barrita dorada */
@@ -305,10 +312,13 @@
 .cot-ticket__condiciones ul { margin: 0; padding-left: 16px; font-size: 11.5px; line-height: 1.55; color: var(--doc-gris); }
 .cot-ticket__condiciones li::marker { color: var(--doc-dorado-oscuro); }
 
+/* Agradecimiento común de los documentos (MENSAJE_PIE_DOCUMENTO del back) */
+.cot-ticket__gracias { margin: 6px 16px 0; text-align: center; font-size: 12px; font-weight: 700; color: var(--doc-dorado-oscuro); }
+
 /* Pie de la hoja */
 .cot-ticket__pie-hoja {
   display: flex; flex-direction: column; gap: 2px; margin: 8px 16px 0; padding: 8px 0 14px;
-  border-top: 1px solid var(--doc-linea); font-size: 10px; color: var(--doc-gris-claro);
+  border-top: 1px solid var(--doc-dorado); font-size: 10px; color: var(--doc-gris-claro);
 }
 .cot-ticket__pie-hoja > span:first-child { font-style: italic; }
 

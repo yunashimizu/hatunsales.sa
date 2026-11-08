@@ -23,6 +23,21 @@ import {
  * Rótulos que el PDF real imprime y la hoja debe repetir. La MISMA lista vive en el spec de paridad del back:
  * hatunsales/src/util/documentos/comprobante-pdf.paridad.spec.ts. Si alguien cambia un lado y no el otro, falla.
  */
+/**
+ * Plan «Documentos oro y detalle» §2: MISMA lista literal que `ROTULOS_PDF_A4.detalle` del spec de paridad del back
+ * (hatunsales/src/util/documentos/comprobante-pdf.paridad.spec.ts).
+ */
+const ROTULOS_DETALLE = [
+  'HORA',
+  'CORREO',
+  'GUÍA DE REMISIÓN',
+  'ATENDIDO POR',
+  'SUCURSAL',
+  '1 ítem',
+  'Aceptado por SUNAT',
+  'Gracias por su preferencia',
+];
+
 const ROTULOS_PDF = [
   'CANT.',
   'UNIDAD',
@@ -513,9 +528,49 @@ describe('HojaComprobanteComponent', () => {
       expect(texto(q(el, '.hoja__datos')!)).toContain('Fecha de vencimiento 05/12/2026');
     });
 
-    it('el detalle muestra la hora junto a la fecha', () => {
+    it('el detalle muestra la hora en su propia fila (HORA), como el PDF', () => {
       const el = pintar(hojaDesdeDetalle(crearDetalle()));
-      expect(texto(q(el, '.hoja__datos')!)).toContain('Fecha de emisión 20/10/2026 10:15:00');
+      expect(texto(q(el, '.hoja__datos')!)).toContain('Fecha de emisión 20/10/2026 Hora 10:15:00');
+    });
+
+    it('más detalle (M1–M8): correo, guía, atendido por, sucursal y medio de pago, solo si hay dato', () => {
+      const d = crearDetalle({
+        receptor: { tipo_documento: 6, numero_documento: '20100000001', denominacion: 'ACME SAC', direccion: 'Jr. Lima 1', email: 'compras@acme.pe' },
+        guias: [
+          { id_guia: 1, serie: 'T001', numero: 3, numero_formateado: 'T001-00000003', estado: 'anulado', fecha_emision: null },
+          { id_guia: 2, serie: 'T001', numero: 4, numero_formateado: 'T001-00000004', estado: 'aceptado', fecha_emision: null },
+        ],
+        atendido_por: 'Ana Quispe',
+        sucursal: 'Tienda Cusco',
+        pagos_detalle: [
+          { metodo: 'Efectivo', monto: 60, monto_recibido: 100, vuelto: 40 },
+          { metodo: 'Yape', monto: 40 },
+        ],
+        aceptado_en: '2026-10-20T15:16:00Z',
+      });
+      const el = pintar(hojaDesdeDetalle(d, { mostrarQr: true }));
+      const datos = texto(q(el, '.hoja__datos')!);
+      expect(datos).toContain('Correo compras@acme.pe');
+      expect(datos).toContain('Guía de remisión T001-00000004');
+      expect(datos).toContain('Atendido por Ana Quispe');
+      expect(datos).toContain('Sucursal Tienda Cusco');
+      expect(texto(el)).toContain('MEDIO DE PAGO Efectivo S/ 60.00 · Yape S/ 40.00 · Recibido S/ 100.00 · Vuelto S/ 40.00');
+      expect(texto(q(el, '.hoja__qr')!)).toContain('Aceptado por SUNAT · 20/10/2026 10:16');
+      expect(texto(el)).toContain('1 ítem');
+
+      const sin = texto(pintar(hojaDesdePreview(crearPreview())));
+      for (const rotulo of ['Correo', 'Guía de remisión', 'Atendido por', 'Sucursal', 'Aceptado por SUNAT', 'MEDIO DE PAGO']) {
+        expect(sin).not.toContain(rotulo);
+      }
+    });
+
+    it('vista previa: atendido por y pagos que manda el servidor', () => {
+      const h = hojaDesdePreview(crearPreview({
+        atendido_por: 'Ana',
+        pagos_detalle: [{ metodo: 'Efectivo', monto: 20, monto_recibido: 50, vuelto: 30 }],
+      }));
+      expect(h.atendidoPor).toBe('Ana');
+      expect(h.medioPago).toBe('Efectivo S/ 20.00 · Recibido S/ 50.00 · Vuelto S/ 30.00');
     });
   });
 
@@ -645,6 +700,25 @@ describe('HojaComprobanteComponent', () => {
     const pie = texto(q(el, '.hoja__pie')!);
     expect(pie).toContain('BOLETA DE VENTA ELECTRÓNICA B001-00000007 · HATUNSALES S.A.C.');
     expect(pie).not.toContain('Página');
+  });
+
+  it('el pie lleva el agradecimiento común de los documentos', () => {
+    const el = pintar(hojaDesdePreview(crearPreview()));
+    expect(texto(q(el, '.hoja__pie')!)).toContain('Gracias por su preferencia');
+  });
+
+  it('paridad (plan oro y detalle): las filas nuevas, la cantidad de ítems, el aceptado y el pie están en la hoja', () => {
+    const d = crearDetalle({
+      receptor: { tipo_documento: 6, numero_documento: '20100000001', denominacion: 'ACME SAC', direccion: 'Jr. Lima 1', email: 'compras@acme.pe' },
+      guias: [{ id_guia: 2, serie: 'T001', numero: 4, numero_formateado: 'T001-00000004', estado: 'aceptado', fecha_emision: null }],
+      atendido_por: 'Ana Quispe',
+      sucursal: 'Tienda Cusco',
+    });
+    // La hoja pone las etiquetas en mayúsculas con CSS (text-transform): se compara sin distinguir mayúsculas.
+    const completo = texto(pintar(hojaDesdeDetalle(d, { mostrarQr: true }))).toLocaleUpperCase('es');
+    for (const rotulo of ROTULOS_DETALLE) {
+      expect(completo, `falta el rótulo «${rotulo}»`).toContain(rotulo.toLocaleUpperCase('es'));
+    }
   });
 
   it('paridad: todos los rótulos que imprime el PDF están en la hoja', () => {

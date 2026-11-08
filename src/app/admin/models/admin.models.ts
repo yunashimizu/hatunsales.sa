@@ -117,6 +117,10 @@ export interface PreviewComprobante {
   forma_pago?: 'Contado' | 'Credito';
   proveedor_fiscal?: 'sunat_directo';
   ambiente_fiscal?: 'beta' | 'produccion';
+  /** Usuario de la sesión (fila ATENDIDO POR de la hoja), si el servidor lo manda. */
+  atendido_por?: string | null;
+  /** Medios de pago elegidos con su monto (MEDIO DE PAGO de la hoja), si el servidor los manda. */
+  pagos_detalle?: PagoDetalle[];
   /** Solo si algún pago es con tarjeta: el recargo ya va como línea en `items` y dentro de `totales.total`. */
   recargo_tarjeta?: {
     porcentaje: number;
@@ -127,6 +131,14 @@ export interface PreviewComprobante {
     /** Total de los productos antes del recargo. */
     total_sin_recargo: number;
   };
+}
+
+/** Un pago tal como sale en «MEDIO DE PAGO» del comprobante (mismo contrato que el back). */
+export interface PagoDetalle {
+  metodo: string;
+  monto: number;
+  monto_recibido?: number | null;
+  vuelto?: number | null;
 }
 
 export interface ComprobanteEmitido {

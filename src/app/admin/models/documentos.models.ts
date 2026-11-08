@@ -1,3 +1,5 @@
+import type { PagoDetalle } from './admin.models';
+
 /**
  * Contratos compartidos de los documentos electrónicos de una venta (PLAN V3, D10): los usan
  * Documentos, Guías de remisión y Ventas. El backend responde exactamente con estas formas
@@ -473,6 +475,12 @@ export interface ComprobanteDetalle {
   baja?: BajaComprobante | null;
   /** Envío del comprobante por correo al cliente (ausente en un backend anterior). */
   correo?: CorreoComprobante;
+  /** Representación impresa (ausentes en un backend anterior): quien registró, sucursal, pagos y aceptación. */
+  atendido_por?: string | null;
+  sucursal?: string | null;
+  pagos_detalle?: PagoDetalle[];
+  /** ISO; solo si SUNAT aceptó y el envío guardó la fecha de respuesta. */
+  aceptado_en?: string | null;
 }
 
 /** Lote (comunicación de baja RA o resumen RC) que anula un comprobante sin nota de crédito. */
