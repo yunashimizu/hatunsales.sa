@@ -101,6 +101,40 @@
 
 .cxc-td-accion { white-space: nowrap; }
 
+/* ── Antigüedad de la deuda y chips por tramo ────────────────── */
+
+.cxc-antiguedad { display: flex; flex-direction: column; gap: 8px; }
+.cxc-antiguedad__cabecera { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.cxc-antiguedad__titulo {
+  display: flex; align-items: center; gap: 8px; margin: 0;
+  font-family: var(--adm-fuente-titulos); font-size: var(--adm-fs-titulo-seccion); font-weight: 700; color: var(--adm-texto);
+}
+.cxc-antiguedad__titulo i { color: var(--adm-marca-texto); }
+.cxc-antiguedad__nota { margin: 0; }
+.cxc-tramo__cifra { font-variant-numeric: tabular-nums; }
+
+.cxc-tramos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; }
+.cxc-tramos__rotulo { margin: 0; }
+.cxc-chip__n {
+  display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 999px; text-align: center;
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--adm-superficie-3); color: var(--adm-texto-suave);
+}
+.adm-chip--activo .cxc-chip__n { background: color-mix(in srgb, var(--adm-primario-texto) 22%, transparent); color: inherit; }
+
+.cxc-vence__atraso { text-transform: none; white-space: nowrap; }
+
+/* Acciones por fila: abonar, recordar por WhatsApp y abrir el estado de cuenta */
+.cxc-acciones { gap: 6px; }
+.cxc-icono44 { width: 44px; height: 44px; text-decoration: none; font-size: 18px; }
+.cxc-hueco { display: inline-block; }
+.cxc-wa:not(:disabled) { color: var(--adm-exito-texto); }
+
+/* ── Cuadro del recordatorio ─────────────────────────────────── */
+
+.cxc-recordatorio { width: min(520px, 100%); }
+.cxc-recordatorio__texto { min-height: 140px; resize: vertical; line-height: 1.5; font-family: inherit; }
+
 /* ── Línea de crédito y cuentas bancarias ────────────────────── */
 
 .cxc-ayuda { margin: 10px 0 0; }
@@ -172,7 +206,7 @@
   .cxc-chips { justify-content: flex-end; }
 
   .adm-tabla--adaptable tbody td.cxc-td-accion { display: block; padding-top: 6px; }
-  .cxc-td-accion .adm-tabla__acciones { justify-content: flex-start; }
+  .cxc-td-accion .adm-tabla__acciones { justify-content: flex-start; flex-wrap: wrap; }
 
   /* Las fichas de las cuentas ocupan todo el ancho de la tarjeta (compensan su relleno) */
   .cxc-bancos .adm-tabla-envoltorio { margin-inline: -14px; width: auto; }
@@ -184,3 +218,5 @@
 @media (prefers-reduced-motion: reduce) {
   .cxc-avance > i { animation: none; }
 }
+
+.cxc-nowrap { white-space: nowrap; }

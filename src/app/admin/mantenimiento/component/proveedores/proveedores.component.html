@@ -71,6 +71,12 @@
         </h2>
         <p class="adm-tarjeta__sub">Use las acciones de la fila para ver sus recepciones, editar o eliminar.</p>
       </div>
+      <div class="adm-tarjeta__extra">
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" id="prov-exportar" (click)="exportarCsv()"
+                [disabled]="!proveedoresFiltrados.length" title="Descarga la lista filtrada completa, no solo la página que se ve">
+          <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
+        </button>
+      </div>
     </div>
 
     <div class="prov-buscador">
@@ -84,7 +90,8 @@
       </div>
       <p class="prov-buscador__resumen">
         <i class="bi bi-funnel" aria-hidden="true"></i>
-        <strong class="adm-tabular">{{ proveedoresFiltrados.length }}</strong> de {{ proveedores.length }}
+        <strong class="adm-tabular">{{ paginaProveedores.desde }}–{{ paginaProveedores.hasta }}</strong> de {{ proveedoresFiltrados.length }}
+        <span *ngIf="filtro.trim() && proveedores.length !== proveedoresFiltrados.length"> · {{ proveedores.length }} en total</span>
       </p>
     </div>
 
@@ -128,17 +135,18 @@
     </div>
 
     <div class="adm-tabla-envoltorio" *ngIf="proveedoresFiltrados.length">
+      <app-orden-movil idCampo="prov-orden-movil" [columnas]="columnasOrden" [estado]="orden" (estadoChange)="fijarOrden($event)"></app-orden-movil>
       <table class="adm-tabla adm-tabla--adaptable">
         <thead>
           <tr>
-            <th>Proveedor</th>
-            <th>RUC</th>
+            <th [attr.aria-sort]="ariaSort('nombre')"><button type="button" class="adm-tabla__orden" (click)="ordenar('nombre')">Proveedor <i class="bi" [ngClass]="iconoOrden('nombre')" aria-hidden="true"></i></button></th>
+            <th [attr.aria-sort]="ariaSort('ruc')"><button type="button" class="adm-tabla__orden" (click)="ordenar('ruc')">RUC <i class="bi" [ngClass]="iconoOrden('ruc')" aria-hidden="true"></i></button></th>
             <th class="prov-col-sec">Contacto</th>
             <th class="adm-centro">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of proveedoresFiltrados; trackBy: identificarProveedor" [class.adm-recien-creado]="idDestacado === p.id_proveedor"
+          <tr *ngFor="let p of paginaProveedores.filas; trackBy: identificarProveedor" [class.adm-recien-creado]="idDestacado === p.id_proveedor"
               [class.adm-fila--seleccionada]="editandoId === p.id_proveedor || proveedorHistorial?.id_proveedor === p.id_proveedor">
             <td data-etiqueta="Proveedor" class="prov-td-proveedor">
               <div class="prov-proveedor">
@@ -195,6 +203,9 @@
         </tbody>
       </table>
     </div>
+
+    <app-pie-paginacion [resultado]="paginaProveedores" etiqueta="Paginación de proveedores"
+                        (paginaChange)="irAPagina($event)" (porPaginaChange)="cambiarFilasPorPagina($event)"></app-pie-paginacion>
   </section>
 </div>
 

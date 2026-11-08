@@ -302,6 +302,9 @@
     </div>
   </section>
 
+  <!-- Resumen diario por correo (solo administrador) -->
+  <app-resumen-diario-config *ngIf="esAdminPuro"></app-resumen-diario-config>
+
   <div class="adm-grid adm-grid--2">
 
     <!-- Sesión actual -->

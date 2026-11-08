@@ -26,8 +26,8 @@
       <div class="adm-aviso adm-aviso--aviso" role="status">
         <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
         <span>
-          <strong class="adm-aviso__titulo">Ambiente de producción sin emisión</strong>
-          Las ventas se registran sin comprobante hasta que active la emisión (paso 5) o vuelva a BETA.
+          <strong class="adm-aviso__titulo">Emisión electrónica apagada</strong>
+          Estamos en producción, pero las ventas se registran sin comprobante hasta que active la emisión (paso 5) o vuelva a BETA.
         </span>
       </div>
     }
@@ -265,12 +265,12 @@
         }
       } @else {
         <p class="activacion__texto">
-          Para detener la emisión al instante (por ejemplo, ante un problema con SUNAT), desactívela: las ventas se
+          Para detener la emisión al instante (por ejemplo, ante un problema con SUNAT), apáguela: las ventas se
           registran sin comprobante y se emite después.
         </p>
         <div class="adm-acciones">
           <button type="button" class="adm-btn adm-btn--peligro-suave" (click)="desactivar()" [disabled]="bloqueado">
-            <i class="bi bi-pause-circle" aria-hidden="true"></i> Desactivar emisión
+            <i class="bi bi-pause-circle" aria-hidden="true"></i> Apagar la emisión electrónica
           </button>
         </div>
       }

@@ -1,4 +1,8 @@
 <footer class="app-footer">
   <span class="footer-copy">© {{ year }} <strong>HatunSales S.A.C</strong> · Sistema de gestión y ventas</span>
-  <span class="footer-version">v1.0.0</span>
+  <span class="footer-estado" role="status" [class.footer-estado--sin]="!enLinea()">
+    <span class="footer-estado__punto" aria-hidden="true"></span>
+    {{ enLinea() ? 'Conectado' : 'Sin conexión' }}
+  </span>
+  <span class="footer-version">v{{ version }} · {{ fechaVersion }}</span>
 </footer>

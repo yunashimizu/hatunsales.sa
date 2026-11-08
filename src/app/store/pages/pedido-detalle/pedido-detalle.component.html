@@ -179,6 +179,17 @@
                 {{ pedido.tipo_comprobante | titlecase }}
                 <span *ngIf="pedido.nombre_receptor"> · {{ pedido.nombre_receptor }}</span>
                 <span *ngIf="pedido.documento_receptor"> ({{ pedido.documento_receptor }})</span>
+                <span class="comprobante-numero" *ngIf="pedido.comprobante?.numero_formateado"> · {{ pedido.comprobante!.numero_formateado }}</span>
+              </dd>
+            </div>
+
+            <div class="dato" *ngIf="pedido.comprobante?.puede_descargar" data-prueba="descarga-comprobante">
+              <dt><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i><span class="x-etiqueta">Tu comprobante</span></dt>
+              <dd>
+                <button type="button" class="x-boton x-boton--contorno x-boton--sm comprobante-descarga" (click)="descargarComprobante()"
+                        [disabled]="descargandoComprobante">
+                  <i class="bi bi-download" aria-hidden="true"></i>{{ descargandoComprobante ? 'Descargando…' : textoDescargaComprobante }}
+                </button>
               </dd>
             </div>
 

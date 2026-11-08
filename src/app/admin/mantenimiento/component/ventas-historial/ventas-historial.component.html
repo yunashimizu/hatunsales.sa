@@ -15,8 +15,8 @@
     </div>
     <div class="adm-acciones">
       <button type="button" class="adm-btn adm-btn--suave" (click)="exportarCsv()" [disabled]="!filasVisibles.length"
-              title="Descarga en CSV las ventas de la página que se ve">
-        <i class="bi bi-filetype-csv" aria-hidden="true"></i> Exportar página
+              title="Exporta la página actual">
+        <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
       </button>
       <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando">
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>

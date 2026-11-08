@@ -342,14 +342,14 @@ export class ActivacionProduccionComponent implements OnChanges {
   async desactivar(): Promise<void> {
     if (this.bloqueado) return;
     const confirmado = await this.alerta.confirmarPeligro({
-      title: '¿Desactivar la emisión electrónica?',
+      title: '¿Apagar la emisión electrónica?',
       message:
         'Las ventas nuevas se registrarán sin comprobante y quedarán en «ventas sin comprobante» para emitirlo ' +
         'después. Los comprobantes ya enviados no cambian.',
-      confirmText: 'Desactivar emisión',
+      confirmText: 'Apagar la emisión',
     });
     if (!confirmado || this.destroyRef.destroyed) return;
-    this.guardar.emit({ cambios: { proveedor: 'nubefact' }, mensaje: 'Emisión electrónica desactivada' });
+    this.guardar.emit({ cambios: { proveedor: 'nubefact' }, mensaje: 'Emisión electrónica apagada' });
   }
 
   async volverABeta(): Promise<void> {
@@ -357,7 +357,7 @@ export class ActivacionProduccionComponent implements OnChanges {
     const confirmado = await this.alerta.confirmar({
       title: '¿Volver al ambiente BETA (pruebas)?',
       message:
-        'Se desactiva la emisión de producción y el sistema vuelve a SUNAT BETA: allí solo se emiten pruebas sin ' +
+        'Se apaga la emisión de producción y el sistema vuelve a SUNAT BETA: allí solo se emiten pruebas sin ' +
         'validez tributaria, y solo si activa la emisión de prueba del POS. Mientras tanto las ventas se registran ' +
         'sin comprobante.',
       confirmText: 'Volver a BETA',
@@ -410,7 +410,7 @@ export class ActivacionProduccionComponent implements OnChanges {
     return (
       '<p>Esto cambia desde ahora:</p>' +
       `<ul class="hs-swal-lista">${lineas.map((linea) => `<li>${linea}</li>`).join('')}</ul>` +
-      '<small>Para detenerla al instante use «Desactivar emisión» en este panel.</small>'
+      '<small>Para detenerla al instante use «Apagar la emisión electrónica» en este panel.</small>'
     );
   }
 }

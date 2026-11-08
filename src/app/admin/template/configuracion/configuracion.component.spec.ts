@@ -34,6 +34,16 @@ const seriesVigentes = {
   mensaje: 'Prueba SUNAT BETA: sin validez tributaria. Series FB01 (factura) y BB01 (boleta).',
 };
 
+const URL_RESUMEN = urlConstants.reportes.ventas.replace(/ventas$/, '') + 'resumen-diario';
+const resumenApagado = {
+  activo: false,
+  hora: '20:30',
+  correos: [] as string[],
+  destinatarios: ['ventas@hatunsales.pe'],
+  ultimo_envio: '2026-11-05',
+  proveedor: 'brevo',
+};
+
 describe('AdminConfiguracionComponent', () => {
   let fixture: ComponentFixture<AdminConfiguracionComponent>;
   let http: HttpTestingController;
@@ -68,6 +78,8 @@ describe('AdminConfiguracionComponent', () => {
     fixture = TestBed.createComponent(AdminConfiguracionComponent);
     fixture.detectChanges();
     http.expectOne(urlConstants.configuracion.fiscal).flush(configFiscal);
+    http.expectOne(`${URL_RESUMEN}/configuracion`).flush(resumenApagado);
+    fixture.detectChanges();
   });
 
   afterEach(() => http.verify());
@@ -100,5 +112,74 @@ describe('AdminConfiguracionComponent', () => {
     expect(aviso.textContent).toContain('No se pudieron leer las series vigentes');
     (aviso.querySelector('button') as HTMLButtonElement).click();
     http.expectOne(urlConstants.configuracion.series).flush(seriesVigentes);
+  });
+  describe('Resumen diario por correo', () => {
+    const tarjeta = () => fixture.nativeElement.querySelector('app-resumen-diario-config') as HTMLElement;
+    const boton = (id: string) => tarjeta().querySelector<HTMLButtonElement>(id)!;
+    const escribir = (id: string, valor: string) => {
+      const campo = tarjeta().querySelector<HTMLInputElement>(id)!;
+      campo.value = valor;
+      campo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+
+    beforeEach(() => http.expectOne(urlConstants.configuracion.series).flush(seriesVigentes));
+
+    it('muestra la hora y el contenido del correo, y si lo deja vacío explica que usa el correo del emisor', async () => {
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(tarjeta().textContent).toContain('Cada día a las 20:30 recibirás un correo con las ventas, la caja, los comprobantes con problema, la deuda vencida y el stock crítico.');
+      expect(tarjeta().textContent).toContain('Apagado');
+      expect(tarjeta().textContent).toContain('ventas@hatunsales.pe');
+      expect(tarjeta().textContent).toContain('Último envío automático: 5 de noviembre');
+      expect(boton('button[type="submit"]').disabled).toBe(true);
+    });
+
+    it('valida la hora y los correos, y guarda el interruptor, la hora y la lista de correos', async () => {
+      await fixture.whenStable();
+      fixture.detectChanges();
+      escribir('#rd-correos', 'dueno@hatunsales.pe, malo');
+      expect(tarjeta().textContent).toContain('Estos correos no parecen válidos: malo.');
+      expect(boton('button[type="submit"]').disabled).toBe(true);
+
+      escribir('#rd-correos', 'dueno@hatunsales.pe, Contador@x.pe;dueno@hatunsales.pe');
+      const interruptor = tarjeta().querySelector<HTMLInputElement>('.adm-switch input')!;
+      interruptor.click();
+      escribir('#rd-hora', '21:15');
+      expect(boton('#rd-probar').disabled).toBe(true); // hay cambios sin guardar
+      expect(boton('button[type="submit"]').disabled).toBe(false);
+
+      boton('button[type="submit"]').click();
+      const peticion = http.expectOne(`${URL_RESUMEN}/configuracion`);
+      expect(peticion.request.method).toBe('PUT');
+      expect(peticion.request.body).toEqual({ activo: true, hora: '21:15', correos: ['dueno@hatunsales.pe', 'Contador@x.pe'] });
+      peticion.flush({ ...resumenApagado, activo: true, hora: '21:15', correos: ['dueno@hatunsales.pe', 'Contador@x.pe'] });
+      fixture.detectChanges();
+
+      expect(tarjeta().textContent).toContain('Encendido');
+      expect(tarjeta().textContent).toContain('a las 21:15');
+      expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success' }));
+      expect(boton('#rd-probar').disabled).toBe(false);
+    });
+
+    it('«Enviar ahora de prueba» dice a quién se envió, avisa si el servidor solo guarda archivos y muestra el motivo si falla', async () => {
+      await fixture.whenStable();
+      fixture.detectChanges();
+      boton('#rd-probar').click();
+      let peticion = http.expectOne(`${URL_RESUMEN}/enviar-ahora`);
+      expect(peticion.request.method).toBe('POST');
+      peticion.flush({ enviados: ['ventas@hatunsales.pe'], fallidos: [], asunto: 'PRUEBA – Resumen', proveedor: 'archivo' });
+      fixture.detectChanges();
+      expect(tarjeta().textContent).toContain('Correo de prueba enviado a ventas@hatunsales.pe.');
+      expect(tarjeta().textContent).toContain('no llegó a ninguna bandeja');
+
+      boton('#rd-probar').click();
+      peticion = http.expectOne(`${URL_RESUMEN}/enviar-ahora`);
+      peticion.flush({ message: 'No se pudo enviar el correo: Brevo 503.' }, { status: 503, statusText: 'Service Unavailable' });
+      fixture.detectChanges();
+      const error = tarjeta().querySelector('[role="alert"]') as HTMLElement;
+      expect(error.textContent).toContain('Brevo 503');
+      expect(tarjeta().textContent).not.toContain('Correo de prueba enviado');
+    });
   });
 });

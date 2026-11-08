@@ -32,6 +32,10 @@
         </button>
       </div>
     } @else if (catalogos; as cat) {
+      <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto gre-form__aviso-real" role="note" data-prueba="aviso-guia-real">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+        <span><strong>SUNAT no tiene ambiente de pruebas para guías:</strong> esta guía es real y queda registrada.</span>
+      </div>
       @if (rechazada) {
         <div class="adm-aviso adm-aviso--peligro" role="status">
           <i class="bi bi-x-octagon" aria-hidden="true"></i>
@@ -252,8 +256,8 @@
           @case ('transporte') {
             <div class="adm-bloque">
               <h3 class="adm-bloque__titulo"><i class="bi bi-person-vcard" aria-hidden="true"></i> Destinatario</h3>
-              @if (f.motivo_traslado === '04') {
-                <p class="adm-ayuda">Con el motivo 04 el destinatario es la propia empresa (su RUC): no hay que llenarlo.</p>
+              @if (destinatarioPropio) {
+                <p class="adm-ayuda">Con el motivo {{ f.motivo_traslado }} el destinatario es la propia empresa (su RUC): no hay que llenarlo.</p>
               } @else {
                 <div class="adm-fila">
                   <div class="adm-campo adm-campo--medio">
@@ -303,6 +307,38 @@
                 </div>
               }
             </div>
+
+            @if (pideProveedor) {
+              <div class="adm-bloque" data-prueba="bloque-proveedor">
+                <h3 class="adm-bloque__titulo"><i class="bi bi-shop" aria-hidden="true"></i> Proveedor (a quién le compró)</h3>
+                <div class="adm-fila">
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-prov-tipo">Tipo de documento</label>
+                    <select id="gre-prov-tipo" class="adm-select" [(ngModel)]="f.proveedor.tipo_documento">
+                      @for (t of cat.tipos_documento_destinatario; track t.codigo) {
+                        <option [value]="t.codigo">{{ t.nombre }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="adm-campo adm-campo--medio">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-prov-num">Número de documento</label>
+                    <input id="gre-prov-num" class="adm-input" maxlength="15" autocomplete="off" [(ngModel)]="f.proveedor.numero_documento"
+                           [class.adm-input--error]="!!error('proveedor.numero_documento')">
+                    @if (error('proveedor.numero_documento'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                  <div class="adm-campo adm-campo--grande">
+                    <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-prov-nombre">Nombre o razón social</label>
+                    <input id="gre-prov-nombre" class="adm-input" maxlength="250" [(ngModel)]="f.proveedor.denominacion"
+                           [class.adm-input--error]="!!error('proveedor.denominacion')">
+                    @if (error('proveedor.denominacion'); as e) {
+                      <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
 
             <div class="adm-bloque">
               <h3 class="adm-bloque__titulo"><i class="bi bi-truck" aria-hidden="true"></i> Modalidad de transporte</h3>
@@ -359,6 +395,16 @@
               }
 
               @if (f.modalidad_traslado === '02') {
+                <label class="gre-opcion gre-opcion--casilla" [class.gre-opcion--activa]="f.traslado_vehiculo_m1l" data-prueba="casilla-m1l">
+                  <input type="checkbox" name="gre-m1l" [(ngModel)]="f.traslado_vehiculo_m1l">
+                  <span class="gre-opcion__texto">
+                    <strong>Va en moto o auto particular (M1/L)</strong>
+                    <small>SUNAT no pide placa ni conductor cuando el traslado se hace en una moto o un auto particular (categoría M1 o L).</small>
+                  </span>
+                </label>
+              }
+
+              @if (f.modalidad_traslado === '02' && !f.traslado_vehiculo_m1l) {
                 <div class="adm-fila gre-form__fila">
                   <div class="adm-campo adm-campo--medio">
                     <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-placa">Placa del vehículo</label>
@@ -446,12 +492,14 @@
               </div>
               <div class="adm-campo adm-campo--medio">
                 <label class="adm-etiqueta adm-etiqueta--requerida" for="gre-inicio">Inicio del traslado</label>
-                <input id="gre-inicio" class="adm-input" type="date" [attr.min]="cat.hoy" [(ngModel)]="f.fecha_inicio_traslado"
+                <input id="gre-inicio" class="adm-input" type="date" [attr.min]="cat.hoy" [attr.max]="fechaMaximaInicio || null" [(ngModel)]="f.fecha_inicio_traslado"
                        [class.adm-input--error]="!!error('fecha_inicio_traslado')">
                 @if (error('fecha_inicio_traslado'); as e) {
                   <p class="adm-ayuda adm-ayuda--error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ e }}</p>
+                } @else if (avisoInicioLejano) {
+                  <span class="adm-ayuda adm-texto-aviso" role="status" data-prueba="aviso-inicio-lejano">{{ avisoInicioLejano }}</span>
                 } @else {
-                  <span class="adm-ayuda">Hoy o un día posterior.</span>
+                  <span class="adm-ayuda">Desde hoy hasta 30 días después.</span>
                 }
               </div>
               @if (f.modalidad_traslado === '01') {
@@ -705,7 +753,7 @@
               </div>
               <div class="adm-dato">
                 <span class="adm-dato__etiqueta">Destinatario</span>
-                <span class="adm-dato__valor">{{ f.motivo_traslado === '04' ? 'La propia empresa' : f.destinatario.denominacion || 'Sin indicar' }}</span>
+                <span class="adm-dato__valor">{{ destinatarioPropio ? 'La propia empresa' : f.destinatario.denominacion || 'Sin indicar' }}</span>
               </div>
               <div class="adm-dato">
                 <span class="adm-dato__etiqueta">Partida</span>

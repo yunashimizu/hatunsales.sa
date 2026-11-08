@@ -123,6 +123,10 @@
         <p class="adm-tarjeta__sub">Busque, edite o elimine personas y empresas.</p>
       </div>
       <div class="adm-tarjeta__extra cli-buscar">
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" id="cli-exportar" (click)="exportarCsv()"
+                [disabled]="!paginaActual.total" title="Descarga la lista completa de esta pestaña, con la búsqueda aplicada">
+          <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
+        </button>
         <div class="adm-input-icono">
           <i class="bi bi-search" aria-hidden="true"></i>
           <input class="adm-input" type="text" autocomplete="off" aria-label="Buscar en el padrón"
@@ -198,18 +202,19 @@
       </div>
 
       <div class="adm-tabla-envoltorio" *ngIf="personasFiltradas.length">
+        <app-orden-movil idCampo="cli-orden-personas" [columnas]="columnasPersonas" [estado]="ordenPersonas" (estadoChange)="fijarOrden($event)"></app-orden-movil>
         <table class="adm-tabla adm-tabla--adaptable adm-tabla--adaptable-tablet" aria-label="Personas registradas">
           <thead>
             <tr>
-              <th scope="col">Cliente</th>
-              <th scope="col">DNI</th>
-              <th scope="col">Contacto</th>
+              <th scope="col" [attr.aria-sort]="ariaSort('nombre')"><button type="button" class="adm-tabla__orden" (click)="ordenar('nombre')">Cliente <i class="bi" [ngClass]="iconoOrden('nombre')" aria-hidden="true"></i></button></th>
+              <th scope="col" [attr.aria-sort]="ariaSort('documento')"><button type="button" class="adm-tabla__orden" (click)="ordenar('documento')">DNI <i class="bi" [ngClass]="iconoOrden('documento')" aria-hidden="true"></i></button></th>
+              <th scope="col" [attr.aria-sort]="ariaSort('correo')"><button type="button" class="adm-tabla__orden" (click)="ordenar('correo')" title="Ordenar por correo">Contacto <i class="bi" [ngClass]="iconoOrden('correo')" aria-hidden="true"></i></button></th>
               <th scope="col" class="cli-col-sec">Dirección</th>
               <th scope="col" class="adm-centro">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let c of personasFiltradas; trackBy: identificarCliente"
+            <tr *ngFor="let c of paginaActual.filas; trackBy: identificarCliente"
                 [class.adm-recien-creado]="idDestacado === c.id_cliente"
                 [class.adm-fila--seleccionada]="panelAbierto && editando?.tipo === 'cliente' && editando?.id_cliente === c.id_cliente">
               <td data-etiqueta="Cliente" class="cli-td-principal">
@@ -283,18 +288,19 @@
       </div>
 
       <div class="adm-tabla-envoltorio" *ngIf="empresasFiltradas.length">
+        <app-orden-movil idCampo="cli-orden-empresas" [columnas]="columnasEmpresas" [estado]="ordenEmpresas" (estadoChange)="fijarOrden($event)"></app-orden-movil>
         <table class="adm-tabla adm-tabla--adaptable adm-tabla--adaptable-tablet" aria-label="Empresas registradas">
           <thead>
             <tr>
-              <th scope="col">Empresa</th>
-              <th scope="col">RUC</th>
-              <th scope="col">Situación</th>
+              <th scope="col" [attr.aria-sort]="ariaSort('nombre')"><button type="button" class="adm-tabla__orden" (click)="ordenar('nombre')">Empresa <i class="bi" [ngClass]="iconoOrden('nombre')" aria-hidden="true"></i></button></th>
+              <th scope="col" [attr.aria-sort]="ariaSort('documento')"><button type="button" class="adm-tabla__orden" (click)="ordenar('documento')">RUC <i class="bi" [ngClass]="iconoOrden('documento')" aria-hidden="true"></i></button></th>
+              <th scope="col" [attr.aria-sort]="ariaSort('situacion')"><button type="button" class="adm-tabla__orden" (click)="ordenar('situacion')">Situación <i class="bi" [ngClass]="iconoOrden('situacion')" aria-hidden="true"></i></button></th>
               <th scope="col" class="cli-col-sec">Dirección</th>
               <th scope="col" class="adm-centro">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let e of empresasFiltradas; trackBy: identificarEmpresa"
+            <tr *ngFor="let e of paginaActual.filas; trackBy: identificarEmpresa"
                 [class.adm-recien-creado]="idDestacado === e.id_empresa"
                 [class.adm-fila--seleccionada]="panelAbierto && editando?.tipo === 'empresa' && editando?.id_empresa === e.id_empresa">
               <td data-etiqueta="Empresa" class="cli-td-principal">
@@ -362,6 +368,9 @@
         </button>
       </div>
     </ng-template>
+
+    <app-pie-paginacion [resultado]="paginaActual" etiqueta="Paginación del padrón"
+                        (paginaChange)="irAPagina($event)" (porPaginaChange)="cambiarFilasPorPagina($event)"></app-pie-paginacion>
   </section>
 </div>
 

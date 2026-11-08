@@ -17,6 +17,9 @@
   -webkit-line-clamp: 2;
   overflow: hidden;
 }
+.envios-indicacion {
+  max-width: 340px;
+}
 .envios-botones {
   display: flex;
   flex-wrap: wrap;
@@ -45,7 +48,8 @@
   .envios-botones {
     justify-content: flex-end;
   }
-  .envios-mensaje {
+  .envios-mensaje,
+  .envios-indicacion {
     max-width: none;
   }
   /* En fichas apiladas la marca va en el borde de la ficha, no en la primera celda */

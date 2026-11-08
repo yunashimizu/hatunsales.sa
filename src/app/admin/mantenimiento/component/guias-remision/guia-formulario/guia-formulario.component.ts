@@ -85,6 +85,10 @@ interface FormularioGuia {
   transportista: { ruc: string; razon_social: string; registro_mtc: string };
   vehiculo: { placa: string; tarjeta_circulacion: string; marca: string };
   conductor: { tipo_documento: string; numero_documento: string; nombres: string; apellidos: string; licencia: string };
+  /** Va en moto o auto particular (categoría M1 o L): no se piden vehículo ni conductor. */
+  traslado_vehiculo_m1l: boolean;
+  /** Compra (motivo 02): a quién se le compró. */
+  proveedor: { tipo_documento: string; numero_documento: string; denominacion: string };
   items: ItemFormulario[];
   observaciones: string;
 }
@@ -126,7 +130,7 @@ export const PASOS_GUIA: ReadonlyArray<{ id: PasoGuia; titulo: string }> = [
 /** Campo del formulario (el `campo_formulario` del backend) → paso donde se corrige. */
 const PASO_DE_CAMPO: ReadonlyArray<readonly [RegExp, PasoGuia]> = [
   [/^(venta|motivo_traslado|descripcion_motivo|documento_relacionado)$/, 'origen'],
-  [/^(destinatario|modalidad_traslado|transportista|vehiculo|conductor)(\.|$)/, 'transporte'],
+  [/^(destinatario|proveedor|modalidad_traslado|traslado_vehiculo_m1l|transportista|vehiculo|conductor)(\.|$)/, 'transporte'],
   [/^(fecha_inicio_traslado|fecha_entrega_transportista|partida|llegada)(\.|$)/, 'trayecto'],
   [/^(items|peso_bruto_total|unidad_peso|numero_bultos|observaciones)(\[|\.|$)/, 'bienes'],
 ];
@@ -189,10 +193,26 @@ function formularioVacio(hoy: string): FormularioGuia {
     transportista: { ruc: '', razon_social: '', registro_mtc: '' },
     vehiculo: { placa: '', tarjeta_circulacion: '', marca: '' },
     conductor: { tipo_documento: '1', numero_documento: '', nombres: '', apellidos: '', licencia: '' },
+    traslado_vehiculo_m1l: false,
+    proveedor: { tipo_documento: '6', numero_documento: '', denominacion: '' },
     items: [],
     observaciones: '',
   };
 }
+
+/** Días máximos entre la emisión y el inicio del traslado (el servidor rechaza más) y desde cuándo se avisa. */
+export const MAXIMO_DIAS_INICIO_TRASLADO = 30;
+export const AVISO_DIAS_INICIO_TRASLADO = 7;
+
+/** Suma días a una fecha aaaa-mm-dd sin pasar por la zona horaria del navegador. */
+export function sumarDiasFecha(fecha: string, dias: number): string {
+  const [a, m, d] = fecha.split('-').map(Number);
+  const resultado = new Date(Date.UTC(a, m - 1, d + dias));
+  return resultado.toISOString().slice(0, 10);
+}
+
+/** Motivos en que el destinatario es la propia empresa si el servidor no lo indica (02 y 04). */
+const DESTINATARIO_PROPIO_POR_DEFECTO = ['02', '04'];
 
 /** Clave de idempotencia del formulario: repetir el POST (doble clic, red) devuelve la misma guía. */
 function claveIdempotencia(): string {
@@ -335,6 +355,37 @@ export class GuiaFormularioComponent implements OnInit {
 
   get motivoElegido(): MotivoTrasladoGuia | null {
     return this.catalogos?.motivos.find((m) => m.codigo === this.f.motivo_traslado) ?? null;
+  }
+
+  /** El destinatario es la propia empresa (compra o traslado entre locales): no se llena. */
+  get destinatarioPropio(): boolean {
+    const m = this.motivoElegido;
+    return m?.destinatario_propio ?? DESTINATARIO_PROPIO_POR_DEFECTO.includes(this.f.motivo_traslado);
+  }
+
+  get pideProveedor(): boolean {
+    return this.motivoElegido?.requiere_proveedor ?? this.f.motivo_traslado === '02';
+  }
+
+  /** Va en moto o auto particular: solo existe con transporte privado y quita el vehículo y el conductor. */
+  get enVehiculoM1L(): boolean {
+    return this.f.modalidad_traslado === '02' && this.f.traslado_vehiculo_m1l;
+  }
+
+  /** Última fecha en que puede empezar el traslado (30 días después de hoy, que es la emisión). */
+  get fechaMaximaInicio(): string {
+    const hoy = this.catalogos?.hoy ?? '';
+    return hoy ? sumarDiasFecha(hoy, MAXIMO_DIAS_INICIO_TRASLADO) : '';
+  }
+
+  /** Aviso (no impide emitir) cuando el traslado empieza dentro de 7 días o más. */
+  get avisoInicioLejano(): string {
+    const hoy = this.catalogos?.hoy ?? '';
+    const inicio = this.f.fecha_inicio_traslado;
+    if (!hoy || !inicio || inicio > this.fechaMaximaInicio) return '';
+    return inicio >= sumarDiasFecha(hoy, AVISO_DIAS_INICIO_TRASLADO)
+      ? 'El traslado empieza dentro de 7 días o más. Si la mercadería no sale pronto, conviene emitir la guía el día que sale.'
+      : '';
   }
 
   get modalidadElegida(): (OpcionCatalogoGuia & { descripcion: string }) | null {
@@ -816,6 +867,12 @@ export class GuiaFormularioComponent implements OnInit {
       apellidos: texto(g.conductor?.apellidos),
       licencia: texto(g.conductor?.licencia),
     };
+    f.traslado_vehiculo_m1l = g.traslado_vehiculo_m1l === true;
+    f.proveedor = {
+      tipo_documento: g.proveedor?.tipo_documento || '6',
+      numero_documento: texto(g.proveedor?.numero_documento),
+      denominacion: texto(g.proveedor?.denominacion),
+    };
     f.observaciones = texto(g.observaciones);
 
     if (!c) {
@@ -963,6 +1020,18 @@ export class GuiaFormularioComponent implements OnInit {
     if (completo && hoy && f.fecha_inicio_traslado && f.fecha_inicio_traslado < hoy) {
       errores.push(['fecha_inicio_traslado', `El inicio del traslado no puede ser anterior a hoy (${fechaGuia(hoy)}).`]);
     }
+    if (hoy && f.fecha_inicio_traslado && f.fecha_inicio_traslado > this.fechaMaximaInicio) {
+      errores.push([
+        'fecha_inicio_traslado',
+        `El inicio del traslado no puede pasar de ${MAXIMO_DIAS_INICIO_TRASLADO} días después de hoy (hasta el ${fechaGuia(this.fechaMaximaInicio)}). Emita la guía cerca del día en que sale la mercadería.`,
+      ]);
+    }
+    if (this.pideProveedor && !f.proveedor.numero_documento.trim()) {
+      errores.push(['proveedor.numero_documento', 'Indique el documento de a quién le compró (obligatorio con «Compra»).']);
+    }
+    if (this.pideProveedor && !f.proveedor.denominacion.trim()) {
+      errores.push(['proveedor.denominacion', 'Indique el nombre o la razón social de a quién le compró.']);
+    }
     const incluidos = this.prepararIndices();
     if (!incluidos.length) errores.push(['items', 'Agregue al menos un bien a trasladar.']);
     incluidos.forEach((item, i) => {
@@ -1024,13 +1093,16 @@ export class GuiaFormularioComponent implements OnInit {
       unidad_peso: f.unidad_peso || undefined,
       numero_bultos: f.numero_bultos ?? undefined,
       // Con el motivo 04 el destinatario es el propio emisor: lo pone el backend.
-      destinatario: motivo === '04' ? undefined : bloque(f.destinatario),
+      destinatario: this.destinatarioPropio ? undefined : bloque(f.destinatario),
       // Una partida vacía toma la configurada en Facturación SUNAT.
       partida: punto(f.partida),
       llegada: punto(f.llegada),
       transportista: publico ? bloque(f.transportista) : undefined,
-      vehiculo: privado ? bloque(f.vehiculo) : undefined,
-      conductor: privado && hayConductor ? bloque(f.conductor) : undefined,
+      // En moto o auto particular (M1/L) no se envían vehículo ni conductor.
+      vehiculo: privado && !this.enVehiculoM1L ? bloque(f.vehiculo) : undefined,
+      conductor: privado && !this.enVehiculoM1L && hayConductor ? bloque(f.conductor) : undefined,
+      traslado_vehiculo_m1l: this.enVehiculoM1L ? true : undefined,
+      proveedor: this.pideProveedor ? bloque(f.proveedor) : undefined,
       items: incluidos.map((i) => ({
         id_producto: i.id_producto,
         cantidad: Number(i.cantidad),

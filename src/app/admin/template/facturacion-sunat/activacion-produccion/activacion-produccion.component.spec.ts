@@ -12,7 +12,7 @@ function configuracion(listo: boolean): ConfiguracionSunat {
     proveedor_efectivo: 'nubefact',
     ambiente: 'beta',
     boletas_modo: 'individual',
-    envio_en_linea: true,
+    resumen_hora: '23:30',
     envio_diferido: false,
     tareas_activas: true,
     aplicar_reglas_2027: 'auto',
@@ -174,6 +174,32 @@ describe('ActivacionProduccionComponent', () => {
     expect(guardados).toEqual([
       { cambios: { ambiente: 'produccion', proveedor: 'sunat_directo' }, mensaje: 'Emisión de producción activada' },
     ]);
+  });
+
+  it('con la emisión activa se apaga con «Apagar la emisión electrónica» (guarda el valor histórico, la pantalla dice «apagada»)', async () => {
+    await crear({ ...configuracion(true), proveedor: 'sunat_directo', ambiente: 'produccion' });
+    const boton = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((b) =>
+      b.textContent?.includes('Apagar la emisión electrónica'),
+    );
+    expect(boton).toBeTruthy();
+    expect(fixture.nativeElement.textContent).not.toContain('Desactivar emisión');
+
+    alerta.confirmarPeligro.mockResolvedValueOnce(false);
+    await component.desactivar();
+    expect(guardados).toEqual([]);
+
+    await component.desactivar();
+    expect(alerta.confirmarPeligro).toHaveBeenLastCalledWith(
+      expect.objectContaining({ title: '¿Apagar la emisión electrónica?', confirmText: 'Apagar la emisión' }),
+    );
+    expect(guardados).toEqual([{ cambios: { proveedor: 'nubefact' }, mensaje: 'Emisión electrónica apagada' }]);
+  });
+
+  it('en producción sin emisión el aviso dice «Emisión electrónica apagada» y no menciona al proveedor histórico', async () => {
+    await crear({ ...configuracion(true), proveedor: 'nubefact', ambiente: 'produccion' });
+    const texto = fixture.nativeElement.textContent as string;
+    expect(texto).toContain('Emisión electrónica apagada');
+    expect(texto).not.toMatch(/nubefact/i);
   });
 
   it('guarda solo las declaraciones que cambiaron y conserva el borrador si el panel recarga', async () => {

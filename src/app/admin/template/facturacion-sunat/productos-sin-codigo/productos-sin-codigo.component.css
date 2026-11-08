@@ -28,6 +28,69 @@
   padding: 8px 16px 12px;
 }
 
+/* Buscador local del catálogo 25 */
+.sin-codigo-con-buscador {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sin-codigo-con-buscador .adm-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.sin-codigo-buscador {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--adm-borde);
+  border-radius: 10px;
+  background: var(--adm-superficie-2);
+  display: grid;
+  gap: 6px;
+  max-width: 520px;
+}
+.sin-codigo-buscador__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.sin-codigo-buscador__opcion {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--adm-texto);
+  cursor: pointer;
+  font: inherit;
+}
+.sin-codigo-buscador__opcion:hover,
+.sin-codigo-buscador__opcion:focus-visible {
+  background: var(--adm-superficie-3);
+  outline: 2px solid var(--adm-marca-texto);
+  outline-offset: -2px;
+}
+.sin-codigo-buscador__codigo {
+  color: var(--adm-marca-texto);
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.sin-codigo-buscador__nota,
+.sin-codigo-buscador__error {
+  margin: 0;
+}
+@media (max-width: 768px) {
+  .sin-codigo-edicion {
+    flex-wrap: wrap;
+  }
+}
+
 /* R12b: botones de 44 px en táctil (los de icono medían 38 px de ancho y los «sm» 40 px de alto). */
 @media (pointer: coarse), (max-width: 768px) {
   .adm-btn { min-height: 44px; min-width: 44px; }

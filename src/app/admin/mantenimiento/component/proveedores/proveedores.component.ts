@@ -9,18 +9,30 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { ColumnaOrdenable, OrdenMovilComponent } from '../../../../shared/components/orden-movil/orden-movil.component';
+import { PiePaginacionComponent } from '../../../../shared/components/pie-paginacion/pie-paginacion.component';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { ColumnaCsv, exportarCsv } from '../../../../shared/utils/exportar-csv';
+import {
+  EstadoOrden, alternarOrden, ariaSort, guardarOrden, iconoOrden, leerOrdenGuardado, ordenarLista,
+} from '../../../../shared/utils/orden-lista';
+import { PaginaLocal, guardarFilasPorPagina, leerFilasPorPagina, paginar } from '../../../../shared/utils/paginacion-local';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { mensajeDeError, escapeHtmlAlerta } from '../../../service/api-base.service';
 import { RecepcionService } from '../../../service/recepcion.service';
 import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
 import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
+const COLUMNAS_ORDEN: ColumnaOrdenable[] = [
+  { clave: 'nombre', titulo: 'Proveedor', tipo: 'texto' },
+  { clave: 'ruc', titulo: 'RUC', tipo: 'numero' },
+];
+
 @Component({
   selector: 'app-proveedores',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, CountUpDirective, RevealDirective],
+  imports: [CommonModule, FormsModule, RouterLink, CountUpDirective, RevealDirective, PiePaginacionComponent, OrdenMovilComponent],
   templateUrl: './proveedores.component.html',
   styleUrl: './proveedores.component.css',
 })
@@ -35,19 +47,87 @@ export class ProveedoresComponent implements OnInit {
   consultandoRuc = false;
   editandoId: number | null = null;
   idDestacado: number | null = null;
-  filtro = '';
+  private filtroTexto = '';
+  /** Buscar vuelve a la primera página. */
+  get filtro(): string { return this.filtroTexto; }
+  set filtro(valor: string) {
+    if (valor === this.filtroTexto) return;
+    this.filtroTexto = valor;
+    this.pagina = 1;
+  }
+  orden: EstadoOrden = leerOrdenGuardado('proveedores', COLUMNAS_ORDEN.map((c) => c.clave));
+  readonly columnasOrden = COLUMNAS_ORDEN;
+  pagina = 1;
+  porPagina = leerFilasPorPagina();
+  /** Proveedor recién guardado: al llegar la lista se va a la página donde quedó. */
+  private irAlGuardado: number | null = null;
+  private memoFiltrados?: { lista: any[]; texto: string; orden: EstadoOrden; resultado: any[] };
+  private memoPagina?: { lista: any[]; pagina: number; porPagina: number; resultado: PaginaLocal<any> };
   recepcionesProv: any[] = [];
   cargandoRecepciones = false;
   proveedorHistorial: any | null = null;
 
   modelo = { nombre: '', ruc: '', telefono: '', email: '', direccion: '' };
 
+  /** Proveedores que cumplen la búsqueda, ya ordenados (se recalcula solo cuando algo cambió). */
   get proveedoresFiltrados(): any[] {
-    const t = this.filtro.trim().toLowerCase();
-    if (!t) return this.proveedores;
-    return this.proveedores.filter((p) =>
+    const t = this.filtroTexto.trim().toLowerCase();
+    const m = this.memoFiltrados;
+    if (m && m.lista === this.proveedores && m.texto === t && m.orden === this.orden) return m.resultado;
+    const filtrados = !t ? this.proveedores : this.proveedores.filter((p) =>
       `${p.nombre} ${p.ruc} ${p.telefono} ${p.email}`.toLowerCase().includes(t),
     );
+    const orden = this.orden;
+    const resultado = orden.clave
+      ? ordenarLista(filtrados, (p) => (orden.clave === 'ruc' ? (p.ruc ? String(p.ruc) : null) : p.nombre), orden.dir)
+      : filtrados;
+    this.memoFiltrados = { lista: this.proveedores, texto: t, orden, resultado };
+    return resultado;
+  }
+
+  get paginaProveedores(): PaginaLocal<any> {
+    const lista = this.proveedoresFiltrados;
+    const m = this.memoPagina;
+    if (m && m.lista === lista && m.pagina === this.pagina && m.porPagina === this.porPagina) return m.resultado;
+    const resultado = paginar(lista, this.pagina, this.porPagina);
+    this.memoPagina = { lista, pagina: this.pagina, porPagina: this.porPagina, resultado };
+    return resultado;
+  }
+
+  ordenar(clave: string): void {
+    this.fijarOrden(alternarOrden(this.orden, clave));
+  }
+
+  fijarOrden(orden: EstadoOrden): void {
+    this.orden = orden;
+    guardarOrden('proveedores', orden);
+    this.pagina = 1;
+  }
+
+  ariaSort(clave: string): 'ascending' | 'descending' | 'none' { return ariaSort(this.orden, clave); }
+  iconoOrden(clave: string): string { return iconoOrden(this.orden, clave); }
+
+  irAPagina(pagina: number): void { this.pagina = pagina; }
+
+  cambiarFilasPorPagina(porPagina: number): void {
+    this.porPagina = porPagina;
+    guardarFilasPorPagina(porPagina);
+    this.pagina = 1;
+  }
+
+  /** Descarga la lista filtrada y ordenada completa (no solo la página que se ve). */
+  exportarCsv(): void {
+    const filas = this.proveedoresFiltrados;
+    if (!filas.length) return;
+    const columnas: ColumnaCsv<any>[] = [
+      { titulo: 'Proveedor', valor: (p) => p.nombre },
+      { titulo: 'RUC', valor: (p) => (p.ruc ? String(p.ruc) : '') },
+      { titulo: 'Teléfono', valor: (p) => p.telefono },
+      { titulo: 'Correo', valor: (p) => p.email },
+      { titulo: 'Dirección', valor: (p) => p.direccion },
+    ];
+    const total = exportarCsv('proveedores', columnas, filas);
+    this.alerta.toast({ type: 'success', title: `CSV descargado: ${total} ${total === 1 ? 'fila' : 'filas'}` });
   }
 
   get conRuc(): number {
@@ -96,6 +176,11 @@ export class ProveedoresComponent implements OnInit {
     this.api.listarProveedores().subscribe({
       next: (lista) => {
         this.proveedores = Array.isArray(lista) ? [...lista] : [];
+        if (this.irAlGuardado !== null) {
+          const posicion = this.proveedoresFiltrados.findIndex((p) => Number(p.id_proveedor) === this.irAlGuardado);
+          if (posicion >= 0) this.pagina = Math.floor(posicion / this.porPagina) + 1;
+          this.irAlGuardado = null;
+        }
         this.cargando = false;
         this.cdr.markForCheck();
       },
@@ -218,6 +303,7 @@ export class ProveedoresComponent implements OnInit {
       next: (item) => {
         this.guardando = false;
         this.idDestacado = Number(item?.id_proveedor ?? this.editandoId);
+        this.irAlGuardado = this.idDestacado;
         this.cdr.markForCheck();
         this.alerta.toast({
           type: 'success',

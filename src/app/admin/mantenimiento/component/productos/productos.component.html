@@ -103,13 +103,14 @@
     </div>
 
     <button type="button" class="adm-btn adm-btn--fantasma adm-btn--sm prod-limpiar" *ngIf="hayFiltros"
-            (click)="filtro = ''; filtroCategoria = ''; filtroEstado = ''">
+            (click)="limpiarFiltros()">
       <i class="bi bi-x-circle" aria-hidden="true"></i> Limpiar
     </button>
 
     <p class="adm-filtros__resumen prod-filtros__resumen">
       <i class="bi bi-funnel" aria-hidden="true"></i>
-      <strong class="adm-tabular">{{ productosFiltrados.length }}</strong> de {{ productos.length }}
+      <strong class="adm-tabular">{{ paginaProductos.desde }}–{{ paginaProductos.hasta }}</strong> de {{ productosFiltrados.length }}
+      <span *ngIf="hayFiltros && productos.length !== productosFiltrados.length"> · {{ productos.length }} en total</span>
     </p>
   </section>
 
@@ -122,6 +123,13 @@
           <span class="adm-insignia adm-insignia--neutra">{{ productosFiltrados.length }}</span>
         </h2>
         <p class="adm-tarjeta__sub">Toque la miniatura para ampliarla; use las acciones de la fila para editar, activar o eliminar.</p>
+      </div>
+      <div class="adm-tarjeta__extra">
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" id="prod-exportar" (click)="exportarCsv()"
+                [disabled]="!productosFiltrados.length"
+                title="Descarga la lista filtrada completa, no solo la página que se ve">
+          <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
+        </button>
       </div>
     </div>
 
@@ -186,25 +194,36 @@
         <i class="bi bi-plus-lg"></i> Crear el primero
       </button>
       <button type="button" class="adm-btn adm-btn--suave" *ngIf="productos.length && hayFiltros"
-              (click)="filtro = ''; filtroCategoria = ''; filtroEstado = ''">
+              (click)="limpiarFiltros()">
         <i class="bi bi-x-circle" aria-hidden="true"></i> Limpiar filtros
       </button>
     </div>
 
     <div class="adm-tabla-envoltorio" *ngIf="productosFiltrados.length">
+      <app-orden-movil idCampo="prod-orden-movil" [columnas]="columnasOrden" [estado]="orden" (estadoChange)="fijarOrden($event)"></app-orden-movil>
       <table class="adm-tabla adm-tabla--adaptable adm-tabla--adaptable-tablet prod-tabla">
         <thead>
           <tr>
-            <th>Producto</th>
-            <th class="prod-col-secundaria">Categoría</th>
-            <th class="adm-num">Precio</th>
-            <th class="adm-num">Stock</th>
-            <th class="prod-col-estado">Estado</th>
+            <th [attr.aria-sort]="ariaSort('nombre')">
+              <button type="button" class="adm-tabla__orden" (click)="ordenar('nombre')">Producto <i class="bi" [ngClass]="iconoOrden('nombre')" aria-hidden="true"></i></button>
+            </th>
+            <th class="prod-col-secundaria" [attr.aria-sort]="ariaSort('categoria')">
+              <button type="button" class="adm-tabla__orden" (click)="ordenar('categoria')">Categoría <i class="bi" [ngClass]="iconoOrden('categoria')" aria-hidden="true"></i></button>
+            </th>
+            <th class="adm-num" [attr.aria-sort]="ariaSort('precio')">
+              <button type="button" class="adm-tabla__orden" (click)="ordenar('precio')">Precio <i class="bi" [ngClass]="iconoOrden('precio')" aria-hidden="true"></i></button>
+            </th>
+            <th class="adm-num" [attr.aria-sort]="ariaSort('stock')">
+              <button type="button" class="adm-tabla__orden" (click)="ordenar('stock')">Stock <i class="bi" [ngClass]="iconoOrden('stock')" aria-hidden="true"></i></button>
+            </th>
+            <th class="prod-col-estado" [attr.aria-sort]="ariaSort('estado')">
+              <button type="button" class="adm-tabla__orden" (click)="ordenar('estado')">Estado <i class="bi" [ngClass]="iconoOrden('estado')" aria-hidden="true"></i></button>
+            </th>
             <th class="adm-centro">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of productosFiltrados; trackBy: identificarProducto"
+          <tr *ngFor="let p of paginaProductos.filas; trackBy: identificarProducto"
               [class.adm-recien-creado]="idDestacado === p.id_producto"
               [class.adm-fila--seleccionada]="panelAbierto && !!editando && editando.id_producto === p.id_producto"
               [class.prod-fila--inactiva]="!p.estado">
@@ -291,6 +310,7 @@
                   <i class="bi bi-upc"></i>
                 </button>
                 <button type="button" class="adm-btn-icono" (click)="alternarEstado(p)" *ngIf="puedeEditar"
+                        [disabled]="cambiandoEstado.has(p.id_producto)"
                         [title]="p.estado ? 'Desactivar' : 'Activar'"
                         [attr.aria-label]="(p.estado ? 'Desactivar ' : 'Activar ') + p.nombre">
                   <i class="bi" [ngClass]="p.estado ? 'bi-toggle-on' : 'bi-toggle-off'"></i>
@@ -305,6 +325,8 @@
         </tbody>
       </table>
     </div>
+    <app-pie-paginacion [resultado]="paginaProductos" etiqueta="Paginación de productos"
+                        (paginaChange)="irAPagina($event)" (porPaginaChange)="cambiarFilasPorPagina($event)"></app-pie-paginacion>
     <ng-template #prodSinDato><span class="prod-sin-dato">—</span></ng-template>
   </section>
 </div>

@@ -62,8 +62,12 @@ export interface EmisorSunat {
 /** Lo que guarda el formulario «Operación y series» (el ambiente y el proveedor se cambian desde la activación). */
 export interface OperacionFiscal {
   boletas_modo: ModoBoletas;
-  envio_en_linea: boolean;
-  /** La venta no espera a SUNAT: el comprobante se envía en segundo plano (apagado por defecto). */
+  /** HH:mm (Lima) a la que se informa el resumen diario de boletas (solo cuenta con boletas_modo = resumen). */
+  resumen_hora: string;
+  /**
+   * Un solo interruptor «enviar al cobrar / en segundo plano»: con true la venta no espera a SUNAT y el comprobante
+   * se envía en segundo plano (apagado por defecto = se envía al cobrar).
+   */
   envio_diferido: boolean;
   aplicar_reglas_2027: ModoReglas2027;
   codigo_producto_defecto: string;
@@ -131,7 +135,8 @@ export interface ConfiguracionSunat {
   proveedor_efectivo: ProveedorFiscal;
   ambiente: AmbienteFiscal;
   boletas_modo: ModoBoletas;
-  envio_en_linea: boolean;
+  /** HH:mm (Lima) del resumen diario de boletas (modo «resumen»). */
+  resumen_hora: string;
   /** La venta no espera a SUNAT: el comprobante se envía en segundo plano (apagado por defecto). */
   envio_diferido: boolean;
   tareas_activas: boolean;
@@ -176,7 +181,7 @@ export interface CambiosConfiguracionFiscal {
   proveedor?: ProveedorFiscal;
   ambiente?: AmbienteFiscal;
   boletas_modo?: ModoBoletas;
-  envio_en_linea?: boolean;
+  resumen_hora?: string;
   envio_diferido?: boolean;
   tareas_activas?: boolean;
   aplicar_reglas_2027?: ModoReglas2027;
@@ -258,6 +263,10 @@ export interface EnvioSunat {
   /** Mientras no venza, otro proceso está hablando con SUNAT por este envío. */
   bloqueado_hasta?: string | null;
   actualizado_en?: string | null;
+  /** Lo que el sistema dice del envío en palabras (por qué sigue pendiente o qué hacer). */
+  ultimo_error?: string | null;
+  /** aaaa-mm-dd: último día para enviarlo a SUNAT por envío individual (null si no se conoce). */
+  fecha_limite_envio?: string | null;
 }
 
 export interface FiltroEnvios {
@@ -353,6 +362,18 @@ export interface ResultadoLote {
   codigo: string | null;
 }
 
+/** Respuesta de POST /fiscal/lotes/resumen y POST /comprobante/:id/resumir: el resumen diario que se acaba de enviar. */
+export interface ResultadoResumen extends ResultadoLote {
+  /** yyyy-mm-dd: día de emisión de las boletas del resumen. */
+  fecha_emision: string;
+  /** Boletas (y notas de boleta) incluidas. */
+  comprobantes: number;
+  /** Boletas que no cupieron (un resumen admite 500) y van en el siguiente. */
+  pendientes: number;
+  /** Boletas que se dejaron fuera porque no conservan su documento. */
+  omitidos: number;
+}
+
 /** GET /fiscal/estado tal como lo devuelve el servidor (lo ven admin, vendedor, caja y consulta). */
 export interface EstadoFiscalApi {
   proveedor: ProveedorFiscal;
@@ -376,7 +397,36 @@ export interface EstadoFiscalApi {
   cola: { pendientes?: number; inciertos?: number } | null;
   plazos: { vencen_hoy?: number; vencidos?: number } | null;
   tareas: { activas: boolean; ultima_ejecucion: string | null } | null;
+  /** Rotación de FISCAL_SECRET_KEY: si la llave anterior sigue definida y cuántos secretos aún dependen de ella. */
+  llave?: LlaveFiscalApi;
   evaluado_en: string;
+}
+
+export interface LlaveFiscalApi {
+  anterior_definida: boolean;
+  secretos_con_llave_anterior: number;
+}
+
+/** Correo de los avisos diarios (GET/PUT fiscal/alertas). */
+export interface AlertasFiscalesApi {
+  /** Lo guardado en el panel (null = ninguno). */
+  correo: string | null;
+  /** A dónde llegan los avisos ahora. */
+  correo_efectivo: string | null;
+  origen: 'configurado' | 'emisor' | 'ninguno';
+}
+
+export type EstadoSecretoRecifrado = 'al_dia' | 'con_llave_anterior' | 'recifrado' | 'falta' | 'ilegible' | 'sin_cifrado';
+
+/** Resultado de POST fiscal/secretos/recifrar. */
+export interface ResultadoRecifrado {
+  revisados: number;
+  recifrados: number;
+  ya_vigentes: number;
+  ilegibles: number;
+  /** true si ya se puede quitar FISCAL_SECRET_KEY_ANTERIOR sin perder nada. */
+  puede_quitar_llave_anterior: boolean;
+  detalle: Array<{ secreto: string; estado: EstadoSecretoRecifrado }>;
 }
 
 /**

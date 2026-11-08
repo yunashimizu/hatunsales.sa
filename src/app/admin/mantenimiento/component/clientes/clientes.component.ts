@@ -10,7 +10,14 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 
+import { ColumnaOrdenable, OrdenMovilComponent } from '../../../../shared/components/orden-movil/orden-movil.component';
+import { PiePaginacionComponent } from '../../../../shared/components/pie-paginacion/pie-paginacion.component';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { ColumnaCsv, exportarCsv } from '../../../../shared/utils/exportar-csv';
+import {
+  EstadoOrden, alternarOrden, ariaSort, guardarOrden, iconoOrden, leerOrdenGuardado, ordenarLista,
+} from '../../../../shared/utils/orden-lista';
+import { PaginaLocal, guardarFilasPorPagina, leerFilasPorPagina, paginar } from '../../../../shared/utils/paginacion-local';
 import { AuthService } from '../../../../auth/service/auth.service';
 import { rolPermitido } from '../../../../auth/roles.constants';
 import { GestionService } from '../../service/gestion.service';
@@ -21,11 +28,23 @@ import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
 type Pestania = 'personas' | 'empresas';
 
+const COLUMNAS_PERSONAS: ColumnaOrdenable[] = [
+  { clave: 'nombre', titulo: 'Cliente', tipo: 'texto' },
+  { clave: 'documento', titulo: 'DNI', tipo: 'numero' },
+  { clave: 'correo', titulo: 'Correo', tipo: 'texto' },
+  { clave: 'telefono', titulo: 'Teléfono', tipo: 'numero' },
+];
+const COLUMNAS_EMPRESAS: ColumnaOrdenable[] = [
+  { clave: 'nombre', titulo: 'Empresa', tipo: 'texto' },
+  { clave: 'documento', titulo: 'RUC', tipo: 'numero' },
+  { clave: 'situacion', titulo: 'Situación', tipo: 'texto' },
+];
+
 @Component({
   selector: 'app-clientes',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, CountUpDirective, RevealDirective],
+  imports: [CommonModule, FormsModule, CountUpDirective, RevealDirective, PiePaginacionComponent, OrdenMovilComponent],
   templateUrl: './clientes.component.html',
   styleUrl: './clientes.component.css',
 })
@@ -39,7 +58,25 @@ export class ClientesComponent implements OnInit, OnDestroy {
   /** La última carga falló (solo para mostrar el estado de error en pantalla; el aviso modal sigue igual). */
   errorCarga = false;
   errorEmpresas = false;
-  filtro = '';
+  private filtroTexto = '';
+  /** Buscar vuelve a la primera página. */
+  get filtro(): string { return this.filtroTexto; }
+  set filtro(valor: string) {
+    if (valor === this.filtroTexto) return;
+    this.filtroTexto = valor;
+    this.pagina = 1;
+  }
+
+  /** Orden de cada pestaña (se recuerda mientras la pestaña del navegador siga abierta). */
+  ordenPersonas: EstadoOrden = leerOrdenGuardado('clientes-personas', COLUMNAS_PERSONAS.map((c) => c.clave));
+  ordenEmpresas: EstadoOrden = leerOrdenGuardado('clientes-empresas', COLUMNAS_EMPRESAS.map((c) => c.clave));
+  readonly columnasPersonas = COLUMNAS_PERSONAS;
+  readonly columnasEmpresas = COLUMNAS_EMPRESAS;
+  pagina = 1;
+  porPagina = leerFilasPorPagina();
+  private memoPersonas?: { lista: any[]; texto: string; orden: EstadoOrden; resultado: any[] };
+  private memoEmpresas?: { lista: any[]; texto: string; orden: EstadoOrden; resultado: any[] };
+  private memoPagina?: { lista: any[]; pagina: number; porPagina: number; resultado: PaginaLocal<any> };
 
   /** Alta por documento: el backend consulta SUNAT y guarda el resultado. */
   documento = '';
@@ -120,26 +157,138 @@ export class ClientesComponent implements OnInit, OnDestroy {
   cambiarPestania(pestania: Pestania): void {
     this.pestania = pestania;
     this.filtro = '';
+    this.pagina = 1;
   }
 
   get personasFiltradas(): any[] {
-    const texto = this.filtro.trim().toLowerCase();
-    if (!texto) return this.clientes;
+    const texto = this.filtroTexto.trim().toLowerCase();
+    const m = this.memoPersonas;
+    if (m && m.lista === this.clientes && m.texto === texto && m.orden === this.ordenPersonas) return m.resultado;
 
-    return this.clientes.filter((c) =>
+    const filtradas = !texto ? this.clientes : this.clientes.filter((c) =>
       `${c.nombre_completo ?? c.nombre ?? ''} ${c.dni ?? ''} ${c.email ?? ''} ${c.telefono ?? ''}`
         .toLowerCase()
         .includes(texto),
     );
+    const orden = this.ordenPersonas;
+    const resultado = orden.clave
+      ? ordenarLista(filtradas, (c) => this.valorPersona(c, orden.clave!), orden.dir)
+      : filtradas;
+    this.memoPersonas = { lista: this.clientes, texto, orden, resultado };
+    return resultado;
   }
 
   get empresasFiltradas(): any[] {
-    const texto = this.filtro.trim().toLowerCase();
-    if (!texto) return this.empresas;
+    const texto = this.filtroTexto.trim().toLowerCase();
+    const m = this.memoEmpresas;
+    if (m && m.lista === this.empresas && m.texto === texto && m.orden === this.ordenEmpresas) return m.resultado;
 
-    return this.empresas.filter((e) =>
+    const filtradas = !texto ? this.empresas : this.empresas.filter((e) =>
       `${e.razon_social ?? ''} ${e.nombre_comercial ?? ''} ${e.ruc ?? ''}`.toLowerCase().includes(texto),
     );
+    const orden = this.ordenEmpresas;
+    const resultado = orden.clave
+      ? ordenarLista(filtradas, (e) => this.valorEmpresa(e, orden.clave!), orden.dir)
+      : filtradas;
+    this.memoEmpresas = { lista: this.empresas, texto, orden, resultado };
+    return resultado;
+  }
+
+  private valorPersona(c: any, clave: string): unknown {
+    switch (clave) {
+      case 'nombre': return this.nombreDe(c);
+      case 'documento': return c.dni ? String(c.dni) : null;
+      case 'correo': return `${c.email ?? ''}`.trim() || null;
+      case 'telefono': return `${c.telefono ?? ''}`.trim() || null;
+      default: return null;
+    }
+  }
+
+  private valorEmpresa(e: any, clave: string): unknown {
+    switch (clave) {
+      case 'nombre': return e.razon_social;
+      case 'documento': return e.ruc ? String(e.ruc) : null;
+      case 'situacion': return e.estado;
+      default: return null;
+    }
+  }
+
+  // ── Orden, páginas y CSV ─────────────────────────────────────
+
+  get orden(): EstadoOrden { return this.pestania === 'personas' ? this.ordenPersonas : this.ordenEmpresas; }
+  get columnasOrden(): ColumnaOrdenable[] { return this.pestania === 'personas' ? COLUMNAS_PERSONAS : COLUMNAS_EMPRESAS; }
+
+  ordenar(clave: string): void {
+    this.fijarOrden(alternarOrden(this.orden, clave));
+  }
+
+  fijarOrden(orden: EstadoOrden): void {
+    if (this.pestania === 'personas') {
+      this.ordenPersonas = orden;
+      guardarOrden('clientes-personas', orden);
+    } else {
+      this.ordenEmpresas = orden;
+      guardarOrden('clientes-empresas', orden);
+    }
+    this.pagina = 1;
+  }
+
+  ariaSort(clave: string): 'ascending' | 'descending' | 'none' { return ariaSort(this.orden, clave); }
+  iconoOrden(clave: string): string { return iconoOrden(this.orden, clave); }
+
+  /** Lo que se ve en la pestaña actual: orden → búsqueda → página. */
+  get paginaActual(): PaginaLocal<any> {
+    const lista = this.pestania === 'personas' ? this.personasFiltradas : this.empresasFiltradas;
+    const m = this.memoPagina;
+    if (m && m.lista === lista && m.pagina === this.pagina && m.porPagina === this.porPagina) return m.resultado;
+    const resultado = paginar(lista, this.pagina, this.porPagina);
+    this.memoPagina = { lista, pagina: this.pagina, porPagina: this.porPagina, resultado };
+    return resultado;
+  }
+
+  irAPagina(pagina: number): void { this.pagina = pagina; }
+
+  /** Lleva la tabla a la página donde cayó un registro recién creado (el orden elegido puede ponerlo lejos). */
+  private irAlRegistro(id: number): void {
+    const personas = this.pestania === 'personas';
+    const lista = personas ? this.personasFiltradas : this.empresasFiltradas;
+    const posicion = lista.findIndex((i) => Number(personas ? i.id_cliente : i.id_empresa) === id);
+    this.pagina = posicion >= 0 ? Math.floor(posicion / this.porPagina) + 1 : 1;
+  }
+
+  cambiarFilasPorPagina(porPagina: number): void {
+    this.porPagina = porPagina;
+    guardarFilasPorPagina(porPagina);
+    this.pagina = 1;
+  }
+
+  /** Descarga la lista de la pestaña con la búsqueda aplicada, completa (no solo la página). */
+  exportarCsv(): void {
+    const personas = this.pestania === 'personas';
+    const filas = personas ? this.personasFiltradas : this.empresasFiltradas;
+    if (!filas.length) return;
+    const columnas: ColumnaCsv<any>[] = personas
+      ? [
+        { titulo: 'Nombre', valor: (c) => this.nombreDe(c) },
+        { titulo: 'DNI', valor: (c) => (c.dni ? String(c.dni) : '') },
+        { titulo: 'Correo', valor: (c) => c.email },
+        { titulo: 'Teléfono', valor: (c) => c.telefono },
+        { titulo: 'Dirección', valor: (c) => c.direccion },
+        { titulo: 'Con cuenta en la tienda', valor: (c) => (c.tiene_cuenta ? 'Sí' : 'No') },
+      ]
+      : [
+        { titulo: 'Razón social', valor: (e) => e.razon_social },
+        { titulo: 'Nombre comercial', valor: (e) => e.nombre_comercial },
+        { titulo: 'RUC', valor: (e) => (e.ruc ? String(e.ruc) : '') },
+        { titulo: 'Situación', valor: (e) => e.estado },
+        { titulo: 'Condición', valor: (e) => e.condicion },
+        { titulo: 'Teléfonos', valor: (e) => e.telefonos },
+        { titulo: 'Dirección', valor: (e) => e.direccion },
+        { titulo: 'Distrito', valor: (e) => e.distrito },
+        { titulo: 'Provincia', valor: (e) => e.provincia },
+      ];
+    const total = exportarCsv(personas ? 'clientes-personas' : 'clientes-empresas', columnas, filas);
+    this.alerta.toast({ type: 'success', title: `CSV descargado: ${total} ${total === 1 ? 'fila' : 'filas'}` });
   }
 
   // ── Resumen y presentación (solo vista) ──────────────────────
@@ -232,6 +381,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
           if (fila && id) {
             // Igual que productos: aparece al toque, sin recargar toda la lista.
             this.reflejarEnLista(fila, this.pestania);
+            this.irAlRegistro(id);
             this.destacar(id);
           }
 

@@ -266,7 +266,22 @@
                   <option value="individual">Envío individual</option>
                   <option value="resumen">Resumen diario</option>
                 </select>
+                <p class="adm-ayuda" id="fiscal-boletas-ayuda">
+                  @if (operacion.boletas_modo === 'resumen') {
+                    Resumen diario: las boletas del día se informan juntas a las {{ operacion.resumen_hora || '23:30' }}; el cliente recibe su boleta igual.
+                  } @else {
+                    Envío individual: cada boleta va a SUNAT al cobrar (recomendado).
+                  }
+                </p>
               </div>
+              @if (operacion.boletas_modo === 'resumen') {
+                <div class="adm-campo">
+                  <label for="fiscal-resumen-hora" class="adm-etiqueta">Hora del resumen diario</label>
+                  <input id="fiscal-resumen-hora" name="resumenHora" class="adm-input" type="time" required
+                         [(ngModel)]="operacion.resumen_hora" aria-describedby="fiscal-resumen-hora-ayuda" />
+                  <p class="adm-ayuda" id="fiscal-resumen-hora-ayuda">Hora de Lima. Las boletas de días anteriores se informan en cuanto se pueda.</p>
+                </div>
+              }
               @for (serie of series; track serie.clave) {
                 <div class="adm-campo">
                   <label class="adm-etiqueta" [for]="'serie-' + serie.clave">{{ serie.etiqueta }}</label>
@@ -290,21 +305,34 @@
               </div>
             </div>
             <label class="adm-switch fiscal-opcion">
-              <input name="envioLinea" type="checkbox" [(ngModel)]="operacion.envio_en_linea" /> Envío en línea
+              <input name="enviarAlCobrar" type="checkbox" [(ngModel)]="enviarAlCobrar" /> Enviar a SUNAT al cobrar (recomendado)
             </label>
-            <label class="adm-switch fiscal-opcion">
-              <input name="envioDiferido" type="checkbox" [(ngModel)]="operacion.envio_diferido" /> Cobrar sin esperar a SUNAT
-            </label>
+            <p class="adm-ayuda">
+              @if (enviarAlCobrar) {
+                El cajero espera la respuesta de SUNAT (≈ 1 s).
+              } @else {
+                La venta termina al instante y el comprobante se envía en segundo plano en menos de 2 minutos.
+              }
+              @if (operacion.boletas_modo === 'resumen') {
+                Con resumen diario esto rige para las facturas: las boletas no se envían al cobrar.
+              }
+            </p>
             <button class="adm-btn adm-btn--primario" type="submit" [disabled]="operacionForm.invalid">
               Guardar operación y series
             </button>
             <details class="adm-mas-info">
-              <summary class="adm-mas-info__resumen">Sobre el cobro sin espera y las series</summary>
+              <summary class="adm-mas-info__resumen">Sobre el envío en segundo plano, el resumen diario y las series</summary>
               <p class="adm-ayuda">
-                Con «Cobrar sin esperar a SUNAT» la venta termina en menos de un segundo: el comprobante queda firmado y
-                guardado, y se envía a SUNAT en segundo plano (si SUNAT está lenta o caída, se reintenta solo). El ticket
-                sale con la leyenda «Pendiente de confirmación de SUNAT» hasta que SUNAT lo acepta. Apagado, el cajero espera
-                la respuesta de SUNAT como antes.
+                Con «Enviar a SUNAT al cobrar» apagado la venta termina en menos de un segundo: el comprobante queda
+                firmado y guardado, y se envía a SUNAT en segundo plano (si SUNAT está lenta o caída, se reintenta solo).
+                El ticket sale con la leyenda «Pendiente de confirmación de SUNAT» hasta que SUNAT lo acepta. Encendido,
+                el cajero espera la respuesta de SUNAT.
+              </p>
+              <p class="adm-ayuda">
+                Con «Resumen diario», cada boleta se firma y se guarda sin enviarla; el cliente recibe su boleta con su
+                código QR y a la hora indicada el sistema informa a SUNAT todas las del día en un solo resumen. Si SUNAT
+                lo rechaza, las boletas vuelven a quedar por informar y usted lo decide en Lotes. Con «Envío individual»,
+                una boleta que lleva más de 5 días sin aceptar entra sola a un resumen (hasta el 7.º día).
               </p>
               <p class="adm-ayuda">
                 Factura y sus notas empiezan con F; boleta y sus notas con B; la guía remitente con T. Si cambia una
@@ -575,6 +603,11 @@
           </fieldset>
         </form>
       </section>
+
+      <!-- Se crea al abrir Configuración: no pide nada mientras se mira otra pestaña. -->
+      @if (seccion === 'configuracion') {
+        <app-llave-alertas-sunat (cambio)="alCambiarEnvios()" />
+      }
     </div>
 
     <!-- Pruebas en SUNAT BETA -->
@@ -800,8 +833,7 @@
                 <tr>
                   <td data-etiqueta="Fecha" class="adm-tabular">{{ registro.creado_en | date: 'dd/MM/yyyy HH:mm' }}</td>
                   <td data-etiqueta="Acción">
-                    <div class="adm-tabla__principal">{{ nombreAccion(registro.accion) }}</div>
-                    <div class="adm-tabla__mono">{{ registro.accion }}</div>
+                    <div class="adm-tabla__principal" [attr.title]="registro.accion">{{ nombreAccion(registro.accion) }}</div>
                   </td>
                   <td data-etiqueta="Usuario">{{ registro.id_usuario !== null ? 'Usuario #' + registro.id_usuario : 'Sistema' }}</td>
                   <td data-etiqueta="Entidad">{{ registro.entidad || '—' }}</td>

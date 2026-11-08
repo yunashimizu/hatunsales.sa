@@ -1,0 +1,117 @@
+<section class="adm-tarjeta" id="fiscal-llave-alertas" aria-labelledby="fiscal-llave-titulo">
+  <div class="adm-tarjeta__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="fiscal-llave-titulo"><i class="bi bi-key" aria-hidden="true"></i> Llave y alertas</h2>
+      <p class="adm-tarjeta__sub">La llave que protege el certificado y las claves guardadas, y a dónde llegan los avisos de facturación.</p>
+    </div>
+    <div class="adm-tarjeta__extra">
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cargar()" [disabled]="cargando">
+        <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i> Actualizar
+      </button>
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="adm-vacio adm-vacio--compacto adm-vacio--error" role="alert">
+      <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">No se pudo cargar</div>
+      <p>{{ error }}</p>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar</button>
+    </div>
+  } @else if (cargando && !llave) {
+    <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando">
+      <div class="adm-esqueleto adm-esqueleto--fila"></div>
+      <div class="adm-esqueleto adm-esqueleto--fila"></div>
+    </div>
+  } @else {
+    <div class="adm-tarjeta__cuerpo llave-bloques">
+
+      <!-- Llave de seguridad -->
+      <div class="llave-bloque" data-prueba="bloque-llave">
+        <h3 class="adm-bloque__titulo"><i class="bi bi-shield-lock" aria-hidden="true"></i> Llave de seguridad del servidor</h3>
+        @if (rotacionEnCurso) {
+          <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto" role="status" data-prueba="rotacion">
+            <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+            <span>
+              @if (pendientes > 0) {
+                Hay una llave anterior definida y <strong>{{ pendientes }}</strong> {{ pendientes === 1 ? 'secreto todavía depende' : 'secretos todavía dependen' }} de ella.
+                No la quite del servidor hasta re-cifrar.
+              } @else {
+                Hay una llave anterior definida, pero todos los secretos ya usan la vigente: puede quitarla del servidor.
+              }
+            </span>
+          </div>
+        } @else {
+          <p class="adm-ayuda llave-texto" data-prueba="sin-rotacion">
+            No hay una rotación de llave en curso: todo está cifrado con la llave vigente.
+          </p>
+        }
+        <p class="adm-ayuda llave-texto">
+          Guarde una copia de la llave <strong>fuera del servidor</strong> (en su gestor de contraseñas). Si se pierde,
+          habrá que volver a cargar el certificado y las claves.
+        </p>
+        <div class="llave-accion">
+          <button type="button" class="adm-btn adm-btn--primario" (click)="recifrar()" [disabled]="recifrando" data-prueba="recifrar">
+            <i class="bi" [ngClass]="recifrando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-repeat'" aria-hidden="true"></i>
+            {{ recifrando ? 'Re-cifrando…' : 'Re-cifrar ahora' }}
+          </button>
+        </div>
+
+        @if (resultado) {
+          <div class="llave-resultado" role="status" data-prueba="resultado-recifrado">
+            <p class="llave-resultado__resumen">
+              <strong>{{ resultado.recifrados }}</strong> re-cifrado{{ resultado.recifrados === 1 ? '' : 's' }} ·
+              <strong>{{ resultado.ya_vigentes }}</strong> ya estaba{{ resultado.ya_vigentes === 1 ? '' : 'n' }} al día
+              @if (resultado.ilegibles) { · <strong class="llave-resultado__alerta">{{ resultado.ilegibles }} sin poder abrirse</strong> }
+            </p>
+            <ul class="llave-resultado__lista">
+              @for (d of resultado.detalle; track d.secreto) {
+                <li>
+                  <span class="llave-resultado__nombre">{{ d.secreto }}</span>
+                  <span class="adm-insignia adm-insignia--sm"
+                        [ngClass]="d.estado === 'ilegible' || d.estado === 'sin_cifrado' || d.estado === 'con_llave_anterior' ? 'adm-insignia--aviso' : d.estado === 'falta' ? 'adm-insignia--neutra' : 'adm-insignia--exito'">
+                    {{ textoEstado[d.estado] }}
+                  </span>
+                </li>
+              }
+            </ul>
+            @if (resultado.puede_quitar_llave_anterior && rotacionEnCurso) {
+              <p class="adm-ayuda llave-texto">Ya puede quitar la llave anterior del servidor.</p>
+            } @else if (resultado.ilegibles) {
+              <p class="adm-ayuda llave-texto llave-resultado__alerta">
+                Lo que no se pudo abrir hay que volver a cargarlo (certificado o claves). Si conserva la llave anterior,
+                déjela definida en el servidor y vuelva a probar.
+              </p>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Avisos por correo -->
+      <div class="llave-bloque" data-prueba="bloque-avisos">
+        <h3 class="adm-bloque__titulo"><i class="bi bi-envelope-exclamation" aria-hidden="true"></i> Avisos por correo</h3>
+        <p class="adm-ayuda llave-texto">
+          Cada día a las 8:00 (hora de Lima) llega <strong>un correo</strong> si pasa alguna de estas cosas: el certificado
+          vence en 30, 15, 7 o 1 día; hay comprobantes que requieren revisión; hay resúmenes o bajas sin respuesta de SUNAT;
+          un comprobante vence hoy su plazo de envío; o hay más de 20 esperando a SUNAT desde hace más de 2 horas.
+        </p>
+        <form class="llave-correo" (ngSubmit)="guardarCorreo()" novalidate>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="llave-correo">Correo para los avisos <span class="adm-etiqueta__opcional">opcional</span></label>
+            <input id="llave-correo" class="adm-input" type="email" name="correoAvisos" autocomplete="off" maxlength="254"
+                   placeholder="contabilidad@suempresa.pe" [(ngModel)]="correo" [disabled]="guardandoCorreo"
+                   [class.adm-input--error]="!correoValido" [attr.aria-invalid]="!correoValido"
+                   aria-describedby="llave-correo-ayuda">
+            <p class="adm-ayuda" id="llave-correo-ayuda" [class.adm-ayuda--error]="!correoValido">
+              {{ correoValido ? destino : 'Escriba un correo válido, por ejemplo contabilidad@suempresa.pe.' }}
+            </p>
+          </div>
+          <button type="submit" class="adm-btn adm-btn--suave" [disabled]="guardandoCorreo || !correoValido || !correoCambiado" data-prueba="guardar-correo">
+            <i class="bi" [ngClass]="guardandoCorreo ? 'bi-arrow-repeat adm-girando' : 'bi-check2'" aria-hidden="true"></i>
+            Guardar correo
+          </button>
+        </form>
+      </div>
+    </div>
+  }
+</section>

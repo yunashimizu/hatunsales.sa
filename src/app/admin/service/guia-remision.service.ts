@@ -35,6 +35,8 @@ export interface AccionesGuia {
   puede_emitir: boolean;
   puede_consultar: boolean;
   puede_anular: boolean;
+  /** Solo administrador: SUNAT no resolvió el ticket en 7 días; «Liberar» deja la guía lista para reenviarla tras revisarla. */
+  puede_liberar?: boolean;
 }
 
 export interface DocumentoRelacionadoGuia {
@@ -108,6 +110,10 @@ export interface EnvioGuia {
   en_curso: boolean;
   /** La consulta automática se detuvo: hay que consultar a mano o revisar en SUNAT. */
   revision_manual: boolean;
+  /** Pasaron 7 días sin respuesta de SUNAT: se puede «Liberar» (solo administrador). */
+  liberable?: boolean;
+  /** Ya se liberó: se reenvía el mismo archivo con «Emitir» tras revisar en SUNAT. */
+  liberado?: boolean;
   proximo_intento_en: string | null;
   actualizado_en: string | null;
 }
@@ -161,6 +167,10 @@ export interface GuiaRemision extends GuiaRemisionResumen {
   transportista: TransportistaGuia | null;
   vehiculo: VehiculoGuia | null;
   conductor: ConductorGuia | null;
+  /** Traslado en moto o auto particular (categoría M1 o L): sin vehículo ni conductor. */
+  traslado_vehiculo_m1l?: boolean;
+  /** Compra (motivo 02): a quién se le compró. */
+  proveedor?: { tipo_documento: string | null; numero_documento: string | null; denominacion: string | null } | null;
   items: ItemGuia[];
   observaciones: string | null;
   sunat: SunatGuia;
@@ -247,6 +257,10 @@ export interface MotivoTrasladoGuia extends OpcionCatalogoGuia {
   requiere_venta: boolean;
   requiere_descripcion: boolean;
   requiere_establecimiento: boolean;
+  /** Compra (02): se pide a quién se le compró. Opcional: un servidor anterior no lo manda. */
+  requiere_proveedor?: boolean;
+  /** El destinatario es la propia empresa (02 y 04). Opcional: un servidor anterior solo lo hacía con el 04. */
+  destinatario_propio?: boolean;
 }
 
 /** GET /guia-remision/catalogos */
@@ -309,7 +323,7 @@ export interface ItemGuiaCuerpo {
 }
 
 export interface GuardarGuiaRemision {
-  /** Obligatoria con el motivo 01; sin venta solo se admiten 04 y 13. */
+  /** Obligatoria con los motivos 01 y 14; sin venta se admiten 02, 04, 13 y 18. */
   id_venta?: number;
   motivo_traslado: string;
   descripcion_motivo?: string;
@@ -325,6 +339,10 @@ export interface GuardarGuiaRemision {
   transportista?: TransportistaGuiaCuerpo;
   vehiculo?: VehiculoGuiaCuerpo;
   conductor?: ConductorGuiaCuerpo;
+  /** Solo transporte privado: el traslado va en moto o auto particular (M1/L); no se piden vehículo ni conductor. */
+  traslado_vehiculo_m1l?: boolean;
+  /** Compra (motivo 02): a quién se le compró. */
+  proveedor?: { tipo_documento?: string; numero_documento?: string; denominacion?: string };
   items: ItemGuiaCuerpo[];
   observaciones?: string;
   /** Repetir el POST con la misma clave devuelve la guía ya creada (doble clic, reintento de red). */
@@ -411,6 +429,14 @@ export class GuiaRemisionService {
   /** Consulta del ticket en SUNAT. */
   consultar(id: number): Observable<OperacionGuia> {
     return this.http.post<OperacionGuia>(urlConstants.guiaRemision.consultar(id), {}, opcionesSunat());
+  }
+
+  /**
+   * «Liberar» (solo administrador): la guía lleva 7 días sin respuesta de SUNAT. Vuelve a «pendiente» para reenviar
+   * el mismo archivo con «Emitir» tras revisarla en SUNAT Operaciones en Línea. Queda en la bitácora.
+   */
+  liberar(id: number): Observable<GuiaRemision> {
+    return this.http.post<GuiaRemision>(`${urlConstants.guiaRemision.base}/${id}/liberar`, {}, opcionesHttp());
   }
 
   /** Solo borrador o rechazada; una aceptada se da de baja en SUNAT Operaciones en Línea. */

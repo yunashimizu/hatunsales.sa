@@ -35,6 +35,7 @@ describe('VentasSinComprobanteComponent', () => {
   let component: VentasSinComprobanteComponent;
   let estadoFiscal: ReturnType<typeof signal<EstadoFiscalGlobal | null>>;
   const pagina = (datos: VentaSinComprobante[]) => of({ datos, total: datos.length, pagina: 1, por_pagina: 20 });
+  const alerta = { error: vi.fn(), toast: vi.fn(), confirmar: vi.fn(async (_config: { title?: string; message?: string }): Promise<boolean> => true) };
   const api = {
     ventasSinComprobante: vi.fn(() => pagina([VENTA_EMPRESA, VENTA_PERSONA])),
     emitirComprobanteDeVenta: vi.fn(),
@@ -47,6 +48,7 @@ describe('VentasSinComprobanteComponent', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    alerta.confirmar.mockResolvedValue(true);
     api.ventasSinComprobante.mockImplementation(() => pagina([VENTA_EMPRESA, VENTA_PERSONA]));
     estadoFiscal = signal<EstadoFiscalGlobal | null>({ ambiente: 'beta', emision_activa: true } as EstadoFiscalGlobal);
     await TestBed.configureTestingModule({
@@ -55,7 +57,7 @@ describe('VentasSinComprobanteComponent', () => {
         provideRouter([]),
         { provide: ComprobanteService, useValue: api },
         { provide: ReceptorService, useValue: { buscar: vi.fn() } },
-        { provide: AlertService, useValue: { error: vi.fn(), toast: vi.fn() } },
+        { provide: AlertService, useValue: alerta },
         { provide: FiscalEstadoService, useValue: { estado: estadoFiscal, iniciar: vi.fn() } },
       ],
     }).compileComponents();
@@ -115,7 +117,7 @@ describe('VentasSinComprobanteComponent', () => {
     expect(texto()).toContain('No se pudieron cargar las ventas sin comprobante');
   });
 
-  it('emite el comprobante a SUNAT y muestra en el acto su resultado con los PDF', () => {
+  it('emite el comprobante a SUNAT y muestra en el acto su resultado con los PDF', async () => {
     const respuesta: ResultadoEmisionVenta = {
       id_venta: 33,
       total: 59,
@@ -139,7 +141,7 @@ describe('VentasSinComprobanteComponent', () => {
     // Con RUC, la factura viene elegida.
     expect(component.formulario.id_tipo).toBe(TIPO_FACTURA);
     expect(texto()).toContain('Se emitirá en SUNAT BETA');
-    component.emitir();
+    await component.emitir();
     fixture.detectChanges();
 
     expect(api.emitirComprobanteDeVenta).toHaveBeenCalledWith(33, { id_tipo: TIPO_FACTURA, documento: '20100000001' });
@@ -151,7 +153,46 @@ describe('VentasSinComprobanteComponent', () => {
     expect(api.ventasSinComprobante).toHaveBeenCalledTimes(2);
   });
 
-  it('avisa antes de emitir que la emisión está detenida y no deja enviar; una factura exige RUC', () => {
+  it('si SUNAT todavía no confirma, el resultado habla con el glosario («SUNAT lo está procesando»), sin ticket ni CDR', async () => {
+    api.emitirComprobanteDeVenta.mockReturnValue(
+      of({
+        id_venta: 33,
+        total: 59,
+        cliente_denominacion: 'ACME SAC',
+        comprobante: { id_comprobante: 91, numero_formateado: 'B001-00000020', estado: 'pendiente', estado_sunat: 'TICKET_PENDIENTE', aceptada_sunat: false, ambiente_fiscal: 'produccion' },
+      } as ResultadoEmisionVenta),
+    );
+    component.abrirEmision(VENTA_PERSONA);
+    fixture.detectChanges();
+    await component.emitir();
+    fixture.detectChanges();
+
+    expect(texto()).toContain('SUNAT lo está procesando');
+    expect(texto()).toContain('B001-00000020');
+    expect(texto()).not.toMatch(/\bCDR\b/);
+    expect(texto()).not.toMatch(/Ticket pendiente/);
+  });
+
+  it('una emisión que queda «Por reenviar» (SUNAT ya la tenía) dice que no se reenvíe y habla de la «constancia de SUNAT»', async () => {
+    api.emitirComprobanteDeVenta.mockReturnValue(
+      of({
+        id_venta: 33,
+        total: 59,
+        cliente_denominacion: 'ACME SAC',
+        comprobante: { id_comprobante: 92, numero_formateado: 'F001-00000021', estado: 'pendiente', estado_sunat: 'PENDIENTE_REENVIO', accion_sunat: 'RECUPERAR_CDR', aceptada_sunat: false, ambiente_fiscal: 'produccion' },
+      } as ResultadoEmisionVenta),
+    );
+    component.abrirEmision(VENTA_EMPRESA);
+    fixture.detectChanges();
+    await component.emitir();
+    fixture.detectChanges();
+
+    expect(texto()).toContain('no lo reenvíe');
+    expect(texto()).toContain('constancia de SUNAT');
+    expect(texto()).not.toMatch(/\bCDR\b/);
+  });
+
+  it('avisa antes de emitir que la emisión está detenida y no deja enviar; una factura exige RUC', async () => {
     estadoFiscal.set({ ambiente: 'beta', emision_activa: false, motivo: 'El POS BETA está apagado.' } as EstadoFiscalGlobal);
     component.abrirEmision(VENTA_EMPRESA);
     fixture.detectChanges();
@@ -159,24 +200,60 @@ describe('VentasSinComprobanteComponent', () => {
     const emitir = Array.from(fixture.nativeElement.querySelectorAll('.adm-modal__pie button') as NodeListOf<HTMLButtonElement>)
       .find((b) => b.textContent?.includes('a SUNAT'))!;
     expect(emitir.disabled).toBe(true);
-    component.emitir();
+    await component.emitir();
     expect(api.emitirComprobanteDeVenta).not.toHaveBeenCalled();
+    expect(alerta.confirmar).not.toHaveBeenCalled();
 
     estadoFiscal.set({ ambiente: 'beta', emision_activa: true } as EstadoFiscalGlobal);
     component.abrirEmision(VENTA_PERSONA);
     expect(component.formulario.id_tipo).toBe(TIPO_BOLETA);
     component.elegirTipo(TIPO_FACTURA);
     expect(component.errorFormulario).toContain('solo se emite a un RUC');
-    component.emitir();
+    await component.emitir();
     expect(api.emitirComprobanteDeVenta).not.toHaveBeenCalled();
+    expect(alerta.confirmar).not.toHaveBeenCalled();
   });
 
-  it('si la venta sigue sin comprobante muestra el motivo, y ante un 409 ofrece abrir el que ya tiene', () => {
+  it('antes de gastar un número real pide confirmación (con el tipo, el total y el ambiente) y, si se cancela, no envía nada', async () => {
+    api.emitirComprobanteDeVenta.mockReturnValue(of({ id_venta: 34, total: 25, cliente_denominacion: 'JUAN PEREZ' }));
+    component.abrirEmision(VENTA_PERSONA);
+    alerta.confirmar.mockResolvedValueOnce(false);
+
+    await component.emitir();
+
+    expect(alerta.confirmar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '¿Emitir la boleta de la venta #34?',
+        message: expect.stringContaining('por S/ 25.00 y se enviará a SUNAT BETA (pruebas, sin validez tributaria)'),
+        confirmText: 'Sí, emitir boleta',
+      }),
+    );
+    expect(alerta.confirmar.mock.calls[0][0]?.message).toContain('no se puede deshacer');
+    expect(api.emitirComprobanteDeVenta).not.toHaveBeenCalled();
+    expect(component.emitiendo).toBe(false);
+
+    await component.emitir();
+    expect(api.emitirComprobanteDeVenta).toHaveBeenCalledWith(34, { id_tipo: TIPO_BOLETA, documento: '45678912' });
+  });
+
+  it('en producción la confirmación no habla de pruebas', async () => {
+    estadoFiscal.set({ ambiente: 'produccion', emision_activa: true } as EstadoFiscalGlobal);
+    api.emitirComprobanteDeVenta.mockReturnValue(of({ id_venta: 33, total: 59, cliente_denominacion: 'ACME SAC' }));
+    component.abrirEmision(VENTA_EMPRESA);
+
+    await component.emitir();
+
+    const mensaje = alerta.confirmar.mock.calls[0][0]?.message ?? '';
+    expect(mensaje).toContain('se enviará a SUNAT. Consume el siguiente número');
+    expect(mensaje).not.toContain('BETA');
+  });
+
+  it('si la venta sigue sin comprobante muestra el motivo, y ante un 409 ofrece abrir el que ya tiene', async () => {
     api.emitirComprobanteDeVenta.mockReturnValueOnce(
       of({ id_venta: 34, total: 25, cliente_denominacion: 'JUAN PEREZ', comprobante_error: 'SUNAT no responde en este momento.' }),
     );
     component.abrirEmision(VENTA_PERSONA);
-    component.emitir();
+    await component.emitir();
     fixture.detectChanges();
     expect(texto()).toContain('La venta sigue sin comprobante');
     expect(texto()).toContain('SUNAT no responde en este momento.');
@@ -189,7 +266,7 @@ describe('VentasSinComprobanteComponent', () => {
     );
     const abiertos: number[] = [];
     component.verComprobante.subscribe((id) => abiertos.push(id));
-    component.emitir();
+    await component.emitir();
     fixture.detectChanges();
     expect(texto()).toContain('La venta 34 ya tiene el comprobante BB01-00000007.');
     const ver = Array.from(fixture.nativeElement.querySelectorAll('.adm-modal button') as NodeListOf<HTMLButtonElement>)

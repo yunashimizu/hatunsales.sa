@@ -45,6 +45,7 @@ import {
 } from './activacion-produccion/activacion-produccion.component';
 import { EnviosSunatComponent } from './envios-sunat/envios-sunat.component';
 import { LotesSunatComponent } from './lotes-sunat/lotes-sunat.component';
+import { LlaveAlertasSunatComponent } from './llave-alertas/llave-alertas-sunat.component';
 import { ProductosSinCodigoComponent } from './productos-sin-codigo/productos-sin-codigo.component';
 
 type SeccionFiscal = 'resumen' | 'envios' | 'configuracion' | 'pruebas' | 'bitacora';
@@ -80,7 +81,7 @@ function advertenciasDe(respuesta: unknown): string[] {
 const DIAS_AVISO_CERTIFICADO = 30;
 
 const NOMBRES_ACCION_AUDITORIA: Readonly<Record<string, string>> = {
-  PROVEEDOR_CAMBIADO: 'Emisión de producción activada o desactivada',
+  PROVEEDOR_CAMBIADO: 'Emisión electrónica activada o apagada',
   AMBIENTE_CAMBIADO: 'Ambiente cambiado (BETA / producción)',
   CONFIG_OPERACION: 'Opciones de operación',
   CONFIG_EMISOR: 'Datos del emisor',
@@ -108,12 +109,26 @@ const NOMBRES_ACCION_AUDITORIA: Readonly<Record<string, string>> = {
   PRUEBA_CREDENCIALES_PRODUCCION: 'Prueba de credenciales SOL de producción',
   POS_BETA_ACTIVADO: 'Emisión de prueba del POS activada',
   POS_BETA_DESACTIVADO: 'Emisión de prueba del POS desactivada',
+  FISCAL_BAJA_SOLICITADA: 'Baja o resumen de anulación pedido a SUNAT',
+  FISCAL_REINTENTO_MANUAL: 'Envío reintentado a mano',
+  FISCAL_LOTE_LIBERADO: 'Baja o resumen liberado sin respuesta de SUNAT',
+  FISCAL_GRE_LIBERADA: 'Guía de remisión liberada sin respuesta de SUNAT',
+  FISCAL_RESUMEN_SOLICITADO: 'Resumen diario de boletas enviado a SUNAT',
+  FISCAL_CDR_RECUPERADO: 'Constancia de SUNAT pedida',
+  FISCAL_NC_EMITIDA: 'Nota de crédito emitida',
+  FISCAL_GRE_EMITIDA: 'Guía de remisión emitida',
+  FISCAL_GRE_ANULADA: 'Guía de remisión anulada',
+  FISCAL_PEDIDO_WEB_EMITIDO: 'Comprobante de un pedido de la tienda',
+  FISCAL_ALERTA_ENVIADA: 'Aviso enviado por correo',
+  FISCAL_SECRETOS_RECIFRADOS: 'Claves y certificados re-cifrados con la llave vigente',
+  ENVIO_DESCARTADO_POR_ANULACION: 'Envío descartado al anular la venta',
+  CONFIG_EMISOR_BETA: 'Datos del emisor de pruebas',
 };
 
 @Component({
   selector: 'app-facturacion-sunat',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ActivacionProduccionComponent, EnviosSunatComponent, LotesSunatComponent, ProductosSinCodigoComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ActivacionProduccionComponent, EnviosSunatComponent, LlaveAlertasSunatComponent, LotesSunatComponent, ProductosSinCodigoComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './facturacion-sunat.component.html',
   styleUrl: './facturacion-sunat.component.css',
@@ -265,11 +280,34 @@ export class FacturacionSunatComponent implements OnInit {
     this.desplazarA(`fiscal-${destino}`);
   }
 
-  guardarOperacion(): void {
+  async guardarOperacion(): Promise<void> {
+    if (this.ocupado || this.cargando) return;
+    // Cambiar cómo se informan las boletas a SUNAT cambia lo que pasa en cada venta: se confirma.
+    const modoActual = this.config?.boletas_modo;
+    if (modoActual && modoActual !== this.operacion.boletas_modo) {
+      const aResumen = this.operacion.boletas_modo === 'resumen';
+      const confirmado = await this.alerta.confirmar({
+        title: aResumen ? '¿Informar las boletas por resumen diario?' : '¿Volver al envío individual de boletas?',
+        message: aResumen
+          ? `Desde ahora las boletas no se envían a SUNAT al cobrar: se firman y se guardan, el cliente recibe su boleta igual, y a las ${this.operacion.resumen_hora} el sistema las informa juntas en un resumen diario. Las facturas siguen enviándose al cobrar.`
+          : 'Desde ahora cada boleta se envía a SUNAT al cobrar. Las boletas que hayan quedado esperando su resumen se informarán igual en el próximo resumen.',
+        confirmText: aResumen ? 'Usar resumen diario' : 'Volver al envío individual',
+      });
+      if (!confirmado || this.destroyRef.destroyed) return;
+    }
     this.ejecutar(
       this.api.guardar({ ...this.operacion, series: { ...this.operacion.series } }),
       'Operación y series guardadas',
     );
+  }
+
+  /** Interruptor único del cobro: encendido = se envía a SUNAT al cobrar (envio_diferido apagado). */
+  get enviarAlCobrar(): boolean {
+    return !this.operacion.envio_diferido;
+  }
+
+  set enviarAlCobrar(valor: boolean) {
+    this.operacion.envio_diferido = !valor;
   }
 
   guardarEmisor(): void {
@@ -445,8 +483,23 @@ export class FacturacionSunatComponent implements OnInit {
     this.archivo = archivo;
   }
 
-  subirCertificado(): void {
-    if (!this.archivo) return;
+  async subirCertificado(): Promise<void> {
+    if (!this.archivo || this.ocupado || this.cargando) return;
+    // Reemplazar un certificado en uso cambia con qué se firman las ventas siguientes: se pide confirmación.
+    const actual = this.config?.certificado[this.ambienteCertificado] ?? null;
+    if (actual) {
+      const nombre = this.ambienteCertificado === 'produccion' ? 'producción' : 'BETA';
+      const vence = actual.vigente_hasta ? ` (vence el ${new Date(actual.vigente_hasta).toLocaleDateString('es-PE', { timeZone: 'America/Lima' })})` : '';
+      const confirmado = await this.alerta.confirmarPeligro({
+        title: `¿Reemplazar el certificado de ${nombre}?`,
+        message:
+          `Reemplazará el certificado actual de ${nombre}${vence}. Desde ese momento los comprobantes se firman con el nuevo; ` +
+          'si el nuevo no es del RUC del emisor, SUNAT rechazará los envíos. Queda registrado en la bitácora.',
+        confirmText: 'Sí, reemplazar',
+        type: 'warning',
+      });
+      if (!confirmado || this.destroyRef.destroyed || !this.archivo) return;
+    }
     this.ejecutar(
       this.api.subirCertificado(
         this.archivo,
@@ -661,7 +714,7 @@ export class FacturacionSunatComponent implements OnInit {
     if (!restablecer) return;
     this.operacion = {
       boletas_modo: config.boletas_modo,
-      envio_en_linea: config.envio_en_linea,
+      resumen_hora: config.resumen_hora || '23:30',
       envio_diferido: config.envio_diferido === true,
       aplicar_reglas_2027: config.aplicar_reglas_2027,
       codigo_producto_defecto: config.codigo_producto_defecto ?? '',
@@ -781,7 +834,7 @@ function alertasDeEstado(estado: EstadoFiscalGlobal | null): AlertaFiscal[] {
       icono: 'bi-calendar-x',
       titulo: `${plazos.vencidos} comprobante(s) fuera del plazo de envío`,
       texto:
-        'Las facturas y sus notas fuera de plazo se reemplazan por un comprobante nuevo; las boletas se informan por resumen diario en SUNAT.',
+        'Las facturas y sus notas fuera de plazo se reemplazan por un comprobante nuevo. Las boletas que aún están dentro de los 7 días de su emisión se informan en un resumen diario (solas, o con «Informar por resumen» en su detalle); pasados los 7 días, si el cliente reclama una boleta, anúlela con nota de crédito y emita otra.',
     });
   }
   if (plazos && plazos.vencen_hoy > 0) {

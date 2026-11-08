@@ -8,13 +8,16 @@ import {
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Subject, debounceTime, takeUntil } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subject, debounceTime, skip, takeUntil } from 'rxjs';
 
 import { VisorImagenComponent } from '../../../../shared/components/visor-imagen/visor-imagen.component';
 import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
 import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 import { BusquedaPendiente, filtrarInstantaneo } from '../../../../shared/utils/filtro-instantaneo.util';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { ColumnaCsv, exportarCsv } from '../../../../shared/utils/exportar-csv';
+import { EscritorFiltrosUrl, EsquemaFiltros, leerFiltros } from '../../../../shared/utils/filtros-url';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { mensajeDeError } from '../../../service/api-base.service';
 import { FiltroInventario, InventarioAdminService } from '../../../service/inventario-admin.service';
@@ -25,6 +28,14 @@ import {
 import { UnidadMedidaPipe } from '../../../../shared/ui/unidad-medida.pipe';
 
 type ModoPanel = 'ajuste' | 'transferencia' | 'movimientos';
+
+/** Qué se guarda en la URL: enlace compartible y filtros que sobreviven a F5. */
+const ESQUEMA_URL: EsquemaFiltros = {
+  q: { tipo: 'texto' },
+  almacen: { tipo: 'numero', min: 1 },
+  alertas: { tipo: 'bandera' },
+  pagina: { tipo: 'numero', defecto: 1, min: 1 },
+};
 
 const MOTIVOS = [
   { valor: 'compra', texto: 'Ingreso por compra' },
@@ -86,6 +97,9 @@ export class InventarioComponent implements OnInit, OnDestroy {
   private readonly buscar$ = new Subject<void>();
   private readonly destruir$ = new Subject<void>();
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly urlFiltros = new EscritorFiltrosUrl(this.router, this.route, ESQUEMA_URL);
 
   constructor(
     private readonly service: InventarioAdminService,
@@ -96,12 +110,22 @@ export class InventarioComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.buscar$.pipe(debounceTime(220), takeUntil(this.destruir$)).subscribe(() => this.cargar(1));
 
-    this.cargar(1);
+    // La URL manda antes de la primera carga: un enlace con filtros abre ya filtrado. Después, si la
+    // ruta cambia desde fuera (menú o paleta hacia /inventario limpio), se vuelve a cargar sin filtros.
+    this.aplicarFiltrosDeUrl();
+    this.route.queryParamMap.pipe(skip(1), takeUntil(this.destruir$)).subscribe(() => {
+      if (this.urlFiltros.ocupado || this.coincideConLaUrl()) return;
+      this.aplicarFiltrosDeUrl();
+      this.cargar(this.pagina);
+    });
+
+    this.cargar(this.pagina);
     this.cargarResumen();
     this.cargarAlmacenes();
   }
 
   ngOnDestroy(): void {
+    this.urlFiltros.cancelar();
     this.destruir$.next();
     this.destruir$.complete();
   }
@@ -113,6 +137,7 @@ export class InventarioComponent implements OnInit, OnDestroy {
     this.cargando = true;
     this.errorCarga = false;
     this.cdr.markForCheck();
+    this.escribirUrl(pagina);
 
     this.service
       .listar({ ...this.filtro, pagina, por_pagina: this.porPagina })
@@ -138,6 +163,64 @@ export class InventarioComponent implements OnInit, OnDestroy {
           });
         },
       });
+  }
+
+  // ── URL y CSV ────────────────────────────────────────────────
+
+  /** Los filtros de pantalla, tal como van a la URL. */
+  private valoresDeUrl(pagina = this.pagina): Record<string, string | number | boolean | null> {
+    return {
+      q: (this.filtro.texto ?? '').trim(),
+      almacen: this.filtro.id_almacen === '' || this.filtro.id_almacen === undefined ? null : Number(this.filtro.id_almacen),
+      alertas: !!this.filtro.solo_alertas,
+      pagina,
+    };
+  }
+
+  private escribirUrl(pagina: number): void {
+    this.urlFiltros.escribir(this.valoresDeUrl(pagina));
+  }
+
+  private aplicarFiltrosDeUrl(): void {
+    const f = leerFiltros(this.route, ESQUEMA_URL);
+    this.filtro = {
+      ...this.filtro,
+      texto: String(f['q'] ?? ''),
+      id_almacen: typeof f['almacen'] === 'number' ? f['almacen'] : '',
+      solo_alertas: f['alertas'] === true,
+    };
+    this.pagina = Number(f['pagina']) || 1;
+    this.cdr.markForCheck();
+  }
+
+  private coincideConLaUrl(): boolean {
+    const url = leerFiltros(this.route, ESQUEMA_URL);
+    const hoy = this.valoresDeUrl();
+    return url['q'] === hoy['q'] && (url['almacen'] ?? null) === hoy['almacen']
+      && url['alertas'] === hoy['alertas'] && url['pagina'] === hoy['pagina'];
+  }
+
+  /** Descarga las filas de la página que se ve (el listado se pagina en el servidor). */
+  exportarCsv(): void {
+    const filas = this.filasVisibles;
+    if (!filas.length) return;
+    const columnas: ColumnaCsv<FilaInventario>[] = [
+      { titulo: 'Producto', valor: (f) => f.producto },
+      { titulo: 'SKU', valor: (f) => f.sku },
+      { titulo: 'Código de barras', valor: (f) => f.codigo_barras },
+      { titulo: 'Categoría', valor: (f) => f.categoria },
+      { titulo: 'Almacén', valor: (f) => f.almacen },
+      { titulo: 'Sucursal', valor: (f) => f.sucursal },
+      { titulo: 'Unidad', valor: (f) => f.unidad_medida },
+      { titulo: 'Stock', valor: (f) => Number(f.stock) || 0 },
+      { titulo: 'Mínimo', valor: (f) => Number(f.stock_minimo) || 0 },
+      { titulo: 'Precio de compra', valor: (f) => Number(f.precio_compra) || 0 },
+      { titulo: 'Precio de venta', valor: (f) => Number(f.precio_venta) || 0 },
+      { titulo: 'Valorizado', valor: (f) => Number(f.valorizado) || 0 },
+      { titulo: 'Estado', valor: (f) => (f.estado === 'sin_stock' ? 'Sin stock' : f.estado === 'bajo' ? 'Bajo mínimo' : 'Disponible') },
+    ];
+    const total = exportarCsv(`inventario-pagina-${this.pagina}`, columnas, filas);
+    this.alerta.toast({ type: 'success', title: `CSV descargado: ${total} ${total === 1 ? 'fila' : 'filas'}`, message: 'Es la página que se ve.' });
   }
 
   private cargarResumen(): void {

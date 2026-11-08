@@ -25,6 +25,36 @@
   font-weight: 600;
 }
 
+/* Estado de la conexión: punto verde / rojo y texto de 12 px */
+.footer-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: var(--adm-fuente, system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--adm-texto-suave);
+  white-space: nowrap;
+}
+
+.footer-estado__punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--adm-exito);
+}
+
+.footer-estado--sin {
+  color: var(--adm-peligro-texto);
+}
+
+.footer-estado--sin .footer-estado__punto {
+  background: var(--adm-peligro);
+}
+
 .footer-version {
   flex-shrink: 0;
   font-size: 12px;

@@ -4,6 +4,7 @@ import {
   ApplicationConfig,
   ErrorHandler,
   inject,
+  isDevMode,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
@@ -18,12 +19,15 @@ import {
   withPreloading,
   withViewTransitions,
 } from '@angular/router';
+import { provideServiceWorker } from '@angular/service-worker';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { cargaGlobalInterceptor } from './interceptors/carga-global.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { PrecargaPanelStrategy } from './shared/routing/precarga-panel.strategy';
 import { ConectividadService } from './shared/services/conectividad.service';
 import { ManejadorErroresGlobal, esErrorDeCargaDeModulo } from './shared/services/manejador-errores';
+import { ActualizacionAppService } from './shared/ui/actualizacion-app.service';
 
 /** Ruta sin consulta ni fragmento ("/store/catalogo?cat=3" → "/store/catalogo"). */
 function rutaSinConsulta(url: string): string {
@@ -38,14 +42,23 @@ function rutaSinConsulta(url: string): string {
 function alCrearTransicion({ transition }: ViewTransitionInfo): void {
   const ventana = inject(DOCUMENT).defaultView;
   if (ventana?.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-    transition.skipTransition();
+    omitirTransicion(transition);
     return;
   }
   const router = inject(Router);
   const destino = router.currentNavigation()?.finalUrl;
   if (destino && rutaSinConsulta(router.serializeUrl(destino)) === rutaSinConsulta(router.url)) {
-    transition.skipTransition();
+    omitirTransicion(transition);
   }
+}
+
+/**
+ * Omite la transición y absorbe el rechazo de `ready`: al saltarla, Chromium rechaza esa promesa con
+ * `AbortError: Transition was skipped`, que sin un `catch` sale como error de consola (inocuo).
+ */
+function omitirTransicion(transition: ViewTransitionInfo['transition']): void {
+  transition.skipTransition();
+  transition.ready?.catch?.(() => undefined);
 }
 
 /**
@@ -82,8 +95,16 @@ export const appConfig: ApplicationConfig = {
       // Pantallas del panel marcadas con data.precargar, solo con sesión de personal.
       withPreloading(PrecargaPanelStrategy),
     ),
-    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor, cargaGlobalInterceptor])),
     // Avisos "Sin conexión" / "Conexión restablecida" (no hace nada en el servidor).
     provideAppInitializer(() => inject(ConectividadService).iniciar()),
+    // PWA: solo en producción (`ng build` con ngsw-config.json); en desarrollo no se registra nada.
+    // Registra al estar estable o a los 30 s, lo que ocurra antes (la app siempre tiene algo pendiente).
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000',
+    }),
+    // Escucha desde el arranque «instalar» y «versión nueva» (el evento de instalación llega una sola vez).
+    provideAppInitializer(() => inject(ActualizacionAppService).iniciar()),
   ],
 };

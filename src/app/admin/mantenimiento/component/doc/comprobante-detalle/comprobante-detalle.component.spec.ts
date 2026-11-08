@@ -82,6 +82,7 @@ describe('ComprobanteDetalleComponent', () => {
   const api = {
     detalle: vi.fn((): Observable<ComprobanteDetalle> => of(detalle())),
     reintentar: vi.fn(),
+    informarPorResumen: vi.fn(),
     recuperarCdr: vi.fn(),
     confirmarAceptado: vi.fn(),
     anular: vi.fn(),
@@ -190,7 +191,7 @@ describe('ComprobanteDetalleComponent', () => {
     );
     component.cargar();
     fixture.detectChanges();
-    expect(botonesPie()).toEqual(['Reintentar envío', 'Recuperar CDR', 'Confirmar aceptado', 'Anular', 'Cerrar']);
+    expect(botonesPie()).toEqual(['Reintentar envío', 'Recuperar constancia', 'Confirmar aceptado', 'Anular', 'Cerrar']);
 
     // Caja: puede reintentar y recuperar, pero confirmar, anular y emitir notas no.
     roles = ['caja'];
@@ -201,7 +202,7 @@ describe('ComprobanteDetalleComponent', () => {
     expect(botonesPie()).toEqual(['Reintentar envío', 'Cerrar']);
   });
 
-  it('reintentar (pedido desde la lista) muestra en el acto la respuesta de SUNAT y vuelve a leer el comprobante', () => {
+  it('reintentar (pedido desde la lista) muestra en el acto la respuesta de SUNAT y vuelve a leer el comprobante', async () => {
     api.detalle.mockReturnValue(of(detalle({ puede_reintentar: true, estado_sunat: 'PENDIENTE_REENVIO', aceptada_sunat: false })));
     api.reintentar.mockReturnValue(
       of({
@@ -216,11 +217,200 @@ describe('ComprobanteDetalleComponent', () => {
     crear('reintentar');
     fixture.detectChanges();
 
-    expect(api.reintentar).toHaveBeenCalledWith(10);
+    await vi.waitFor(() => expect(api.reintentar).toHaveBeenCalledWith(10));
+    expect(alerta.confirmar).toHaveBeenCalledWith(expect.objectContaining({ title: '¿Reintentar el envío de FB01-00000012?' }));
+    fixture.detectChanges();
     expect(api.detalle).toHaveBeenCalledTimes(2);
     expect(texto()).toContain('Rechazado por SUNAT');
     expect(texto()).toContain('2800 - El dato ingresado');
     expect(texto()).toContain('emita un documento nuevo');
+  });
+
+  describe('envío que requiere revisión (EXCEPCION) y plazo vencido', () => {
+    const excepcion = (cambios: Partial<ComprobanteDetalle> = {}) =>
+      detalle({
+        estado: 'error',
+        estado_sunat: 'EXCEPCION',
+        aceptada_sunat: false,
+        error_mensaje: 'Se intentó 6 veces sin una respuesta válida de SUNAT.',
+        envio: { id_envio: 4, estado: 'EXCEPCION', codigo: null, mensaje: null, accion: 'NINGUNA', intento: 6 },
+        puede_reintentar_ahora: true,
+        puede_confirmar_manual: true,
+        puede_recuperar_cdr: true,
+        puede_nota_credito: false,
+        puede_anular: false,
+        ...cambios,
+      });
+
+    it('«Reintentar ahora» aparece solo para el administrador, con el estado y la explicación en palabras', () => {
+      api.detalle.mockReturnValue(of(excepcion()));
+      crear();
+      expect(botonesPie()).toEqual(['Reintentar ahora', 'Recuperar constancia', 'Confirmar aceptado', 'Cerrar']);
+      expect(texto()).toContain('Requiere revisión');
+      expect(texto()).toContain('Se intentó 6 veces sin una respuesta válida de SUNAT.');
+
+      // Caja: no fuerza ni confirma; solo puede recuperar la constancia.
+      roles = ['caja'];
+      crear();
+      expect(botonesPie()).toEqual(['Recuperar constancia', 'Cerrar']);
+    });
+
+    it('«Reintentar ahora» pide confirmación con las veces intentadas, manda forzar y muestra la respuesta de SUNAT', async () => {
+      api.detalle.mockReturnValue(of(excepcion()));
+      api.reintentar.mockReturnValue(of({ numero_formateado: 'FB01-00000012', estado: 'emitido', estado_sunat: 'ACEPTADO', aceptada_sunat: true, ambiente_fiscal: 'beta' }));
+      crear();
+
+      alerta.confirmar.mockResolvedValueOnce(false);
+      await component.reintentarAhora();
+      expect(api.reintentar).not.toHaveBeenCalled();
+
+      await component.reintentarAhora();
+      expect(alerta.confirmar).toHaveBeenLastCalledWith(
+        expect.objectContaining({ title: '¿Reintentar ahora FB01-00000012?', message: expect.stringContaining('Se intentó 6 veces') }),
+      );
+      expect(api.reintentar).toHaveBeenCalledWith(10, true);
+      expect(api.detalle).toHaveBeenCalledTimes(2);
+    });
+
+    it('un no administrador no puede forzar el reintento aunque llame al método', async () => {
+      roles = ['vendedor'];
+      api.detalle.mockReturnValue(of(excepcion()));
+      crear();
+      await component.reintentarAhora();
+      expect(alerta.confirmar).not.toHaveBeenCalled();
+      expect(api.reintentar).not.toHaveBeenCalled();
+    });
+
+    it('Reintentar y Recuperar constancia piden confirmación antes de hablar con SUNAT', async () => {
+      api.detalle.mockReturnValue(of(detalle({ puede_reintentar: true, puede_recuperar_cdr: true, estado_sunat: 'PENDIENTE_REENVIO', aceptada_sunat: false })));
+      crear();
+      alerta.confirmar.mockResolvedValue(false);
+      await component.reintentar();
+      await component.recuperarCdr();
+      expect(api.reintentar).not.toHaveBeenCalled();
+      expect(api.recuperarCdr).not.toHaveBeenCalled();
+      expect(alerta.confirmar).toHaveBeenLastCalledWith(expect.objectContaining({ title: '¿Pedir a SUNAT la constancia de FB01-00000012?' }));
+
+      alerta.confirmar.mockResolvedValue(true);
+      api.recuperarCdr.mockReturnValue(of({ numero_formateado: 'FB01-00000012', estado: 'emitido', estado_sunat: 'ACEPTADO', aceptada_sunat: true, ambiente_fiscal: 'beta' }));
+      await component.recuperarCdr();
+      expect(api.recuperarCdr).toHaveBeenCalledWith(10);
+    });
+
+    it('una boleta fuera de plazo y de los 7 días del resumen: dice que se anule con nota de crédito y se emita otra', () => {
+      api.detalle.mockReturnValue(
+        of(excepcion({ id_tipo: 2, serie: 'BB01', numero_formateado: 'BB01-00000012', vencido: true, fecha_limite_envio: '2026-10-20', puede_reintentar_ahora: false, puede_recuperar_cdr: false })),
+      );
+      crear();
+      expect(texto()).toContain('Fuera de plazo');
+      expect(texto()).toContain('El plazo de envío individual venció el 20/10/2026 y ya pasaron los 7 días del resumen diario: si el cliente reclama el comprobante, anúlelo con nota de crédito y emita uno nuevo.');
+      expect(texto()).not.toContain('Informar por resumen');
+      expect(botonesPie()).toEqual(['Confirmar aceptado', 'Cerrar']);
+    });
+
+    it('una boleta vencida pero dentro de los 7 días se informará en el resumen diario y ofrece «Informar por resumen»', () => {
+      api.detalle.mockReturnValue(
+        of(excepcion({
+          id_tipo: 2, serie: 'BB01', numero_formateado: 'BB01-00000012', vencido: true, fecha_limite_envio: '2026-10-20',
+          puede_reintentar_ahora: false, puede_recuperar_cdr: false, puede_informar_por_resumen: true,
+          envio: { id_envio: 4, estado: 'EXCEPCION', codigo: null, mensaje: null, accion: 'RESUMIR', intento: 6 },
+        })),
+      );
+      crear();
+      expect(texto()).toContain('Fuera de plazo');
+      expect(texto()).toContain('Se informará a SUNAT en el próximo resumen diario (hasta 7 días después de la emisión)');
+      expect(texto()).not.toMatch(/anúlelo con nota de crédito/);
+      expect(botonesPie()).toEqual(['Informar por resumen', 'Confirmar aceptado', 'Cerrar']);
+    });
+
+    it('una factura fuera de plazo pide un comprobante nuevo, o recuperar la constancia si SUNAT quizá la recibió', () => {
+      api.detalle.mockReturnValue(of(excepcion({ vencido: true, fecha_limite_envio: '2026-10-20', puede_reintentar_ahora: false })));
+      crear();
+      expect(component.textoVencido(excepcion({ fecha_limite_envio: '2026-10-20' }))).toBe('El plazo de envío venció el 20/10/2026: SUNAT ya no lo recibe. Emita un comprobante nuevo.');
+      const recuperar = excepcion({ fecha_limite_envio: '2026-10-20', envio: { id_envio: 4, estado: 'EXCEPCION', codigo: null, mensaje: null, accion: 'RECUPERAR_CDR', intento: 6 } });
+      expect(component.textoVencido(recuperar)).toContain('Use «Recuperar constancia» para saber si SUNAT lo recibió');
+    });
+
+    it('un envío pendiente que SUNAT no contesta muestra el motivo guardado (seguirá cada hora hasta el último día)', () => {
+      api.detalle.mockReturnValue(
+        of(detalle({
+          estado: 'pendiente',
+          estado_sunat: 'PENDIENTE_REENVIO',
+          aceptada_sunat: false,
+          puede_reintentar: true,
+          error_mensaje: 'SUNAT no respondió en 6 intentos; se seguirá intentando cada hora hasta el 23/10 (plazo de envío).',
+        })),
+      );
+      crear();
+      expect(texto()).toContain('se seguirá intentando cada hora hasta el 23/10 (plazo de envío)');
+    });
+  });
+
+  describe('boleta en modo «resumen diario» (S2)', () => {
+    const porResumir = (cambios: Partial<ComprobanteDetalle> = {}) =>
+      detalle({
+        id_tipo: 2, serie: 'BB01', numero_formateado: 'BB01-00000012', estado: 'pendiente', estado_sunat: 'POR_RESUMIR', aceptada_sunat: false,
+        sunat_description: 'Boleta registrada; se informa a SUNAT en el resumen diario.',
+        envio: { id_envio: 4, estado: 'POR_RESUMIR', codigo: null, mensaje: null, accion: 'RESUMIR', intento: 0 },
+        puede_nota_credito: false, puede_anular: true, puede_informar_por_resumen: true,
+        ...cambios,
+      });
+
+    it('muestra «Va en el resumen diario» (sin alarma de plazo) y ofrece «Informar por resumen» al administrador y al vendedor, no al cajero', () => {
+      api.detalle.mockReturnValue(of(porResumir()));
+      crear();
+      expect(texto()).toContain('Va en el resumen diario');
+      expect(texto()).not.toContain('Fuera de plazo');
+      expect(botonesPie()).toEqual(['Informar por resumen', 'Anular', 'Cerrar']);
+
+      roles = ['vendedor'];
+      crear();
+      expect(botonesPie()).toEqual(['Informar por resumen', 'Cerrar']);
+
+      roles = ['caja'];
+      crear();
+      expect(botonesPie()).toEqual(['Cerrar']);
+    });
+
+    it('«Informar por resumen» pide confirmación, llama al servidor, avisa y vuelve a leer el comprobante', async () => {
+      api.detalle.mockReturnValue(of(porResumir()));
+      api.informarPorResumen = vi.fn(() => of({ id_envio: 70, operacion: 'resumen', identificador: 'RC-20261105-00001', estado: 'TICKET_PENDIENTE', aceptado: false, ticket: 't', mensaje: 'SUNAT recibió el lote', codigo: null, fecha_emision: '2026-11-03', comprobantes: 1, pendientes: 0, omitidos: 0 }));
+      crear();
+
+      alerta.confirmar.mockResolvedValueOnce(false);
+      await component.informarPorResumen();
+      expect(api.informarPorResumen).not.toHaveBeenCalled();
+
+      await component.informarPorResumen();
+      expect(alerta.confirmar).toHaveBeenLastCalledWith(expect.objectContaining({ title: '¿Informar BB01-00000012 en un resumen diario?', confirmText: 'Sí, informar por resumen' }));
+      expect(api.informarPorResumen).toHaveBeenCalledWith(10);
+      expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'BB01-00000012 va en el resumen RC-20261105-00001' }));
+      expect(api.detalle).toHaveBeenCalledTimes(2);
+    });
+
+    it('si el servidor lo rechaza muestra el motivo y no deja el panel a medias; sin permiso no hace nada', async () => {
+      api.detalle.mockReturnValue(of(porResumir()));
+      api.informarPorResumen = vi.fn(() => throwError(() => ({ status: 409, error: { message: 'BB01-12 ya lo aceptó SUNAT.', codigo: 'FISCAL_RESUMEN_NO_PERMITIDO' } })));
+      crear();
+      await component.informarPorResumen();
+      expect(alerta.error).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('ya lo aceptó SUNAT') }));
+      expect(component.enProceso).toBeNull();
+
+      alerta.confirmar.mockClear();
+      roles = ['caja'];
+      crear();
+      await component.informarPorResumen();
+      expect(alerta.confirmar).not.toHaveBeenCalled();
+    });
+
+    it('la acción pedida desde la lista («resumir») se ejecuta al abrir el detalle', async () => {
+      api.detalle.mockReturnValue(of(porResumir()));
+      api.informarPorResumen = vi.fn(() => of({ id_envio: 70, operacion: 'resumen', identificador: 'RC-20261105-00001', estado: 'TICKET_PENDIENTE', aceptado: false, ticket: null, mensaje: null, codigo: null, fecha_emision: '2026-11-03', comprobantes: 1, pendientes: 0, omitidos: 0 }));
+      crear('resumir');
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(alerta.confirmar).toHaveBeenCalled();
+    });
   });
 
   it('confirmar aceptado exige la nota de lo verificado en SUNAT', async () => {
@@ -363,14 +553,27 @@ describe('ComprobanteDetalleComponent', () => {
       expect(api.anular).not.toHaveBeenCalled();
     });
 
-    it('cuenta el estado del lote de baja con identificador, ticket y tono', () => {
+    it('el nombre de la baja es legible y el identificador RA-/RC- queda solo en el title', () => {
+      api.detalle.mockReturnValue(
+        of(detalle({ baja: { id_envio: 7, operacion: 'baja', identificador: 'RA-20261105-00001', estado: 'EXCEPCION', sunat_ticket: null, mensaje: null } })),
+      );
+      crear();
+      const nombre = fixture.nativeElement.querySelector('[title="RA-20261105-00001"]') as HTMLElement;
+      expect(nombre.textContent?.trim()).toBe('Baja del 05/11 (n.º 1)');
+      expect(texto()).toContain('La baja necesita revisión');
+      expect(fixture.nativeElement.querySelector('.adm-mono')?.textContent ?? '').not.toContain('RA-');
+    });
+
+    it('cuenta el estado del lote de baja con su nombre, número de seguimiento y tono', () => {
       api.detalle.mockReturnValue(
         of(detalle({ baja: { id_envio: 7, operacion: 'baja', identificador: 'RA-20261105-1', estado: 'TICKET_PENDIENTE', sunat_ticket: '2026123', mensaje: null } })),
       );
       crear();
       expect(texto()).toContain('SUNAT está procesando la baja');
-      expect(texto()).toContain('RA-20261105-1');
-      expect(texto()).toContain('Ticket 2026123');
+      expect(texto()).toContain('Baja del 05/11 (n.º 1)');
+      expect(texto()).not.toContain('RA-20261105-1');
+      expect(texto()).toContain('N.º de seguimiento 2026123');
+      expect(texto()).not.toContain('Ticket 2026123');
 
       api.detalle.mockReturnValue(
         of(detalle({ baja: { id_envio: 8, operacion: 'resumen', identificador: 'RC-20261105-2', estado: 'RECHAZADO', sunat_ticket: null, mensaje: '2223 - ya informado' } })),
@@ -379,6 +582,7 @@ describe('ComprobanteDetalleComponent', () => {
       fixture.detectChanges();
       expect(texto()).toContain('SUNAT rechazó la baja: el comprobante sigue vigente');
       expect(texto()).toContain('2223 - ya informado');
+      expect(texto()).toContain('Resumen del 05/11 (n.º 2)');
 
       api.detalle.mockReturnValue(
         of(detalle({ anulado: true, baja: { id_envio: 7, operacion: 'baja', identificador: 'RA-20261105-1', estado: 'ACEPTADO', sunat_ticket: '2026123', mensaje: null } })),

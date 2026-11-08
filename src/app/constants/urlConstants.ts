@@ -66,6 +66,8 @@ export const urlConstants = {
     detallado: `${dominio}inventario/detallado`,
     resumen: `${dominio}inventario/resumen`,
     almacenes: `${dominio}inventario/almacenes`,
+    /** Stock de un producto en TODOS los almacenes, en una consulta ligera. */
+    stockProducto: (idProducto: string | number) => `${dominio}inventario/stock-producto/${idProducto}`,
     alertas: `${dominio}inventario/alertas`,
     movimientos: `${dominio}inventario/movimientos`,
     ajuste: `${dominio}inventario/ajuste`,

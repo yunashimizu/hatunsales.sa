@@ -442,6 +442,42 @@ export class GuiasRemisionComponent implements OnInit {
     });
   }
 
+  /**
+   * «Liberar» (solo administrador): SUNAT no resolvió el ticket en 7 días. La guía vuelve a «pendiente» para
+   * reenviar el mismo archivo con «Reintentar envío», pero únicamente después de buscarla en SUNAT.
+   */
+  async liberar(guia: GuiaRemisionResumen): Promise<void> {
+    if (this.enCurso || !this.esAdmin) return;
+    const numero = numeroGuia(guia);
+    const confirmado = await this.alerta.confirmarPeligro({
+      title: `¿Liberar la guía ${numero}?`,
+      message:
+        'SUNAT lleva 7 días sin responder esta guía. Antes de liberarla, búsquela en SUNAT Operaciones en Línea: si ya figura registrada, no la vuelva a enviar. ' +
+        'Al liberarla queda lista para reenviar el mismo archivo y la acción queda registrada con su usuario.',
+      confirmText: 'Sí, liberar',
+      type: 'warning',
+    });
+    if (!confirmado || this.destroyRef.destroyed || this.enCurso) return;
+    this.detenerConsultas();
+    this.ejecutar(guia.id_guia, 'liberar', this.api.liberar(guia.id_guia), {
+      next: (liberada) => {
+        this.actualizarFila(liberada);
+        if (this.idAbierta === liberada.id_guia) {
+          this.guiaAbierta = liberada;
+          this.resultado = null;
+          this.validacion = null;
+        }
+        this.avisos.exito(`Guía ${numeroGuia(liberada)} liberada`, {
+          mensaje: 'Revísela en SUNAT Operaciones en Línea antes de reenviarla con «Reintentar envío».',
+        });
+      },
+      error: (e) => {
+        void this.alerta.errorHttp(e, 'No se pudo liberar la guía');
+        this.refrescarTrasError(guia.id_guia);
+      },
+    });
+  }
+
   descargar(guia: GuiaRemisionResumen, tipo: TipoArchivoGuia | 'pdf'): void {
     if (this.enCurso) return;
     const peticion = tipo === 'pdf' ? this.api.pdf(guia.id_guia) : this.api.archivo(guia.id_guia, tipo);

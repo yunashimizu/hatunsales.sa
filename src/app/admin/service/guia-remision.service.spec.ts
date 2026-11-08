@@ -69,6 +69,14 @@ describe('GuiaRemisionService', () => {
     }
   });
 
+  it('«Liberar» una guía sin respuesta de SUNAT es un POST sin cuerpo a su ruta', () => {
+    servicio.liberar(5).subscribe();
+    const peticion = http.expectOne(`${urlConstants.guiaRemision.base}/5/liberar`);
+    expect(peticion.request.method).toBe('POST');
+    expect(peticion.request.body).toEqual({});
+    peticion.flush({ id_guia: 5, estado: 'pendiente' });
+  });
+
   it('pide el PDF y los archivos como blob', () => {
     servicio.pdf(5).subscribe();
     servicio.archivo(5, 'cdr_xml').subscribe();

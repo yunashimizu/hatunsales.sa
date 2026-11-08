@@ -12,6 +12,7 @@ import { GestionService } from '../../service/gestion.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { mensajeDeError } from '../../../service/api-base.service';
+import { ProductoAdminService } from '../../../service/producto-admin.service';
 import { CatalogoService } from '../../../../store/service/catalogo.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
@@ -46,6 +47,7 @@ export class MarcasComponent implements OnInit {
     private readonly alerta: AlertService,
     private readonly catalogoTienda: CatalogoService,
     private readonly auth: AuthService,
+    private readonly productosAdmin: ProductoAdminService,
   ) {}
 
   get puedeEditar(): boolean {
@@ -160,6 +162,7 @@ export class MarcasComponent implements OnInit {
           productos: item?.productos ?? 0,
         };
         if (!fila.id_marca) {
+          this.productosAdmin.invalidarCatalogos();
           this.cargar();
           this.cdr.markForCheck();
           this.ns.success(esEdicion ? 'Marca actualizada' : 'Marca creada');
@@ -169,6 +172,7 @@ export class MarcasComponent implements OnInit {
         this.destacar(fila.id_marca);
         this.cancelar();
         this.catalogoTienda.invalidarCatalogos();
+        this.productosAdmin.invalidarCatalogos();
         this.cdr.markForCheck();
         this.ns.success(esEdicion ? 'Marca actualizada' : 'Marca creada');
       },
@@ -194,6 +198,7 @@ export class MarcasComponent implements OnInit {
         this.marcas = this.marcas.filter((x) => Number(x.id_marca) !== Number(m.id_marca));
         if (this.editandoId === Number(m.id_marca)) this.cancelar();
         this.catalogoTienda.invalidarCatalogos();
+        this.productosAdmin.invalidarCatalogos();
         this.cdr.markForCheck();
         this.ns.success('Marca eliminada');
       },

@@ -1,0 +1,153 @@
+/* Estado de cuenta: hoja A4 siempre clara (así es el papel) con la paleta del logo, igual que la hoja de comprobante.
+   El ancho lo decide el contenedor, no la pantalla. */
+
+:host {
+  display: block;
+  container-type: inline-size;
+  container-name: estadocuenta;
+}
+
+.ec-aviso { margin: 4px 0 10px; }
+.ec-esqueleto__corta { width: 40%; }
+.ec-esqueleto__hoja { display: block; height: 320px; margin-top: 12px; border-radius: var(--adm-r-md); }
+
+.ec-marco {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--adm-superficie-2);
+}
+
+.ec-hoja {
+  --doc-grafito: #3e403f;
+  --doc-dorado: #b8975a;
+  --doc-dorado-claro: #e9d6a4;
+  --doc-texto: #262726;
+  --doc-gris: #5a5c5b;
+  --doc-linea: #d6d6d4;
+  --doc-fondo: #f3f3f2;
+  --doc-cebra: #f7f7f6;
+  --doc-peligro: #b42318;
+  --doc-exito: #0f6b3b;
+
+  width: 100%;
+  max-width: 794px;
+  min-height: 420px;
+  margin: 0 auto;
+  overflow: hidden;
+  color: var(--doc-texto);
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid var(--doc-linea);
+  box-shadow: 0 6px 18px -4px rgba(38, 39, 38, 0.18), 0 2px 6px rgba(38, 39, 38, 0.08);
+}
+
+@media screen {
+  :host-context([data-tema='oscuro']) .ec-hoja {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 30px rgba(0, 0, 0, 0.45);
+  }
+}
+
+.ec-hoja__franja { height: 6px; background: linear-gradient(90deg, var(--doc-dorado) 0 22%, var(--doc-grafito) 22% 100%); }
+
+.ec-hoja__cabecera {
+  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  padding: 16px 18px 12px;
+}
+.ec-hoja__emisor { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ec-hoja__razon { font-size: 15px; font-weight: 800; line-height: 1.25; color: var(--doc-grafito); overflow-wrap: anywhere; }
+.ec-hoja__linea { color: var(--doc-gris); overflow-wrap: anywhere; }
+
+.ec-hoja__recuadro {
+  display: flex; flex-direction: column; flex-shrink: 0; width: 200px; overflow: hidden; text-align: center;
+  border: 1.5px solid var(--doc-grafito); border-radius: 8px;
+}
+.ec-hoja__tipo {
+  padding: 7px 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.06em;
+  color: #fff; background: var(--doc-grafito); border-bottom: 2px solid var(--doc-dorado);
+}
+.ec-hoja__fecha { padding: 9px 10px 10px; font-size: 14px; font-weight: 800; color: var(--doc-grafito); font-variant-numeric: tabular-nums; }
+
+.ec-hoja__datos {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px 22px;
+  margin: 0 18px 12px; padding: 10px 12px;
+  border: 1px solid var(--doc-linea); border-radius: 6px; background: var(--doc-fondo);
+}
+.ec-hoja__dato { display: flex; gap: 8px; min-width: 0; }
+.ec-hoja__dato dt {
+  flex: 0 0 76px; margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: var(--doc-gris);
+}
+.ec-hoja__dato dd { min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--doc-texto); }
+
+.ec-hoja__tabla-caja { margin: 0 18px; }
+.ec-hoja__tabla { width: 100%; border-collapse: collapse; }
+.ec-hoja__tabla th {
+  padding: 7px 6px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.03em;
+  color: #fff; background: var(--doc-grafito); border-bottom: 2px solid var(--doc-dorado);
+}
+.ec-hoja__tabla td { padding: 7px 6px; vertical-align: top; border-bottom: 1px solid var(--doc-linea); }
+.ec-hoja__tabla tbody tr:nth-child(even) { background: var(--doc-cebra); }
+.ec-hoja__tabla .ec-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ec-saldo { font-weight: 700; }
+.ec-atraso { font-weight: 700; color: var(--doc-peligro); }
+.ec-aldia { color: var(--doc-exito); font-weight: 600; }
+
+.ec-hoja__totales { width: min(300px, 100%); margin: 14px 18px 0 auto; }
+.ec-hoja__filas { margin: 0; padding: 0 6px; }
+.ec-hoja__fila { display: flex; justify-content: space-between; gap: 14px; padding: 2px 0; }
+.ec-hoja__fila dt { margin: 0; color: var(--doc-gris); }
+.ec-hoja__fila dd { margin: 0; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ec-peligro { color: var(--doc-peligro); font-weight: 700; }
+.ec-hoja__total {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 5px; padding: 8px 10px; border-radius: 6px;
+  font-size: 13.5px; font-weight: 800; color: #fff; background: var(--doc-grafito);
+}
+.ec-hoja__total > span:last-child { color: var(--doc-dorado-claro); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.ec-hoja__pie {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin: 18px 18px 0; padding: 8px 0 12px;
+  font-size: 11px; color: var(--doc-gris); border-top: 1px solid var(--doc-linea);
+}
+
+/* Hoja angosta (teléfono): una tarjeta por cuenta con sus etiquetas */
+@container estadocuenta (max-width: 620px) {
+  .ec-marco { padding: 8px; }
+  .ec-hoja__cabecera { flex-direction: column; align-items: stretch; padding: 14px 14px 10px; }
+  .ec-hoja__recuadro { width: 100%; }
+  .ec-hoja__datos, .ec-hoja__tabla-caja, .ec-hoja__pie { margin-left: 14px; margin-right: 14px; }
+  .ec-hoja__totales { margin-left: 14px; margin-right: 14px; width: auto; }
+  .ec-hoja__datos { grid-template-columns: 1fr; }
+
+  .ec-hoja__tabla, .ec-hoja__tabla tbody { display: block; }
+  .ec-hoja__tabla thead {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  .ec-hoja__tabla tbody tr {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; padding: 10px 8px;
+    border-bottom: 1px solid var(--doc-linea);
+  }
+  .ec-hoja__tabla td { display: block; padding: 0; border: 0; text-align: left; }
+  .ec-hoja__tabla td::before {
+    content: attr(data-etiqueta); display: block; margin-bottom: 1px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--doc-gris);
+  }
+  .ec-hoja__tabla td.ec-num { text-align: left; }
+  .ec-hoja__tabla td[data-etiqueta='Comprobante'] { grid-column: 1 / -1; font-weight: 700; }
+}
+
+/* Papel: solo la hoja, a tamaño A4, con los colores tal cual (el CSS global de impresión quita menú y barras) */
+@media print {
+  @page { size: A4; margin: 12mm; }
+
+  .ec-pantalla { display: none; }
+  .ec-marco { padding: 0; background: none; border-radius: 0; }
+  .ec-hoja {
+    max-width: none; min-height: 0; border: 0; box-shadow: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .ec-hoja__tabla tr { break-inside: avoid; }
+  .ec-hoja__totales { break-inside: avoid; }
+}

@@ -35,6 +35,11 @@ export class PedidoService {
     return this.http.put<Pedido>(urlConstants.tienda.pedidoCancelar(id), { motivo });
   }
 
+  /** PDF de la boleta o factura del pedido (solo el dueño del pedido; la sesión la pone el interceptor). */
+  descargarComprobante(id: number): Observable<Blob> {
+    return this.http.get(`${urlConstants.tienda.pedidoById(id)}/comprobante/pdf`, { responseType: 'blob' });
+  }
+
   /** Índice del estado dentro del flujo; -1 si el pedido fue cancelado. */
   indicePaso(estado: EstadoPedido): number {
     if (estado === 'cancelado') return -1;

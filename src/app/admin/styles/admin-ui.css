@@ -2174,6 +2174,58 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-paginacion__pagina--activa { background: var(--adm-primario); color: var(--adm-primario-texto); }
 .adm-paginacion__pagina:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* Filas por página («Mostrar 25») y resumen «1–25 de 412» del pie de una lista */
+.adm-paginacion__resumen { margin: 0; }
+.adm-paginacion__tamano {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--adm-texto-suave);
+  font-weight: var(--fw-semi);
+}
+.adm-paginacion__tamano .adm-select {
+  width: auto;
+  min-height: 32px;
+  padding-block: 4px;
+  font-size: var(--adm-fs-etiqueta);
+}
+.adm-paginacion__tamano .adm-select:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 1px; }
+
+/* Cabecera de tabla que ordena: un botón que hereda el rótulo de la columna */
+.adm-tabla__orden {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--adm-r-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--adm-transicion), color var(--adm-transicion);
+}
+.adm-tabla__orden .bi { font-size: 11px; opacity: 0.55; }
+.adm-tabla__orden:hover { background: var(--adm-superficie-3); color: var(--adm-texto-2); }
+.adm-tabla__orden:focus-visible { outline: 1px solid var(--adm-marca); box-shadow: var(--adm-anillo); }
+th[aria-sort='ascending'] .adm-tabla__orden,
+th[aria-sort='descending'] .adm-tabla__orden { color: var(--adm-marca-texto); }
+th[aria-sort='ascending'] .adm-tabla__orden .bi,
+th[aria-sort='descending'] .adm-tabla__orden .bi { opacity: 1; }
+
+/* Con la tabla convertida en tarjetas no hay cabecera: el orden se elige en este selector
+   (va dentro del envoltorio de la tabla para seguir su mismo corte, no el de la ventana) */
+.adm-tabla__orden-movil { display: none; align-items: center; gap: 8px; padding: 12px 14px 0; font-size: var(--adm-fs-etiqueta); font-weight: var(--fw-semi); color: var(--adm-texto-suave); }
+.adm-tabla__orden-movil .adm-select { flex: 1 1 auto; min-width: 0; }
+@container tabla (max-width: 860px) {
+  .adm-tabla__orden-movil { display: flex; }
+}
+
 /* ── Utilidades pequeñas ─────────────────────────────────────── */
 
 .adm-divisor { height: 1px; margin: 4px 0; background: var(--adm-borde); border: 0; }
@@ -2480,6 +2532,130 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   margin: -1px;
   overflow: hidden;
   clip-path: inset(50%);
+}
+
+/* ── R17a · La franja de acciones lleva migas ───────────────────────────────
+   A partir de 1024 px la cabecera muestra, a la izquierda de los botones, el
+   rótulo de la sección y, tras un «·», la descripción en UNA línea con puntos
+   suspensivos. El icono y el h1 siguen solo para lectores de pantalla (el título
+   ya está en la barra superior). Por debajo de 1024 todo sigue oculto, y sin
+   `.adm-acciones` la regla de arriba oculta la cabecera entera. */
+@media (min-width: 1024px) {
+  .adm-cabecera--barra > .adm-cabecera__principal {
+    position: relative;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    flex: 1 1 0;
+    min-width: 0;
+    align-items: center;
+    gap: 0;
+    container: adm-cabecera / inline-size;
+  }
+
+  /* El texto de la cabecera, en una fila: «SECCIÓN · descripción…» */
+  .adm-cabecera--barra > .adm-cabecera__principal > div {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    gap: 0 8px;
+    min-width: 0;
+  }
+
+  /* Icono, h1 y cualquier otro bloque: solo para lectores de pantalla */
+  .adm-cabecera--barra > .adm-cabecera__principal > .adm-cabecera__icono,
+  .adm-cabecera--barra > .adm-cabecera__principal > div > :not(.adm-cabecera__eyebrow):not(.adm-cabecera__sub) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .adm-cabecera--barra .adm-cabecera__eyebrow {
+    flex: none;
+    margin: 0;
+    color: var(--adm-texto-tenue);
+    white-space: nowrap;
+  }
+
+  .adm-cabecera--barra .adm-cabecera__eyebrow::before { display: none; }
+
+  .adm-cabecera--barra .adm-cabecera__sub {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin: 0;
+    max-width: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--adm-texto-tenue);
+  }
+
+  .adm-cabecera--barra .adm-cabecera__sub::before {
+    content: '·';
+    margin-right: 8px;
+  }
+
+  /* Si no cabe ni el rótulo (Reportes: periodo + 5 botones), se retira a lectores de pantalla
+     en lugar de pisar el selector de periodo */
+  @container adm-cabecera (max-width: 150px) {
+    .adm-cabecera--barra .adm-cabecera__eyebrow {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+  }
+
+  /* Si los botones (o el selector de periodo) dejan muy poco sitio, la descripción se retira
+     a lectores de pantalla en lugar de quedar en «Indica…» */
+  @container adm-cabecera (max-width: 300px) {
+    .adm-cabecera--barra .adm-cabecera__sub {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+  }
+}
+
+/* ── R17a · Enlace «Saltar al contenido» ─────────────────────────────────────
+   Invisible hasta que recibe el foco con el teclado (primer Tab del panel). */
+.adm-saltar {
+  position: absolute;
+  top: -48px;
+  left: 8px;
+  z-index: 1400;
+  padding: 10px 16px;
+  border-radius: var(--adm-r-sm);
+  background: var(--adm-primario);
+  color: var(--adm-primario-texto);
+  font-family: var(--adm-fuente);
+  font-size: var(--adm-fs-cuerpo);
+  font-weight: var(--fw-semi);
+  text-decoration: none;
+}
+
+.adm-saltar:focus,
+.adm-saltar:focus-visible {
+  top: 8px;
+  outline: 2px solid var(--adm-marca);
+  outline-offset: 2px;
+  text-decoration: none;
 }
 
 /* ── R8 · Ayuda plegable («menos texto, más guía») ───────────────────────────
@@ -2974,6 +3150,82 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   .adm-btn--oscuro:hover:not(:disabled) { transform: none; }
 }
 
+/* ── R17a · Densidad compacta ────────────────────────────────────────────────
+   Elegida en el menú de usuario (<html data-densidad="compacta">). Solo con
+   puntero fino (ratón o trackpad): en táctil los objetivos de 44 px se quedan.
+   Las alturas salen de los tokens; el aire de página, tarjetas e indicadores
+   baja un 25 % (20 → 14/15 px) solo en pantallas anchas. */
+@media (pointer: fine) {
+  html[data-densidad='compacta'] {
+    --adm-h-fila: 40px;
+    --adm-h-cabecera-tabla: 36px;
+    --adm-h-input: 40px;
+    --adm-h-boton: 40px;
+    --adm-h-boton-chico: 32px;
+    --adm-fs-cuerpo: var(--fs-base);
+  }
+}
+
+@media (pointer: fine) and (min-width: 901px) {
+  html[data-densidad='compacta'] .adm-pagina { gap: 14px; }
+  html[data-densidad='compacta'] .adm-tarjeta__cuerpo { padding: 15px; }
+  html[data-densidad='compacta'] .adm-metrica { padding: 12px 14px 12px 15px; }
+}
+
+/* ---------------------------------------------------------------------------
+   R17c · Comparación con un periodo anterior y tooltip de gráfico (Inicio y Reportes).
+   <span class="adm-delta adm-delta--sube"><span class="adm-delta__signo">▲</span> <span class="adm-delta__valor">12 %</span> <span class="adm-delta__ref">vs. la semana pasada</span></span>
+   --------------------------------------------------------------------------- */
+.adm-delta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 5px;
+  font-size: var(--adm-fs-ayuda);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-texto-tenue);
+}
+
+.adm-delta--sube { color: var(--adm-dinero-texto, var(--adm-exito-texto)); }
+.adm-delta--baja { color: var(--adm-peligro-texto); }
+.adm-delta__signo { font-size: 0.85em; }
+.adm-delta__ref { font-weight: 400; color: var(--adm-texto-tenue); }
+
+/* Detalle flotante de una barra: se coloca con left/top dentro de un contenedor relativo */
+.adm-tooltip-grafico {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: max-content;
+  max-width: 224px;
+  padding: 8px 12px;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-sm);
+  box-shadow: var(--adm-sombra-md);
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--adm-texto-2);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+}
+
+.adm-tooltip-grafico__titulo { font-size: 13px; font-weight: 700; color: var(--adm-texto); }
+.adm-tooltip-grafico__linea { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; }
+.adm-tooltip-grafico__linea b { font-weight: 700; color: var(--adm-texto); }
+.adm-tooltip-grafico__punto { display: inline-block; flex: none; width: 8px; height: 8px; align-self: center; border-radius: 2px; background: var(--adm-primario); }
+.adm-tooltip-grafico__punto--previo { background: var(--adm-borde-fuerte); }
+
+/* ── R17a · Impresión limpia ─────────────────────────────────────────────────
+   Ctrl P imprime solo el contenido de la pantalla: sin menú, barras, filtros,
+   paginación ni botones, en papel blanco y letra negra aunque el panel esté en
+   tema oscuro (TemplateComponent pasa a claro con `beforeprint`). El prefijo
+   `body:not(#hs-imprimir)` solo sube la especificidad para ganarle a los
+   estilos de cada componente sin recurrir a !important. */
 @media print {
   .adm-acciones,
   .adm-btn,
@@ -2982,4 +3234,96 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   .adm-paginacion { display: none !important; }
   .adm-tarjeta { box-shadow: none; border-color: #999; break-inside: avoid; }
   .adm-pagina { animation: none; }
+
+  body:not(#hs-imprimir) app-sidebar,
+  body:not(#hs-imprimir) #main-wrapper > app-header,
+  body:not(#hs-imprimir) #main-wrapper > app-footer,
+  body:not(#hs-imprimir) app-barra-inferior,
+  body:not(#hs-imprimir) app-barra-progreso,
+  body:not(#hs-imprimir) app-paleta-comandos,
+  body:not(#hs-imprimir) app-ayuda-atajos,
+  body:not(#hs-imprimir) .sidebar,
+  body:not(#hs-imprimir) .topbar,
+  body:not(#hs-imprimir) .sb-backdrop,
+  body:not(#hs-imprimir) .adm-saltar,
+  body:not(#hs-imprimir) .adm-cabecera__acciones,
+  body:not(#hs-imprimir) .adm-tabla__acciones,
+  body:not(#hs-imprimir) .adm-chips { display: none; }
+
+  html,
+  body:not(#hs-imprimir) {
+    height: auto;
+    overflow: visible;
+    background: #fff;
+    color: #000;
+  }
+
+  body:not(#hs-imprimir) app-template,
+  body:not(#hs-imprimir) #wrapper,
+  body:not(#hs-imprimir) #main-wrapper {
+    display: block;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    background: #fff;
+  }
+
+  body:not(#hs-imprimir) #main-wrapper .main-content {
+    height: auto;
+    overflow: visible;
+    padding: 0;
+  }
+
+  body:not(#hs-imprimir) .adm-pagina {
+    max-width: none;
+    padding: 0;
+    color: #000;
+  }
+
+  body:not(#hs-imprimir) .adm-tarjeta {
+    border: 1px solid #bbb;
+    background: #fff;
+  }
+
+  /* El título de la pantalla vive en la barra superior (que no se imprime): aquí vuelve a la vista */
+  body:not(#hs-imprimir) .adm-cabecera--barra,
+  body:not(#hs-imprimir) .adm-cabecera--barra > .adm-cabecera__principal,
+  body:not(#hs-imprimir) .adm-cabecera--barra > .adm-cabecera__principal > div {
+    display: block;
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    border: 0;
+  }
+
+  body:not(#hs-imprimir) .adm-cabecera--barra > .adm-cabecera__icono,
+  body:not(#hs-imprimir) .adm-cabecera--barra .adm-cabecera__icono { display: none; }
+
+  body:not(#hs-imprimir) .adm-cabecera--barra .adm-cabecera__titulo,
+  body:not(#hs-imprimir) .adm-cabecera--barra .adm-cabecera__eyebrow,
+  body:not(#hs-imprimir) .adm-cabecera--barra .adm-cabecera__sub {
+    position: static;
+    display: block;
+    width: auto;
+    height: auto;
+    margin: 0 0 4px;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    color: #000;
+  }
+
+  /* Gráficos, barras e indicadores de color: se imprimen como en pantalla */
+  svg,
+  .adm-insignia,
+  .adm-metrica::before,
+  [class*='barra'],
+  [class*='grafico'] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }

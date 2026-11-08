@@ -1,0 +1,68 @@
+:host {
+  display: block;
+}
+.llave-bloques {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.llave-bloque {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+}
+.llave-texto {
+  margin: 0;
+}
+.llave-accion {
+  display: flex;
+}
+.llave-correo {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.llave-correo .adm-campo {
+  width: 100%;
+}
+.llave-resultado {
+  border: 1px solid var(--adm-borde);
+  border-radius: 10px;
+  background: var(--adm-superficie-2);
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+}
+.llave-resultado__resumen {
+  margin: 0;
+}
+.llave-resultado__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.llave-resultado__lista li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.llave-resultado__nombre {
+  overflow-wrap: anywhere;
+}
+.llave-resultado__alerta {
+  color: var(--adm-aviso-texto, var(--adm-texto));
+}
+
+@media (max-width: 900px) {
+  .llave-bloques {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (pointer: coarse), (max-width: 768px) {
+  .adm-btn { min-height: 44px; min-width: 44px; }
+}

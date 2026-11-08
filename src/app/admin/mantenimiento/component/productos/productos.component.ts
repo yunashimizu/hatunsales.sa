@@ -8,20 +8,30 @@ import {
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, Subscription, catchError, concatMap, finalize, from, of, takeUntil, tap } from 'rxjs';
 
+import { OrdenMovilComponent, ColumnaOrdenable } from '../../../../shared/components/orden-movil/orden-movil.component';
+import { PiePaginacionComponent } from '../../../../shared/components/pie-paginacion/pie-paginacion.component';
 import { VisorImagenComponent } from '../../../../shared/components/visor-imagen/visor-imagen.component';
 import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
 import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { exportarCsv, ColumnaCsv } from '../../../../shared/utils/exportar-csv';
+import { EscritorFiltrosUrl, EsquemaFiltros, leerFiltros } from '../../../../shared/utils/filtros-url';
 import { prepararImagen, partirEnLotes } from '../../../../shared/utils/imagen-cliente.util';
+import {
+  EstadoOrden, alternarOrden, ariaSort, guardarOrden, iconoOrden, leerOrdenGuardado, ordenarLista,
+} from '../../../../shared/utils/orden-lista';
+import {
+  PaginaLocal, guardarFilasPorPagina, leerFilasPorPagina, paginar,
+} from '../../../../shared/utils/paginacion-local';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
-import { mensajeDeError } from '../../../service/api-base.service';
+import { codigoDeError, mensajeDeError } from '../../../service/api-base.service';
 import { ProductoAdminService, ProductoFormulario } from '../../../service/producto-admin.service';
 import { ProductoImagenService } from '../../../service/producto-imagen.service';
-import { InventarioAdminService } from '../../../service/inventario-admin.service';
+import { InventarioAdminService, StockPorAlmacen } from '../../../service/inventario-admin.service';
 import { PuntoVentaService } from '../../../service/punto-venta.service';
 import { UnidadMedidaService } from '../../../service/unidad-medida.service';
 import { SelectorUnidadComponent } from '../../../../shared/components/selector-unidad/selector-unidad.component';
@@ -39,6 +49,25 @@ export interface FotoPendiente {
   /** Motivo por el que no se pudo subir (queda en la cola para reintentar). */
   error?: string;
 }
+
+type FiltroEstado = '' | 'activos' | 'inactivos' | 'sin_stock' | 'sin_imagen';
+
+/** Qué se guarda en la URL del listado: se puede copiar el enlace o recargar con F5. */
+const ESQUEMA_URL: EsquemaFiltros = {
+  q: { tipo: 'texto' },
+  categoria: { tipo: 'numero', min: 1 },
+  estado: { tipo: 'opcion', opciones: ['activos', 'inactivos', 'sin_stock', 'sin_imagen'], defecto: '' },
+  pagina: { tipo: 'numero', defecto: 1, min: 1 },
+};
+
+/** Columnas del listado que se pueden ordenar. */
+const COLUMNAS_ORDEN: ColumnaOrdenable[] = [
+  { clave: 'nombre', titulo: 'Producto', tipo: 'texto' },
+  { clave: 'categoria', titulo: 'Categoría', tipo: 'texto' },
+  { clave: 'precio', titulo: 'Precio', tipo: 'numero' },
+  { clave: 'stock', titulo: 'Stock', tipo: 'numero' },
+  { clave: 'estado', titulo: 'Estado', tipo: 'texto' },
+];
 
 const FORMULARIO_VACIO: ProductoFormulario = {
   nombre: '',
@@ -64,7 +93,7 @@ const FORMULARIO_VACIO: ProductoFormulario = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule, FormsModule, RouterLink, VisorImagenComponent, CountUpDirective, RevealDirective,
-    SelectorUnidadComponent, UnidadMedidaPipe, EtiquetasProductoComponent,
+    SelectorUnidadComponent, UnidadMedidaPipe, EtiquetasProductoComponent, PiePaginacionComponent, OrdenMovilComponent,
   ],
   templateUrl: './productos.component.html',
   styleUrl: './productos.component.css',
@@ -82,9 +111,38 @@ export class ProductosComponent implements OnInit, OnDestroy {
   urlsVista: string[] = [];
   indiceVista = 0;
 
-  filtro = '';
-  filtroCategoria: number | '' = '';
-  filtroEstado: '' | 'activos' | 'inactivos' | 'sin_stock' | 'sin_imagen' = '';
+  // Los filtros son propiedades con setter: cambiarlos (a mano, con un chip o al limpiar) vuelve a la
+  // página 1 y los deja en la URL.
+  private filtroTexto = '';
+  private filtroCat: number | '' = '';
+  private filtroEst: FiltroEstado = '';
+
+  get filtro(): string { return this.filtroTexto; }
+  set filtro(valor: string) {
+    if (valor === this.filtroTexto) return;
+    this.filtroTexto = valor;
+    this.alCambiarFiltros(true);
+  }
+
+  get filtroCategoria(): number | '' { return this.filtroCat; }
+  set filtroCategoria(valor: number | '') {
+    if (valor === this.filtroCat) return;
+    this.filtroCat = valor;
+    this.alCambiarFiltros(false);
+  }
+
+  get filtroEstado(): FiltroEstado { return this.filtroEst; }
+  set filtroEstado(valor: FiltroEstado) {
+    if (valor === this.filtroEst) return;
+    this.filtroEst = valor;
+    this.alCambiarFiltros(false);
+  }
+
+  /** Orden de la tabla; se recuerda mientras la pestaña siga abierta. */
+  orden: EstadoOrden = leerOrdenGuardado('productos', COLUMNAS_ORDEN.map((c) => c.clave));
+  readonly columnasOrden = COLUMNAS_ORDEN;
+  pagina = 1;
+  porPagina = leerFilasPorPagina();
 
   panelAbierto = false;
   editando: ProductoAdmin | null = null;
@@ -102,7 +160,11 @@ export class ProductosComponent implements OnInit, OnDestroy {
   stockVerificado = false;
   /** El producto no tiene fila de inventario en el almacén elegido (su stock ahí es 0). */
   sinStockRegistrado = false;
+  /** Stock de este producto en todos los almacenes (una sola lectura al abrir la ficha). */
+  stockPorAlmacen: StockPorAlmacen[] = [];
   private consultaStock?: Subscription;
+  /** Productos cuyo estado se está cambiando desde la lista (evita el doble clic). */
+  readonly cambiandoEstado = new Set<number>();
 
   /** Se está pidiendo un código interno al servidor (deshabilita «Generar código»). */
   generandoCodigo = false;
@@ -135,6 +197,14 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   private readonly destruir$ = new Subject<void>();
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly urlFiltros = new EscritorFiltrosUrl(this.router, this.route, ESQUEMA_URL);
+  private memoFiltrados?: {
+    productos: ProductoAdmin[]; texto: string; categoria: number | ''; estado: FiltroEstado;
+    orden: EstadoOrden; resultado: ProductoAdmin[];
+  };
+  private memoPagina?: { lista: ProductoAdmin[]; pagina: number; porPagina: number; resultado: PaginaLocal<ProductoAdmin> };
 
   constructor(
     private readonly service: ProductoAdminService,
@@ -152,6 +222,9 @@ export class ProductosComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // La URL manda antes de la primera carga: un enlace con filtros abre ya filtrado. Después, si la
+    // ruta cambia desde fuera (menú o paleta hacia /productos limpio), los filtros se vacían.
+    this.route.queryParamMap.pipe(takeUntil(this.destruir$)).subscribe(() => this.aplicarFiltrosDeUrl());
     this.cargar();
     this.cargarCatalogos();
     this.inventario.almacenes().pipe(
@@ -169,6 +242,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.urlFiltros.cancelar();
     this.destruido = true;
     this.liberarFotosPendientes();
     this.destruir$.next();
@@ -240,18 +314,24 @@ export class ProductosComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Productos que cumplen los filtros, ya ordenados. Se recalcula solo cuando algo cambió. */
   get productosFiltrados(): ProductoAdmin[] {
-    const texto = this.filtro.trim().toLowerCase();
+    const m = this.memoFiltrados;
+    if (m && m.productos === this.productos && m.texto === this.filtroTexto && m.categoria === this.filtroCat
+      && m.estado === this.filtroEst && m.orden === this.orden) {
+      return m.resultado;
+    }
+    const texto = this.filtroTexto.trim().toLowerCase();
 
-    return this.productos.filter((p) => {
+    const filtrados = this.productos.filter((p) => {
       if (texto) {
         const buscable = `${p.nombre} ${p.sku} ${p.codigo_barras} ${p.categoria} ${p.marca}`.toLowerCase();
         if (!buscable.includes(texto)) return false;
       }
 
-      if (this.filtroCategoria !== '' && p.id_categoria !== Number(this.filtroCategoria)) return false;
+      if (this.filtroCat !== '' && p.id_categoria !== Number(this.filtroCat)) return false;
 
-      switch (this.filtroEstado) {
+      switch (this.filtroEst) {
         case 'activos': return p.estado;
         case 'inactivos': return !p.estado;
         case 'sin_stock': return Number(p.stock_total) <= 0;
@@ -259,11 +339,126 @@ export class ProductosComponent implements OnInit, OnDestroy {
         default: return true;
       }
     });
+
+    const resultado = this.orden.clave
+      ? ordenarLista(filtrados, (p) => this.valorDeOrden(p, this.orden.clave!), this.orden.dir)
+      : filtrados;
+    this.memoFiltrados = {
+      productos: this.productos, texto: this.filtroTexto, categoria: this.filtroCat, estado: this.filtroEst,
+      orden: this.orden, resultado,
+    };
+    return resultado;
+  }
+
+  private valorDeOrden(p: ProductoAdmin, clave: string): unknown {
+    switch (clave) {
+      case 'nombre': return p.nombre;
+      case 'categoria': return p.categoria;
+      case 'precio': return this.precioFinal(p);
+      case 'stock': return Number(p.stock_total);
+      case 'estado': return p.estado ? 'Activo' : 'Inactivo';
+      default: return null;
+    }
+  }
+
+  /** La página de la tabla: orden → filtro → paginación. */
+  get paginaProductos(): PaginaLocal<ProductoAdmin> {
+    const lista = this.productosFiltrados;
+    const m = this.memoPagina;
+    if (m && m.lista === lista && m.pagina === this.pagina && m.porPagina === this.porPagina) return m.resultado;
+    const resultado = paginar(lista, this.pagina, this.porPagina);
+    this.memoPagina = { lista, pagina: this.pagina, porPagina: this.porPagina, resultado };
+    return resultado;
+  }
+
+  // ── Orden, páginas, CSV y URL del listado ────────────────────
+
+  ordenar(clave: string): void {
+    this.fijarOrden(alternarOrden(this.orden, clave));
+  }
+
+  fijarOrden(orden: EstadoOrden): void {
+    this.orden = orden;
+    guardarOrden('productos', orden);
+    this.pagina = 1;
+    this.escribirUrl(false);
+  }
+
+  ariaSort(clave: string): 'ascending' | 'descending' | 'none' { return ariaSort(this.orden, clave); }
+  iconoOrden(clave: string): string { return iconoOrden(this.orden, clave); }
+
+  irAPagina(pagina: number): void {
+    this.pagina = pagina;
+    this.escribirUrl(false);
+  }
+
+  cambiarFilasPorPagina(porPagina: number): void {
+    this.porPagina = porPagina;
+    guardarFilasPorPagina(porPagina);
+    this.pagina = 1;
+    this.escribirUrl(false);
+  }
+
+  limpiarFiltros(): void {
+    this.filtroTexto = '';
+    this.filtroCat = '';
+    this.filtroEst = '';
+    this.alCambiarFiltros(false);
+  }
+
+  /** Descarga la lista filtrada y ordenada completa (no solo la página que se ve). */
+  exportarCsv(): void {
+    const filas = this.productosFiltrados;
+    if (!filas.length) return;
+    const columnas: ColumnaCsv<ProductoAdmin>[] = [
+      { titulo: 'Producto', valor: (p) => p.nombre },
+      { titulo: 'SKU', valor: (p) => p.sku },
+      { titulo: 'Código de barras', valor: (p) => p.codigo_barras },
+      { titulo: 'Categoría', valor: (p) => p.categoria },
+      { titulo: 'Marca', valor: (p) => p.marca },
+      { titulo: 'Unidad', valor: (p) => p.unidad_medida },
+      { titulo: 'Precio de compra', valor: (p) => Number(p.precio_compra) || 0 },
+      { titulo: 'Precio de venta', valor: (p) => Number(p.precio_venta) || 0 },
+      { titulo: 'Descuento', valor: (p) => Number(p.descuento) || 0 },
+      { titulo: 'Precio final', valor: (p) => this.precioFinal(p) },
+      { titulo: 'Stock', valor: (p) => Number(p.stock_total) || 0 },
+      { titulo: 'Estado', valor: (p) => (p.estado ? 'Activo' : 'Inactivo') },
+      { titulo: 'Destacado', valor: (p) => (p.destacado ? 'Sí' : 'No') },
+      { titulo: 'Fotos', valor: (p) => Number(p.total_imagenes) || 0 },
+      { titulo: 'Código SUNAT', valor: (p) => p.codigo_sunat },
+    ];
+    const total = exportarCsv('productos', columnas, filas);
+    this.alerta.toast({ type: 'success', title: `CSV descargado: ${total} ${total === 1 ? 'fila' : 'filas'}` });
+  }
+
+  private alCambiarFiltros(teclando: boolean): void {
+    this.pagina = 1;
+    this.escribirUrl(teclando);
+  }
+
+  private escribirUrl(retardar: boolean): void {
+    this.urlFiltros.escribir({
+      q: this.filtroTexto,
+      categoria: this.filtroCat === '' ? null : this.filtroCat,
+      estado: this.filtroEst,
+      pagina: this.pagina,
+    }, { retardar });
+  }
+
+  /** Lleva a pantalla lo que dice la URL (sin volver a escribirla). */
+  private aplicarFiltrosDeUrl(): void {
+    if (this.urlFiltros.ocupado) return; // es el eco de lo que acabamos de escribir
+    const f = leerFiltros(this.route, ESQUEMA_URL);
+    this.filtroTexto = String(f['q'] ?? '');
+    this.filtroCat = typeof f['categoria'] === 'number' ? f['categoria'] : '';
+    this.filtroEst = String(f['estado'] ?? '') as FiltroEstado;
+    this.pagina = Number(f['pagina']) || 1;
+    this.cdr.markForCheck();
   }
 
   /** Hay algún filtro aplicado (para mostrar «Limpiar»). */
   get hayFiltros(): boolean {
-    return !!this.filtro.trim() || this.filtroCategoria !== '' || this.filtroEstado !== '';
+    return !!this.filtroTexto.trim() || this.filtroCat !== '' || this.filtroEst !== '';
   }
 
   get totalActivos(): number {
@@ -297,6 +492,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     this.stockActualEdicion = 0;
     this.stockVerificado = false;
     this.sinStockRegistrado = false;
+    this.stockPorAlmacen = [];
     this.cargandoStock = false;
     this.errorStock = '';
     this.imagenes = [];
@@ -335,43 +531,33 @@ export class ProductosComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Lee el stock de ESTE producto en el almacén elegido (filtro exacto, una fila). Antes se
-   * pedían las 200 primeras filas del almacén y, si el producto no estaba entre ellas, se
-   * mostraba 0: al guardar, el ajuste se calculaba contra 0 y dejaba mal el stock.
+   * Lee de una vez el stock de ESTE producto en todos los almacenes (`/inventario/stock-producto`).
+   * Cambiar de almacén después no pide nada: solo elige la fila (`aplicarAlmacenStock`). Antes se
+   * pedían las 200 primeras filas del almacén y, si el producto no estaba entre ellas, se mostraba 0:
+   * al guardar, el ajuste se calculaba contra 0 y dejaba mal el stock.
    */
   private cargarStockEdicion(): void {
     this.consultaStock?.unsubscribe();
     this.stockVerificado = false;
     this.sinStockRegistrado = false;
+    this.stockPorAlmacen = [];
     if (!this.idAlmacenStock || !this.editando) {
       this.cargandoStock = false;
       this.errorStock = this.almacenes.length ? '' : 'No hay almacenes disponibles.';
       return;
     }
     const idProducto = Number(this.editando.id_producto);
-    const idAlmacen = Number(this.idAlmacenStock);
     this.cargandoStock = true;
     this.errorStock = '';
     this.cdr.markForCheck();
-    this.consultaStock = this.inventario.listar({ id_almacen: idAlmacen, id_producto: idProducto, por_pagina: 1 }).pipe(
+    this.consultaStock = this.inventario.stockPorProducto(idProducto).pipe(
       takeUntil(this.destruir$),
     ).subscribe({
-      next: (respuesta) => {
-        const filas = respuesta?.datos ?? [];
-        const fila = filas.find(
-          (item) => Number(item.id_producto) === idProducto && Number(item.id_almacen) === idAlmacen,
-        );
+      next: (filas) => {
         this.cargandoStock = false;
-        if (!fila && filas.length) {
-          // Llegaron filas de otro producto (servidor sin el filtro): el stock real se desconoce.
-          this.errorStock = 'No se pudo leer el stock de este producto en el almacén. Recargue la página e intente de nuevo.';
-        } else {
-          // Sin fila, el producto nunca tuvo stock en ese almacén: ahí su stock es 0 de verdad.
-          this.sinStockRegistrado = !fila;
-          this.stockActualEdicion = fila ? Number(fila.stock) || 0 : 0;
-          this.formulario.stock = this.stockActualEdicion;
-          this.stockVerificado = true;
-        }
+        this.stockPorAlmacen = Array.isArray(filas) ? filas : [];
+        // Se aplica el almacén elegido AHORA (pudo cambiar mientras la lectura estaba en vuelo).
+        this.aplicarAlmacenStock(this.idAlmacenStock);
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -382,11 +568,34 @@ export class ProductosComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Toma de `stockPorAlmacen` el stock del almacén elegido; si no viene, el stock real se desconoce. */
+  private aplicarAlmacenStock(idAlmacen: number | null): void {
+    const fila = this.stockPorAlmacen.find((item) => Number(item.id_almacen) === Number(idAlmacen));
+    if (!fila) {
+      this.errorStock = 'No se pudo leer el stock de este producto en el almacén. Recargue la página e intente de nuevo.';
+      this.stockVerificado = false;
+      this.sinStockRegistrado = false;
+      return;
+    }
+    this.errorStock = '';
+    // Sin fila de inventario, el producto nunca tuvo stock ahí: su stock en ese almacén es 0 de verdad.
+    this.sinStockRegistrado = !fila.registrado;
+    this.stockActualEdicion = Number(fila.stock) || 0;
+    this.formulario.stock = this.stockActualEdicion;
+    this.stockVerificado = true;
+  }
+
+  /** Cambiar de almacén no pide nada al servidor: el stock de todos ya está en memoria. */
   cambiarAlmacenStock(id: number | string): void {
     const almacen = Number(id);
     if (!Number.isInteger(almacen) || almacen <= 0 || almacen === this.idAlmacenStock || !this.editando) return;
     this.idAlmacenStock = almacen;
-    this.cargarStockEdicion();
+    if (this.stockPorAlmacen.length) {
+      this.aplicarAlmacenStock(almacen);
+    } else if (!this.cargandoStock) {
+      // La lectura anterior falló o nunca llegó: no hay nada en memoria, se reintenta.
+      this.cargarStockEdicion();
+    }
   }
 
   /** Pide al servidor un código EAN-13 interno y lo deja en el campo de barras (solo si está vacío). */
@@ -426,6 +635,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
     if (this.guardando || this.subiendo || this.reemplazandoId !== null) return;
     this.consultaStock?.unsubscribe();
     this.cargandoStock = false;
+    this.stockPorAlmacen = [];
     this.panelAbierto = false;
     this.editando = null;
     this.imagenes = [];
@@ -479,7 +689,8 @@ export class ProductosComponent implements OnInit, OnDestroy {
       id_marca: this.formulario.id_marca ? Number(this.formulario.id_marca) : undefined,
     };
 
-    // El stock solo se fija al crear; al editar no se toca inventario desde aquí.
+    // El stock inicial solo se fija al crear; al editar, un cambio de stock viaja en el mismo PUT
+    // como `ajuste_stock` y el servidor lo aplica junto con los demás campos, todo o nada.
     if (this.editando) {
       delete datos.stock;
       if (!this.idAlmacenStock || this.cargandoStock || this.errorStock || !this.stockVerificado) {
@@ -489,6 +700,14 @@ export class ProductosComponent implements OnInit, OnDestroy {
           title: this.errorStock || 'Espere a que cargue el stock del almacén',
         });
         return;
+      }
+      const stockNuevo = Math.trunc(Number(this.formulario.stock));
+      if (Number.isFinite(stockNuevo) && stockNuevo !== this.stockActualEdicion) {
+        datos.ajuste_stock = {
+          id_almacen: this.idAlmacenStock,
+          stock_nuevo: stockNuevo,
+          stock_anterior: this.stockActualEdicion,
+        };
       }
     } else {
       datos.stock = Math.max(0, Math.trunc(Number(this.formulario.stock) || 0));
@@ -504,42 +723,6 @@ export class ProductosComponent implements OnInit, OnDestroy {
       next: (producto) => {
         // El producto ya quedó guardado: el catálogo del POS (caché de 3 min) debe recargarse.
         this.puntoVenta.invalidarCatalogo();
-        const editado = this.editando;
-        if (editado && this.idAlmacenStock && Number(this.formulario.stock) !== this.stockActualEdicion) {
-          const diferencia = Math.trunc(Number(this.formulario.stock)) - this.stockActualEdicion;
-          this.inventario.ajustar({
-            id_producto: editado.id_producto,
-            id_almacen: this.idAlmacenStock,
-            cantidad: diferencia,
-            motivo: 'correccion',
-            comentario: 'Ajuste de stock desde edición de producto',
-          }).pipe(takeUntil(this.destruir$)).subscribe({
-            next: (respuesta) => {
-              this.guardando = false;
-              this.stockActualEdicion = Number(respuesta.stock) || 0;
-              this.formulario.stock = this.stockActualEdicion;
-              const stockAnteriorTotal = Number(editado.stock_total) || 0;
-              this.reflejarEnLista({
-                ...producto,
-                stock_total: stockAnteriorTotal + diferencia,
-              });
-              this.destacar(producto.id_producto);
-              this.asegurarVisibleEnLista(producto.id_producto);
-              // El ajuste de stock también cambia lo que ve el POS.
-              this.puntoVenta.invalidarCatalogo();
-              this.cdr.markForCheck();
-              this.alerta.toast({ type: 'success', title: 'Cambios y stock guardados' });
-              this.cerrarPanel();
-            },
-            error: (error) => {
-              this.guardando = false;
-              this.reflejarEnLista(producto);
-              this.cdr.markForCheck();
-              this.alerta.error({ title: 'Producto guardado, stock no actualizado', message: mensajeDeError(error) });
-            },
-          });
-          return;
-        }
         const esNuevo = !this.editando;
         const conFotos = esNuevo && this.fotosPendientes.length > 0;
         // Con fotos en cola el guardado sigue hasta que termine la subida (bloquea cerrar y reintentar «Crear»).
@@ -561,7 +744,9 @@ export class ProductosComponent implements OnInit, OnDestroy {
         } else {
           this.alerta.toast({
             type: 'success',
-            title: esNuevo ? 'Producto creado' : 'Cambios guardados',
+            title: esNuevo
+              ? 'Producto creado'
+              : datos.ajuste_stock ? 'Cambios y stock guardados' : 'Cambios guardados',
           });
         }
 
@@ -577,6 +762,13 @@ export class ProductosComponent implements OnInit, OnDestroy {
       error: (error) => {
         this.guardando = false;
         this.cdr.markForCheck();
+        if (codigoDeError(error) === 'STOCK_DESACTUALIZADO') {
+          // Alguien movió el stock mientras se editaba: el servidor no escribió nada. La ficha sigue
+          // abierta y se vuelve a leer el stock real para que el usuario decida con el dato nuevo.
+          this.alerta.error({ title: 'El stock cambió', message: mensajeDeError(error) });
+          this.cargarStockEdicion();
+          return;
+        }
         this.alerta.error({ title: 'No se pudo guardar', message: mensajeDeError(error) });
       },
     });
@@ -610,11 +802,24 @@ export class ProductosComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Optimista: la fila cambia al instante, se deja como responda el servidor y se revierte si falla.
+   * Mientras la petición está en vuelo el botón queda deshabilitado (`cambiandoEstado`).
+   */
   alternarEstado(producto: ProductoAdmin): void {
-    if (!this.puedeEditar) return;
+    if (!this.puedeEditar || this.cambiandoEstado.has(producto.id_producto)) return;
+    this.cambiandoEstado.add(producto.id_producto);
+    this.reflejarEnLista({ ...producto, estado: !producto.estado });
+    this.cdr.markForCheck();
     this.service
       .actualizar(producto.id_producto, { nombre: producto.nombre, estado: !producto.estado })
-      .pipe(takeUntil(this.destruir$))
+      .pipe(
+        takeUntil(this.destruir$),
+        finalize(() => {
+          this.cambiandoEstado.delete(producto.id_producto);
+          this.cdr.markForCheck();
+        }),
+      )
       .subscribe({
         next: (actualizado) => {
           this.reflejarEnLista(actualizado);
@@ -626,6 +831,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
           });
         },
         error: (error) => {
+          this.reflejarEnLista(producto);
           this.cdr.markForCheck();
           this.alerta.error({ message: mensajeDeError(error) });
         },
@@ -1075,10 +1281,12 @@ export class ProductosComponent implements OnInit, OnDestroy {
    * no «desaparezca» de la lista (el aviso del toast ya confirma que se guardó).
    */
   private asegurarVisibleEnLista(idProducto: number): void {
-    if (this.productosFiltrados.some((p) => p.id_producto === idProducto)) return;
-    this.filtro = '';
-    this.filtroCategoria = '';
-    this.filtroEstado = '';
+    if (!this.productosFiltrados.some((p) => p.id_producto === idProducto)) this.limpiarFiltros();
+    // Con el orden elegido el producto puede caer en otra página: se va a la suya para poder verlo.
+    const posicion = this.productosFiltrados.findIndex((p) => p.id_producto === idProducto);
+    if (posicion >= 0 && Math.floor(posicion / this.porPagina) + 1 !== this.paginaProductos.pagina) {
+      this.irAPagina(Math.floor(posicion / this.porPagina) + 1);
+    }
   }
 
   private sincronizarImagenEnLista(): void {

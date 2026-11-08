@@ -33,6 +33,12 @@
     padding: 26px 30px 34px;
     scrollbar-width: thin;
     scrollbar-color: var(--adm-interruptor-off) transparent;
+
+    /* Recibe el foco por código al navegar (tabindex -1): no es un control, no lleva anillo. */
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
   }
 
   > app-header,

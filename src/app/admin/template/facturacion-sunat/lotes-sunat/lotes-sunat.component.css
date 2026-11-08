@@ -7,15 +7,36 @@
 .lotes-filtros .adm-campo {
   flex: 0 1 220px;
 }
+.lotes-filtros .adm-fila {
+  align-items: flex-end;
+}
+.lotes-filtros .lotes-resumen-campo {
+  flex: 0 1 180px;
+}
+.lotes-resumen-boton {
+  flex: 0 0 auto;
+}
+.lotes-resumen-ayuda {
+  margin: 8px 0 0;
+}
 .lotes-estado {
   min-width: 220px;
 }
+.lotes-tipo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
 .lotes-mensaje {
-  max-width: 340px;
+  max-width: 270px;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+}
+.lotes-indicacion {
+  max-width: 270px;
 }
 .lotes-botones {
   display: flex;
@@ -44,7 +65,8 @@
   .lotes-botones {
     justify-content: flex-end;
   }
-  .lotes-mensaje {
+  .lotes-mensaje,
+  .lotes-indicacion {
     max-width: none;
   }
   .lotes-tabla tbody tr[data-estado] > td:first-child {

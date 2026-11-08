@@ -1,0 +1,261 @@
+/* Campana de avisos · piel «Acero y oro». Botón fantasma de 40 px como «Ver tienda»; panel con el
+   mismo aspecto que el menú de usuario (borde de 1 px, sombra de menú). Solo tokens --adm-*. */
+:host {
+  position: relative;
+  display: inline-flex;
+}
+
+.nt-boton {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--adm-r-md);
+  background: transparent;
+  color: var(--adm-texto-suave);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+
+  /* Sin la altura de línea heredada, la campana queda en el centro del botón */
+  .bi { display: block; line-height: 1; }
+
+  &:hover,
+  &.nt-boton--abierto {
+    background: var(--adm-superficie-3);
+    color: var(--adm-texto);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--adm-marca);
+    outline-offset: 2px;
+  }
+}
+
+/* Contador de avisos sin ver: ámbar; rojo si alguno es grave */
+.nt-contador {
+  position: absolute;
+  top: -3px;
+  right: -7px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  border: 2px solid var(--adm-superficie);
+  box-sizing: content-box;
+  background: var(--adm-aviso-solido);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+
+  &--peligro { background: var(--adm-peligro-solido); }
+}
+
+.nt-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  max-height: min(560px, calc(100vh - 96px));
+  overflow: hidden;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-lg);
+  box-shadow: var(--adm-sombra-md);
+  transform-origin: top right;
+  animation: nt-entrada 0.22s var(--x-resorte-suave, ease);
+  cursor: default;
+}
+
+@keyframes nt-entrada {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.nt-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--adm-borde);
+}
+
+.nt-titulo {
+  margin: 0;
+  font-family: var(--adm-fuente-titulos);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--adm-texto);
+}
+
+.nt-actualizado {
+  margin: 2px 0 0;
+  font-size: var(--adm-fs-ayuda);
+  color: var(--adm-texto-tenue);
+}
+
+.nt-marcar {
+  flex: none;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--adm-r-sm);
+  background: transparent;
+  color: var(--adm-marca-texto);
+  font-family: inherit;
+  font-size: var(--adm-fs-etiqueta);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { background: var(--adm-marca-claro); }
+  &:disabled { color: var(--adm-texto-tenue); cursor: default; }
+  &:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 1px; }
+}
+
+.nt-lista {
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.nt-fila {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--adm-superficie-3);
+
+  &:last-child { border-bottom: 0; }
+}
+
+.nt-icono {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 15px;
+  background: var(--adm-superficie-3);
+  color: var(--adm-texto-2);
+
+  &--peligro { background: var(--adm-peligro-claro); color: var(--adm-peligro-texto); }
+  &--aviso { background: var(--adm-aviso-claro); color: var(--adm-aviso-texto); }
+  &--info { background: var(--adm-info-claro); color: var(--adm-info-texto); }
+}
+
+.nt-texto {
+  min-width: 0;
+  font-size: 14px;
+  color: var(--adm-texto);
+
+  small {
+    display: block;
+    margin-top: 1px;
+    font-size: var(--adm-fs-ayuda);
+    color: var(--adm-texto-tenue);
+  }
+}
+
+.nt-accion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 6px;
+  border-radius: var(--adm-r-xs);
+  font-size: var(--adm-fs-etiqueta);
+  font-weight: 700;
+  color: var(--adm-marca-texto);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover { text-decoration: underline; }
+  &:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 1px; }
+}
+
+.nt-solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.nt-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 28px 16px;
+  text-align: center;
+
+  &__icono { font-size: 30px; line-height: 1; color: var(--adm-texto-tenue); }
+  &__icono--ok { color: var(--adm-exito-texto); }
+  &__titulo { margin: 6px 0 0; font-size: var(--adm-fs-cuerpo); font-weight: 700; color: var(--adm-texto); }
+  &__texto { margin: 0; font-size: var(--adm-fs-etiqueta); color: var(--adm-texto-suave); }
+}
+
+.nt-pie {
+  padding: 6px 8px;
+  border-top: 1px solid var(--adm-borde);
+  background: var(--adm-superficie-2);
+
+  &__enlace {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    border-radius: var(--adm-r-sm);
+    font-size: var(--adm-fs-etiqueta);
+    font-weight: 600;
+    color: var(--adm-texto-2);
+    text-decoration: none;
+
+    &:hover { background: var(--adm-superficie-3); color: var(--adm-texto); }
+    &:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: -2px; }
+  }
+}
+
+/* Teléfono: el panel ocupa todo el ancho bajo la barra (64 px) */
+@media (max-width: 640px) {
+  .nt-panel {
+    position: fixed;
+    top: calc(var(--adm-h-barra, 64px) + 4px);
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: calc(100vh - var(--adm-h-barra, 64px) - 16px);
+    transform-origin: top center;
+  }
+}
+
+/* Objetivos táctiles de 44 px */
+@media (pointer: coarse), (max-width: 768px) {
+  .nt-boton { min-width: 44px; min-height: 44px; }
+  .nt-marcar { min-height: 44px; }
+  .nt-accion { min-height: 44px; }
+  .nt-pie__enlace { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nt-panel { animation: none; }
+  .nt-boton { transition: none; }
+}

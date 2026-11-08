@@ -1,0 +1,273 @@
+<section class="adm-tarjeta rm" aria-labelledby="rm-titulo">
+  <div class="adm-tarjeta__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="rm-titulo"><i class="bi bi-bullseye" aria-hidden="true"></i> Análisis de mercado</h2>
+      <p class="adm-tarjeta__sub">
+        Qué productos dejan más margen, cuáles están parados en el almacén y en qué horas se vende más.
+      </p>
+    </div>
+  </div>
+
+  <div class="adm-pestanias adm-pestanias--linea rm-pestanias" role="tablist" aria-label="Análisis de mercado" (keydown)="teclasPestanas($event)">
+    <button type="button" class="adm-pestania" role="tab" *ngFor="let v of vistas"
+            [id]="'rm-tab-' + v.id" [attr.aria-selected]="vista === v.id" [attr.aria-controls]="'rm-panel-' + v.id"
+            [attr.tabindex]="vista === v.id ? 0 : -1" [class.adm-pestania--activa]="vista === v.id" (click)="elegirVista(v.id)">
+      <i class="bi" [ngClass]="v.icono" aria-hidden="true"></i> {{ v.etiqueta }}
+    </button>
+  </div>
+
+  <!-- ── Rentabilidad ── -->
+  <div id="rm-panel-rentabilidad" role="tabpanel" aria-labelledby="rm-tab-rentabilidad" *ngIf="vista === 'rentabilidad'" [attr.aria-busy]="cargandoRent">
+    <div class="rm-barra">
+      <p class="adm-ayuda rm-barra__texto" *ngIf="rentabilidad">
+        Del {{ fecha(rentabilidad.fecha_inicio) }} al {{ fecha(rentabilidad.fecha_fin) }}, el mismo rango del reporte.
+      </p>
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" id="rm-csv-rent" (click)="exportarRent()" [disabled]="!filasRent.length">
+        <i class="bi bi-filetype-csv" aria-hidden="true"></i> CSV
+      </button>
+    </div>
+
+    <div class="adm-esqueletos" *ngIf="cargandoRent && !rentabilidad" aria-label="Cargando la rentabilidad">
+      <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1, 2, 3, 4]"></div>
+    </div>
+
+    <div class="adm-aviso adm-aviso--peligro adm-aviso--compacto rm-aviso" *ngIf="errorRent && !cargandoRent" role="alert">
+      <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+      <span>{{ errorRent }}</span>
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargarRentabilidad()">Reintentar</button>
+    </div>
+
+    <ng-container *ngIf="rentabilidad as r">
+      <div class="adm-vacio adm-vacio--compacto" *ngIf="!r.productos.length">
+        <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">Sin ventas con productos en estas fechas</div>
+        <p>Pruebe con otro rango de fechas.</p>
+      </div>
+
+      <ng-container *ngIf="r.productos.length">
+        <dl class="rm-resumen">
+          <div><dt>Venta sin IGV</dt><dd class="adm-tabular">{{ moneda(r.totales.ingreso_sin_igv) }}</dd></div>
+          <div><dt>Costo</dt><dd class="adm-tabular">{{ moneda(r.totales.costo) }}</dd></div>
+          <div><dt>Margen</dt>
+            <dd class="adm-tabular" [class.rm-neg]="r.totales.margen < 0">{{ moneda(r.totales.margen) }} <span class="rm-resumen__pct">{{ porcentaje(r.totales.margen_pct) }}</span></dd>
+          </div>
+        </dl>
+
+        <p class="adm-ayuda rm-nota" role="note"><i class="bi bi-info-circle" aria-hidden="true"></i> Margen = venta sin IGV − costo (precio de compra registrado en el producto). Si tus precios de compra incluyen IGV, el margen real es algo mayor.
+          <ng-container *ngIf="sinCostoRent"> {{ sinCostoRent }} {{ sinCostoRent === 1 ? 'producto no tiene' : 'productos no tienen' }} precio de compra y salen con costo 0.</ng-container>
+          <ng-container *ngIf="r.recortado"> Se muestran los 500 de mayor ingreso.</ng-container>
+        </p>
+
+        <div class="adm-tabla-envoltorio">
+          <table class="adm-tabla adm-tabla--adaptable rm-tabla" aria-label="Rentabilidad por producto">
+            <thead>
+              <tr>
+                <th [attr.aria-sort]="ariaSort(ordenRent, 'producto')"><button type="button" class="adm-tabla__orden" (click)="ordenarRent('producto')">Producto <i class="bi" [ngClass]="iconoOrden(ordenRent, 'producto')" aria-hidden="true"></i></button></th>
+                <th class="adm-num" [attr.aria-sort]="ariaSort(ordenRent, 'cantidad')"><button type="button" class="adm-tabla__orden" (click)="ordenarRent('cantidad')">Vendido <i class="bi" [ngClass]="iconoOrden(ordenRent, 'cantidad')" aria-hidden="true"></i></button></th>
+                <th class="adm-num" [attr.aria-sort]="ariaSort(ordenRent, 'ingreso_sin_igv')"><button type="button" class="adm-tabla__orden" (click)="ordenarRent('ingreso_sin_igv')">Venta sin IGV <i class="bi" [ngClass]="iconoOrden(ordenRent, 'ingreso_sin_igv')" aria-hidden="true"></i></button></th>
+                <th class="adm-num" [attr.aria-sort]="ariaSort(ordenRent, 'costo')"><button type="button" class="adm-tabla__orden" (click)="ordenarRent('costo')">Costo <i class="bi" [ngClass]="iconoOrden(ordenRent, 'costo')" aria-hidden="true"></i></button></th>
+                <th class="adm-num" [attr.aria-sort]="ariaSort(ordenRent, 'margen')"><button type="button" class="adm-tabla__orden" (click)="ordenarRent('margen')">Margen S/ <i class="bi" [ngClass]="iconoOrden(ordenRent, 'margen')" aria-hidden="true"></i></button></th>
+                <th class="adm-num" [attr.aria-sort]="ariaSort(ordenRent, 'margen_pct')"><button type="button" class="adm-tabla__orden" (click)="ordenarRent('margen_pct')">Margen % <i class="bi" [ngClass]="iconoOrden(ordenRent, 'margen_pct')" aria-hidden="true"></i></button></th>
+                <th [attr.aria-sort]="ariaSort(ordenRent, 'ultima_venta')"><button type="button" class="adm-tabla__orden" (click)="ordenarRent('ultima_venta')">Última venta <i class="bi" [ngClass]="iconoOrden(ordenRent, 'ultima_venta')" aria-hidden="true"></i></button></th>
+                <th class="adm-num" [attr.aria-sort]="ariaSort(ordenRent, 'ingreso')"><button type="button" class="adm-tabla__orden" (click)="ordenarRent('ingreso')">Total cobrado <i class="bi" [ngClass]="iconoOrden(ordenRent, 'ingreso')" aria-hidden="true"></i></button></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of filasRent; trackBy: identificarProducto">
+                <td data-etiqueta="Producto">
+                  <div class="adm-tabla__principal">{{ p.producto }}</div>
+                  <div class="adm-tabla__secundario">
+                    {{ p.categoria }}<span *ngIf="p.codigo" class="adm-tabular"> · {{ p.codigo }}</span>
+                    <span class="adm-insignia adm-insignia--sm adm-insignia--aviso rm-sincosto" *ngIf="p.sin_costo" title="Este producto no tiene precio de compra: su costo y su margen no son confiables.">sin costo</span>
+                  </div>
+                </td>
+                <td data-etiqueta="Vendido" class="adm-num adm-tabular">{{ p.cantidad | number: '1.0-2' }}</td>
+                <td data-etiqueta="Venta sin IGV" class="adm-num adm-tabular">{{ moneda(p.ingreso_sin_igv) }}</td>
+                <td data-etiqueta="Costo" class="adm-num adm-tabular">{{ moneda(p.costo) }}</td>
+                <td data-etiqueta="Margen S/" class="adm-num adm-tabular"><strong [class.rm-neg]="p.margen < 0">{{ moneda(p.margen) }}</strong></td>
+                <td data-etiqueta="Margen %" class="adm-num adm-tabular" [class.rm-neg]="(p.margen_pct ?? 0) < 0">{{ porcentaje(p.margen_pct) }}</td>
+                <td data-etiqueta="Última venta" class="adm-tabular">{{ p.ultima_venta ? fecha(p.ultima_venta) : '—' }}</td>
+                <td data-etiqueta="Total cobrado" class="adm-num adm-tabular">{{ moneda(p.ingreso) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="rm-subtitulo">Por categoría</h3>
+        <div class="adm-tabla-envoltorio">
+          <table class="adm-tabla adm-tabla--adaptable rm-tabla" aria-label="Rentabilidad por categoría">
+            <thead>
+              <tr>
+                <th>Categoría</th>
+                <th class="adm-num">Productos</th>
+                <th class="adm-num">Vendido</th>
+                <th class="adm-num">Venta sin IGV</th>
+                <th class="adm-num">Costo</th>
+                <th class="adm-num">Margen S/</th>
+                <th class="adm-num">Margen %</th>
+                <th class="adm-num">Total cobrado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of r.categorias">
+                <td data-etiqueta="Categoría"><div class="adm-tabla__principal">{{ c.categoria }}</div></td>
+                <td data-etiqueta="Productos" class="adm-num adm-tabular">{{ c.productos }}</td>
+                <td data-etiqueta="Vendido" class="adm-num adm-tabular">{{ c.cantidad | number: '1.0-2' }}</td>
+                <td data-etiqueta="Venta sin IGV" class="adm-num adm-tabular">{{ moneda(c.ingreso_sin_igv) }}</td>
+                <td data-etiqueta="Costo" class="adm-num adm-tabular">{{ moneda(c.costo) }}</td>
+                <td data-etiqueta="Margen S/" class="adm-num adm-tabular"><strong [class.rm-neg]="c.margen < 0">{{ moneda(c.margen) }}</strong></td>
+                <td data-etiqueta="Margen %" class="adm-num adm-tabular" [class.rm-neg]="(c.margen_pct ?? 0) < 0">{{ porcentaje(c.margen_pct) }}</td>
+                <td data-etiqueta="Total cobrado" class="adm-num adm-tabular">{{ moneda(c.ingreso) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ng-container>
+    </ng-container>
+  </div>
+
+  <!-- ── Stock estancado ── -->
+  <div id="rm-panel-estancados" role="tabpanel" aria-labelledby="rm-tab-estancados" *ngIf="vista === 'estancados'" [attr.aria-busy]="cargandoEst">
+    <div class="rm-barra">
+      <div class="adm-segmentado" role="group" aria-label="Días sin vender">
+        <button type="button" class="adm-segmento" *ngFor="let d of opcionesEstancado"
+                [class.adm-segmento--activo]="diasEstancado === d" [attr.aria-pressed]="diasEstancado === d" (click)="elegirDias(d)">
+          {{ d }} días
+        </button>
+      </div>
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" id="rm-csv-est" (click)="exportarEst()" [disabled]="!filasEst.length">
+        <i class="bi bi-filetype-csv" aria-hidden="true"></i> CSV
+      </button>
+    </div>
+
+    <div class="adm-esqueletos" *ngIf="cargandoEst && !estancados" aria-label="Cargando el stock estancado">
+      <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1, 2, 3, 4]"></div>
+    </div>
+
+    <div class="adm-aviso adm-aviso--peligro adm-aviso--compacto rm-aviso" *ngIf="errorEst && !cargandoEst" role="alert">
+      <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+      <span>{{ errorEst }}</span>
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargarEstancados()">Reintentar</button>
+    </div>
+
+    <ng-container *ngIf="estancados as e">
+      <div class="adm-vacio adm-vacio--compacto" *ngIf="!e.productos.length">
+        <div class="adm-vacio__icono adm-vacio__icono--exito"><i class="bi bi-check2-circle" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">Nada parado en {{ e.dias }} días</div>
+        <p>Todos los productos con existencias se vendieron o son más nuevos que eso.</p>
+      </div>
+
+      <ng-container *ngIf="e.productos.length">
+        <p class="rm-resumen-linea">
+          <strong>{{ e.total_productos }}</strong> {{ e.total_productos === 1 ? 'producto parado' : 'productos parados' }} hace {{ e.dias }} días o más,
+          con <strong class="adm-tabular">{{ moneda(e.valorizado_total) }}</strong> en el almacén<ng-container *ngIf="e.recortado"> (se muestran los 200 que más valen)</ng-container>.
+        </p>
+        <div class="adm-tabla-envoltorio">
+          <table class="adm-tabla adm-tabla--adaptable rm-tabla" aria-label="Productos con stock estancado">
+            <thead>
+              <tr>
+                <th [attr.aria-sort]="ariaSort(ordenEst, 'producto')"><button type="button" class="adm-tabla__orden" (click)="ordenarEst('producto')">Producto <i class="bi" [ngClass]="iconoOrden(ordenEst, 'producto')" aria-hidden="true"></i></button></th>
+                <th class="adm-num" [attr.aria-sort]="ariaSort(ordenEst, 'stock')"><button type="button" class="adm-tabla__orden" (click)="ordenarEst('stock')">Stock <i class="bi" [ngClass]="iconoOrden(ordenEst, 'stock')" aria-hidden="true"></i></button></th>
+                <th class="adm-num" [attr.aria-sort]="ariaSort(ordenEst, 'valorizado')"><button type="button" class="adm-tabla__orden" (click)="ordenarEst('valorizado')">Valorizado <i class="bi" [ngClass]="iconoOrden(ordenEst, 'valorizado')" aria-hidden="true"></i></button></th>
+                <th [attr.aria-sort]="ariaSort(ordenEst, 'dias_sin_venta')"><button type="button" class="adm-tabla__orden" (click)="ordenarEst('dias_sin_venta')">Última venta <i class="bi" [ngClass]="iconoOrden(ordenEst, 'dias_sin_venta')" aria-hidden="true"></i></button></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of filasEst; trackBy: identificarProducto">
+                <td data-etiqueta="Producto">
+                  <div class="adm-tabla__principal">{{ p.producto }}</div>
+                  <div class="adm-tabla__secundario">{{ p.categoria }}<span *ngIf="p.codigo" class="adm-tabular"> · {{ p.codigo }}</span></div>
+                </td>
+                <td data-etiqueta="Stock" class="adm-num adm-tabular">{{ p.stock | number: '1.0-2' }}</td>
+                <td data-etiqueta="Valorizado" class="adm-num adm-tabular"><strong>{{ moneda(p.valorizado) }}</strong></td>
+                <td data-etiqueta="Última venta">
+                  <ng-container *ngIf="p.ultima_venta; else rmNunca">
+                    <span class="adm-tabular">{{ fecha(p.ultima_venta) }}</span>
+                    <div class="adm-tabla__secundario">hace {{ p.dias_sin_venta }} {{ p.dias_sin_venta === 1 ? 'día' : 'días' }}</div>
+                  </ng-container>
+                  <ng-template #rmNunca><span class="adm-insignia adm-insignia--sm adm-insignia--neutra">Nunca se vendió</span></ng-template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ng-container>
+    </ng-container>
+  </div>
+
+  <!-- ── Mapa de calor ── -->
+  <div id="rm-panel-calor" role="tabpanel" aria-labelledby="rm-tab-calor" *ngIf="vista === 'calor'" [attr.aria-busy]="cargandoMapa">
+    <div class="rm-barra">
+      <div class="adm-segmentado" role="group" aria-label="Semanas a mirar">
+        <button type="button" class="adm-segmento" *ngFor="let n of opcionesSemanas"
+                [class.adm-segmento--activo]="semanas === n" [attr.aria-pressed]="semanas === n" (click)="elegirSemanas(n)">
+          {{ n }} semanas
+        </button>
+      </div>
+      <p class="adm-ayuda rm-barra__texto" *ngIf="mapa">Del {{ fechasMapa }}, horas de Lima.</p>
+    </div>
+
+    <div class="adm-esqueletos" *ngIf="cargandoMapa && !mapa" aria-label="Cargando el mapa de calor">
+      <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1, 2, 3]"></div>
+    </div>
+
+    <div class="adm-aviso adm-aviso--peligro adm-aviso--compacto rm-aviso" *ngIf="errorMapa && !cargandoMapa" role="alert">
+      <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+      <span>{{ errorMapa }}</span>
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargarMapa()">Reintentar</button>
+    </div>
+
+    <ng-container *ngIf="mapa">
+      <div class="adm-vacio adm-vacio--compacto" *ngIf="!hayVentasMapa">
+        <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">Todavía no hay ventas en estas {{ mapa.semanas }} semanas</div>
+        <p>Cuando haya ventas, aquí verá en qué días y horas se vende más.</p>
+      </div>
+
+      <ng-container *ngIf="hayVentasMapa">
+        <p class="rm-mejor" role="status">
+          <i class="bi bi-trophy" aria-hidden="true"></i>
+          Mejor franja: <strong>{{ textoMejor }}</strong>
+          <span class="rm-mejor__total adm-tabular">{{ moneda(mapa.mejor!.total) }} en {{ mapa.semanas }} semanas</span>
+        </p>
+
+        <div class="rm-calor" #calor (mouseleave)="ocultarTooltip()">
+          <div class="rm-calor__desplazable">
+            <div class="rm-calor__rejilla" role="grid" aria-label="Ventas por día de la semana y hora" (keydown)="teclasMapa($event)">
+              <div class="rm-fila rm-fila--horas" role="row">
+                <span class="rm-dia" role="columnheader"><span class="visually-hidden">Día</span></span>
+                <span class="rm-hora" role="columnheader" *ngFor="let h of horasMapa">{{ h }}</span>
+              </div>
+              <div class="rm-fila" role="row" *ngFor="let d of diasMapa; let f = index">
+                <span class="rm-dia" role="rowheader" [attr.aria-label]="d.largo">{{ d.corto }}</span>
+                <button type="button" class="rm-celda" role="gridcell" *ngFor="let c of celdas[f]; let h = index"
+                        [class.rm-celda--vacia]="c.intensidad === 0" [class.rm-celda--mejor]="c.enMejor"
+                        [style.--i]="c.intensidad" [attr.data-f]="f" [attr.data-h]="h"
+                        [attr.aria-label]="c.etiqueta" [attr.tabindex]="esFoco(f, h) ? 0 : -1"
+                        (mouseenter)="mostrarTooltip($event, f, h)" (focus)="mostrarTooltip($event, f, h)" (blur)="ocultarTooltip()"></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="adm-tooltip-grafico rm-tooltip" aria-hidden="true" *ngIf="tooltip as t"
+               [style.left.px]="t.izquierda" [style.top.px]="t.arriba">
+            <strong class="adm-tooltip-grafico__titulo">{{ t.titulo }}</strong>
+            <span class="adm-tooltip-grafico__linea"><i class="adm-tooltip-grafico__punto"></i><b>{{ t.total }}</b></span>
+            <span class="adm-tooltip-grafico__linea" *ngIf="t.ventas">{{ t.ventas }}</span>
+          </div>
+        </div>
+
+        <div class="rm-leyenda" aria-hidden="true">
+          <span class="rm-leyenda__item"><i class="rm-leyenda__muestra rm-leyenda__muestra--vacia"></i> Sin ventas</span>
+          <span class="rm-leyenda__escala">
+            Menos
+            <i class="rm-leyenda__muestra" style="--i: 0.15"></i><i class="rm-leyenda__muestra" style="--i: 0.4"></i><i class="rm-leyenda__muestra" style="--i: 0.65"></i><i class="rm-leyenda__muestra" style="--i: 0.85"></i><i class="rm-leyenda__muestra" style="--i: 1"></i>
+            Más
+          </span>
+          <span class="rm-leyenda__item"><i class="rm-leyenda__muestra rm-leyenda__muestra--mejor"></i> Mejor franja</span>
+        </div>
+        <p class="adm-ayuda rm-nota">Ventas netas por hora de Lima (las notas de crédito restan). Use las flechas del teclado para recorrer el mapa.</p>
+      </ng-container>
+    </ng-container>
+  </div>
+</section>

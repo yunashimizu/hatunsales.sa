@@ -17,13 +17,13 @@ import {
 /** Funciones puras de la pantalla de guías: estado en palabras, resultado de SUNAT y errores del backend. */
 
 /** Operación en curso sobre una guía (bloquea sus botones mientras dura). */
-export type AccionGuia = 'emitir' | 'consultar' | 'validar' | 'anular' | 'descargar';
+export type AccionGuia = 'emitir' | 'consultar' | 'validar' | 'anular' | 'liberar' | 'descargar';
 
 export const NOMBRE_ARCHIVO_GUIA: Readonly<Record<TipoArchivoGuia, string>> = {
   xml_firmado: 'XML firmado',
   zip: 'ZIP enviado',
-  cdr_xml: 'Constancia CDR (XML)',
-  cdr_zip: 'Constancia CDR (ZIP)',
+  cdr_xml: 'Constancia de SUNAT (XML)',
+  cdr_zip: 'Constancia de SUNAT (ZIP)',
 };
 
 export const TONO_ESTADO_GUIA: Readonly<Record<EstadoGuia, TonoEstado>> = {
@@ -106,6 +106,24 @@ export interface ResumenSunatGuia {
   siguiente: string | null;
 }
 
+/** Consultas con la espera creciente del servidor; después consulta cada 2 horas, hasta 7 días. */
+const CONSULTAS_RAPIDAS_GUIA = 12;
+
+/** Qué hacer con una guía enviada cuyo resultado SUNAT todavía no entrega, según cuánto lleva esperando. */
+function siguienteEnProceso(guia: GuiaRemision): string {
+  const envio = guia.envio;
+  if (envio?.liberable) {
+    return 'SUNAT no resolvió el número de seguimiento en 7 días. Use «Consultar ahora»; si ya buscó la guía en SUNAT Operaciones en Línea y no figura, «Liberar» la deja lista para reenviarla.';
+  }
+  if (envio?.revision_manual) {
+    return 'La consulta automática se detuvo: use «Consultar ahora» o revise la guía en SUNAT Operaciones en Línea.';
+  }
+  if ((envio?.consultas ?? 0) >= CONSULTAS_RAPIDAS_GUIA) {
+    return 'SUNAT todavía no entrega la constancia: el sistema la consulta cada 2 horas hasta por 7 días. También puede usar «Consultar ahora».';
+  }
+  return 'Use «Consultar ahora» para pedir el resultado si aún no aparece.';
+}
+
 /** null mientras la guía no se envió (borrador, anulada o histórica). */
 export function resumenSunatGuia(guia: GuiaRemision, resultado: ResultadoOperacionGuia | null = null): ResumenSunatGuia | null {
   const envio = guia.envio;
@@ -138,18 +156,16 @@ export function resumenSunatGuia(guia: GuiaRemision, resultado: ResultadoOperaci
       return {
         tono: envio?.revision_manual ? 'aviso' : 'info',
         icono: 'bi-hourglass-split',
-        titulo: 'En proceso en SUNAT',
+        titulo: 'SUNAT lo está procesando',
         // El backend explica si se consultará solo o hay que revisar (credenciales, constancia ajena).
         mensaje:
           (envio?.revision_manual ? guia.error_mensaje : null) ||
           resultado?.mensaje ||
           (guia.sunat_ticket
-            ? `SUNAT recibió la guía (ticket ${guia.sunat_ticket}) y la está procesando.`
+            ? `SUNAT recibió la guía (n.º de seguimiento ${guia.sunat_ticket}) y la está procesando.`
             : 'SUNAT recibió la guía y la está procesando.'),
         errores: [],
-        siguiente: envio?.revision_manual
-          ? 'La consulta automática se detuvo: use «Consultar» o revise la guía en SUNAT Operaciones en Línea.'
-          : 'Use «Consultar en SUNAT» para pedir el resultado si aún no aparece.',
+        siguiente: siguienteEnProceso(guia),
       };
     case 'pendiente':
       if (envio?.en_curso) {
@@ -170,6 +186,17 @@ export function resumenSunatGuia(guia: GuiaRemision, resultado: ResultadoOperaci
           mensaje: guia.error_mensaje || mensaje,
           errores,
           siguiente: 'Corrija la configuración en Facturación SUNAT y use «Reintentar envío»: se conserva el número.',
+        };
+      }
+      if (envio?.liberado) {
+        return {
+          tono: 'aviso',
+          icono: 'bi-unlock',
+          titulo: 'Guía liberada: revise antes de reenviar',
+          mensaje: guia.error_mensaje || mensaje,
+          errores,
+          siguiente:
+            'Busque la guía en SUNAT Operaciones en Línea. Si ya figura registrada, no la reenvíe; si no figura, use «Reintentar envío»: se manda el mismo archivo.',
         };
       }
       return {

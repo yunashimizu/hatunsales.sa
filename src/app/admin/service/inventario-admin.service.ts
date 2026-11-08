@@ -26,6 +26,15 @@ export interface AjusteStock {
   comentario?: string;
 }
 
+/** Stock de un producto en un almacén (los almacenes sin fila salen con `stock 0` y `registrado false`). */
+export interface StockPorAlmacen {
+  id_almacen: number;
+  almacen: string;
+  sucursal: string;
+  stock: number;
+  registrado: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class InventarioAdminService {
 
@@ -57,6 +66,11 @@ export class InventarioAdminService {
 
   almacenes(): Observable<Almacen[]> {
     return this.http.get<Almacen[]>(urlConstants.inventario.almacenes, opcionesHttp());
+  }
+
+  /** Stock de un producto en todos los almacenes con una sola consulta (la ficha cambia de almacén sin red). */
+  stockPorProducto(idProducto: number): Observable<StockPorAlmacen[]> {
+    return this.http.get<StockPorAlmacen[]>(urlConstants.inventario.stockProducto(idProducto), opcionesHttp());
   }
 
   movimientos(idProducto?: number, limite = 50): Observable<MovimientoInventario[]> {

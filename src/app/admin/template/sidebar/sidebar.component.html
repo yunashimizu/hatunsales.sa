@@ -27,7 +27,7 @@
         <div class="sb-section-inner">
           <ul class="sb-menu">
             <li *ngFor="let item of seccion.items" routerLinkActive="active" [hidden]="!visible(item)">
-              <a [routerLink]="item.ruta" [attr.title]="collapsed ? textoItem(item) : null" [attr.aria-label]="collapsed ? textoItem(item) : null">
+              <a [routerLink]="item.ruta" routerLinkActive ariaCurrentWhenActive="page" [attr.title]="collapsed ? textoItem(item) : null" [attr.aria-label]="collapsed ? textoItem(item) : null">
                 <i class="bi sb-nav-icon" [ngClass]="item.icono" aria-hidden="true"></i>
                 <span class="sb-nav-text">{{ textoItem(item) }}</span>
                 <span class="sb-badge"
@@ -48,7 +48,7 @@
       <div class="sb-section-label" *ngIf="cuenta.some(i => visible(i))">Cuenta</div>
       <ul class="sb-menu">
         <li *ngFor="let item of cuenta" routerLinkActive="active" [hidden]="!visible(item)">
-          <a [routerLink]="item.ruta" [attr.title]="collapsed ? item.etiqueta : null" [attr.aria-label]="collapsed ? item.etiqueta : null">
+          <a [routerLink]="item.ruta" routerLinkActive ariaCurrentWhenActive="page" [attr.title]="collapsed ? item.etiqueta : null" [attr.aria-label]="collapsed ? item.etiqueta : null">
             <i class="bi sb-nav-icon" [ngClass]="item.icono" aria-hidden="true"></i>
             <span class="sb-nav-text">{{ item.etiqueta }}</span>
           </a>

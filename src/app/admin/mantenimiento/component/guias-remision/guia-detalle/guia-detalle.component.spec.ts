@@ -98,4 +98,96 @@ describe('GuiaDetalleComponent', () => {
     boton('PDF')!.click();
     expect(descargas.map((d) => d.tipo)).toEqual(['zip', 'pdf']);
   });
+
+  describe('guía enviada sin respuesta de SUNAT (consultar y liberar)', () => {
+    function enviada(envio: Record<string, unknown> = {}, acciones: Record<string, unknown> = {}): GuiaRemision {
+      const base = pendiente();
+      return pendiente({
+        estado: 'enviado',
+        estado_texto: 'Enviada a SUNAT',
+        sunat_ticket: 'T-77',
+        error_mensaje: null,
+        avisos: [],
+        acciones: { puede_editar: false, puede_validar: false, puede_emitir: false, puede_consultar: true, puede_anular: false, puede_liberar: false, ...acciones },
+        sunat: { ticket: 'T-77', codigo: null, descripcion: null, cadena_qr: null, codigo_hash: 'hash-1' },
+        envio: { ...base.envio!, estado: 'TICKET_PENDIENTE', codigo: null, mensaje: null, consultas: 3, liberable: false, liberado: false, ...envio },
+      });
+    }
+
+    it('«Consultar ahora» pide el resultado a SUNAT; sin «Liberar» mientras la guía no cumpla los 7 días', async () => {
+      await crear({ guia: enviada(), puedeEscribir: true, esAdmin: true, modo: { activo: true } });
+      const consultas: GuiaRemision[] = [];
+      fixture.componentInstance.consultar.subscribe((g) => consultas.push(g));
+      expect(texto()).toContain('Use «Consultar ahora» para pedir el resultado si aún no aparece.');
+      expect(boton('Liberar')).toBeUndefined();
+      boton('Consultar ahora')!.click();
+      expect(consultas).toHaveLength(1);
+      expect(consultas[0].id_guia).toBe(5);
+    });
+
+    it('tras las consultas rápidas explica que el sistema sigue consultando cada 2 horas hasta por 7 días', async () => {
+      await crear({ guia: enviada({ consultas: 12 }), puedeEscribir: true, esAdmin: true, modo: { activo: true } });
+      expect(texto()).toContain('el sistema la consulta cada 2 horas hasta por 7 días');
+      expect(boton('Consultar ahora')).toBeTruthy();
+      expect(boton('Liberar')).toBeUndefined();
+    });
+
+    it('cumplidos los 7 días el administrador ve «Liberar» y la explicación de qué revisar antes', async () => {
+      await crear({
+        guia: enviada({ revision_manual: true, liberable: true, consultas: 90 }, { puede_liberar: true }),
+        puedeEscribir: true,
+        esAdmin: true,
+        modo: { activo: true },
+      });
+      const liberadas: GuiaRemision[] = [];
+      fixture.componentInstance.liberar.subscribe((g) => liberadas.push(g));
+      expect(texto()).toContain('SUNAT no resolvió el número de seguimiento en 7 días');
+      expect(texto()).toContain('SUNAT Operaciones en Línea');
+      boton('Liberar')!.click();
+      expect(liberadas.map((g) => g.id_guia)).toEqual([5]);
+      expect(boton('Consultar ahora')).toBeTruthy();
+    });
+
+    it('«Liberar» es solo del administrador: un vendedor consulta pero no libera', async () => {
+      await crear({
+        guia: enviada({ revision_manual: true, liberable: true }, { puede_liberar: true }),
+        puedeEscribir: true,
+        esAdmin: false,
+        modo: { activo: true },
+      });
+      expect(boton('Liberar')).toBeUndefined();
+      expect(boton('Consultar ahora')).toBeTruthy();
+    });
+
+    it('caja solo mira: ni «Consultar ahora» ni «Liberar»', async () => {
+      await crear({ guia: enviada({ liberable: true }, { puede_liberar: true }), puedeEscribir: false, esAdmin: false, modo: { activo: true } });
+      expect(boton('Consultar ahora')).toBeUndefined();
+      expect(boton('Liberar')).toBeUndefined();
+    });
+
+    it('mientras se libera bloquea los botones y lo dice', async () => {
+      await crear({
+        guia: enviada({ revision_manual: true, liberable: true }, { puede_liberar: true }),
+        puedeEscribir: true,
+        esAdmin: true,
+        modo: { activo: true },
+        accion: 'liberar',
+      });
+      expect(boton('Liberando…')?.disabled).toBe(true);
+      expect(boton('Consultar ahora')?.disabled).toBe(true);
+    });
+
+    it('una guía liberada avisa que se busque en SUNAT antes de reenviarla y deja «Reintentar envío»', async () => {
+      const liberada = pendiente({
+        error_mensaje: 'La guía T001-00000005 se liberó: SUNAT no respondió el ticket T-77 en 7 días.',
+        avisos: ['La guía se liberó tras 7 días sin respuesta de SUNAT: revise en SUNAT Operaciones en Línea si ya figura registrada antes de reenviarla con «Emitir».'],
+        envio: { ...pendiente().envio!, estado: 'PENDIENTE_REENVIO', liberado: true, revision_manual: true },
+      });
+      await crear({ guia: liberada, puedeEscribir: true, esAdmin: true, modo: { activo: true } });
+      expect(texto()).toContain('Guía liberada: revise antes de reenviar');
+      expect(texto()).toContain('Si ya figura registrada, no la reenvíe');
+      expect(boton('Reintentar envío')?.disabled).toBe(false);
+      expect(boton('Liberar')).toBeUndefined();
+    });
+  });
 });

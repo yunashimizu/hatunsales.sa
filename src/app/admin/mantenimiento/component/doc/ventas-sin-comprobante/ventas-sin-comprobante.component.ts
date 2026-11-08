@@ -293,9 +293,20 @@ export class VentasSinComprobanteComponent implements OnInit {
       });
   }
 
-  emitir(): void {
+  async emitir(): Promise<void> {
     const venta = this.venta;
     if (!venta || this.emitiendo || this.errorFormulario || this.emisionInactiva) return;
+    // Emitir consume un número real de la serie y no se puede deshacer: se confirma antes de enviar.
+    const tipo = this.formulario.id_tipo === TIPO_FACTURA ? 'factura' : 'boleta';
+    const confirmado = await this.alerta.confirmar({
+      title: `¿Emitir la ${tipo} de la venta #${venta.id_venta}?`,
+      message:
+        `Se emitirá la ${tipo} por S/ ${Number(venta.total).toFixed(2)} y se enviará a SUNAT${this.esBeta ? ' BETA (pruebas, sin validez tributaria)' : ''}. ` +
+        'Consume el siguiente número de la serie y no se puede deshacer.',
+      confirmText: `Sí, emitir ${tipo}`,
+      type: 'warning',
+    });
+    if (!confirmado || this.destroyRef.destroyed || this.emitiendo || !this.venta) return;
     const documento = soloDigitos(this.formulario.documento);
     const solicitud: SolicitudEmitirComprobanteVenta = { id_tipo: this.formulario.id_tipo };
     if (documento) solicitud.documento = documento;

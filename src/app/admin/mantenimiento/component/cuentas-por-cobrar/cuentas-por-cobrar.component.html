@@ -66,12 +66,42 @@
   </section>
   <ng-template #cxcEsqueletoCifra><span class="adm-esqueleto cxc-esqueleto-cifra" aria-hidden="true"></span></ng-template>
 
+  <!-- Antigüedad: cuánto se debe según los días que lleva vencida cada cuenta -->
+  <section class="cxc-antiguedad" aria-labelledby="cxc-antiguedad-titulo" hsReveal="lista">
+    <div class="cxc-antiguedad__cabecera">
+      <h2 class="cxc-antiguedad__titulo" id="cxc-antiguedad-titulo"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Antigüedad de la deuda</h2>
+      <p class="adm-ayuda cxc-antiguedad__nota" *ngIf="!listaCompleta && !antiguedadServidor">
+        Calculado con las {{ cuentas.length }} cuentas cargadas de {{ total }}. Filtre por estado para afinar.
+      </p>
+    </div>
+    <div class="adm-grid adm-grid--4 cxc-metricas">
+      <div class="adm-metrica" *ngFor="let t of tarjetasTramos; trackBy: identificarTramo"
+           [ngClass]="{ 'adm-metrica--aviso': t.tono === 'aviso', 'adm-metrica--peligro': t.tono === 'peligro' }">
+        <div class="adm-metrica__icono"><i class="bi" [ngClass]="t.icono" aria-hidden="true"></i></div>
+        <div>
+          <div class="adm-metrica__valor cxc-tramo__cifra">
+            <ng-container *ngIf="!(cargando && !cuentas.length); else cxcEsqueletoCifra"><span [hsCountUp]="t.importe" [hsDecimales]="2" hsPrefijo="S/ "></span></ng-container>
+          </div>
+          <div class="adm-metrica__etiqueta">{{ t.etiqueta }}</div>
+          <div class="adm-metrica__delta">{{ t.cuentas }} cuenta{{ t.cuentas === 1 ? '' : 's' }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Cuentas -->
   <section class="adm-tarjeta adm-tarjeta--acento" aria-labelledby="cxc-cuentas-titulo">
     <div class="adm-tarjeta__cabecera">
       <div class="adm-tarjeta__encabezado">
         <h2 class="adm-tarjeta__titulo" id="cxc-cuentas-titulo"><i class="bi bi-table"></i> Cuentas ({{ total }})</h2>
         <p class="adm-tarjeta__sub">Pulse «Abonar» en una cuenta para registrar un pago parcial o total.</p>
+      </div>
+      <div class="adm-tarjeta__extra">
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" id="cxc-exportar" (click)="exportarCsv()"
+                [disabled]="!cuentasVisibles.length"
+                [title]="listaCompleta ? 'Descarga las cuentas de la lista' : 'Descarga las cuentas que se ven (hay más en el servidor)'">
+          <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
+        </button>
       </div>
     </div>
     <div class="adm-tarjeta__cuerpo cxc-filtros">
@@ -101,6 +131,18 @@
           </button>
         </div>
       </div>
+      <div class="cxc-tramos" role="group" aria-label="Filtrar por antigüedad">
+        <span class="adm-etiqueta cxc-tramos__rotulo">Antigüedad</span>
+        <div class="adm-chips">
+          <button type="button" class="adm-chip" [class.adm-chip--activo]="!filtroTramo" [attr.aria-pressed]="!filtroTramo" (click)="elegirTramo('')">
+            Todas
+          </button>
+          <button type="button" class="adm-chip" *ngFor="let t of tramos; trackBy: identificarTramo"
+                  [class.adm-chip--activo]="filtroTramo === t.clave" [attr.aria-pressed]="filtroTramo === t.clave" (click)="elegirTramo(t.clave)">
+            {{ t.etiqueta }} <span class="cxc-chip__n">{{ t.cuentas }}</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="adm-esqueletos" *ngIf="(cargando || busqueda.activa) && !cuentasVisibles.length" role="status" aria-busy="true" aria-label="Cargando cuentas">
@@ -126,21 +168,46 @@
       </a>
     </div>
 
-    <div class="adm-tabla-envoltorio" *ngIf="cuentasVisibles.length">
+    <div class="adm-vacio adm-vacio--compacto" *ngIf="cuentasVisibles.length && !cuentasMostradas.length" role="status">
+      <div class="adm-vacio__icono"><i class="bi bi-funnel" aria-hidden="true"></i></div>
+      <div class="adm-vacio__titulo">Ninguna cuenta en «{{ etiquetaTramo(filtroTramo) }}»</div>
+      <button type="button" class="adm-btn adm-btn--suave" (click)="elegirTramo('')">Ver todas</button>
+    </div>
+
+    <div class="adm-tabla-envoltorio" *ngIf="cuentasMostradas.length">
+      <app-orden-movil *ngIf="listaCompleta" idCampo="cxc-orden-movil" [columnas]="columnasOrden" [estado]="orden" (estadoChange)="fijarOrden($event)"></app-orden-movil>
       <table class="adm-tabla adm-tabla--adaptable adm-tabla--adaptable-tablet" aria-label="Cuentas por cobrar">
         <thead>
           <tr>
-            <th>Deudor</th>
-            <th>Venta</th>
-            <th>Vence</th>
-            <th class="adm-num">Total</th>
-            <th class="adm-num">Saldo</th>
-            <th>Estado</th>
+            <th [attr.aria-sort]="ariaSort('deudor')">
+              <button type="button" class="adm-tabla__orden" *ngIf="listaCompleta; else cxcTh_deudor" (click)="ordenar('deudor')">Deudor <i class="bi" [ngClass]="iconoOrden('deudor')" aria-hidden="true"></i></button>
+              <ng-template #cxcTh_deudor>Deudor</ng-template>
+            </th>
+            <th [attr.aria-sort]="ariaSort('venta')">
+              <button type="button" class="adm-tabla__orden" *ngIf="listaCompleta; else cxcTh_venta" (click)="ordenar('venta')">Venta <i class="bi" [ngClass]="iconoOrden('venta')" aria-hidden="true"></i></button>
+              <ng-template #cxcTh_venta>Venta</ng-template>
+            </th>
+            <th [attr.aria-sort]="ariaSort('vence')">
+              <button type="button" class="adm-tabla__orden" *ngIf="listaCompleta; else cxcTh_vence" (click)="ordenar('vence')">Vence / días <i class="bi" [ngClass]="iconoOrden('vence')" aria-hidden="true"></i></button>
+              <ng-template #cxcTh_vence>Vence / días</ng-template>
+            </th>
+            <th class="adm-num" [attr.aria-sort]="ariaSort('total')">
+              <button type="button" class="adm-tabla__orden" *ngIf="listaCompleta; else cxcTh_total" (click)="ordenar('total')">Total <i class="bi" [ngClass]="iconoOrden('total')" aria-hidden="true"></i></button>
+              <ng-template #cxcTh_total>Total</ng-template>
+            </th>
+            <th class="adm-num" [attr.aria-sort]="ariaSort('saldo')">
+              <button type="button" class="adm-tabla__orden" *ngIf="listaCompleta; else cxcTh_saldo" (click)="ordenar('saldo')">Saldo <i class="bi" [ngClass]="iconoOrden('saldo')" aria-hidden="true"></i></button>
+              <ng-template #cxcTh_saldo>Saldo</ng-template>
+            </th>
+            <th [attr.aria-sort]="ariaSort('estado')">
+              <button type="button" class="adm-tabla__orden" *ngIf="listaCompleta; else cxcTh_estado" (click)="ordenar('estado')">Estado <i class="bi" [ngClass]="iconoOrden('estado')" aria-hidden="true"></i></button>
+              <ng-template #cxcTh_estado>Estado</ng-template>
+            </th>
             <th><span class="visually-hidden">Acciones</span></th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let c of cuentasVisibles; trackBy: identificarCuenta" [class.cxc-fila--vencida]="c.estado === 'vencido'">
+          <tr *ngFor="let c of cuentasMostradas; trackBy: identificarCuenta" [class.cxc-fila--vencida]="c.estado === 'vencido'">
             <td data-etiqueta="Deudor" class="cxc-td-deudor">
               <div class="cxc-deudor">
                 <span class="adm-avatar cxc-avatar" [attr.data-tono]="tonoDe(c.deudor)" aria-hidden="true">{{ iniciales(c.deudor) }}</span>
@@ -150,11 +217,15 @@
                 </div>
               </div>
             </td>
-            <td data-etiqueta="Venta"><span class="adm-mono">#{{ c.id_venta }}</span></td>
+            <td data-etiqueta="Venta">
+              <span class="adm-mono cxc-nowrap" *ngIf="c.comprobante; else cxcVentaNumero" [title]="'Venta N.° ' + c.id_venta">{{ c.comprobante }}</span>
+              <ng-template #cxcVentaNumero><span class="adm-mono">#{{ c.id_venta }}</span></ng-template>
+            </td>
             <td data-etiqueta="Vence">
               <div class="cxc-vence">
                 <span class="cxc-vence__fecha">{{ c.fecha_vencimiento | date:'dd/MM/yyyy' }}</span>
-                <span class="cxc-vence__texto" [ngClass]="'cxc-vence__texto--' + urgenciaVence(c)" *ngIf="textoVence(c)">{{ textoVence(c) }}</span>
+                <span class="adm-insignia adm-insignia--sm adm-insignia--peligro cxc-vence__atraso" *ngIf="puedeCobrar(c) && diasAtraso(c) > 0">Vencida hace {{ diasAtraso(c) }} {{ diasAtraso(c) === 1 ? 'día' : 'días' }}</span>
+                <span class="cxc-vence__texto" [ngClass]="'cxc-vence__texto--' + urgenciaVence(c)" *ngIf="textoVence(c) && !(puedeCobrar(c) && diasAtraso(c) > 0)">{{ textoVence(c) }}</span>
               </div>
             </td>
             <td data-etiqueta="Total" class="adm-num">S/ {{ c.monto_total | number:'1.2-2' }}</td>
@@ -175,10 +246,24 @@
                     }">{{ c.estado }}</span>
             </td>
             <td class="adm-centro cxc-td-accion">
-              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="ver(c)"
-                      [attr.aria-label]="'Abonar a la cuenta de ' + c.deudor">
-                <i class="bi bi-cash-coin" aria-hidden="true"></i> Abonar
-              </button>
+              <div class="adm-tabla__acciones cxc-acciones">
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="ver(c)"
+                        [attr.aria-label]="'Abonar a la cuenta de ' + c.deudor">
+                  <i class="bi bi-cash-coin" aria-hidden="true"></i> Abonar
+                </button>
+                <button type="button" class="adm-btn-icono adm-btn-icono--exito cxc-icono44 cxc-wa" *ngIf="puedeCobrar(c)"
+                        (click)="abrirRecordatorio(c)" [disabled]="!telefonoDe(c)"
+                        [attr.aria-label]="'Recordar el pago por WhatsApp a ' + c.deudor"
+                        [title]="telefonoDe(c) ? 'Recordar el pago por WhatsApp' : 'Este cliente no tiene un teléfono válido registrado'">
+                  <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                </button>
+                <span class="cxc-icono44 cxc-hueco" *ngIf="!puedeCobrar(c)" aria-hidden="true"></span>
+                <a class="adm-btn-icono adm-btn-icono--primario cxc-icono44" *ngIf="rutaEstadoCuenta(c) as ruta"
+                   [routerLink]="ruta" [queryParams]="{ q: c.deudor }"
+                   [attr.aria-label]="'Estado de cuenta de ' + c.deudor" title="Estado de cuenta">
+                  <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                </a>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -399,6 +484,35 @@
 
 </div>
 
+<!-- Recordatorio por WhatsApp: el texto se puede corregir antes de abrir la conversación -->
+<ng-container *ngIf="recordatorio as r">
+  <div class="adm-velo" (click)="cerrarRecordatorio()" aria-hidden="true"></div>
+  <div class="adm-modal">
+    <div class="adm-modal__marco cxc-recordatorio" role="dialog" aria-modal="true" aria-labelledby="cxc-rec-titulo">
+      <div class="adm-modal__cabecera">
+        <div class="adm-tarjeta__encabezado">
+          <h2 class="adm-tarjeta__titulo" id="cxc-rec-titulo"><i class="bi bi-whatsapp" aria-hidden="true"></i> Recordatorio de pago</h2>
+          <p class="adm-tarjeta__sub">{{ r.cuenta.deudor }} · saldo {{ soles(r.cuenta.saldo) }}</p>
+        </div>
+        <button type="button" class="adm-btn-icono cxc-icono44" (click)="cerrarRecordatorio()" aria-label="Cerrar" title="Cerrar"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+      </div>
+      <div class="adm-modal__cuerpo">
+        <div class="adm-campo">
+          <label class="adm-etiqueta" for="cxc-rec-texto">Mensaje</label>
+          <textarea #recordatorioTexto id="cxc-rec-texto" class="adm-input cxc-recordatorio__texto" rows="6" [(ngModel)]="r.texto"></textarea>
+          <p class="adm-ayuda">Se abrirá WhatsApp con este mensaje para el número {{ r.telefono }}. Usted decide si lo envía.</p>
+        </div>
+      </div>
+      <div class="adm-modal__pie">
+        <button type="button" class="adm-btn adm-btn--suave" (click)="cerrarRecordatorio()">Cancelar</button>
+        <button type="button" class="adm-btn adm-btn--exito" (click)="enviarRecordatorio()" [disabled]="!enlaceRecordatorio">
+          <i class="bi bi-whatsapp" aria-hidden="true"></i> Abrir WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
 <!-- Panel de abono -->
 <div class="adm-velo" *ngIf="seleccion" (click)="seleccion = null"></div>
 
@@ -409,7 +523,7 @@
         <i class="bi bi-cash-coin"></i> Abono
       </h2>
       <p class="adm-panel__sub cxc-panel__sub">
-        {{ seleccion.deudor }} · Venta #{{ seleccion.id_venta }}
+        {{ seleccion.deudor }} · {{ seleccion.comprobante || ('Venta #' + seleccion.id_venta) }}
       </p>
     </div>
     <button type="button" class="adm-btn-icono" (click)="seleccion = null" aria-label="Cerrar" title="Cerrar"><i class="bi bi-x-lg"></i></button>

@@ -213,3 +213,22 @@
 
   .ped-cancelar > .adm-btn { width: 100%; justify-content: center; }
 }
+
+/* Comprobante emitido (boleta o factura del pedido): número con enlace a Documentos y su estado. */
+.ped-comprobante__enlace {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-marca-texto);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  margin-right: 0.5rem;
+}
+.ped-comprobante__estado { vertical-align: 1px; }
+.ped-comprobante__motivo {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--adm-texto-suave);
+  overflow-wrap: anywhere;
+}
+.ped-comprobante__pedido { margin-right: 0.5rem; }

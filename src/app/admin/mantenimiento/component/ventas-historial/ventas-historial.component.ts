@@ -12,10 +12,12 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
-import { Subject, Subscription, debounceTime, finalize } from 'rxjs';
+import { Subject, Subscription, debounceTime, finalize, skip } from 'rxjs';
 
 import { AlertService } from '../../../../shared/services/alert.service';
 import { descargarArchivo } from '../../../../shared/utils/descargar-archivo';
+import { ColumnaCsv, exportarCsv } from '../../../../shared/utils/exportar-csv';
+import { EscritorFiltrosUrl, EsquemaFiltros, leerFiltros } from '../../../../shared/utils/filtros-url';
 import { BusquedaPendiente, filtrarInstantaneo } from '../../../../shared/utils/filtro-instantaneo.util';
 import { TIPO_BOLETA, TIPO_FACTURA, TIPO_NOTA_CREDITO } from '../../../models/admin.models';
 import {
@@ -112,12 +114,18 @@ function enteroPositivo(valor: string | null): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-/** Una celda de CSV: comillas dobles escapadas y sin fórmulas (=, +, -, @) que Excel ejecutaría. */
-function celdaCsv(valor: unknown): string {
-  let texto = String(valor ?? '');
-  if (/^[=+\-@]/.test(texto)) texto = `'${texto}`;
-  return `"${texto.replace(/"/g, '""')}"`;
-}
+/** Qué filtros viajan en la URL (el enlace `?venta=` del detalle se maneja aparte y se conserva). */
+const ESQUEMA_URL: EsquemaFiltros = {
+  q: { tipo: 'texto' },
+  estado: { tipo: 'opcion', opciones: ['activa', 'anulada'], defecto: '' },
+  comprobante: { tipo: 'opcion', opciones: ['si', 'no'], defecto: '' },
+  origen: { tipo: 'opcion', opciones: ['mostrador', 'tienda'], defecto: '' },
+  desde: { tipo: 'texto' },
+  hasta: { tipo: 'texto' },
+  pagina: { tipo: 'numero', defecto: 1, min: 1 },
+};
+
+const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Historial de ventas: todas las ventas con su comprobante vigente, notas y guías (GET /venta), y el
@@ -184,6 +192,7 @@ export class VentasHistorialComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly filtrar$ = new Subject<void>();
+  private readonly urlFiltros = new EscritorFiltrosUrl(this.router, this.route, ESQUEMA_URL);
   private lectura: Subscription | null = null;
   private lecturaDocumentos: Subscription | null = null;
 
@@ -197,8 +206,47 @@ export class VentasHistorialComponent implements OnInit {
 
   ngOnInit(): void {
     this.filtrar$.pipe(debounceTime(250), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.cargar(1));
+    this.destroyRef.onDestroy(() => this.urlFiltros.cancelar());
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => this.aplicarEnlace(params));
-    this.cargar(1);
+    // La URL manda antes de la primera carga: un enlace con filtros abre ya filtrado. Después, si la
+    // ruta cambia desde fuera (menú o paleta hacia el historial limpio), se vuelve a cargar sin filtros.
+    this.aplicarFiltrosDeUrl();
+    this.route.queryParamMap.pipe(skip(1), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.urlFiltros.ocupado || this.coincideConLaUrl()) return;
+      this.aplicarFiltrosDeUrl();
+      this.cargar(this.pagina);
+    });
+    this.cargar(this.pagina);
+  }
+
+  /** Los filtros de pantalla, tal como van a la URL. */
+  private valoresDeUrl(pagina = this.pagina): Record<string, string | number | boolean | null> {
+    const f = this.filtro;
+    return {
+      q: f.texto.trim(), estado: f.estado, comprobante: f.tiene_comprobante, origen: f.origen,
+      desde: f.desde, hasta: f.hasta, pagina,
+    };
+  }
+
+  private aplicarFiltrosDeUrl(): void {
+    const u = leerFiltros(this.route, ESQUEMA_URL);
+    const fecha = (v: unknown) => (typeof v === 'string' && FECHA_ISO.test(v) ? v : '');
+    this.filtro = {
+      texto: String(u['q'] ?? ''),
+      estado: String(u['estado'] ?? ''),
+      tiene_comprobante: String(u['comprobante'] ?? ''),
+      origen: String(u['origen'] ?? ''),
+      desde: fecha(u['desde']),
+      hasta: fecha(u['hasta']),
+    };
+    this.pagina = Number(u['pagina']) || 1;
+    this.cdr.markForCheck();
+  }
+
+  private coincideConLaUrl(): boolean {
+    const url = leerFiltros(this.route, ESQUEMA_URL);
+    const hoy = this.valoresDeUrl();
+    return Object.keys(hoy).every((clave) => url[clave] === hoy[clave]);
   }
 
   // ── Resumen de lo que se ve ──────────────────────────────────
@@ -250,6 +298,7 @@ export class VentasHistorialComponent implements OnInit {
     const alTerminar = this.busqueda.alLanzar();
     this.pagina = pagina;
     this.error = '';
+    this.urlFiltros.escribir(this.valoresDeUrl(pagina));
     if (this.errorFechas) {
       this.filas = [];
       this.refiltrar();
@@ -353,24 +402,22 @@ export class VentasHistorialComponent implements OnInit {
   /** Las ventas que se ven (la página actual) en un CSV que abre Excel, con las cifras tal cual. */
   exportarCsv(): void {
     if (!this.filasVisibles.length) return;
-    const cabecera = ['Venta', 'Fecha', 'Origen', 'Cliente', 'Ítems', 'Medios de pago', 'Total', 'Estado', 'Comprobante', 'Estado SUNAT', 'Notas', 'Guías'];
-    const filas = this.filasVisibles.map((f) => [
-      f.id_venta,
-      f.fecha.slice(0, 16).replace('T', ' '),
-      f.origen,
-      f.cliente_denominacion,
-      f.cantidad_items,
-      f.metodos_pago,
-      f.total.toFixed(2),
-      f.vistaEstadoVenta.texto,
-      f.comprobante ?? '',
-      f.vistaComprobante?.texto ?? '',
-      f.cantidad_notas,
-      f.cantidad_guias,
-    ]);
-    const csv = [cabecera, ...filas].map((fila) => fila.map(celdaCsv).join(',')).join('\r\n');
-    // BOM: Excel reconoce así las tildes (UTF-8).
-    descargarArchivo(new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' }), `ventas-pagina-${this.pagina}.csv`);
+    const columnas: ColumnaCsv<FilaHistorial>[] = [
+      { titulo: 'Venta', valor: (f) => f.id_venta },
+      { titulo: 'Fecha', valor: (f) => f.fecha.slice(0, 16).replace('T', ' ') },
+      { titulo: 'Origen', valor: (f) => f.origen },
+      { titulo: 'Cliente', valor: (f) => f.cliente_denominacion },
+      { titulo: 'Ítems', valor: (f) => f.cantidad_items },
+      { titulo: 'Medios de pago', valor: (f) => f.metodos_pago },
+      { titulo: 'Total', valor: (f) => f.total.toFixed(2) },
+      { titulo: 'Estado', valor: (f) => f.vistaEstadoVenta.texto },
+      { titulo: 'Comprobante', valor: (f) => f.comprobante ?? '' },
+      { titulo: 'Estado SUNAT', valor: (f) => f.vistaComprobante?.texto ?? '' },
+      { titulo: 'Notas', valor: (f) => f.cantidad_notas },
+      { titulo: 'Guías', valor: (f) => f.cantidad_guias },
+    ];
+    const total = exportarCsv(`ventas-pagina-${this.pagina}`, columnas, this.filasVisibles);
+    this.alerta.toast({ type: 'success', title: `CSV descargado: ${total} ${total === 1 ? 'fila' : 'filas'}`, message: 'Es la página que se ve.' });
   }
 
   // ── Detalle de la venta ──────────────────────────────────────

@@ -57,6 +57,8 @@ export class GuiaDetalleComponent {
   @Input() consultaAutomatica: string | null = null;
   /** Admin y vendedor; caja solo consulta y descarga. */
   @Input() puedeEscribir = false;
+  /** Solo el administrador libera una guía que SUNAT no resolvió en 7 días. */
+  @Input() esAdmin = false;
   @Output() readonly cerrar = new EventEmitter<void>();
   @Output() readonly recargar = new EventEmitter<void>();
   @Output() readonly editar = new EventEmitter<GuiaRemision>();
@@ -64,6 +66,7 @@ export class GuiaDetalleComponent {
   @Output() readonly consultar = new EventEmitter<GuiaRemision>();
   @Output() readonly validar = new EventEmitter<GuiaRemision>();
   @Output() readonly anular = new EventEmitter<GuiaRemision>();
+  @Output() readonly liberar = new EventEmitter<GuiaRemision>();
   @Output() readonly descargar = new EventEmitter<DescargaGuia>();
 
   // Getter y no campo `= NOMBRE_ARCHIVO_GUIA`: en las pruebas, Vite copia esa constante importada al

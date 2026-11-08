@@ -12,6 +12,7 @@ import { GestionService } from '../../service/gestion.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { CatalogoService } from '../../../../store/service/catalogo.service';
+import { ProductoAdminService } from '../../../service/producto-admin.service';
 import { urlMedia } from '../../../../shared/utils/media-url.util';
 import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
 import { RevealDirective } from '../../../../shared/ui/reveal.directive';
@@ -43,6 +44,7 @@ export class CategoriasComponent implements OnInit {
     private ns: NotificationService,
     private catalogoTienda: CatalogoService,
     private readonly auth: AuthService,
+    private readonly productosAdmin: ProductoAdminService,
   ) {}
 
   get puedeEditar(): boolean {
@@ -137,6 +139,7 @@ export class CategoriasComponent implements OnInit {
         this.destacar(fila.id_categoria);
         this.cancelarEdicion();
         this.catalogoTienda.invalidarCatalogos();
+        this.productosAdmin.invalidarCatalogos();
         this.cdr.markForCheck();
         this.ns.success(esEdicion ? 'Categoría actualizada' : 'Categoría creada');
       },
@@ -175,6 +178,7 @@ export class CategoriasComponent implements OnInit {
       next: () => {
         this.categorias = this.categorias.filter((c) => c.id_categoria !== id);
         this.catalogoTienda.invalidarCatalogos();
+        this.productosAdmin.invalidarCatalogos();
         this.cdr.markForCheck();
         this.ns.success('Categoría eliminada');
       },

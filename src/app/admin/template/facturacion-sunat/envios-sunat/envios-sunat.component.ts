@@ -15,6 +15,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Observable, Subscription, finalize } from 'rxjs';
+import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { descargarArchivo } from '../../../../shared/utils/descargar-archivo';
 import {
@@ -30,21 +31,8 @@ import {
   normalizarErrorBlob,
 } from '../../../service/api-base.service';
 import { FiscalAdminService } from '../../../service/fiscal-admin.service';
-
-const NOMBRES_ESTADO: Readonly<Record<string, string>> = {
-  NO_ENVIADO: 'No enviado',
-  POR_RESUMIR: 'Por informar en resumen',
-  ENVIANDO: 'Enviando',
-  PENDIENTE_REENVIO: 'Pendiente de reenvío',
-  TICKET_PENDIENTE: 'Ticket pendiente',
-  ACEPTADO: 'Aceptado',
-  ACEPTADO_OBS: 'Aceptado con observaciones',
-  RECHAZADO: 'Rechazado',
-  EXCEPCION: 'Excepción: revisar',
-  ERROR_CONFIG: 'Error de configuración',
-  BAJA_PENDIENTE: 'Baja pendiente',
-  ANULADO: 'Anulado',
-};
+import { fechaYmdCorta, nombreEstadoEnvio, plazoVencido, textoPlazoVencido } from '../../../mantenimiento/component/doc/documentos-sunat';
+import { QueHacerSunatComponent } from '../que-hacer/que-hacer-sunat.component';
 
 const CLASES_ESTADO: Readonly<Record<string, string>> = {
   ACEPTADO: 'adm-insignia--exito',
@@ -70,12 +58,15 @@ const NOMBRES_ARCHIVO: Readonly<Record<TipoArchivoEnvio, string>> = {
   xml_original: 'XML sin firmar',
   xml_firmado: 'XML firmado',
   zip: 'ZIP enviado',
-  cdr_xml: 'CDR (XML)',
-  cdr_zip: 'CDR (ZIP)',
+  cdr_xml: 'Constancia de SUNAT (XML)',
+  cdr_zip: 'Constancia de SUNAT (ZIP)',
 };
 
 /** Envíos que todavía pueden cambiar con una consulta a SUNAT (un aceptado o rechazado ya no). */
 const ESTADOS_ABIERTOS: readonly string[] = ['PENDIENTE_REENVIO', 'ENVIANDO', 'EXCEPCION'];
+
+/** Intentos rápidos del sistema (2, 5, 15, 30 y 60 min): después sigue cada hora hasta el último día del plazo. */
+const INTENTOS_RAPIDOS = 6;
 
 /** Partes de RUC-TT-SERIE-NNNNNNNN.zip (envíos guardados antes de las columnas serie y número). */
 function partesNombre(envio: EnvioSunat): string[] {
@@ -106,7 +97,7 @@ function nombreDescarga(envio: EnvioSunat, tipo: TipoArchivoEnvio): string {
 @Component({
   selector: 'app-envios-sunat',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, QueHacerSunatComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './envios-sunat.component.html',
   styleUrl: './envios-sunat.component.css',
@@ -118,7 +109,6 @@ export class EnviosSunatComponent implements OnInit, OnChanges {
   @Output() readonly cambio = new EventEmitter<void>();
 
   readonly estados = ESTADOS_SUNAT;
-  readonly nombresEstado = NOMBRES_ESTADO;
   readonly nombresTipo = NOMBRES_TIPO;
   readonly nombresArchivo = NOMBRES_ARCHIVO;
   readonly porPagina = 20;
@@ -136,6 +126,7 @@ export class EnviosSunatComponent implements OnInit, OnChanges {
   idEnProceso: number | null = null;
 
   private readonly api = inject(FiscalAdminService);
+  private readonly auth = inject(AuthService);
   private readonly alerta = inject(AlertService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
@@ -206,7 +197,7 @@ export class EnviosSunatComponent implements OnInit, OnChanges {
   }
 
   nombreEstado(estado: string): string {
-    return NOMBRES_ESTADO[estado] ?? estado;
+    return nombreEstadoEnvio(estado);
   }
 
   claseEstado(estado: string): string {
@@ -232,40 +223,125 @@ export class EnviosSunatComponent implements OnInit, OnChanges {
     );
   }
 
-  /** Resultado incierto (SUNAT dijo que ya lo tenía o no respondió): se confirma tras verlo en SOL. */
+  /**
+   * «Reintentar ahora» (solo administrador): el envío quedó en «Requiere revisión» y todavía está dentro
+   * de su plazo. Pasado el plazo no tiene sentido reenviar: queda recuperar la constancia o confirmarlo.
+   */
+  puedeReintentarAhora(envio: EnvioSunat): boolean {
+    return envio.estado === 'EXCEPCION' && this.libre(envio) && this.esAdmin && !this.vencido(envio);
+  }
+
+  /** Resultado incierto (SUNAT dijo que ya lo tenía o no respondió) o que requiere revisión: se confirma tras verlo en SOL. */
   puedeConfirmarAceptado(envio: EnvioSunat): boolean {
     return (
       (envio.estado === 'PENDIENTE_REENVIO' && envio.accion_sunat === 'RECUPERAR_CDR') ||
-      (envio.estado === 'ENVIANDO' && this.libre(envio))
+      ((envio.estado === 'ENVIANDO' || envio.estado === 'EXCEPCION') && this.libre(envio))
     );
   }
 
   tieneAcciones(envio: EnvioSunat): boolean {
-    return this.puedeReintentar(envio) || this.puedeRecuperarCdr(envio) || this.puedeConfirmarAceptado(envio);
+    return (
+      this.puedeReintentar(envio) ||
+      this.puedeReintentarAhora(envio) ||
+      this.puedeRecuperarCdr(envio) ||
+      this.puedeConfirmarAceptado(envio)
+    );
+  }
+
+  get esAdmin(): boolean {
+    return this.auth.puedeVer(['admin']);
+  }
+
+  /** Pasó el último día para enviarlo a SUNAT (sin fecha conocida, no se da por vencido). */
+  vencido(envio: EnvioSunat): boolean {
+    return plazoVencido(envio.fecha_limite_envio);
+  }
+
+  /**
+   * ¿Se muestra la tarjeta «¿Qué hacer?» (con las acciones al lado) en lugar de una línea de texto? Solo cuando el envío
+   * necesita a una persona: «Requiere revisión» (EXCEPCION).
+   */
+  conTarjeta(envio: EnvioSunat): boolean {
+    return envio.estado === 'EXCEPCION' && !!this.indicacion(envio);
   }
 
   /** Qué hacer con un envío abierto, para que nadie lo reenvíe a ciegas. */
   indicacion(envio: EnvioSunat): string {
+    if (envio.estado === 'POR_RESUMIR') {
+      return 'La boleta ya es válida y no se envía sola: SUNAT la recibe en el resumen diario. Un administrador puede adelantarlo con «Enviar resumen del día» en Lotes.';
+    }
+    if (envio.estado === 'TICKET_PENDIENTE') {
+      return 'Va en un resumen diario que SUNAT está procesando: el resultado se ve en Lotes.';
+    }
     if (envio.estado === 'PENDIENTE_REENVIO' && envio.accion_sunat === 'RECUPERAR_CDR') {
-      return 'SUNAT indicó que ya lo había recibido: no lo reenvíe. Recupere la constancia o confírmelo tras verificarlo en SUNAT.';
+      return 'SUNAT indicó que ya lo había recibido: no lo reenvíe. Recupere la constancia de SUNAT o confírmelo tras verificarlo en SUNAT.';
     }
     if (envio.estado === 'ENVIANDO') {
       return this.libre(envio)
         ? 'SUNAT no respondió: reintentarlo es seguro (se manda el mismo XML) o verifíquelo en SUNAT.'
         : 'Se está enviando ahora mismo: actualice en unos segundos.';
     }
+    if (envio.estado === 'PENDIENTE_REENVIO' && (envio.intento ?? 0) >= INTENTOS_RAPIDOS && envio.fecha_limite_envio && !this.vencido(envio)) {
+      return (
+        `Se intentó ${envio.intento} veces sin respuesta de SUNAT. Puede reintentar; si SUNAT sigue sin responder, espere a que vuelva: ` +
+        `el sistema seguirá intentando cada hora hasta el ${fechaYmdCorta(envio.fecha_limite_envio)}.`
+      );
+    }
+    if (envio.estado === 'EXCEPCION') {
+      const aclaracion = ' Si ya lo vio aceptado allí, use «Confirmar aceptado».';
+      if (this.vencido(envio)) return textoPlazoVencido(this.serie(envio), envio.fecha_limite_envio, envio.accion_sunat) + aclaracion;
+      return `Puede reintentarlo ahora o verificarlo en SUNAT Operaciones en Línea.${aclaracion}`;
+    }
     return '';
   }
 
-  reintentar(envio: EnvioSunat): void {
+  /** Lo que el sistema dice del envío (por qué sigue pendiente), cuando la indicación no lo cuenta ya. */
+  mensajeSistema(envio: EnvioSunat): string {
+    if (!envio.ultimo_error || envio.estado === 'ACEPTADO' || envio.estado === 'ACEPTADO_OBS') return '';
+    if (envio.estado === 'EXCEPCION' && this.vencido(envio)) return '';
+    if (envio.estado === 'PENDIENTE_REENVIO' && (envio.intento ?? 0) >= INTENTOS_RAPIDOS && envio.fecha_limite_envio && !this.vencido(envio)) return '';
+    return envio.ultimo_error;
+  }
+
+  async reintentar(envio: EnvioSunat): Promise<void> {
+    if (this.idEnProceso !== null) return;
+    const confirmado = await this.alerta.confirmar({
+      title: `¿Reintentar el envío de ${this.documento(envio)}?`,
+      message: 'Se vuelve a mandar a SUNAT el mismo archivo firmado: no se crea un número nuevo ni se duplica el comprobante.',
+      confirmText: 'Sí, reintentar',
+      type: 'question',
+    });
+    if (!confirmado || this.destroyRef.destroyed) return;
     this.ejecutar(envio, this.api.reintentarEnvio(envio.id_envio), 'No se pudo reintentar el envío');
   }
 
-  recuperarCdr(envio: EnvioSunat): void {
+  async reintentarAhora(envio: EnvioSunat): Promise<void> {
+    if (this.idEnProceso !== null || !this.esAdmin) return;
+    const confirmado = await this.alerta.confirmar({
+      title: `¿Reintentar ahora ${this.documento(envio)}?`,
+      message:
+        `Se intentó ${envio.intento ?? 1} veces sin una respuesta válida de SUNAT. Se vuelve a mandar el mismo archivo firmado ` +
+        '(en facturas de producción antes se pregunta a SUNAT si ya lo tiene). Queda registrado con su usuario.',
+      confirmText: 'Sí, reintentar ahora',
+      type: 'warning',
+    });
+    if (!confirmado || this.destroyRef.destroyed) return;
+    this.ejecutar(envio, this.api.reintentarEnvio(envio.id_envio, true), 'No se pudo reintentar el envío');
+  }
+
+  async recuperarCdr(envio: EnvioSunat): Promise<void> {
+    if (this.idEnProceso !== null) return;
+    const confirmado = await this.alerta.confirmar({
+      title: `¿Pedir a SUNAT la constancia de ${this.documento(envio)}?`,
+      message: 'Solo se pregunta a SUNAT si ya tiene este comprobante: no se envía nada nuevo.',
+      confirmText: 'Sí, consultar',
+      type: 'question',
+    });
+    if (!confirmado || this.destroyRef.destroyed) return;
     this.ejecutar(
       envio,
       this.api.recuperarCdr(envio.id_envio),
-      'No se pudo consultar la constancia (CDR) en SUNAT',
+      'No se pudo consultar la constancia de SUNAT',
     );
   }
 

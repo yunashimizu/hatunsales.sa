@@ -2,18 +2,22 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { urlConstants } from '../../constants/urlConstants';
 import {
+  AlertasFiscalesApi,
   AmbienteFiscal,
   AuditoriaFiscal,
   CambiosConfiguracionFiscal,
   CertificadoFiscal,
   ConfiguracionSunat,
   EmisorBeta,
+  EstadoFiscalApi,
+  ResultadoRecifrado,
   EstadoPosBetaFiscal,
   FiltroEnvios,
   FiltroLotes,
   LoteSunat,
   PaginaLotes,
   ResultadoLote,
+  ResultadoResumen,
   TipoArchivoLote,
   PaginaEnvios,
   ResultadoEnvio,
@@ -30,6 +34,29 @@ export class FiscalAdminService {
 
   configuracion() {
     return this.http.get<ConfiguracionSunat>(urlConstants.fiscal.configuracion, opcionesHttp());
+  }
+
+  /** Semáforo completo del servidor (incluye la llave de seguridad). */
+  estadoCompleto() {
+    return this.http.get<EstadoFiscalApi>(urlConstants.fiscal.estado, opcionesHttp());
+  }
+
+  /** Correo de los avisos diarios. La URL se arma desde la del estado: `urlConstants` no se toca en esta tanda. */
+  alertas() {
+    return this.http.get<AlertasFiscalesApi>(this.urlFiscal('alertas'), opcionesHttp());
+  }
+
+  guardarAlertas(correo: string) {
+    return this.http.put<AlertasFiscalesApi>(this.urlFiscal('alertas'), { correo }, opcionesHttp());
+  }
+
+  /** Vuelve a cifrar con la llave vigente la clave SOL, las credenciales de la guía y los certificados (solo admin). */
+  recifrarSecretos() {
+    return this.http.post<ResultadoRecifrado>(this.urlFiscal('secretos/recifrar'), {}, opcionesHttp());
+  }
+
+  private urlFiscal(ruta: string): string {
+    return urlConstants.fiscal.estado.replace(/estado$/, ruta);
   }
 
   guardar(body: CambiosConfiguracionFiscal) {
@@ -161,11 +188,14 @@ export class FiscalAdminService {
     });
   }
 
-  /** Reenvío seguro del MISMO ZIP (en facturas de producción consulta antes si SUNAT ya lo tiene). */
-  reintentarEnvio(id: number) {
+  /**
+   * Reenvío seguro del MISMO ZIP (en facturas de producción consulta antes si SUNAT ya lo tiene). Con `forzar`
+   * («Reintentar ahora», solo administrador) también reintenta un envío que quedó en «Requiere revisión».
+   */
+  reintentarEnvio(id: number, forzar = false) {
     return this.http.post<ResultadoEnvio>(
       urlConstants.fiscal.reintentarEnvio(id),
-      {},
+      forzar ? { forzar: true } : {},
       opcionesHttp(),
     );
   }
@@ -207,6 +237,22 @@ export class FiscalAdminService {
   /** Reenvía el lote o consulta su ticket, según su estado. */
   reintentarLote(id: number) {
     return this.http.post<ResultadoLote>(urlConstants.fiscal.reintentarLote(id), {}, opcionesHttp());
+  }
+
+  /**
+   * «Liberar» (solo administrador): suelta un lote cuyo ticket SUNAT no resolvió en 7 días; sus comprobantes
+   * vuelven a su estado anterior. Queda en la bitácora con el usuario.
+   */
+  liberarLote(id: number) {
+    return this.http.post<ResultadoLote>(`${urlConstants.fiscal.lotes}/${id}/liberar`, {}, opcionesHttp());
+  }
+
+  /**
+   * «Enviar resumen del día» (solo administrador): informa a SUNAT, en un resumen diario, las boletas de una fecha de
+   * emisión que esperan su resumen (sin fecha, las de hoy). Queda en la bitácora con el usuario.
+   */
+  enviarResumenDiario(fecha?: string) {
+    return this.http.post<ResultadoResumen>(`${urlConstants.fiscal.lotes}/resumen`, fecha ? { fecha } : {}, opcionesHttp());
   }
 
   auditoria(antesDe?: number) {

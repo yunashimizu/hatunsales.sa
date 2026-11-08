@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 
 import { ProductosComponent } from './productos.component';
@@ -15,7 +16,9 @@ import { UnidadMedidaService } from '../../../service/unidad-medida.service';
 /**
  * Ficha de producto: el stock que se edita es el de ESE producto en ESE almacén. Antes se
  * buscaba entre las 200 primeras filas del almacén y, si no estaba, se asumía 0: el ajuste
- * al guardar quedaba calculado contra 0.
+ * al guardar quedaba calculado contra 0. Ahora se lee de una vez el stock en todos los almacenes
+ * (`/inventario/stock-producto/:id`), cambiar de almacén no pide nada y el ajuste viaja dentro
+ * del PUT de edición (`ajuste_stock`), que el servidor aplica todo o nada.
  */
 describe('ProductosComponent · stock de la ficha', () => {
   let http: HttpTestingController;
@@ -40,11 +43,14 @@ describe('ProductosComponent · stock de la ficha', () => {
     listar: vi.fn(() => of([producto])),
     categorias: vi.fn(() => of([])),
     marcas: vi.fn(() => of([])),
-    actualizar: vi.fn(() => of(producto)),
+    actualizar: vi.fn((_id: number, _datos: any) => of(producto)),
   };
   const alerta = { toast: vi.fn(), error: vi.fn(), confirm: vi.fn() };
-  const filaInventario = (idProducto: number, stock: number) => ({ id_inventario: 1, id_producto: idProducto, id_almacen: 1, stock });
-  const esDetallado = (r: { url: string }) => r.url === urlConstants.inventario.detallado;
+  const urlStock = urlConstants.inventario.stockProducto(9);
+  const esStock = (r: { url: string }) => r.url === urlStock;
+  const filaStock = (idAlmacen: number, stock: number, registrado = true) => ({
+    id_almacen: idAlmacen, almacen: `Almacén ${idAlmacen}`, sucursal: 'Lurín', stock, registrado,
+  });
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -53,6 +59,7 @@ describe('ProductosComponent · stock de la ficha', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter([]),
         { provide: ProductoAdminService, useValue: productos },
         { provide: ProductoImagenService, useValue: { listar: vi.fn(() => of([])) } },
         { provide: AlertService, useValue: alerta },
@@ -69,33 +76,38 @@ describe('ProductosComponent · stock de la ficha', () => {
 
   afterEach(() => http.verify());
 
-  const conAlmacenes = () =>
-    http.expectOne(urlConstants.inventario.almacenes).flush([{ id_almacen: 1, nombre: 'Principal', sucursal: 'Lurín' }]);
+  const conAlmacenes = (...ids: number[]) =>
+    http.expectOne(urlConstants.inventario.almacenes).flush(
+      (ids.length ? ids : [1]).map((id) => ({ id_almacen: id, nombre: `Almacén ${id}`, sucursal: 'Lurín' })),
+    );
 
-  it('pide el stock exacto (id_producto, una fila) y ajusta contra el stock real', () => {
+  it('pide el stock del producto en todos los almacenes (una consulta) y manda el ajuste dentro del PUT', () => {
     conAlmacenes();
     component.abrirEdicion(producto);
 
-    const consulta = http.expectOne(esDetallado);
-    expect(consulta.request.params.get('id_producto')).toBe('9');
-    expect(consulta.request.params.get('id_almacen')).toBe('1');
-    expect(consulta.request.params.get('por_pagina')).toBe('1');
-    consulta.flush({ datos: [filaInventario(9, 230)], total: 1, pagina: 1, por_pagina: 1 });
+    const consulta = http.expectOne(esStock);
+    expect(consulta.request.method).toBe('GET');
+    expect(consulta.request.params.keys()).toEqual([]);
+    consulta.flush([filaStock(1, 230)]);
     expect(component.stockActualEdicion).toBe(230);
     expect(component.stockVerificado).toBe(true);
 
     component.formulario.stock = 250;
     component.guardar();
 
-    const ajuste = http.expectOne(urlConstants.inventario.ajuste);
-    expect(ajuste.request.body).toEqual(expect.objectContaining({ id_producto: 9, id_almacen: 1, cantidad: 20 }));
-    ajuste.flush({ stock: 250 });
+    // El ajuste se calcula contra el stock real leído; ahora lo garantiza el servidor (stock_anterior).
+    expect(productos.actualizar).toHaveBeenCalledTimes(1);
+    expect(productos.actualizar).toHaveBeenCalledWith(
+      9,
+      expect.objectContaining({ ajuste_stock: { id_almacen: 1, stock_nuevo: 250, stock_anterior: 230 } }),
+    );
+    http.expectNone(urlConstants.inventario.ajuste);
   });
 
   it('sin fila en el almacén muestra 0 como dato real ("sin stock registrado")', () => {
     conAlmacenes();
     component.abrirEdicion(producto);
-    http.expectOne(esDetallado).flush({ datos: [], total: 0, pagina: 1, por_pagina: 1 });
+    http.expectOne(esStock).flush([filaStock(1, 0, false)]);
 
     expect(component.sinStockRegistrado).toBe(true);
     expect(component.stockVerificado).toBe(true);
@@ -103,20 +115,17 @@ describe('ProductosComponent · stock de la ficha', () => {
 
     component.formulario.stock = 5;
     component.guardar();
-    const ajuste = http.expectOne(urlConstants.inventario.ajuste);
-    expect(ajuste.request.body.cantidad).toBe(5);
-    ajuste.flush({ stock: 5 });
+    expect(productos.actualizar).toHaveBeenCalledWith(
+      9,
+      expect.objectContaining({ ajuste_stock: { id_almacen: 1, stock_nuevo: 5, stock_anterior: 0 } }),
+    );
+    http.expectNone(urlConstants.inventario.ajuste);
   });
 
-  it('si la respuesta no trae este producto no asume 0 y no deja guardar', () => {
+  it('si la respuesta no trae el almacén elegido no asume 0 y no deja guardar', () => {
     conAlmacenes();
     component.abrirEdicion(producto);
-    http.expectOne(esDetallado).flush({
-      datos: [filaInventario(1, 50), filaInventario(2, 70)],
-      total: 300,
-      pagina: 1,
-      por_pagina: 200,
-    });
+    http.expectOne(esStock).flush([filaStock(7, 50), filaStock(8, 70)]);
 
     expect(component.stockVerificado).toBe(false);
     expect(component.errorStock).toContain('No se pudo leer el stock');
@@ -130,13 +139,145 @@ describe('ProductosComponent · stock de la ficha', () => {
 
   it('si la ficha se abrió antes de llegar los almacenes, lee el stock en cuanto llegan', () => {
     component.abrirEdicion(producto);
-    http.expectNone(esDetallado);
+    http.expectNone(esStock);
 
     conAlmacenes();
-    const consulta = http.expectOne(esDetallado);
-    expect(consulta.request.params.get('id_producto')).toBe('9');
-    consulta.flush({ datos: [filaInventario(9, 12)], total: 1, pagina: 1, por_pagina: 1 });
+    http.expectOne(esStock).flush([filaStock(1, 12)]);
     expect(component.stockActualEdicion).toBe(12);
+    expect(component.stockVerificado).toBe(true);
+  });
+
+  it('cambiar de almacén no hace otra petición: toma el stock de la lectura única', () => {
+    conAlmacenes(1, 2);
+    component.abrirEdicion(producto);
+    http.expectOne(esStock).flush([filaStock(1, 230), filaStock(2, 0, false)]);
+    expect(component.stockActualEdicion).toBe(230);
+
+    component.cambiarAlmacenStock(2);
+    expect(component.idAlmacenStock).toBe(2);
+    expect(component.stockActualEdicion).toBe(0);
+    expect(component.sinStockRegistrado).toBe(true);
+    expect(component.stockVerificado).toBe(true);
+    expect(component.formulario.stock).toBe(0);
+
+    component.cambiarAlmacenStock(1);
+    expect(component.stockActualEdicion).toBe(230);
+    expect(component.sinStockRegistrado).toBe(false);
+    // Ninguna petición pendiente ni nueva (afterEach verifica además que no quedó nada).
+    http.expectNone(() => true);
+  });
+
+  it('cambiar de almacén con la lectura aún en vuelo aplica el almacén elegido al llegar', () => {
+    conAlmacenes(1, 2);
+    component.abrirEdicion(producto);
+    const consulta = http.expectOne(esStock);
+
+    component.cambiarAlmacenStock(2);
+    expect(component.stockVerificado).toBe(false);
+    http.expectNone(esStock);
+
+    consulta.flush([filaStock(1, 230), filaStock(2, 40)]);
+    expect(component.idAlmacenStock).toBe(2);
+    expect(component.stockActualEdicion).toBe(40);
+    expect(component.stockVerificado).toBe(true);
+  });
+
+  it('si la lectura falló, cambiar de almacén la reintenta', () => {
+    conAlmacenes(1, 2);
+    component.abrirEdicion(producto);
+    http.expectOne(esStock).flush({ message: 'caído' }, { status: 500, statusText: 'Error' });
+    expect(component.stockVerificado).toBe(false);
+    expect(component.errorStock).not.toBe('');
+
+    component.cambiarAlmacenStock(2);
+    http.expectOne(esStock).flush([filaStock(1, 3), filaStock(2, 8)]);
+    expect(component.stockActualEdicion).toBe(8);
+    expect(component.stockVerificado).toBe(true);
+    expect(component.errorStock).toBe('');
+  });
+
+  it('sin cambio de stock el PUT no lleva ajuste_stock', () => {
+    conAlmacenes();
+    component.abrirEdicion(producto);
+    http.expectOne(esStock).flush([filaStock(1, 230)]);
+
+    component.guardar();
+
+    expect(productos.actualizar).toHaveBeenCalledTimes(1);
+    expect(productos.actualizar.mock.calls[0][1]).not.toHaveProperty('ajuste_stock');
+    expect(productos.actualizar.mock.calls[0][1]).not.toHaveProperty('stock');
+  });
+
+  it('editar con stock distinto es UNA petición: la fila toma el stock_total del servidor, toast y cierra', () => {
+    conAlmacenes();
+    component.abrirEdicion(producto);
+    http.expectOne(esStock).flush([filaStock(1, 230)]);
+    productos.actualizar.mockReturnValueOnce(of({ ...producto, stock_total: 250 }));
+
+    component.formulario.stock = 250;
+    component.guardar();
+
+    http.expectNone(urlConstants.inventario.ajuste);
+    expect(component.productos.find((p) => p.id_producto === 9)?.stock_total).toBe(250);
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success', title: 'Cambios y stock guardados' }));
+    expect(component.panelAbierto).toBe(false);
+    expect(component.guardando).toBe(false);
+  });
+
+  it('sin ajuste el toast dice «Cambios guardados»', () => {
+    conAlmacenes();
+    component.abrirEdicion(producto);
+    http.expectOne(esStock).flush([filaStock(1, 230)]);
+
+    component.guardar();
+
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Cambios guardados' }));
+    expect(component.panelAbierto).toBe(false);
+  });
+
+  it('409 STOCK_DESACTUALIZADO: avisa, vuelve a leer el stock y deja la ficha abierta', () => {
+    conAlmacenes();
+    component.abrirEdicion(producto);
+    http.expectOne(esStock).flush([filaStock(1, 230)]);
+    productos.actualizar.mockReturnValueOnce(throwError(() => ({
+      status: 409,
+      error: {
+        codigo: 'STOCK_DESACTUALIZADO',
+        stock_actual: 7,
+        message: 'El stock de este producto en ese almacén cambió mientras lo editaba: ahora hay 7. Recargue la ficha y vuelva a intentar.',
+      },
+    })));
+
+    component.formulario.stock = 250;
+    component.guardar();
+
+    expect(alerta.error).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('ahora hay 7') }));
+    expect(component.panelAbierto).toBe(true);
+    expect(component.editando).not.toBeNull();
+    expect(component.guardando).toBe(false);
+    // Mientras llega el stock nuevo no se puede volver a guardar.
+    expect(component.stockVerificado).toBe(false);
+
+    http.expectOne(esStock).flush([filaStock(1, 7)]);
+    expect(component.stockActualEdicion).toBe(7);
+    expect(component.formulario.stock).toBe(7);
+    expect(component.stockVerificado).toBe(true);
+    expect(component.panelAbierto).toBe(true);
+  });
+
+  it('otro error al guardar no recarga el stock y también deja la ficha abierta', () => {
+    conAlmacenes();
+    component.abrirEdicion(producto);
+    http.expectOne(esStock).flush([filaStock(1, 230)]);
+    productos.actualizar.mockReturnValueOnce(throwError(() => ({ status: 500, error: { message: 'caído' } })));
+
+    component.formulario.stock = 250;
+    component.guardar();
+
+    expect(alerta.error).toHaveBeenCalledWith(expect.objectContaining({ title: 'No se pudo guardar' }));
+    http.expectNone(esStock);
+    expect(component.panelAbierto).toBe(true);
+    expect(component.stockVerificado).toBe(true);
   });
 });
 
@@ -172,6 +313,7 @@ describe('ProductosComponent · visibilidad del producto nuevo', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter([]),
         { provide: ProductoAdminService, useValue: productos },
         { provide: ProductoImagenService, useValue: { listar: vi.fn(() => of([])) } },
         { provide: AlertService, useValue: alerta },
@@ -239,6 +381,127 @@ describe('ProductosComponent · visibilidad del producto nuevo', () => {
     await component.eliminar(existente);
     expect(puntoVenta.invalidarCatalogo).toHaveBeenCalledTimes(2);
   });
+
+  it('el toggle cambia la fila antes de la respuesta y la deja como responda el servidor', () => {
+    const respuesta = new Subject<any>();
+    (productos.actualizar as any).mockReturnValueOnce(respuesta);
+
+    component.alternarEstado(existente);
+
+    expect(productos.actualizar).toHaveBeenCalledWith(1, { nombre: 'Martillo', estado: false });
+    // Antes de que responda el servidor la fila ya cambió y el botón queda bloqueado.
+    expect(component.productos.find((p) => p.id_producto === 1)?.estado).toBe(false);
+    expect(component.cambiandoEstado.has(1)).toBe(true);
+
+    respuesta.next({ ...existente, estado: false });
+    respuesta.complete();
+
+    expect(component.productos.find((p) => p.id_producto === 1)?.estado).toBe(false);
+    expect(component.cambiandoEstado.has(1)).toBe(false);
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Producto desactivado' }));
+  });
+
+  it('el toggle revierte la fila si el servidor falla, avisa y libera el botón', () => {
+    const respuesta = new Subject<any>();
+    (productos.actualizar as any).mockReturnValueOnce(respuesta);
+    (puntoVenta.invalidarCatalogo as any).mockClear();
+
+    component.alternarEstado(existente);
+    expect(component.productos.find((p) => p.id_producto === 1)?.estado).toBe(false);
+
+    respuesta.error({ status: 500, error: { message: 'caído' } });
+
+    expect(component.productos.find((p) => p.id_producto === 1)?.estado).toBe(true);
+    expect(component.cambiandoEstado.has(1)).toBe(false);
+    expect(alerta.error).toHaveBeenCalledTimes(1);
+    expect(puntoVenta.invalidarCatalogo).not.toHaveBeenCalled();
+  });
+
+  it('un segundo clic mientras la petición está en vuelo no envía otra', () => {
+    const respuesta = new Subject<any>();
+    (productos.actualizar as any).mockReturnValueOnce(respuesta);
+
+    component.alternarEstado(existente);
+    component.alternarEstado(existente);
+
+    expect(productos.actualizar).toHaveBeenCalledTimes(1);
+    respuesta.complete();
+  });
+});
+
+/**
+ * Peticiones reales (servicios de verdad, HttpClient de prueba): con la caché de categorías y marcas
+ * caliente, abrir «Nuevo» no hace ninguna petición, abrir «Editar» hace solo dos (fotos y stock) y
+ * cambiar de almacén ninguna.
+ */
+describe('ProductosComponent · peticiones con la caché caliente', () => {
+  let http: HttpTestingController;
+  let component: ProductosComponent;
+  const producto: any = {
+    id_producto: 9, nombre: 'Clavo', sku: 'CLA', codigo_barras: '', precio_compra: 1, precio_venta: 2,
+    descuento: 0, unidad_medida: 'NIU', estado: true, destacado: false, stock_total: 4, total_imagenes: 0,
+    id_marca: 1, marca: 'Bosch',
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ProductosComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: AlertService, useValue: { toast: vi.fn(), error: vi.fn(), confirm: vi.fn() } },
+        { provide: AuthService, useValue: { puedeEditarCatalogo: () => true } },
+      ],
+    })
+      .overrideComponent(ProductosComponent, { set: { template: '' } })
+      .compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(ProductosComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    // Entrar a Productos: 4 peticiones (lista, categorías, marcas, almacenes) y nada más.
+    http.expectOne(urlConstants.producto.base).flush([producto]);
+    http.expectOne(urlConstants.categoria).flush([{ id_categoria: 1, nombre: 'Obra' }]);
+    http.expectOne(urlConstants.marca).flush([{ id_marca: 1, nombre: 'Bosch' }]);
+    http.expectOne(urlConstants.inventario.almacenes).flush([
+      { id_almacen: 1, nombre: 'Principal', sucursal: 'Lurín' },
+      { id_almacen: 2, nombre: 'Tienda', sucursal: 'Lurín' },
+    ]);
+  });
+
+  afterEach(() => http.verify());
+
+  it('abrirNuevo() con la caché caliente no genera peticiones y las marcas siguen en el select', () => {
+    component.abrirNuevo();
+
+    expect(http.match(() => true)).toEqual([]);
+    expect(component.marcas.map((m) => m.nombre)).toEqual(['Bosch']);
+  });
+
+  it('abrirEdicion() hace exactamente dos peticiones (fotos y stock) y cambiar de almacén ninguna', () => {
+    component.abrirEdicion(producto);
+
+    const pendientes = http.match(() => true);
+    expect(pendientes.map((p) => p.request.url).sort()).toEqual(
+      [urlConstants.producto.images(9), urlConstants.inventario.stockProducto(9)].sort(),
+    );
+    pendientes.forEach((p) => {
+      if (p.request.url === urlConstants.inventario.stockProducto(9)) {
+        p.flush([
+          { id_almacen: 1, almacen: 'Principal', sucursal: 'Lurín', stock: 4, registrado: true },
+          { id_almacen: 2, almacen: 'Tienda', sucursal: 'Lurín', stock: 0, registrado: false },
+        ]);
+      } else {
+        p.flush([]);
+      }
+    });
+
+    component.cambiarAlmacenStock(2);
+    expect(http.match(() => true)).toEqual([]);
+    expect(component.stockActualEdicion).toBe(0);
+  });
 });
 
 /**
@@ -268,6 +531,7 @@ describe('ProductosComponent · unidad de medida', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter([]),
         { provide: ProductoAdminService, useValue: productos },
         { provide: ProductoImagenService, useValue: { listar: vi.fn(() => of([])) } },
         { provide: AlertService, useValue: alerta },
@@ -297,8 +561,8 @@ describe('ProductosComponent · unidad de medida', () => {
 
   const abrirYVerificarStock = (producto: any) => {
     component.abrirEdicion(producto);
-    http.expectOne((r) => r.url === urlConstants.inventario.detallado)
-      .flush({ datos: [{ id_inventario: 1, id_producto: 9, id_almacen: 1, stock: 3 }], total: 1, pagina: 1, por_pagina: 1 });
+    http.expectOne(urlConstants.inventario.stockProducto(9))
+      .flush([{ id_almacen: 1, almacen: 'Principal', sucursal: 'Lurín', stock: 3, registrado: true }]);
   };
 
   it('editar un producto con UND se puede guardar y envía NIU', () => {
@@ -408,6 +672,7 @@ describe('ProductosComponent · fotos al crear', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter([]),
         { provide: ProductoAdminService, useValue: productos },
         { provide: ProductoImagenService, useValue: imagenes },
         { provide: AlertService, useValue: alerta },
@@ -602,6 +867,7 @@ describe('ProductosComponent · corregir y subir varias fotos (producto existent
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter([]),
         { provide: ProductoAdminService, useValue: productos },
         { provide: ProductoImagenService, useValue: imagenes },
         { provide: AlertService, useValue: alerta },
@@ -728,6 +994,7 @@ describe('ProductosComponent · código interno y etiquetas', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter([]),
         { provide: ProductoAdminService, useValue: productos },
         { provide: ProductoImagenService, useValue: { listar: vi.fn(() => of([])) } },
         { provide: AlertService, useValue: alerta },
@@ -795,5 +1062,138 @@ describe('ProductosComponent · código interno y etiquetas', () => {
     expect(component.etiquetasProducto).toBe(producto);
     component.cerrarEtiquetas();
     expect(component.etiquetasProducto).toBeNull();
+  });
+});
+
+/**
+ * Listado: orden por columna, paginación en el navegador, CSV de la lista filtrada y filtros
+ * que viajan en la URL (R17d).
+ */
+describe('ProductosComponent · listado (orden, páginas, CSV y URL)', () => {
+  const lista: any[] = Array.from({ length: 60 }, (_, i) => ({
+    id_producto: i + 1, nombre: `Producto ${String(i + 1).padStart(2, '0')}`, sku: `SKU-${i + 1}`, codigo_barras: '',
+    categoria: i % 2 ? 'Pinturas' : 'Herramientas', id_categoria: i % 2 ? 2 : 1, marca: '', unidad_medida: 'NIU',
+    precio_compra: 1, precio_venta: 100 - i, descuento: 0, estado: i % 3 !== 0, destacado: false,
+    stock_total: i % 5 === 0 ? 0 : i, total_imagenes: 1, codigo_sunat: null,
+  }));
+  const productos = {
+    listar: vi.fn(() => of(lista)),
+    categorias: vi.fn(() => of([])),
+    marcas: vi.fn(() => of([])),
+  };
+  const alerta = { toast: vi.fn(), error: vi.fn(), confirm: vi.fn() };
+  let router: Router;
+
+  async function montar(url = '/productos') {
+    await TestBed.configureTestingModule({
+      imports: [ProductosComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: 'productos', component: ProductosComponent }]),
+        { provide: ProductoAdminService, useValue: productos },
+        { provide: ProductoImagenService, useValue: { listar: vi.fn(() => of([])) } },
+        { provide: AlertService, useValue: alerta },
+        { provide: AuthService, useValue: { puedeEditarCatalogo: () => true } },
+      ],
+    })
+      .overrideComponent(ProductosComponent, { set: { template: '' } })
+      .compileComponents();
+    router = TestBed.inject(Router);
+    await router.navigateByUrl(url);
+    const fixture = TestBed.createComponent(ProductosComponent);
+    fixture.detectChanges();
+    return fixture.componentInstance;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('ordena por columna: ascendente, descendente y sin orden, y recuerda el orden en la pestaña', async () => {
+    const c = await montar();
+    c.ordenar('precio');
+    expect(c.ariaSort('precio')).toBe('ascending');
+    expect(c.productosFiltrados[0].precio_venta).toBe(41);
+    expect(JSON.parse(sessionStorage.getItem('hs.orden.productos')!)).toEqual({ clave: 'precio', dir: 'asc' });
+
+    c.ordenar('precio');
+    expect(c.ariaSort('precio')).toBe('descending');
+    expect(c.productosFiltrados[0].precio_venta).toBe(100);
+
+    c.ordenar('precio');
+    expect(c.ariaSort('precio')).toBe('none');
+    expect(c.productosFiltrados[0].id_producto).toBe(1);
+    expect(sessionStorage.getItem('hs.orden.productos')).toBeNull();
+  });
+
+  it('pagina en el navegador: 25 por página, cambia de página y recuerda «Mostrar»', async () => {
+    const c = await montar();
+    expect(c.paginaProductos.filas.length).toBe(25);
+    expect(c.paginaProductos).toMatchObject({ desde: 1, hasta: 25, total: 60, totalPaginas: 3 });
+
+    c.irAPagina(3);
+    expect(c.paginaProductos).toMatchObject({ desde: 51, hasta: 60 });
+    expect(c.paginaProductos.filas[0].id_producto).toBe(51);
+
+    c.cambiarFilasPorPagina(50);
+    expect(c.pagina).toBe(1);
+    expect(c.paginaProductos.filas.length).toBe(50);
+    expect(localStorage.getItem('hs.panel.filas-por-pagina')).toBe('50');
+
+    // Un filtro nuevo vuelve a la primera página y el orden se aplica antes de paginar.
+    c.irAPagina(2);
+    c.filtroEstado = 'sin_stock';
+    expect(c.pagina).toBe(1);
+    c.ordenar('nombre');
+    c.ordenar('nombre');
+    expect(c.paginaProductos.filas[0].nombre).toBe('Producto 56');
+  });
+
+  it('exporta la lista filtrada completa (no solo la página) y avisa cuántas filas', async () => {
+    const c = await montar();
+    let blob: Blob | null = null;
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((b) => { blob = b as Blob; return 'blob:x'; });
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+
+    c.filtroCategoria = 2;
+    c.exportarCsv();
+
+    const texto = await blob!.text();
+    expect(texto.split('\r\n').filter(Boolean).length).toBe(31); // cabecera + 30 productos, aunque la página muestre 25
+    expect(texto).toContain('"Producto","SKU"');
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ type: 'success', title: 'CSV descargado: 30 filas' }));
+    vi.restoreAllMocks();
+  });
+
+  it('lee los filtros de la URL antes de la primera carga y los vuelve a escribir al cambiarlos', async () => {
+    const c = await montar('/productos?q=producto&categoria=1&estado=activos&pagina=2');
+    expect(c.filtro).toBe('producto');
+    expect(c.filtroCategoria).toBe(1);
+    expect(c.filtroEstado).toBe('activos');
+    expect(c.pagina).toBe(2);
+    expect(c.productosFiltrados.every((p) => p.estado && p.id_categoria === 1)).toBe(true);
+
+    c.filtroEstado = '';
+    await vi.waitFor(() => expect(router.url).not.toContain('estado='));
+    expect(router.url).toContain('q=producto');
+    expect(router.url).not.toContain('pagina=');
+
+    // Ir a la ruta limpia (menú o paleta) vacía los filtros.
+    await router.navigateByUrl('/productos');
+    expect(c.filtro).toBe('');
+    expect(c.filtroCategoria).toBe('');
+    expect(c.hayFiltros).toBe(false);
+  });
+
+  it('limpiar filtros también limpia la URL', async () => {
+    const c = await montar('/productos?q=producto&estado=inactivos');
+    c.limpiarFiltros();
+    await vi.waitFor(() => expect(router.url).toBe('/productos'));
+    expect(c.hayFiltros).toBe(false);
   });
 });

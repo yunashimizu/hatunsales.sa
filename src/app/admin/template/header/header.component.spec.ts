@@ -8,6 +8,10 @@ import { AuthService } from '../../../auth/service/auth.service';
 import { urlConstants } from '../../../constants/urlConstants';
 import { EstadoFiscalApi } from '../../models/fiscal.models';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
+import { ActualizacionAppService } from '../../../shared/ui/actualizacion-app.service';
+import { DensidadService } from '../../../shared/ui/densidad.service';
+import { TemaService } from '../../../shared/ui/tema.service';
+import { AyudaAtajosService } from '../ayuda-atajos/ayuda-atajos.service';
 import { HeaderComponent } from './header.component';
 
 @Component({ template: '' })
@@ -158,5 +162,115 @@ describe('HeaderComponent', () => {
 
     await TestBed.inject(Router).navigateByUrl('/dashboard/facturacion-sunat');
     expect(component.paginaActual).toBe('Facturación SUNAT');
+  });
+
+  it('la campana de avisos y el menú de usuario no se abren a la vez, y Esc cierra el menú', async () => {
+    rol = 'consulta'; // sin estado fiscal: solo la lectura del stock
+    await crear();
+    const campana = (): HTMLButtonElement => fixture.nativeElement.querySelector('.nt-boton') as HTMLButtonElement;
+    const panelAvisos = (): HTMLElement | null => fixture.nativeElement.querySelector('.nt-panel');
+    expect(campana()).not.toBeNull();
+
+    component.toggleUser();
+    fixture.detectChanges();
+    expect(component.showUser).toBe(true);
+
+    campana().click();
+    fixture.detectChanges();
+    http.match(() => true); // la campana lee los avisos al abrirse
+    expect(component.showUser).toBe(false);
+    expect(panelAvisos()).not.toBeNull();
+
+    component.toggleUser();
+    fixture.detectChanges();
+    expect(component.showUser).toBe(true);
+    expect(panelAvisos()).toBeNull();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    expect(component.showUser).toBe(false);
+  });
+
+  describe('menú de usuario: tema, densidad y atajos', () => {
+    const original = window.matchMedia;
+    const menu = (): HTMLElement => fixture.nativeElement.querySelector('.user-dropdown') as HTMLElement;
+    const boton = (texto: string): HTMLButtonElement =>
+      Array.from(menu().querySelectorAll('button')).find((b) => b.textContent?.trim() === texto) as HTMLButtonElement;
+
+    function simularPunteroFino(fino: boolean): void {
+      window.matchMedia = vi.fn((consulta: string) => ({
+        matches: fino && consulta.includes('pointer: fine'),
+        media: consulta,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })) as unknown as typeof window.matchMedia;
+    }
+
+    beforeEach(() => {
+      rol = 'consulta'; // sin estado fiscal: el menú no depende de ninguna petición
+      localStorage.clear();
+      document.documentElement.removeAttribute('data-densidad');
+    });
+    afterEach(() => {
+      window.matchMedia = original;
+      localStorage.clear();
+      document.documentElement.removeAttribute('data-densidad');
+    });
+
+    it('cambia el tema (claro, oscuro o sistema) y la densidad desde el menú', async () => {
+      simularPunteroFino(true);
+      await crear();
+      const tema = TestBed.inject(TemaService);
+
+      boton('Oscuro').click();
+      fixture.detectChanges();
+      expect(tema.modo()).toBe('oscuro');
+      expect(boton('Oscuro').getAttribute('aria-pressed')).toBe('true');
+      expect(boton('Claro').getAttribute('aria-pressed')).toBe('false');
+
+      boton('Sistema').click();
+      fixture.detectChanges();
+      expect(tema.modo()).toBe('sistema');
+      expect(localStorage.getItem('hs.tema')).toBeNull();
+
+      boton('Compacta').click();
+      fixture.detectChanges();
+      expect(TestBed.inject(DensidadService).esCompacta()).toBe(true);
+      expect(document.documentElement.getAttribute('data-densidad')).toBe('compacta');
+      expect(boton('Compacta').getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('con pantalla táctil no ofrece la densidad y «Atajos de teclado» abre la ayuda', async () => {
+      simularPunteroFino(false);
+      await crear();
+      expect(menu().textContent).not.toContain('Densidad');
+      expect(menu().textContent).toContain('Tema');
+
+      const ayuda = TestBed.inject(AyudaAtajosService);
+      component.showUser = true;
+      boton('Atajos de teclado').click();
+      expect(ayuda.abierta()).toBe(true);
+      expect(component.showUser).toBe(false);
+    });
+
+    it('«Instalar HatunSales» solo aparece cuando el navegador ofrece instalar y abre su cuadro', async () => {
+      simularPunteroFino(true);
+      await crear();
+      const app = TestBed.inject(ActualizacionAppService);
+      app.iniciar();
+      expect(boton('Instalar HatunSales')).toBeUndefined();
+
+      const prompt = vi.fn().mockResolvedValue({ outcome: 'accepted' });
+      window.dispatchEvent(Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt }));
+      fixture.detectChanges();
+      expect(boton('Instalar HatunSales')).toBeDefined();
+
+      component.showUser = true;
+      boton('Instalar HatunSales').click();
+      expect(prompt).toHaveBeenCalledTimes(1);
+      expect(component.showUser).toBe(false);
+      fixture.detectChanges();
+      expect(boton('Instalar HatunSales')).toBeUndefined();
+    });
   });
 });

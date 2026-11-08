@@ -13,6 +13,7 @@ import {
 import { Router } from '@angular/router';
 import { AuthService } from '../../../auth/service/auth.service';
 import { TemaService } from '../../../shared/ui/tema.service';
+import { AyudaAtajosService } from '../ayuda-atajos/ayuda-atajos.service';
 import { CUENTA_MENU, SECCIONES_MENU } from '../sidebar/sidebar.component';
 import { PaletaComandosService } from './paleta-comandos.service';
 
@@ -107,6 +108,7 @@ export class PaletaComandosComponent {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly tema = inject(TemaService);
+  private readonly ayudaAtajos = inject(AyudaAtajosService);
   private readonly doc = inject(DOCUMENT);
 
   protected readonly entrada = viewChild<ElementRef<HTMLInputElement>>('entrada');
@@ -153,6 +155,14 @@ export class PaletaComandosComponent {
       icono: this.tema.esOscuro() ? 'bi-sun' : 'bi-moon-stars',
       accion: () => this.tema.alternar(),
       palabras: 'apariencia modo oscuro claro noche dia',
+    });
+    lista.push({
+      id: 'accion:atajos',
+      etiqueta: 'Ver atajos de teclado',
+      grupo: 'Acciones',
+      icono: 'bi-keyboard',
+      accion: () => this.ayudaAtajos.abrir(),
+      palabras: 'teclado ayuda atajos',
     });
     lista.push({ id: 'accion:tienda', etiqueta: 'Ver la tienda online', grupo: 'Acciones', icono: 'bi-shop', ruta: '/store', palabras: 'ecommerce catalogo clientes publico' });
     return lista;

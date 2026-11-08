@@ -1,0 +1,130 @@
+<div class="adm-pagina ec-pagina">
+
+  <!-- Barra de pantalla: no se imprime -->
+  <div class="ec-pantalla">
+    <header class="adm-cabecera adm-cabecera--barra">
+      <div class="adm-cabecera__principal">
+        <span class="adm-cabecera__icono" aria-hidden="true"><i class="bi bi-file-earmark-text"></i></span>
+        <div>
+          <span class="adm-cabecera__eyebrow">Ventas · Cuentas por cobrar</span>
+          <h1 class="adm-cabecera__titulo">Estado de cuenta</h1>
+          <p class="adm-cabecera__sub">Lo que debe {{ nombre() }}, listo para imprimir o mandar por WhatsApp.</p>
+        </div>
+      </div>
+      <div class="adm-acciones">
+        <a routerLink="/dashboard/mantenimiento/cuentas-por-cobrar" class="adm-btn adm-btn--suave">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a las cuentas
+        </a>
+        <button type="button" class="adm-btn adm-btn--suave" id="ec-copiar" (click)="copiarTexto()" [disabled]="!filas().length">
+          <i class="bi bi-clipboard" aria-hidden="true"></i> Copiar texto
+        </button>
+        <button type="button" class="adm-btn adm-btn--exito" id="ec-whatsapp" (click)="enviarWhatsapp()"
+                [disabled]="!filas().length || !telefono()"
+                [title]="telefono() ? 'Abre WhatsApp con el resumen' : 'Este cliente no tiene un teléfono válido registrado'">
+          <i class="bi bi-whatsapp" aria-hidden="true"></i> Enviar por WhatsApp
+        </button>
+        <button type="button" class="adm-btn adm-btn--primario" id="ec-imprimir" (click)="imprimir()" [disabled]="!filas().length">
+          <i class="bi bi-printer" aria-hidden="true"></i> Imprimir / guardar PDF
+        </button>
+      </div>
+    </header>
+    <p class="adm-ayuda ec-aviso" *ngIf="incompleta()" role="status">
+      <i class="bi bi-info-circle" aria-hidden="true"></i> Hay más cuentas en el sistema de las que se pudieron leer: revise el total antes de enviarlo.
+    </p>
+  </div>
+
+  <div class="adm-esqueletos" *ngIf="cargando()" role="status" aria-busy="true" aria-label="Cargando el estado de cuenta">
+    <span class="adm-esqueleto adm-esqueleto--linea"></span>
+    <span class="adm-esqueleto adm-esqueleto--linea ec-esqueleto__corta"></span>
+    <span class="adm-esqueleto ec-esqueleto__hoja"></span>
+  </div>
+
+  <div class="adm-vacio adm-vacio--error ec-pantalla" role="alert" *ngIf="!cargando() && error()">
+    <div class="adm-vacio__icono adm-vacio__icono--peligro"><i class="bi bi-cloud-slash" aria-hidden="true"></i></div>
+    <div class="adm-vacio__titulo">No se pudo cargar el estado de cuenta</div>
+    <p>{{ error() }}</p>
+    <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()">
+      <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reintentar
+    </button>
+  </div>
+
+  <div class="adm-vacio ec-pantalla" *ngIf="!cargando() && !error() && !filas().length">
+    <div class="adm-vacio__icono adm-vacio__icono--exito"><i class="bi bi-check2-circle" aria-hidden="true"></i></div>
+    <div class="adm-vacio__titulo">{{ nombre() }} no tiene saldo pendiente</div>
+    <p>Todas sus cuentas a crédito están pagadas.</p>
+  </div>
+
+  <!-- La hoja: siempre clara, como el papel -->
+  <div class="ec-marco" *ngIf="!cargando() && !error() && filas().length">
+    <article class="ec-hoja" aria-label="Estado de cuenta de {{ nombre() }}">
+      <div class="ec-hoja__franja"></div>
+
+      <header class="ec-hoja__cabecera">
+        <div class="ec-hoja__emisor">
+          <strong class="ec-hoja__razon">{{ razonEmisor() }}</strong>
+          <span class="ec-hoja__linea" *ngIf="emisor()?.ruc">R.U.C. N° {{ emisor()?.ruc }}</span>
+          <span class="ec-hoja__linea" *ngIf="emisor()?.direccion">{{ emisor()?.direccion }}</span>
+          <span class="ec-hoja__linea" *ngIf="emisor()?.telefono || emisor()?.email">
+            {{ emisor()?.telefono }}<ng-container *ngIf="emisor()?.telefono && emisor()?.email"> · </ng-container>{{ emisor()?.email }}
+          </span>
+        </div>
+        <div class="ec-hoja__recuadro">
+          <span class="ec-hoja__tipo">ESTADO DE CUENTA</span>
+          <span class="ec-hoja__fecha">Al {{ fechaHoja }}</span>
+        </div>
+      </header>
+
+      <dl class="ec-hoja__datos">
+        <div class="ec-hoja__dato"><dt>Cliente</dt><dd>{{ nombre() }}</dd></div>
+        <div class="ec-hoja__dato" *ngIf="documento()"><dt>{{ etiquetaDocumento() }}</dt><dd>{{ documento() }}</dd></div>
+        <div class="ec-hoja__dato" *ngIf="cliente()?.direccion"><dt>Dirección</dt><dd>{{ cliente()?.direccion }}</dd></div>
+        <div class="ec-hoja__dato" *ngIf="cliente()?.telefono"><dt>Teléfono</dt><dd>{{ cliente()?.telefono }}</dd></div>
+      </dl>
+
+      <div class="ec-hoja__tabla-caja">
+        <table class="ec-hoja__tabla" aria-label="Cuentas con saldo pendiente">
+          <thead>
+            <tr>
+              <th>Comprobante</th>
+              <th>Emisión</th>
+              <th>Vencimiento</th>
+              <th class="ec-num">Importe</th>
+              <th class="ec-num">Abonado</th>
+              <th class="ec-num">Saldo</th>
+              <th class="ec-num">Días</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let f of filas(); trackBy: identificar" [class.ec-vencida]="f.atraso > 0">
+              <td data-etiqueta="Comprobante">{{ f.comprobante || ('Venta N.° ' + f.idVenta) }}</td>
+              <td data-etiqueta="Emisión">{{ fechaCorta(f.emision) }}</td>
+              <td data-etiqueta="Vencimiento">{{ fechaCorta(f.vencimiento) }}</td>
+              <td data-etiqueta="Importe" class="ec-num">{{ soles(f.importe) }}</td>
+              <td data-etiqueta="Abonado" class="ec-num">{{ soles(f.abonado) }}</td>
+              <td data-etiqueta="Saldo" class="ec-num ec-saldo">{{ soles(f.saldo) }}</td>
+              <td data-etiqueta="Días" class="ec-num">
+                <span *ngIf="f.atraso > 0; else ecAlDia" class="ec-atraso">{{ f.atraso }} {{ f.atraso === 1 ? 'día' : 'días' }} vencida</span>
+                <ng-template #ecAlDia><span class="ec-aldia">Al día</span></ng-template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ec-hoja__totales">
+        <dl class="ec-hoja__filas">
+          <div class="ec-hoja__fila"><dt>Cuentas con saldo</dt><dd>{{ filas().length }}</dd></div>
+          <div class="ec-hoja__fila" *ngIf="totalVencido() > 0">
+            <dt>Total vencido ({{ cuentasVencidas() }})</dt><dd class="ec-peligro">{{ soles(totalVencido()) }}</dd>
+          </div>
+        </dl>
+        <div class="ec-hoja__total"><span>TOTAL ADEUDADO</span><span>{{ soles(totalAdeudado()) }}</span></div>
+      </div>
+
+      <footer class="ec-hoja__pie">
+        <span>Generado por HatunSales · {{ fechaHoja }}</span>
+        <span>Los montos no incluyen pagos hechos después de esta fecha.</span>
+      </footer>
+    </article>
+  </div>
+</div>

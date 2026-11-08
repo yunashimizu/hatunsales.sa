@@ -2,172 +2,132 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DestroyRef,
+  ElementRef,
+  HostListener,
   OnInit,
   inject,
-  DestroyRef,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { forkJoin, Observable, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable, Subscription, defer, finalize, forkJoin, fromEvent, interval, map, of } from 'rxjs';
+import { catchError, filter } from 'rxjs/operators';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
 import { InventarioAdminService } from '../../service/inventario-admin.service';
 import { ComprobanteService } from '../../service/comprobante.service';
 import { CajaSesionService, SesionCaja } from '../../service/caja-sesion.service';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
-import { ReportesService } from '../../service/reportes.service';
+import { PeriodoReporte, RangoReporte, ReporteVentasResumen, ReportesService } from '../../service/reportes.service';
 import { PedidoAdminService, ResumenPedidosWeb } from '../../service/pedido-admin.service';
-import { VentaPorHora, VentasPorHora } from '../../models/admin.models';
+import { ComprobanteFila, Paginado, ResumenInventario, VentasPorHora } from '../../models/admin.models';
+import { ResumenSucursalesCaja } from '../../models/caja-arqueo.models';
 import { urlConstants } from '../../../constants/urlConstants';
+import { peticionSilenciosa } from '../../../interceptors/contexto-http';
 import { opcionesHttp } from '../../service/api-base.service';
+import { NumeroDirective } from '../../../shared/directives/numero.directive';
+import { tiempoRelativo } from '../../../shared/utils/tiempo-relativo';
+import {
+  Acceso,
+  IdTarjeta,
+  NOMBRES_TARJETA,
+  ORDEN_TARJETAS,
+  guardar,
+  leerGuardado,
+  PERIODOS_INICIO,
+  PeriodoInicio,
+  ROLES_ADMIN,
+  ROLES_CXC,
+  ROLES_DOCUMENTOS,
+  ROLES_FISCAL_PANEL,
+  ROLES_INVENTARIO,
+  ROLES_PEDIDOS,
+  ROLES_REPORTES,
+  ROLES_STOCK,
+  ROLES_VENTAS,
+  ROTULOS_PERIODO,
+  RUTA,
+  construirAccesos,
+  CobroMedio,
+  FilaActividad,
+  FilaAtencion,
+  FilaSucursal,
+  ProductoTop,
+  DeltaVista,
+  construirActividad,
+  construirCobros,
+  construirFilasAtencion,
+  construirSucursales,
+  construirTopProductos,
+  vistaDelta,
+} from './inicio-datos.util';
+import {
+  BarraDia,
+  BarraHora,
+  DetalleTooltip,
+  G_ANCHO,
+  MarcaEje,
+  claveDia,
+  construirBarrasDias,
+  construirBarrasHora,
+  delta,
+  diasEntre,
+  dosDigitos,
+  formatoSoles,
+  numero,
+  totalesHasta,
+  totalesPorDia,
+} from './inicio-graficos.util';
 
-/** Roles que ve cada bloque: los mismos que el menú lateral (sidebar.component.ts). */
-const ROLES_VENTAS = ['admin', 'superadmin', 'vendedor', 'caja'];
-const ROLES_REPORTES = ['admin', 'superadmin', 'vendedor', 'caja'];
-const ROLES_CXC = ['admin', 'superadmin', 'caja', 'vendedor'];
-const ROLES_DOCUMENTOS = ['admin', 'superadmin', 'vendedor', 'caja'];
-const ROLES_INVENTARIO = ['admin', 'superadmin', 'vendedor'];
-const ROLES_STOCK = ['admin', 'superadmin', 'vendedor', 'consulta'];
-const ROLES_RECEPCION = ['admin', 'superadmin', 'vendedor'];
-const ROLES_FISCAL_PANEL = ['admin', 'superadmin'];
-const ROLES_PEDIDOS = ['admin', 'superadmin', 'vendedor', 'caja'];
+/** Parámetro de Documentos que abre un comprobante (`PARAMETRO_COMPROBANTE` en doc.component.ts). */
+const PARAMETRO_COMPROBANTE = 'comprobante';
 
-const RUTA = '/dashboard/mantenimiento';
+/** Cada cuánto se renueva solo el Inicio mientras la pestaña está visible. */
+const REFRESCO_MS = 60_000;
+/** Cada cuánto se recalculan los «hace X min». */
+const RELOJ_MS = 30_000;
 
-/** Fila de «Top productos» tal como la devuelve reportes/ventas (VentasTopProducto). */
-interface TopProductoApi {
-  id_producto?: number | null;
-  codigo?: string;
-  producto?: string;
-  cantidad?: number | string;
-  total?: number | string;
-}
-
-interface DetalleVentaApi {
-  fecha?: string;
-  total_vendido?: number | string;
-  tipo_documento?: 'venta' | 'nota_credito' | 'nota_debito' | string;
-}
-
-interface ReporteVentasApi {
-  total_vendido?: number | string;
-  detalle?: DetalleVentaApi[];
-  top_productos_vendidos?: TopProductoApi[];
-}
+const CLAVE_PERIODO = 'hs.inicio.periodo';
+const CLAVE_OCULTAS = 'hs.inicio.ocultas';
+const CLAVE_META = 'hs.panel.meta-diaria';
 
 interface CuentasCobrarApi {
   data?: { saldo?: number | string; estado?: string }[];
   total?: number | string;
 }
 
-export interface FilaAtencion {
-  id: string;
-  tono: 'peligro' | 'aviso';
-  etiqueta: string;
-  texto: string;
-  detalle?: string;
-  accion?: string;
-  ruta?: string;
+interface TooltipVista {
+  izquierda: number;
+  arriba: number;
+  tip: DetalleTooltip;
 }
 
-export interface ProductoTop {
-  nombre: string;
-  unidades: string;
-  ancho: number;
-  monto: number;
+interface ResultadoPeriodo {
+  reporte?: ReporteVentasResumen | null;
+  semana?: ReporteVentasResumen | null;
+  hora?: VentasPorHora | null;
 }
 
-export interface Acceso {
-  titulo: string;
-  desc: string;
-  ruta: string;
-  icono: string;
-  tono: 'grafito' | 'marca' | 'exito' | 'neutro';
+interface ResultadoBase {
+  inv: ResumenInventario | null;
+  cpe: { total?: number } | null;
+  pedidos: ResumenPedidosWeb | null;
+  caja: SesionCaja | null;
+  cxc: CuentasCobrarApi | null;
+  actividad: Paginado<ComprobanteFila> | null;
+  sucursales: ResumenSucursalesCaja | null;
 }
 
-export interface BarraSemana {
-  x: number;
-  y: number;
-  ancho: number;
-  alto: number;
-  /** Centro horizontal (para rótulos). */
-  xc: number;
-  /** Altura del rótulo del valor sobre la barra. */
-  yValor: number;
-  valor: number;
-  valorCorto: string;
-  etiqueta: string;
-  titulo: string;
-  esHoy: boolean;
-}
-
-/** Una hora del gráfico «Ventas por hora»: hoy (grafito, oro si es la hora pico) y la semana pasada (gris). */
-export interface BarraHora {
-  hora: number;
-  etiqueta: string;
-  /** Centro horizontal de la hora (para el rótulo). */
-  xc: number;
-  ancho: number;
-  xHoy: number;
-  yHoy: number;
-  altoHoy: number;
-  xPrev: number;
-  yPrev: number;
-  altoPrev: number;
-  totalHoy: number;
-  totalPrev: number;
-  /** Rótulo del valor sobre la barra de hoy (solo la hora pico lo muestra). */
-  valorCorto: string;
-  yValor: number;
-  esPico: boolean;
-  mostrarEtiqueta: boolean;
-  titulo: string;
-}
-
-export interface MarcaEje {
-  y: number;
-  texto: string;
-}
-
-const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
-const DIAS_LARGOS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-
-// Zona de dibujo del gráfico (viewBox 640 × 200, igual que la maqueta).
-const G_X0 = 40;
-const G_X1 = 640;
-const G_Y_ARRIBA = 20;
-const G_Y_ABAJO = 170;
-
-function numero(valor: unknown): number {
-  const n = Number(valor);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function dosDigitos(n: number): string {
-  return String(n).padStart(2, '0');
-}
-
-/** 'YYYY-MM-DD' en la fecha local del navegador. */
-function claveDia(fecha: Date): string {
-  return `${fecha.getFullYear()}-${dosDigitos(fecha.getMonth() + 1)}-${dosDigitos(fecha.getDate())}`;
-}
-
-/** Paso «redondo» (1, 2, 2.5, 5 × 10ⁿ) que cubre `valor`. */
-function pasoRedondo(valor: number): number {
-  if (valor <= 0) return 1;
-  const potencia = Math.pow(10, Math.floor(Math.log10(valor)));
-  for (const f of [1, 2, 2.5, 5, 10]) {
-    if (f * potencia >= valor) return f * potencia;
-  }
-  return 10 * potencia;
+function ayerDe(hoy: Date): Date {
+  return new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 1);
 }
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterModule],
+  imports: [RouterModule, FormsModule, NumeroDirective],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
@@ -192,14 +152,26 @@ export class DashboardComponent implements OnInit {
   veStock = false;
   veFiscalPanel = false;
   vePedidos = false;
+  esAdmin = false;
   accesos: Acceso[] = [];
 
+  /** Primera carga de la pantalla (esqueletos en todo). */
   cargando = true;
+  /** Cambio de periodo en curso (esqueletos solo en lo que depende del periodo). */
+  cargandoPeriodo = false;
+  /** Hay una lectura en marcha, también las automáticas (gira el botón Actualizar). */
+  actualizando = false;
+
+  // ── Periodo ──
+  readonly periodos = PERIODOS_INICIO;
+  periodo: PeriodoInicio = 'hoy';
 
   // ── Datos (null = no cargó / sin permiso: se muestra «—», nunca un 0 falso) ──
-  ventasHoy: number | null = null;
+  ventasPeriodo: number | null = null;
   ticketPromedio: number | null = null;
   numVentas: number | null = null;
+  deltaVentas: DeltaVista | null = null;
+  deltaTicket: DeltaVista | null = null;
   cxcVencidoMonto: number | null = null;
   cxcVencidoCuentas: number | null = null;
   /** La lista de vencidas llegó recortada: el monto es un mínimo. */
@@ -216,33 +188,62 @@ export class DashboardComponent implements OnInit {
   turnoVentas: number | null = null;
   efectivoTurno: number | null = null;
   detalleMedios = '';
-  actualizadoA = '';
+  /** Cobros del turno por medio de pago (vacío si no hay turno o no hubo cobros). */
+  cobros: CobroMedio[] = [];
+  cobrosTotal = 0;
+  actualizadoEn: Date | null = null;
+  /** Reloj para los «hace X min»: se renueva cada 30 s. */
+  ahora = new Date();
 
-  // ── Ventas de la semana ──
-  semanaCargada = false;
-  semanaConDatos = false;
+  // ── Actividad reciente y sucursales ──
+  actividad: FilaActividad[] = [];
+  actividadCargada = false;
+  sucursales: FilaSucursal[] = [];
+
+  // ── Gráfico por día (semana o mes) ──
+  diasCargados = false;
+  diasConDatos = false;
   semanaFalla = false;
-  barras: BarraSemana[] = [];
+  barras: BarraDia[] = [];
   marcasEje: MarcaEje[] = [];
-  resumenSemana = '';
-  hallazgoSemana = '';
+  resumenDias = '';
+  hallazgoDias = '';
 
-  // ── Ventas por hora (B2; si falla o viene vacío se queda el gráfico semanal) ──
+  // ── Ventas por hora (si falla o viene vacío en «Hoy» se queda el gráfico semanal) ──
   horaConDatos = false;
   barrasHora: BarraHora[] = [];
   marcasEjeHora: MarcaEje[] = [];
   resumenHora = '';
   hallazgoHora = '';
+  /** Barra con el tooltip o el foco (null = ninguna). */
+  zonaActiva: number | null = null;
+  tooltip: TooltipVista | null = null;
 
   // ── Lo más vendido ──
   topProductos: ProductoTop[] = [];
   topCargado = false;
 
+  // ── Meta del día (solo administrador) ──
+  metaDiaria: number | null = null;
+  editandoMeta = false;
+  metaBorrador: number | null = null;
+
+  // ── Personalizar ──
+  ocultas: IdTarjeta[] = [];
+  personalizando = false;
+
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly el = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly fiscal = inject(FiscalEstadoService);
   private readonly reportes = inject(ReportesService);
   private readonly pedidos = inject(PedidoAdminService);
+
+  private subTodo: Subscription | null = null;
+  private subPeriodo: Subscription | null = null;
+  private pendientesPeriodo = 0;
+  private fichaPeriodo = 0;
+  private ultimaCarga = 0;
 
   constructor(
     private readonly authService: AuthService,
@@ -253,12 +254,23 @@ export class DashboardComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.leerPreferencias();
     this.aplicarSesion();
     this.authService.data$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.aplicarSesion();
       this.cdr.markForCheck();
     });
-    this.cargarDatos();
+    this.cargarTodo('inicial');
+    this.vigilarRefresco();
+  }
+
+  private leerPreferencias(): void {
+    const periodo = leerGuardado<string>('sesion', CLAVE_PERIODO);
+    if (this.periodos.some((p) => p.id === periodo)) this.periodo = periodo as PeriodoInicio;
+    const ocultas = leerGuardado<unknown>('local', CLAVE_OCULTAS);
+    if (Array.isArray(ocultas)) this.ocultas = ocultas.filter((id): id is IdTarjeta => id in NOMBRES_TARJETA);
+    const meta = Number(leerGuardado<unknown>('local', CLAVE_META));
+    this.metaDiaria = Number.isFinite(meta) && meta > 0 ? meta : null;
   }
 
   private aplicarSesion(): void {
@@ -273,40 +285,9 @@ export class DashboardComponent implements OnInit {
     this.veStock = puede(ROLES_STOCK);
     this.veFiscalPanel = puede(ROLES_FISCAL_PANEL);
     this.vePedidos = puede(ROLES_PEDIDOS);
+    this.esAdmin = puede(ROLES_ADMIN);
 
-    const todos: { acceso: Acceso; roles: string[] }[] = [
-      {
-        acceso: { titulo: 'Vender', desc: 'Boleta o factura', ruta: `${RUTA}/ventas`, icono: 'bi-receipt', tono: 'grafito' },
-        roles: ROLES_VENTAS,
-      },
-      {
-        acceso: { titulo: 'Cotizar', desc: 'PDF y WhatsApp', ruta: `${RUTA}/cotizaciones`, icono: 'bi-file-earmark-ruled', tono: 'marca' },
-        roles: ROLES_VENTAS,
-      },
-      {
-        acceso: { titulo: 'Recibir mercadería', desc: 'Entrada a almacén', ruta: `${RUTA}/recepcion`, icono: 'bi-box-arrow-in-down', tono: 'exito' },
-        roles: ROLES_RECEPCION,
-      },
-      {
-        acceso: { titulo: 'Cerrar caja', desc: 'Arqueo del turno', ruta: `${RUTA}/caja-sesion`, icono: 'bi-cash-stack', tono: 'neutro' },
-        roles: ROLES_VENTAS,
-      },
-    ];
-    // El acceso a los pedidos web solo aparece si hay alguno por atender.
-    if (this.pedidosWeb?.total) {
-      const n = this.pedidosWeb.total;
-      todos.unshift({
-        acceso: {
-          titulo: 'Pedidos web',
-          desc: n === 1 ? '1 por atender' : `${n} por atender`,
-          ruta: `${RUTA}/pedidos`,
-          icono: 'bi-bag-check',
-          tono: 'marca',
-        },
-        roles: ROLES_PEDIDOS,
-      });
-    }
-    this.accesos = todos.filter((a) => puede(a.roles)).map((a) => a.acceso);
+    this.accesos = construirAccesos(puede, this.pedidosWeb);
   }
 
   get etiquetaRol(): string {
@@ -344,152 +325,259 @@ export class DashboardComponent implements OnInit {
     return partes.join(' · ');
   }
 
+  // ── Rótulos que cambian con el periodo ──
+
+  get cargandoVentas(): boolean {
+    return this.cargando || this.cargandoPeriodo;
+  }
+
+  get rotulos(): (typeof ROTULOS_PERIODO)[PeriodoInicio] {
+    return ROTULOS_PERIODO[this.periodo ?? 'hoy'];
+  }
+
+  get tituloGrafico(): string {
+    return this.horaConDatos ? 'Ventas por hora' : this.rotulos.tituloDias;
+  }
+
+  /** Quién es la barra principal del gráfico por hora. */
+  get nombreDia(): string {
+    return this.periodo === 'ayer' ? 'Ayer' : 'Hoy';
+  }
+
+  get referenciaDelta(): string {
+    return this.periodo === 'ayer' ? 'vs. el mismo día de la semana pasada' : 'vs. la semana pasada a esta hora';
+  }
+
+  get textoActualizado(): string {
+    return this.actualizadoEn ? `actualizado ${tiempoRelativo(this.actualizadoEn, this.ahora)}` : '';
+  }
+
+  hace(fecha: string): string {
+    return tiempoRelativo(fecha, this.ahora);
+  }
+
+  // ── Tarjetas visibles (rol + «Personalizar») ──
+
+  private visible(id: IdTarjeta): boolean {
+    return !this.ocultas.includes(id);
+  }
+
+  get verGrafico(): boolean { return this.veReportes && this.visible('grafico'); }
+  get verAtencion(): boolean { return this.visible('atencion'); }
+  get verActividad(): boolean { return this.veDocumentos && this.visible('actividad'); }
+  get verCobros(): boolean { return this.veCaja && this.visible('cobros'); }
+  get verTop(): boolean { return this.veReportes && this.visible('top'); }
+  get verAccesos(): boolean { return this.accesos.length > 0 && this.visible('accesos'); }
+  get verSucursales(): boolean { return this.esAdmin && this.sucursales.length > 1 && this.visible('sucursales'); }
+
+  get tarjetasFila1(): number { return +this.verGrafico + +this.verAtencion; }
+  get tarjetasFila2(): number { return +this.verActividad + +this.verCobros; }
+  get tarjetasFila3(): number { return +this.verTop + +this.verAccesos; }
+
+  /** Tarjetas que este usuario puede mostrar u ocultar. */
+  get tarjetasPersonalizables(): { id: IdTarjeta; nombre: string; visible: boolean }[] {
+    const permitidas: Record<IdTarjeta, boolean> = {
+      grafico: this.veReportes,
+      atencion: true,
+      actividad: this.veDocumentos,
+      cobros: this.veCaja,
+      sucursales: this.esAdmin,
+      top: this.veReportes,
+      accesos: true,
+    };
+    return ORDEN_TARJETAS.filter((id) => permitidas[id]).map((id) => ({
+      id,
+      nombre: NOMBRES_TARJETA[id],
+      visible: this.visible(id),
+    }));
+  }
+
   /**
    * Cosas que conviene resolver, armadas con lo que ya se lee. El estado fiscal sale del mismo
    * servicio que usa la barra superior (se renueva solo; aquí solo se lee).
    */
   get filasAtencion(): FilaAtencion[] {
-    const filas: FilaAtencion[] = [];
-    const estadoFiscal = this.fiscal.estado();
+    return construirFilasAtencion({
+      estadoFiscal: this.fiscal.estado(),
+      veDocumentos: this.veDocumentos,
+      vePedidos: this.vePedidos,
+      veFiscalPanel: this.veFiscalPanel,
+      veInventario: this.veInventario,
+      veStock: this.veStock,
+      veCxc: this.veCxc,
+      cpeAtencion: this.cpeAtencion,
+      pedidosWeb: this.pedidosWeb,
+      sinStock: this.sinStock,
+      bajoStock: this.bajoStock,
+      cxcVencidoCuentas: this.cxcVencidoCuentas,
+      cxcVencidoMonto: this.cxcVencidoMonto,
+      cxcParcial: this.cxcParcial,
+    });
+  }
 
-    if (this.veDocumentos && this.cpeAtencion) {
-      filas.push({
-        id: 'cpe',
-        tono: 'peligro',
-        etiqueta: 'SUNAT',
-        texto:
-          this.cpeAtencion === 1
-            ? '1 comprobante necesita atención'
-            : `${this.cpeAtencion} comprobantes necesitan atención`,
-        detalle: 'Pendientes de envío o con error',
-        accion: 'Revisar',
-        ruta: `${RUTA}/doc`,
+  /** Importe en soles con separador de miles y dos decimales. */
+  soles(valor: number): string {
+    return formatoSoles(valor);
+  }
+
+  // ───────────────────────────────────────────────────────────── acciones de la pantalla
+
+  cambiarPeriodo(periodo: PeriodoInicio): void {
+    if (periodo === this.periodo) return;
+    this.periodo = periodo;
+    guardar('sesion', CLAVE_PERIODO, periodo);
+    this.cerrarTooltip();
+    this.editandoMeta = false;
+    this.subPeriodo?.unsubscribe();
+    this.subPeriodo = this.cargarPeriodo(false).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.cdr.markForCheck());
+    this.cdr.markForCheck();
+  }
+
+  /** Botón «Actualizar»: vuelve a leer todo, con el botón girando (sin esqueletos). */
+  actualizar(): void {
+    this.cargarTodo('manual');
+  }
+
+  alternarPersonalizar(): void {
+    this.personalizando = !this.personalizando;
+    this.cdr.markForCheck();
+  }
+
+  alternarTarjeta(id: IdTarjeta): void {
+    const apareceDeNuevo = this.ocultas.includes(id);
+    this.ocultas = apareceDeNuevo ? this.ocultas.filter((x) => x !== id) : [...this.ocultas, id];
+    guardar('local', CLAVE_OCULTAS, this.ocultas);
+    this.cdr.markForCheck();
+    // Lo que no se pedía mientras estaba oculto se lee al volver a mostrarlo.
+    if (apareceDeNuevo && (id === 'actividad' || id === 'sucursales')) this.cargarTodo('auto');
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected alClicFuera(evento: MouseEvent): void {
+    if (this.personalizando && !(evento.target as HTMLElement | null)?.closest('.ini-personalizar')) {
+      this.personalizando = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  protected alEscape(): void {
+    if (!this.personalizando) return;
+    this.personalizando = false;
+    this.el.nativeElement.querySelector<HTMLElement>('.ini-personalizar__boton')?.focus();
+    this.cdr.markForCheck();
+  }
+
+  // ── Meta del día ──
+
+  /** La meta es del administrador y solo se mide con el día de hoy. */
+  get puedeMeta(): boolean {
+    return this.esAdmin && this.veReportes && this.periodo === 'hoy';
+  }
+
+  /** Avance sobre la meta, en % entero: 99 hasta llegar de verdad a la meta, y desde ahí el real (puede pasar de 100). */
+  get porcentajeMeta(): number {
+    if (!this.metaDiaria || this.ventasPeriodo == null) return 0;
+    const avance = Math.max(0, this.ventasPeriodo / this.metaDiaria);
+    return avance < 1 ? Math.min(99, Math.round(avance * 100)) : Math.round(avance * 100);
+  }
+
+  get metaCumplida(): boolean {
+    return !!this.metaDiaria && this.ventasPeriodo != null && this.ventasPeriodo >= this.metaDiaria;
+  }
+
+  /** Avance de la meta limitado a 100 para la barra. */
+  get avanceMeta(): number {
+    return Math.min(100, this.porcentajeMeta);
+  }
+
+  editarMeta(): void {
+    this.metaBorrador = this.metaDiaria;
+    this.editandoMeta = true;
+    this.cdr.detectChanges(); // el campo aparece ya: se le puede dar el foco
+    this.el.nativeElement.querySelector<HTMLElement>('#ini-meta-campo')?.focus();
+  }
+
+  guardarMeta(): void {
+    const valor = Number(this.metaBorrador);
+    this.metaDiaria = Number.isFinite(valor) && valor > 0 ? valor : null;
+    guardar('local', CLAVE_META, this.metaDiaria);
+    this.editandoMeta = false;
+    this.cdr.detectChanges();
+    this.el.nativeElement.querySelector<HTMLElement>('.ini-meta__editar, .ini-meta__definir')?.focus();
+  }
+
+  cancelarMeta(): void {
+    this.editandoMeta = false;
+    this.cdr.detectChanges();
+    this.el.nativeElement.querySelector<HTMLElement>('.ini-meta__editar, .ini-meta__definir')?.focus();
+  }
+
+  // ── Tooltip del gráfico ──
+
+  /** Muestra el detalle de una barra (con el ratón, el foco o un toque). */
+  activarZona(indice: number, evento: Event): void {
+    const barras: (BarraHora | BarraDia)[] = this.horaConDatos ? this.barrasHora : this.barras;
+    const barra = barras[indice];
+    const svg = (evento.target as SVGElement | null)?.ownerSVGElement;
+    const tarjeta = svg?.closest('.ini-tarjeta');
+    if (!barra || !svg || !tarjeta) return;
+    const rs = svg.getBoundingClientRect();
+    const rt = tarjeta.getBoundingClientRect();
+    const escala = rs.width / G_ANCHO;
+    const mitad = 112; // semiancho aproximado del tooltip: no se sale de la tarjeta por ningún lado
+    const izquierda = Math.min(Math.max(rs.left - rt.left + barra.xc * escala, mitad), Math.max(mitad, rt.width - mitad));
+    const arriba = Math.max(rs.top - rt.top + barra.yTope * escala - 8, 96);
+    this.zonaActiva = indice;
+    this.tooltip = { izquierda, arriba, tip: barra.tip };
+    this.cdr.markForCheck();
+  }
+
+  cerrarTooltip(): void {
+    if (this.zonaActiva === null && this.tooltip === null) return;
+    this.zonaActiva = null;
+    this.tooltip = null;
+    this.cdr.markForCheck();
+  }
+
+  /** Flechas, Inicio y Fin pasan de una barra a otra (solo una barra está en el orden de Tab). */
+  teclaZona(evento: KeyboardEvent, indice: number, total: number): void {
+    const salto: Record<string, number> = {
+      ArrowRight: indice + 1,
+      ArrowLeft: indice - 1,
+      Home: 0,
+      End: total - 1,
+    };
+    if (!(evento.key in salto)) return;
+    const destino = Math.min(total - 1, Math.max(0, salto[evento.key]));
+    const zonas = (evento.currentTarget as SVGElement).ownerSVGElement?.querySelectorAll<SVGElement>('.ini-grafico__zona');
+    if (!zonas?.[destino]) return;
+    evento.preventDefault();
+    zonas[destino].focus();
+  }
+
+  // ───────────────────────────────────────────────────────────── actualización automática
+
+  /** Cada minuto, con la pestaña visible, vuelve a leer todo; al volver a la pestaña lo hace al instante si pasó más de un minuto. */
+  private vigilarRefresco(): void {
+    const visible = () => typeof document === 'undefined' || document.visibilityState === 'visible';
+    interval(REFRESCO_MS)
+      .pipe(filter(visible), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.cargarTodo('auto'));
+    interval(RELOJ_MS)
+      .pipe(filter(visible), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.ahora = new Date();
+        this.cdr.markForCheck();
       });
-    }
-
-    if (this.vePedidos && this.pedidosWeb?.total) {
-      const { pendientes, pagados, total } = this.pedidosWeb;
-      const partes: string[] = [];
-      if (pagados) partes.push(pagados === 1 ? '1 pagado, a preparar' : `${pagados} pagados, a preparar`);
-      if (pendientes) partes.push(pendientes === 1 ? '1 por cobrar' : `${pendientes} por cobrar`);
-      filas.push({
-        id: 'pedidos-web',
-        tono: 'aviso',
-        etiqueta: 'Pedidos',
-        texto: total === 1 ? '1 pedido web por preparar' : `${total} pedidos web por preparar`,
-        detalle: partes.join(' · '),
-        accion: 'Ver',
-        ruta: `${RUTA}/pedidos`,
+    if (typeof document === 'undefined') return;
+    fromEvent(document, 'visibilitychange')
+      .pipe(filter(visible), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.ahora = new Date();
+        if (Date.now() - this.ultimaCarga > REFRESCO_MS) this.cargarTodo('auto');
+        else this.cdr.markForCheck();
       });
-    }
-
-    if (estadoFiscal) {
-      if (estadoFiscal.bloqueo) {
-        filas.push({
-          id: 'fiscal-bloqueo',
-          tono: 'peligro',
-          etiqueta: 'Fiscal',
-          texto: 'SUNAT detuvo la emisión',
-          detalle: estadoFiscal.bloqueo.motivo,
-          accion: this.veFiscalPanel ? 'Ver' : undefined,
-          ruta: this.veFiscalPanel ? '/dashboard/facturacion-sunat' : undefined,
-        });
-      } else if (estadoFiscal.emision_activa === false) {
-        filas.push({
-          id: 'fiscal-inactiva',
-          tono: 'aviso',
-          etiqueta: 'Fiscal',
-          texto: 'La emisión electrónica está detenida',
-          detalle: estadoFiscal.motivo || 'Las ventas se registran sin comprobante.',
-          accion: this.veFiscalPanel ? 'Ver' : undefined,
-          ruta: this.veFiscalPanel ? '/dashboard/facturacion-sunat' : undefined,
-        });
-      }
-      const vencidos = estadoFiscal.plazos?.vencidos ?? 0;
-      if (vencidos > 0) {
-        filas.push({
-          id: 'fiscal-plazos',
-          tono: 'peligro',
-          etiqueta: 'Fiscal',
-          texto:
-            vencidos === 1
-              ? '1 comprobante fuera del plazo de envío'
-              : `${vencidos} comprobantes fuera del plazo de envío`,
-          detalle: 'Revísalos en Facturación SUNAT',
-          accion: this.veFiscalPanel ? 'Ver' : undefined,
-          ruta: this.veFiscalPanel ? '/dashboard/facturacion-sunat' : undefined,
-        });
-      }
-      const cert = estadoFiscal.certificado;
-      if (cert?.vencido) {
-        filas.push({
-          id: 'fiscal-cert',
-          tono: 'peligro',
-          etiqueta: 'Fiscal',
-          texto: 'El certificado digital está vencido',
-          detalle: 'Sin certificado vigente no se pueden emitir comprobantes',
-          accion: this.veFiscalPanel ? 'Ver' : undefined,
-          ruta: this.veFiscalPanel ? '/dashboard/facturacion-sunat' : undefined,
-        });
-      } else if (cert?.cargado && cert.dias_para_vencer != null && cert.dias_para_vencer <= 30) {
-        filas.push({
-          id: 'fiscal-cert',
-          tono: 'aviso',
-          etiqueta: 'Fiscal',
-          texto:
-            cert.dias_para_vencer <= 0
-              ? 'El certificado digital vence hoy'
-              : `El certificado digital vence en ${cert.dias_para_vencer} ${cert.dias_para_vencer === 1 ? 'día' : 'días'}`,
-          detalle: 'Renuévalo antes para no detener la emisión',
-          accion: this.veFiscalPanel ? 'Ver' : undefined,
-          ruta: this.veFiscalPanel ? '/dashboard/facturacion-sunat' : undefined,
-        });
-      }
-    }
-
-    const rutaStock = this.veInventario ? `${RUTA}/inventario` : `${RUTA}/stock`;
-    if (this.veStock && this.sinStock) {
-      filas.push({
-        id: 'sin-stock',
-        tono: 'peligro',
-        etiqueta: 'Stock',
-        texto:
-          this.sinStock === 1 ? '1 producto sin stock' : `${this.sinStock} productos sin stock`,
-        accion: 'Reponer',
-        ruta: rutaStock,
-      });
-    }
-    if (this.veStock && this.bajoStock) {
-      filas.push({
-        id: 'bajo-stock',
-        tono: 'aviso',
-        etiqueta: 'Stock',
-        texto:
-          this.bajoStock === 1
-            ? '1 producto con stock bajo'
-            : `${this.bajoStock} productos con stock bajo`,
-        detalle: 'Por debajo del mínimo',
-        accion: 'Reponer',
-        ruta: rutaStock,
-      });
-    }
-
-    if (this.veCxc && this.cxcVencidoCuentas) {
-      filas.push({
-        id: 'cxc',
-        tono: 'peligro',
-        etiqueta: 'Cobranza',
-        texto:
-          this.cxcVencidoCuentas === 1
-            ? '1 cuenta por cobrar vencida'
-            : `${this.cxcVencidoCuentas} cuentas por cobrar vencidas`,
-        detalle: this.cxcVencidoMonto != null ? `${this.cxcParcial ? 'Al menos ' : ''}${this.soles(this.cxcVencidoMonto)} por cobrar` : undefined,
-        accion: 'Cobrar',
-        ruta: `${RUTA}/cuentas-por-cobrar`,
-      });
-    }
-
-    return filas;
   }
 
   /** Hubo al menos una lectura que alimenta «Necesita tu atención» (para no decir «todo en orden» a ciegas). */
@@ -504,54 +592,144 @@ export class DashboardComponent implements OnInit {
     );
   }
 
-  /** Importe en soles con separador de miles y dos decimales. */
-  soles(valor: number): string {
-    return `S/ ${valor.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
+  // ───────────────────────────────────────────────────────────── lecturas
 
-  private cargarDatos(): void {
-    this.cargando = true;
+  /** Lee todo lo del Inicio. `auto` (cada minuto) va en silencio: sin esqueletos y sin avisos si falla. */
+  private cargarTodo(modo: 'inicial' | 'manual' | 'auto'): void {
+    const silenciosa = modo === 'auto';
+    if (modo === 'inicial') this.cargando = true;
+    this.actualizando = true;
+    this.ultimaCarga = Date.now();
     this.cdr.markForCheck();
 
-    const sinPermiso = <T>(permitido: boolean, peticion: () => Observable<T>): Observable<T | null> =>
-      permitido ? peticion().pipe(catchError(() => of(null))) : of(null);
+    this.subTodo?.unsubscribe();
+    this.subTodo = forkJoin([this.cargarBase(silenciosa), this.cargarPeriodo(silenciosa)])
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.actualizadoEn = new Date();
+        this.ahora = this.actualizadoEn;
+        this.cargando = false;
+        this.actualizando = false;
+        this.cdr.markForCheck();
+      });
+  }
 
-    const reporte = (periodo: 'diario' | 'semana') =>
-      this.http.get<ReporteVentasApi>(`${urlConstants.reportes.ventas}?periodo=${periodo}`, opcionesHttp());
+  private sinPermiso<T>(permitido: boolean, peticion: () => Observable<T>): Observable<T | null> {
+    return permitido ? peticion().pipe(catchError(() => of(null))) : of(null);
+  }
 
-    forkJoin({
-      inv: sinPermiso(this.veStock, () => this.inventario.resumen()),
-      cpe: sinPermiso(this.veDocumentos, () => this.comprobantes.monitorAtencion()),
-      pedidos: sinPermiso(this.vePedidos, () => this.pedidos.porPreparar()),
-      caja: sinPermiso(this.veCaja, () => this.caja.sesion()),
-      hoy: sinPermiso(this.veReportes, () => reporte('diario')),
-      semana: sinPermiso(this.veReportes, () => reporte('semana')),
-      // Opcional: si el servidor aún no la tiene (404), falla o tarda, vale null y se muestra la semana.
-      hora: sinPermiso(this.veReportes, () => this.reportes.ventasPorHora()),
-      cxc: sinPermiso(this.veCxc, () =>
+  /** Lo que no depende del periodo: stock, SUNAT, pedidos, caja, cuentas, actividad y sucursales. */
+  private cargarBase(silenciosa: boolean): Observable<void> {
+    const contexto = silenciosa ? { context: peticionSilenciosa() } : {};
+    const hoy = claveDia(new Date());
+    return forkJoin({
+      inv: this.sinPermiso(this.veStock, () => this.inventario.resumen()),
+      cpe: this.sinPermiso(this.veDocumentos, () => this.comprobantes.monitorAtencion()),
+      pedidos: this.sinPermiso(this.vePedidos, () => this.pedidos.porPreparar()),
+      caja: this.sinPermiso(this.veCaja, () => this.caja.sesion()),
+      cxc: this.sinPermiso(this.veCxc, () =>
         this.http.get<CuentasCobrarApi>(urlConstants.credito.cuentas, {
           ...opcionesHttp(),
+          ...contexto,
           params: new HttpParams().set('estado', 'vencido').set('limite', '100'),
         }),
       ),
-    })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(({ inv, cpe, pedidos, caja, hoy, semana, hora, cxc }) => {
-        this.sinStock = inv?.sin_stock ?? null;
-        this.bajoStock = inv?.bajo_stock ?? null;
-        this.cpeAtencion = cpe?.total ?? null;
-        this.pedidosWeb = pedidos;
-        this.aplicarSesion(); // vuelve a armar los accesos: «Pedidos web» aparece si hay alguno
-        this.aplicarCaja(caja);
-        this.aplicarVentasHoy(hoy);
-        this.aplicarSemana(semana);
-        this.aplicarHoras(hora);
-        this.aplicarCuentas(cxc);
-        const ahora = new Date();
-        this.actualizadoA = `${dosDigitos(ahora.getHours())}:${dosDigitos(ahora.getMinutes())}`;
-        this.cargando = false;
-        this.cdr.markForCheck();
-      });
+      actividad: this.sinPermiso(this.verActividad, () =>
+        this.http.get<Paginado<ComprobanteFila>>(urlConstants.comprobante.base, {
+          ...opcionesHttp(),
+          context: peticionSilenciosa(),
+          params: new HttpParams().set('pagina', '1').set('por_pagina', '6'),
+        }),
+      ),
+      sucursales: this.sinPermiso(this.esAdmin && this.visible('sucursales'), () =>
+        this.caja.resumenSucursales({ desde: hoy, hasta: hoy }),
+      ),
+    }).pipe(
+      map((r) => this.aplicarBase(r as ResultadoBase)),
+    );
+  }
+
+  /** Lo que depende del periodo: ventas, gráfico y lo más vendido. Solo esto se vuelve a pedir al cambiar de periodo. */
+  private cargarPeriodo(silenciosa: boolean): Observable<void> {
+    const periodo = this.periodo;
+    const ficha = ++this.fichaPeriodo;
+    return defer(() => {
+      if (!silenciosa) this.pendientesPeriodo++;
+      this.cargandoPeriodo = this.pendientesPeriodo > 0;
+      return this.pedirPeriodo(periodo, silenciosa).pipe(
+        // Si mientras tanto se eligió otro periodo, esta respuesta ya no vale.
+        map((r) => {
+          if (ficha === this.fichaPeriodo) this.aplicarPeriodo(periodo, r);
+        }),
+        finalize(() => {
+          if (!silenciosa) this.pendientesPeriodo--;
+          this.cargandoPeriodo = this.pendientesPeriodo > 0;
+          this.cdr.markForCheck();
+        }),
+      );
+    });
+  }
+
+  private pedirPeriodo(periodo: PeriodoInicio, silenciosa: boolean): Observable<ResultadoPeriodo> {
+    const opciones = { silenciosa };
+    const reporte = (p: PeriodoReporte, rango?: RangoReporte) =>
+      this.sinPermiso(this.veReportes, () => this.reportes.ventas(p, rango, opciones));
+    const hoy = new Date();
+    const ayer = claveDia(ayerDe(hoy));
+
+    switch (periodo) {
+      case 'ayer':
+        return forkJoin({
+          reporte: reporte('diario', { fecha_inicio: ayer, fecha_fin: ayer }),
+          hora: this.sinPermiso(this.veReportes, () => this.reportes.ventasPorHora(ayer)),
+        });
+      case 'semana':
+        return forkJoin({ reporte: reporte('semana') });
+      case 'mes':
+        return forkJoin({ reporte: reporte('mensual') });
+      default:
+        // «Hoy»: la hora es opcional (si el servidor no la tiene, falla o tarda, vale null y se muestra la semana).
+        return forkJoin({
+          reporte: reporte('diario'),
+          semana: reporte('semana'),
+          hora: this.sinPermiso(this.veReportes, () => this.reportes.ventasPorHora()),
+        });
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────── aplicar lo leído
+
+  private aplicarBase(r: ResultadoBase): void {
+    this.sinStock = r.inv?.sin_stock ?? null;
+    this.bajoStock = r.inv?.bajo_stock ?? null;
+    this.cpeAtencion = r.cpe?.total ?? null;
+    this.pedidosWeb = r.pedidos;
+    this.aplicarSesion(); // vuelve a armar los accesos: «Pedidos web» aparece si hay alguno
+    this.aplicarCaja(r.caja);
+    this.aplicarCuentas(r.cxc);
+    this.aplicarActividad(r.actividad);
+    this.aplicarSucursales(r.sucursales);
+  }
+
+  private aplicarPeriodo(periodo: PeriodoInicio, r: ResultadoPeriodo): void {
+    this.ventasPeriodo = null;
+    this.numVentas = null;
+    this.ticketPromedio = null;
+    this.deltaVentas = null;
+    this.deltaTicket = null;
+    this.aplicarVentas(r.reporte ?? null);
+    this.topCargado = true;
+    this.cerrarTooltip();
+
+    if (periodo === 'hoy' || periodo === 'ayer') {
+      this.aplicarHoras(r.hora ?? null);
+      this.aplicarComparacion(r.hora ?? null);
+      // «Hoy» sin gráfico por hora cae en el semanal; «Ayer» no tiene semanal de respaldo.
+      this.aplicarDias(periodo === 'hoy' ? (r.semana ?? null) : null, 'semana', periodo === 'hoy' && r.semana == null);
+    } else {
+      this.aplicarHoras(null);
+      this.aplicarDias(r.reporte ?? null, periodo, r.reporte == null);
+    }
   }
 
   private aplicarCaja(caja: SesionCaja | null): void {
@@ -562,6 +740,8 @@ export class DashboardComponent implements OnInit {
     this.turnoVentas = null;
     this.efectivoTurno = null;
     this.detalleMedios = '';
+    this.cobros = [];
+    this.cobrosTotal = 0;
     if (!caja || !caja.abierta) return;
 
     const apertura = caja.apertura as (SesionCaja['apertura'] & { usuario_nombre?: string | null }) | null;
@@ -590,175 +770,97 @@ export class DashboardComponent implements OnInit {
     if (yape > 0) otros.push(`Yape ${this.soles(yape)}`);
     if (tarjeta > 0) otros.push(`tarjeta ${this.soles(tarjeta)}`);
     this.detalleMedios = otros.join(' · ');
+
+    const medios = construirCobros(metodos);
+    this.cobros = medios.cobros;
+    this.cobrosTotal = medios.total;
   }
 
-  private aplicarVentasHoy(hoy: ReporteVentasApi | null): void {
-    this.ventasHoy = null;
-    this.numVentas = null;
-    this.ticketPromedio = null;
-    if (!hoy || hoy.total_vendido == null) return;
-    this.ventasHoy = numero(hoy.total_vendido);
-    const ventas = (hoy.detalle ?? []).filter((d) => !d.tipo_documento || d.tipo_documento === 'venta');
+  /** Total, ticket promedio, número de ventas y lo más vendido del periodo. */
+  private aplicarVentas(rep: ReporteVentasResumen | null): void {
+    if (!rep || rep.total_vendido == null) {
+      this.topProductos = [];
+      return;
+    }
+    this.ventasPeriodo = numero(rep.total_vendido);
+    const ventas = (rep.detalle ?? []).filter((d) => !d.tipo_documento || d.tipo_documento === 'venta');
     this.numVentas = ventas.length;
     if (ventas.length > 0) {
       const suma = ventas.reduce((s, d) => s + numero(d.total_vendido), 0);
       this.ticketPromedio = suma / ventas.length;
     }
 
-    const maximo = Math.max(0, ...(hoy.top_productos_vendidos ?? []).map((p) => numero(p.cantidad)));
-    this.topProductos = (hoy.top_productos_vendidos ?? []).slice(0, 4).map((p) => {
-      const cantidad = numero(p.cantidad);
-      return {
-        nombre: (p.producto || '').trim() || 'Producto sin descripción',
-        unidades: `${cantidad.toLocaleString('es-PE', { maximumFractionDigits: 2 })} ${cantidad === 1 ? 'unidad' : 'unidades'}`,
-        ancho: maximo > 0 ? Math.max(4, Math.round((cantidad / maximo) * 100)) : 0,
-        monto: numero(p.total),
-      };
-    });
-    this.topCargado = true;
+    this.topProductos = construirTopProductos(rep);
   }
 
-  /** Arma las barras de lunes a hoy con el neto de cada día (los días sin ventas valen 0). */
-  private aplicarSemana(semana: ReporteVentasApi | null): void {
-    this.semanaCargada = true;
-    this.semanaFalla = semana == null;
-    this.semanaConDatos = false;
+  /** «▲ 12 % vs. la semana pasada a esta hora»: hoy hasta la hora actual; ayer, el día completo. */
+  private aplicarComparacion(datos: VentasPorHora | null): void {
+    const hastaHora = this.periodo === 'ayer' ? 23 : new Date().getHours();
+    const t = totalesHasta(datos, hastaHora);
+    if (!t) return;
+    // Si el reporte del día no llegó, los totales salen de las mismas horas.
+    if (this.ventasPeriodo == null) {
+      this.ventasPeriodo = t.total;
+      this.numVentas = t.ventas;
+      this.ticketPromedio = t.ventas > 0 ? t.total / t.ventas : null;
+    }
+    this.deltaVentas = vistaDelta(delta(t.total, t.totalPrevio), this.referenciaDelta);
+    if (t.ventas > 0) {
+      const ticketPrevio = t.ventasPrevio > 0 ? t.totalPrevio / t.ventasPrevio : 0;
+      this.deltaTicket = vistaDelta(delta(t.total / t.ventas, ticketPrevio), this.referenciaDelta);
+    }
+  }
+
+  /** Barras de la semana (lunes a hoy) o del mes (día 1 a hoy) con el neto de cada día. `falla`: la lectura no llegó. */
+  private aplicarDias(rep: ReporteVentasResumen | null, tipo: 'semana' | 'mes', falla: boolean): void {
+    this.diasCargados = true;
+    this.semanaFalla = falla;
+    this.diasConDatos = false;
     this.barras = [];
     this.marcasEje = [];
-    this.resumenSemana = '';
-    this.hallazgoSemana = '';
-    if (!semana) return;
+    this.resumenDias = '';
+    this.hallazgoDias = '';
+    if (!rep) return;
 
     const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const desdeLunes = (hoy.getDay() + 6) % 7;
-    const dias: { clave: string; fecha: Date; total: number }[] = [];
-    for (let i = desdeLunes; i >= 0; i--) {
-      const fecha = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - i);
-      dias.push({ clave: claveDia(fecha), fecha, total: 0 });
-    }
-    for (const d of semana.detalle ?? []) {
-      const dia = dias.find((x) => x.clave === String(d.fecha ?? '').slice(0, 10));
-      if (dia) dia.total += numero(d.total_vendido);
-    }
+    const desde =
+      tipo === 'mes'
+        ? new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+        : new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - ((hoy.getDay() + 6) % 7));
+    const dias = totalesPorDia(diasEntre(desde, hoy), rep.detalle);
+    const grafico = construirBarrasDias(dias);
+    if (!grafico) return;
 
-    const maximo = Math.max(...dias.map((d) => d.total));
-    if (!(maximo > 0)) return;
-    this.semanaConDatos = true;
-
-    const paso = pasoRedondo(maximo / 3);
-    const tope = paso * 3;
-    const alto = G_Y_ABAJO - G_Y_ARRIBA;
-    this.marcasEje = [3, 2, 1, 0].map((nivel) => ({
-      y: G_Y_ABAJO - (alto * nivel) / 3,
-      texto: this.entero(paso * nivel),
-    }));
-
-    const hueco = (G_X1 - G_X0) / dias.length;
-    const ancho = Math.min(44, hueco * 0.55);
-    this.barras = dias.map((d, i) => {
-      const altura = Math.max(0, (d.total / tope) * alto);
-      const esHoy = i === dias.length - 1;
-      const x = G_X0 + hueco * i + (hueco - ancho) / 2;
-      const nombre = DIAS_CORTOS[d.fecha.getDay()];
-      return {
-        x,
-        y: G_Y_ABAJO - altura,
-        ancho,
-        alto: altura,
-        xc: x + ancho / 2,
-        yValor: G_Y_ABAJO - altura - 6,
-        valor: d.total,
-        valorCorto: this.entero(d.total),
-        etiqueta: `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${d.fecha.getDate()}`,
-        titulo: `${DIAS_LARGOS[d.fecha.getDay()]} ${d.fecha.getDate()}: ${this.soles(d.total)}`,
-        esHoy,
-      };
-    });
-
-    const total = dias.reduce((s, d) => s + d.total, 0);
-    const mejor = dias.reduce((a, b) => (b.total > a.total ? b : a));
-    this.resumenSemana = `Ventas netas de lunes a hoy: ${this.soles(total)}.`;
-    this.hallazgoSemana = `El mejor día fue el ${DIAS_LARGOS[mejor.fecha.getDay()]} ${mejor.fecha.getDate()}, con ${this.soles(mejor.total)}.`;
+    this.diasConDatos = true;
+    this.barras = grafico.barras;
+    this.marcasEje = grafico.marcas;
+    const mejor = dias[grafico.mejor];
+    const nombre = mejor.fecha.toLocaleDateString('es-PE', { weekday: 'long' });
+    this.resumenDias = `Ventas netas ${tipo === 'mes' ? 'del mes' : 'de lunes a hoy'}: ${this.soles(grafico.total)}.`;
+    this.hallazgoDias = `El mejor día fue el ${nombre} ${mejor.fecha.getDate()}, con ${this.soles(mejor.total)}.`;
   }
 
-  /** Barras por hora de hoy contra el mismo día de la semana pasada. Eje de 7 a 21 h, ampliado si hay ventas fuera. */
+  /** Barras por hora contra el mismo día de la semana pasada. Eje de 7 a 21 h, ampliado si hay ventas fuera. */
   private aplicarHoras(datos: VentasPorHora | null): void {
     this.horaConDatos = false;
     this.barrasHora = [];
     this.marcasEjeHora = [];
     this.resumenHora = '';
     this.hallazgoHora = '';
-    if (!datos || !Array.isArray(datos.horas)) return;
+    const dia = this.periodo === 'ayer' ? 'ayer' : 'hoy';
+    const grafico = construirBarrasHora(datos, dia);
+    if (!grafico) return;
 
-    const porHora = (lista: VentaPorHora[] | undefined): Map<number, { total: number; ventas: number }> => {
-      const mapa = new Map<number, { total: number; ventas: number }>();
-      for (const h of Array.isArray(lista) ? lista : []) {
-        const hora = Math.trunc(numero(h?.hora));
-        if (hora < 0 || hora > 23) continue;
-        const previo = mapa.get(hora) ?? { total: 0, ventas: 0 };
-        mapa.set(hora, { total: previo.total + numero(h.total), ventas: previo.ventas + numero(h.ventas) });
-      }
-      return mapa;
-    };
-    const hoy = porHora(datos.horas);
-    const prev = porHora(datos.comparacion?.horas);
-    const conVentas = [...hoy.entries(), ...prev.entries()].filter(([, v]) => v.total > 0).map(([h]) => h);
-    if (!conVentas.length) return;
-
-    const desde = Math.min(7, ...conVentas);
-    const hasta = Math.max(21, ...conVentas);
-    const cantidad = hasta - desde + 1;
-    const maximo = Math.max(...conVentas.map((h) => Math.max(hoy.get(h)?.total ?? 0, prev.get(h)?.total ?? 0)));
-    const paso = pasoRedondo(maximo / 3);
-    const tope = paso * 3;
-    const alto = G_Y_ABAJO - G_Y_ARRIBA;
-    this.marcasEjeHora = [3, 2, 1, 0].map((nivel) => ({
-      y: G_Y_ABAJO - (alto * nivel) / 3,
-      texto: this.entero(paso * nivel),
-    }));
-
-    const totalHoy = [...hoy.values()].reduce((s, v) => s + v.total, 0);
-    const totalPrev = [...prev.values()].reduce((s, v) => s + v.total, 0);
-    let pico = -1;
-    for (const [h, v] of hoy) if (v.total > 0 && (pico < 0 || v.total > (hoy.get(pico)?.total ?? 0))) pico = h;
-
-    const hueco = (G_X1 - G_X0) / cantidad;
-    const ancho = Math.min(16, hueco * 0.34);
-    const cadaDos = cantidad > 16;
-    const rotulo = (h: number) => `${dosDigitos(h)}:00`;
-    this.barrasHora = Array.from({ length: cantidad }, (_, i) => {
-      const hora = desde + i;
-      const vHoy = hoy.get(hora) ?? { total: 0, ventas: 0 };
-      const vPrev = prev.get(hora) ?? { total: 0, ventas: 0 };
-      const altoHoy = Math.max(0, (vHoy.total / tope) * alto);
-      const altoPrev = Math.max(0, (vPrev.total / tope) * alto);
-      const xc = G_X0 + hueco * i + hueco / 2;
-      return {
-        hora,
-        etiqueta: `${hora}h`,
-        xc,
-        ancho,
-        xHoy: xc + 1,
-        yHoy: G_Y_ABAJO - altoHoy,
-        altoHoy,
-        xPrev: xc - ancho - 1,
-        yPrev: G_Y_ABAJO - altoPrev,
-        altoPrev,
-        totalHoy: vHoy.total,
-        totalPrev: vPrev.total,
-        valorCorto: this.entero(vHoy.total),
-        yValor: G_Y_ABAJO - altoHoy - 6,
-        esPico: hora === pico,
-        mostrarEtiqueta: !cadaDos || i % 2 === 0,
-        titulo: `${rotulo(hora)} a ${dosDigitos(hora)}:59 · hoy ${this.soles(vHoy.total)} (${vHoy.ventas} ${vHoy.ventas === 1 ? 'venta' : 'ventas'}) · semana pasada ${this.soles(vPrev.total)}`,
-      };
-    });
     this.horaConDatos = true;
-    this.resumenHora = `Hoy ${this.soles(totalHoy)} · el mismo día de la semana pasada, ${this.soles(totalPrev)}.`;
-    this.hallazgoHora = pico >= 0
-      ? `La hora pico fue ${rotulo(pico)}, con ${this.soles(hoy.get(pico)?.total ?? 0)}.`
-      : 'Hoy todavía no hay ventas; en gris, el mismo día de la semana pasada.';
+    this.barrasHora = grafico.barras;
+    this.marcasEjeHora = grafico.marcas;
+    const rotulo = (h: number) => `${dosDigitos(h)}:00`;
+    const quien = dia === 'ayer' ? 'Ayer' : 'Hoy';
+    this.resumenHora = `${quien} ${this.soles(grafico.totalActual)} · el mismo día de la semana pasada, ${this.soles(grafico.totalPrevio)}.`;
+    this.hallazgoHora =
+      grafico.pico >= 0
+        ? `La hora pico fue ${rotulo(grafico.pico)}, con ${this.soles(grafico.totalPico)}.`
+        : `${quien} todavía no hay ventas; en gris, el mismo día de la semana pasada.`;
   }
 
   private aplicarCuentas(cxc: CuentasCobrarApi | null): void {
@@ -773,7 +875,19 @@ export class DashboardComponent implements OnInit {
     this.cxcParcial = this.cxcVencidoCuentas > vencidas.length;
   }
 
-  private entero(valor: number): string {
-    return Math.round(valor).toLocaleString('es-PE');
+  private aplicarActividad(lista: Paginado<ComprobanteFila> | null): void {
+    this.actividadCargada = lista != null;
+    this.actividad = construirActividad(lista?.datos ?? []);
+  }
+
+  /** Solo con más de una sucursal: nombre, barra proporcional al total y cuántos turnos hubo hoy. */
+  private aplicarSucursales(r: ResumenSucursalesCaja | null): void {
+    this.sucursales = construirSucursales(r);
+  }
+
+  /** Ruta y parámetros para abrir un comprobante en Documentos. */
+  readonly rutaDocumentos = `${RUTA}/doc`;
+  parametrosComprobante(id: number): Record<string, number> {
+    return { [PARAMETRO_COMPROBANTE]: id };
   }
 }

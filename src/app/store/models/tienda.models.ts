@@ -203,6 +203,28 @@ export interface PedidoEstado {
   fecha: string;
 }
 
+/** Boleta o factura del pedido, tal como la devuelve el servidor (el motivo solo lo ve el personal). */
+export type EstadoComprobantePedido =
+  | 'aceptado'
+  | 'en_proceso'
+  | 'requiere_revision'
+  | 'rechazado'
+  | 'anulado'
+  | 'sin_comprobante';
+
+export interface PedidoComprobante {
+  estado: EstadoComprobantePedido;
+  id_comprobante?: number;
+  /** B001-123 */
+  numero_formateado?: string;
+  tipo?: 'boleta' | 'factura';
+  estado_sunat?: string;
+  /** El comprador puede bajar el PDF. */
+  puede_descargar: boolean;
+  /** Solo para el personal: por qué el pedido quedó sin comprobante. */
+  motivo?: string;
+}
+
 export interface Pedido {
   id_pedido: number;
   codigo: string;
@@ -222,6 +244,8 @@ export interface Pedido {
   cantidad_items: number;
   items: PedidoItem[];
   historial: PedidoEstado[];
+  /** Solo en el detalle de un pedido (no en los listados). */
+  comprobante?: PedidoComprobante;
   creado_en: string;
 }
 

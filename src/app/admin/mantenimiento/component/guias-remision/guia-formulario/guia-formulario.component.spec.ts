@@ -396,6 +396,140 @@ describe('GuiaFormularioComponent', () => {
     expect(api.modo).toHaveBeenLastCalledWith(true);
   });
 
+  describe('motivos nuevos, moto o auto particular (M1/L) y aviso de guía real (S8)', () => {
+    const CATALOGOS_AMPLIADOS: CatalogosGuia = {
+      ...CATALOGOS,
+      motivos: [
+        ...CATALOGOS.motivos.map((m) => ({ ...m, destinatario_propio: m.codigo === '04' })),
+        { codigo: '02', nombre: 'Compra', descripcion: 'Mercadería que usted compró.', requiere_venta: false, requiere_descripcion: false, requiere_establecimiento: false, requiere_proveedor: true, destinatario_propio: true },
+        { codigo: '14', nombre: 'Venta sujeta a confirmación del comprador', descripcion: 'Sale de una venta.', requiere_venta: true, requiere_descripcion: false, requiere_establecimiento: false },
+        { codigo: '18', nombre: 'Traslado por emisor itinerante de comprobantes de pago', descripcion: 'Sin venta.', requiere_venta: false, requiere_descripcion: false, requiere_establecimiento: false },
+      ],
+    };
+    const q = <T extends HTMLElement>(sel: string) => (fixture.nativeElement as HTMLElement).querySelector(sel) as T | null;
+
+    beforeEach(() => api.catalogos.mockReturnValue(of(CATALOGOS_AMPLIADOS)));
+
+    it('siempre avisa, arriba, que SUNAT no tiene ambiente de pruebas para guías y que esta guía es real', async () => {
+      await crear();
+      const aviso = q('[data-prueba="aviso-guia-real"]')!;
+      expect(aviso.textContent).toContain('SUNAT no tiene ambiente de pruebas para guías');
+      expect(aviso.textContent).toContain('esta guía es real y queda registrada');
+      expect(fixture.nativeElement.textContent).not.toMatch(/nubefact/i);
+    });
+
+    it('con venta ofrece 01 y 14; sin venta, 02, 04, 13 y 18', async () => {
+      await crear({ idVenta: 7 });
+      expect(componente.motivos.map((m) => m.codigo)).toEqual(['01', '14']);
+      componente.cambiarOrigen('sin_venta');
+      expect(componente.motivos.map((m) => m.codigo)).toEqual(['04', '13', '02', '18']);
+    });
+
+    it('la casilla «Va en moto o auto particular (M1/L)» solo sale con transporte privado y oculta placa y conductor', async () => {
+      await crear({ idVenta: 7 });
+      componente.irA('transporte');
+      componente.f.modalidad_traslado = '01';
+      pintar();
+      expect(q('[data-prueba="casilla-m1l"]')).toBeNull();
+
+      componente.f.modalidad_traslado = '02';
+      pintar();
+      expect(q('[data-prueba="casilla-m1l"]')!.textContent).toContain('Va en moto o auto particular (M1/L)');
+      expect(q('#gre-placa')).not.toBeNull();
+      expect(q('#gre-cond-licencia')).not.toBeNull();
+
+      (q<HTMLInputElement>('[data-prueba="casilla-m1l"] input')!).click();
+      pintar();
+      expect(componente.f.traslado_vehiculo_m1l).toBe(true);
+      expect(q('#gre-placa')).toBeNull();
+      expect(q('#gre-cond-licencia')).toBeNull();
+    });
+
+    it('con M1/L el cuerpo lleva el indicador y NO lleva vehículo ni conductor, aunque estén escritos', async () => {
+      await crear({ idVenta: 7 });
+      completarTransportePrivado();
+      componente.f.traslado_vehiculo_m1l = true;
+      api.crear.mockReturnValue(of(guiaGuardada()));
+      componente.guardarBorrador();
+
+      const cuerpo = ultimoCuerpo(api.crear);
+      expect(cuerpo.traslado_vehiculo_m1l).toBe(true);
+      expect(cuerpo.vehiculo).toBeUndefined();
+      expect(cuerpo.conductor).toBeUndefined();
+    });
+
+    it('si se cambia a transporte público el indicador M1/L no viaja', async () => {
+      await crear({ idVenta: 7 });
+      componente.f.modalidad_traslado = '01';
+      componente.f.traslado_vehiculo_m1l = true;
+      componente.f.transportista = { ruc: '20123456789', razon_social: 'TRANSPORTES SAC', registro_mtc: '' };
+      api.crear.mockReturnValue(of(guiaGuardada({ modalidad_traslado: '01' })));
+      componente.guardarBorrador();
+      expect(ultimoCuerpo(api.crear).traslado_vehiculo_m1l).toBeUndefined();
+    });
+
+    it('una guía guardada con M1/L vuelve a abrirse con la casilla marcada', async () => {
+      api.obtener.mockReturnValue(of(guiaGuardada({ traslado_vehiculo_m1l: true, modalidad_traslado: '02' })));
+      await crear({ idGuia: 15 });
+      expect(componente.f.traslado_vehiculo_m1l).toBe(true);
+      expect(componente.enVehiculoM1L).toBe(true);
+    });
+
+    it('compra (02): pide al proveedor, no pide destinatario y manda el proveedor en el cuerpo', async () => {
+      await crear();
+      componente.cambiarOrigen('sin_venta');
+      componente.f.motivo_traslado = '02';
+      componente.f.modalidad_traslado = '01';
+      componente.f.transportista = { ruc: '20123456789', razon_social: 'TRANSPORTES SAC', registro_mtc: '' };
+      componente.agregarProducto({ id_producto: 9, nombre: 'Taladro', sku: 'TAL-1', codigo_barras: '', unidad_medida: 'UND' } as never);
+      componente.irA('transporte');
+      pintar();
+      expect(q('[data-prueba="bloque-proveedor"]')).not.toBeNull();
+      expect(fixture.nativeElement.textContent).toContain('el destinatario es la propia empresa');
+
+      componente.guardarBorrador();
+      expect(api.crear).not.toHaveBeenCalled();
+      expect(componente.error('proveedor.numero_documento')).toContain('a quién le compró');
+
+      componente.f.proveedor = { tipo_documento: '6', numero_documento: '20100066603', denominacion: 'FERRETERIA EL SOL S.A.C.' };
+      api.crear.mockReturnValue(of(guiaGuardada({ id_venta: null, motivo_traslado: '02' })));
+      componente.guardarBorrador();
+      const cuerpo = ultimoCuerpo(api.crear);
+      expect(cuerpo.destinatario).toBeUndefined();
+      expect(cuerpo.proveedor).toEqual({ tipo_documento: '6', numero_documento: '20100066603', denominacion: 'FERRETERIA EL SOL S.A.C.' });
+    });
+
+    it('14 (venta sujeta a confirmación) se maneja como una venta: destinatario de la venta y sin proveedor', async () => {
+      await crear({ idVenta: 7 });
+      componente.f.motivo_traslado = '14';
+      completarTransportePrivado();
+      api.crear.mockReturnValue(of(guiaGuardada({ motivo_traslado: '14' })));
+      componente.guardarBorrador();
+      const cuerpo = ultimoCuerpo(api.crear);
+      expect(cuerpo.motivo_traslado).toBe('14');
+      expect(cuerpo.id_venta).toBe(7);
+      expect(cuerpo.destinatario).toBeDefined();
+      expect(cuerpo.proveedor).toBeUndefined();
+    });
+
+    it('el inicio del traslado no puede pasar de 30 días: error claro; desde 7 días solo un aviso', async () => {
+      await crear({ idVenta: 7 });
+      expect(componente.fechaMaximaInicio).toBe('2026-11-24');
+      completarTransportePrivado();
+
+      componente.f.fecha_inicio_traslado = '2026-11-25';
+      componente.guardarBorrador();
+      expect(api.crear).not.toHaveBeenCalled();
+      expect(componente.error('fecha_inicio_traslado')).toContain('no puede pasar de 30 días después de hoy');
+      expect(componente.paso).toBe('trayecto');
+
+      componente.f.fecha_inicio_traslado = '2026-11-01';
+      expect(componente.avisoInicioLejano).toContain('7 días o más');
+      componente.f.fecha_inicio_traslado = '2026-10-31';
+      expect(componente.avisoInicioLejano).toBe('');
+    });
+  });
+
   describe('escaneo en el buscador de bienes', () => {
     const cemento = { id_producto: 3, nombre: 'Cemento 42.5 kg', sku: 'CEM-01', codigo_barras: '7501234567890', unidad_medida: 'NIU' } as any;
     const enter = () => ({ preventDefault: vi.fn() }) as unknown as Event;

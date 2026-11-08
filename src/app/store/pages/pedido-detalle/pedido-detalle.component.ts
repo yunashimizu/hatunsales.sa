@@ -7,6 +7,7 @@ import { CatalogoService } from '../../service/catalogo.service';
 import { CartService } from '../../service/cart.service';
 import { AlertService, escapeHtml } from '../../../shared/services/alert.service';
 import { mensajeDeError } from '../../../shared/utils/errores-http.util';
+import { descargarArchivo } from '../../../shared/utils/descargar-archivo';
 import { EstadoPedido, Pedido, PedidoItem } from '../../models/tienda.models';
 import { EMPRESA_TIENDA, urlWhatsapp } from '../../config/empresa-tienda.config';
 import { CountUpDirective } from '../../../shared/ui/count-up.directive';
@@ -61,6 +62,33 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destruir$.next();
     this.destruir$.complete();
+  }
+
+  /** Descargando el PDF del comprobante (bloquea el botón). */
+  descargandoComprobante = false;
+
+  /** «Descargar boleta» / «Descargar factura» según lo que pidió el comprador. */
+  get textoDescargaComprobante(): string {
+    return this.pedido?.comprobante?.tipo === 'factura' || this.pedido?.tipo_comprobante?.toLowerCase() === 'factura'
+      ? 'Descargar factura'
+      : 'Descargar boleta';
+  }
+
+  descargarComprobante(): void {
+    const pedido = this.pedido;
+    const comprobante = pedido?.comprobante;
+    if (!pedido || !comprobante?.puede_descargar || this.descargandoComprobante) return;
+    this.descargandoComprobante = true;
+    this.pedidoService.descargarComprobante(pedido.id_pedido).subscribe({
+      next: (pdf) => {
+        this.descargandoComprobante = false;
+        descargarArchivo(pdf, `${comprobante.numero_formateado ?? `comprobante-${pedido.codigo}`}.pdf`);
+      },
+      error: () => {
+        this.descargandoComprobante = false;
+        this.alerta.toast({ type: 'error', title: 'No pudimos descargar tu comprobante. Inténtalo de nuevo en unos minutos.' });
+      },
+    });
   }
 
   get cancelado(): boolean {

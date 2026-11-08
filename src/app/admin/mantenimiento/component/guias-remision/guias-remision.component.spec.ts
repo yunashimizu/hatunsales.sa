@@ -118,11 +118,13 @@ describe('GuiasRemisionComponent', () => {
     consultar: vi.fn(),
     validar: vi.fn(),
     anular: vi.fn(),
+    liberar: vi.fn(),
     pdf: vi.fn(),
     archivo: vi.fn(),
   };
   const alerta = {
     confirmar: vi.fn(async () => true),
+    confirmarPeligro: vi.fn(async () => true),
     pedirTexto: vi.fn(async (): Promise<string | null> => null),
     errorHttp: vi.fn(async () => undefined),
     advertencia: vi.fn(async () => undefined),
@@ -181,7 +183,7 @@ describe('GuiasRemisionComponent', () => {
     await crear();
     const [borrador, enviada, aceptada, rechazada] = filas();
     expect(borrador.querySelector('[data-etiqueta="Estado"]')?.textContent).toContain('Borrador');
-    expect(enviada.querySelector('[data-etiqueta="Estado"]')?.textContent).toContain('Ticket tk-9');
+    expect(enviada.querySelector('[data-etiqueta="Estado"]')?.textContent).toContain('N.º de seguimiento tk-9');
     expect(rechazada.textContent).toContain('El ubigeo de llegada no existe.');
 
     expect(botones(borrador).join('|')).toContain('Emitir a SUNAT la guía Borrador #1');
@@ -253,7 +255,7 @@ describe('GuiasRemisionComponent', () => {
     expect(alerta.confirmar).toHaveBeenCalledWith(expect.objectContaining({ title: '¿Emitir a SUNAT el borrador #1?' }));
     expect(api.emitir).toHaveBeenCalledWith(1);
     fixture.detectChanges();
-    expect(texto()).toContain('En proceso en SUNAT');
+    expect(texto()).toContain('SUNAT lo está procesando');
     expect(texto()).toContain('consulta 1 de 3');
     expect(avisos.info).toHaveBeenCalled();
 
@@ -320,5 +322,93 @@ describe('GuiasRemisionComponent', () => {
     await componente.emitir(componente.guias[1]);
     expect(alerta.errorHttp).toHaveBeenCalledWith(expect.objectContaining({ status: 503 }), 'No se pudo emitir la guía a SUNAT');
     expect(api.modo).toHaveBeenLastCalledWith(true);
+  });
+
+  describe('guía enviada sin respuesta de SUNAT en 7 días (S4)', () => {
+    const sinRespuesta = (cambios: Partial<GuiaRemision> = {}) =>
+      guia(9, 'enviado', {
+        error_mensaje: 'SUNAT no entregó la constancia en 7 días: la consulta automática se detuvo.',
+        acciones: { ...SIN_ACCIONES, puede_consultar: true, puede_liberar: true },
+        envio: {
+          id_envio: 90, estado: 'TICKET_PENDIENTE', codigo: null, mensaje: null, intento: 90, consultas: 89, en_curso: false,
+          revision_manual: true, liberable: true, liberado: false, proximo_intento_en: null, actualizado_en: null,
+        },
+        ...cambios,
+      });
+
+    async function abrirDetalle(): Promise<void> {
+      api.obtener.mockReturnValue(of(sinRespuesta()));
+      parametros.next(convertToParamMap({ guia: '9' }));
+      await crear();
+      fixture.detectChanges();
+    }
+    const botonPie = (etiqueta: string): HTMLButtonElement | undefined =>
+      (Array.from(fixture.nativeElement.querySelectorAll('.gre-detalle__pie button')) as HTMLButtonElement[]).find((b) => b.textContent?.includes(etiqueta));
+
+    it('el administrador ve «Consultar ahora» y «Liberar» en el detalle; el vendedor solo consulta', async () => {
+      rol = { rolNombre: 'admin', rolId: 1 };
+      await abrirDetalle();
+      expect(botonPie('Liberar')).toBeTruthy();
+      expect(botonPie('Consultar ahora')).toBeTruthy();
+      expect(texto()).toContain('SUNAT no resolvió el número de seguimiento en 7 días');
+    });
+
+    it('un vendedor no ve «Liberar» y el método no hace nada si lo llaman', async () => {
+      rol = { rolNombre: 'vendedor', rolId: 3 };
+      await abrirDetalle();
+      expect(botonPie('Liberar')).toBeUndefined();
+      expect(botonPie('Consultar ahora')).toBeTruthy();
+      await componente.liberar(componente.guiaAbierta!);
+      expect(alerta.confirmarPeligro).not.toHaveBeenCalled();
+      expect(api.liberar).not.toHaveBeenCalled();
+    });
+
+    it('liberar pide confirmación de peligro (buscar antes en SUNAT) y, si se cancela, no hace nada', async () => {
+      rol = { rolNombre: 'admin', rolId: 1 };
+      await abrirDetalle();
+      alerta.confirmarPeligro.mockResolvedValueOnce(false);
+
+      await componente.liberar(componente.guiaAbierta!);
+
+      expect(alerta.confirmarPeligro).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: '¿Liberar la guía T001-00000009?',
+          message: expect.stringContaining('búsquela en SUNAT Operaciones en Línea'),
+          confirmText: 'Sí, liberar',
+        }),
+      );
+      expect(api.liberar).not.toHaveBeenCalled();
+    });
+
+    it('confirmada, la libera, deja la guía «pendiente» con su aviso y la fila actualizada', async () => {
+      rol = { rolNombre: 'admin', rolId: 1 };
+      api.listar.mockReturnValue(listado([sinRespuesta()]));
+      await abrirDetalle();
+      const liberada = guia(9, 'pendiente', {
+        error_mensaje: 'La guía T001-00000009 se liberó: SUNAT no respondió el ticket tk-9 en 7 días.',
+        envio: { id_envio: 90, estado: 'PENDIENTE_REENVIO', codigo: null, mensaje: null, intento: 90, consultas: 89, en_curso: false, revision_manual: true, liberable: false, liberado: true, proximo_intento_en: null, actualizado_en: null },
+      });
+      api.liberar.mockReturnValue(of(liberada));
+
+      await componente.liberar(componente.guiaAbierta!);
+      fixture.detectChanges();
+
+      expect(api.liberar).toHaveBeenCalledWith(9);
+      expect(componente.guiaAbierta?.estado).toBe('pendiente');
+      expect(avisos.exito).toHaveBeenCalledWith('Guía T001-00000009 liberada', expect.objectContaining({ mensaje: expect.stringContaining('antes de reenviarla') }));
+      expect(texto()).toContain('Guía liberada: revise antes de reenviar');
+      expect(botonPie('Liberar')).toBeUndefined();
+    });
+
+    it('si liberar falla muestra el error y vuelve a leer la guía', async () => {
+      rol = { rolNombre: 'admin', rolId: 1 };
+      await abrirDetalle();
+      api.liberar.mockReturnValue(throwError(() => ({ status: 409, error: { codigo: 'GRE_LIBERAR_NO_PERMITIDO', message: 'No se puede liberar.' } })));
+
+      await componente.liberar(componente.guiaAbierta!);
+
+      expect(alerta.errorHttp).toHaveBeenCalledWith(expect.objectContaining({ status: 409 }), 'No se pudo liberar la guía');
+      expect(api.obtener.mock.calls.length).toBeGreaterThan(1);
+    });
   });
 });

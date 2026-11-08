@@ -604,6 +604,32 @@ describe('VentasComponent', () => {
       expect(warning).not.toHaveBeenCalled();
     });
 
+    it('con la boleta en modo resumen diario avisa que se informa a SUNAT en el resumen, sin decir que se confirma en segundos', async () => {
+      const toast = vi.spyOn(TestBed.inject(AlertService), 'toast');
+      const warning = vi.spyOn(TestBed.inject(AlertService), 'warning');
+      puntoVentaMock['registrar'].mockReturnValueOnce(of({
+        id_venta: 3,
+        fecha: '2026-11-08',
+        origen: 'mostrador',
+        cliente_denominacion: 'CLIENTES VARIOS',
+        subtotal: 17.11,
+        igv: 3.08,
+        total: 20.19,
+        comprobante: { id_comprobante: 10, numero_formateado: 'B001-00000010', estado: 'pendiente', aceptada_sunat: false, envio_diferido: true, por_resumen: true },
+      }));
+      cargarCarrito(0.2);
+      component.lineasPago = [pago(EFECTIVO, null)];
+      component.preview = crearPreview(0.4);
+
+      component.cobrar();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const titulos = toast.mock.calls.map(([t]) => (t as { title: string }).title);
+      expect(titulos).toContain('Boleta registrada: se informa a SUNAT en el resumen diario');
+      expect(titulos.some((t) => t.includes('en segundos'))).toBe(false);
+      expect(warning).not.toHaveBeenCalled();
+    });
+
     it('con el cálculo del servidor desactualizado no deja cobrar aunque haya un medio elegido', () => {
       cargarCarrito(0.2);
       component.lineasPago = [pago(EFECTIVO, null)];

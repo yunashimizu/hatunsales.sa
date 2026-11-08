@@ -3,40 +3,99 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
+  ViewChild,
   inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, of, switchMap, takeUntil } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, forkJoin, of, switchMap, takeUntil } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { PuntoVentaService } from '../../../service/punto-venta.service';
 import { ReceptorService } from '../../../service/receptor.service';
+import { GestionService } from '../../service/gestion.service';
 import { AuthService } from '../../../../auth/service/auth.service';
 import { rolPermitido } from '../../../../auth/roles.constants';
+import { ColumnaOrdenable, OrdenMovilComponent } from '../../../../shared/components/orden-movil/orden-movil.component';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { ColumnaCsv, exportarCsv } from '../../../../shared/utils/exportar-csv';
+import { urlWhatsappCliente } from '../../../../shared/utils/whatsapp.util';
+import {
+  DefinicionTramo, TRAMOS, Tramo, claveDeudor, diasParaVencer, primerTelefonoValido, soles, textoRecordatorio, tramoDeAtraso,
+} from './cobranza.util';
+import {
+  EstadoOrden, alternarOrden, ariaSort, guardarOrden, iconoOrden, leerOrdenGuardado, ordenarLista,
+} from '../../../../shared/utils/orden-lista';
 import { BusquedaPendiente, filtrarInstantaneo } from '../../../../shared/utils/filtro-instantaneo.util';
 import { mensajeDeError, errorOperativo, escapeHtmlAlerta } from '../../../service/api-base.service';
 import { SugerenciaReceptor } from '../../../models/admin.models';
 import { CountUpDirective } from '../../../../shared/ui/count-up.directive';
 import { RevealDirective } from '../../../../shared/ui/reveal.directive';
 
+const COLUMNAS_ORDEN: ColumnaOrdenable[] = [
+  { clave: 'deudor', titulo: 'Deudor', tipo: 'texto' },
+  { clave: 'venta', titulo: 'Venta', tipo: 'numero' },
+  { clave: 'vence', titulo: 'Vence', tipo: 'fecha' },
+  { clave: 'total', titulo: 'Total', tipo: 'numero' },
+  { clave: 'saldo', titulo: 'Saldo', tipo: 'numero' },
+  { clave: 'estado', titulo: 'Estado', tipo: 'texto' },
+];
+
+/** Respuesta de `credito/cuentas/antiguedad`: importe y cuentas de cada tramo, de todas las cuentas con saldo. */
+export interface AntiguedadServidor {
+  al_dia: { cuentas: number; saldo: number };
+  de_1_a_30: { cuentas: number; saldo: number };
+  de_31_a_60: { cuentas: number; saldo: number };
+  mas_de_60: { cuentas: number; saldo: number };
+}
+
+/** Qué campo del servidor alimenta cada tarjeta. */
+const CAMPO_TRAMO: Record<Tramo, keyof AntiguedadServidor> = {
+  aldia: 'al_dia',
+  d1_30: 'de_1_a_30',
+  d31_60: 'de_31_a_60',
+  d60: 'mas_de_60',
+};
+
+/** Una tarjeta de antigüedad: importe y número de cuentas de un tramo. */
+export interface ResumenTramo extends DefinicionTramo {
+  importe: number;
+  cuentas: number;
+}
+
 @Component({
   selector: 'app-cuentas-por-cobrar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, CountUpDirective, RevealDirective],
+  imports: [CommonModule, FormsModule, RouterLink, CountUpDirective, RevealDirective, OrdenMovilComponent],
   templateUrl: './cuentas-por-cobrar.component.html',
   styleUrl: './cuentas-por-cobrar.component.css',
 })
 export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
   cuentas: any[] = [];
+  /** Tramo de antigüedad elegido en los chips ('' = todos). Filtra la tabla, no los totales. */
+  filtroTramo: Tramo | '' = '';
+  /** Recordatorio de cobro abierto: la cuenta, el teléfono y el texto que el usuario puede editar. */
+  recordatorio: { cuenta: any; telefono: string; texto: string } | null = null;
+  @ViewChild('recordatorioTexto') private recordatorioTexto?: ElementRef<HTMLTextAreaElement>;
+  /** Teléfonos del padrón por deudor (`c:ID` persona, `e:ID` empresa); se cargan una vez. */
+  private telefonos = new Map<string, string>();
+  private padronCargado = false;
+  private memoTramos?: { lista: readonly any[]; resultado: ResumenTramo[] };
+  /** Antigüedad calculada por el servidor sobre todas las cuentas; null mientras llega o si no la tiene (entonces se calcula aquí). */
+  antiguedadServidor: AntiguedadServidor | null = null;
   /** Cuentas cargadas filtradas por el texto escrito (al instante, sin esperar al servidor). */
   cuentasVisibles: readonly any[] = [];
   /** Búsqueda pendiente en el servidor: evita mostrar «sin cuentas» antes de que llegue. */
   readonly busqueda = new BusquedaPendiente();
   total = 0;
+  /** Orden de la tabla: solo cuando la lista llegó completa (ver `listaCompleta`). */
+  orden: EstadoOrden = leerOrdenGuardado('cuentas-por-cobrar', COLUMNAS_ORDEN.map((c) => c.clave));
+  readonly columnasOrden = COLUMNAS_ORDEN;
+  private memoOrden?: { lista: readonly any[]; orden: EstadoOrden; completa: boolean; tramo: Tramo | ''; resultado: readonly any[] };
   cargando = false;
   /** La última carga de cuentas falló (solo para mostrar el estado de error en pantalla; el aviso modal sigue igual). */
   errorCarga = false;
@@ -77,6 +136,7 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
 
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly auth = inject(AuthService);
+  private readonly gestion = inject(GestionService);
   private readonly destruir$ = new Subject<void>();
   private readonly buscar$ = new Subject<string>();
   private readonly filtrarCuentas$ = new Subject<void>();
@@ -157,12 +217,7 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
 
   /** Días hasta el vencimiento (negativo = ya venció; 0 = vence hoy). null si la fecha no es válida. */
   diasPara(c: any): number | null {
-    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(c?.fecha_vencimiento ?? ''));
-    if (!m) return null;
-    const vence = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    return Math.round((vence.getTime() - hoy.getTime()) / 86_400_000);
+    return diasParaVencer(c?.fecha_vencimiento);
   }
 
   /** «Vence en 5 días», «Vence hoy», «Venció hace 7 días» o «Pagada». */
@@ -200,6 +255,153 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
     const total = this.monto(c?.monto_total);
     if (total <= 0) return 0;
     return Math.max(0, Math.min(100, Math.round(((total - this.monto(c?.saldo)) / total) * 100)));
+  }
+
+  // ── Antigüedad de la deuda (cuentas con saldo pendiente, por días de atraso) ──
+
+  /** Tramo de una cuenta, o null si no hay deuda que cobrar (pagada, anulada o sin fecha). */
+  tramoDe(c: any): Tramo | null {
+    if (c?.estado === 'pagado' || c?.estado === 'anulado' || this.monto(c?.saldo) <= 0) return null;
+    const d = this.diasPara(c);
+    return d === null ? null : tramoDeAtraso(-d);
+  }
+
+  /**
+   * Las cuatro tarjetas: lo que calculó el servidor sobre todas las cuentas con saldo si respondió; si no, el cálculo
+   * local sobre las cuentas cargadas (búsqueda aplicada).
+   */
+  get tarjetasTramos(): ResumenTramo[] {
+    const servidor = this.antiguedadServidor;
+    if (!servidor) return this.tramos;
+    return TRAMOS.map((t) => ({
+      ...t,
+      importe: this.monto(servidor[CAMPO_TRAMO[t.clave]]?.saldo),
+      cuentas: this.monto(servidor[CAMPO_TRAMO[t.clave]]?.cuentas),
+    }));
+  }
+
+  /** Cálculo local por tramo, sobre las cuentas visibles; los chips de filtro cuentan lo que hay en la tabla. */
+  get tramos(): ResumenTramo[] {
+    const lista = this.cuentasVisibles;
+    if (this.memoTramos?.lista === lista) return this.memoTramos.resultado;
+    const resultado: ResumenTramo[] = TRAMOS.map((t) => ({ ...t, importe: 0, cuentas: 0 }));
+    for (const c of lista) {
+      const t = this.tramoDe(c);
+      if (!t) continue;
+      const fila = resultado.find((r) => r.clave === t)!;
+      fila.importe += this.monto(c.saldo);
+      fila.cuentas++;
+    }
+    this.memoTramos = { lista, resultado };
+    return resultado;
+  }
+
+  get cuentasEnTramos(): number {
+    return this.tramos.reduce((s, t) => s + t.cuentas, 0);
+  }
+
+  elegirTramo(clave: Tramo | ''): void {
+    this.filtroTramo = this.filtroTramo === clave ? '' : clave;
+  }
+
+  etiquetaTramo(clave: Tramo | ''): string {
+    return TRAMOS.find((t) => t.clave === clave)?.etiqueta ?? '';
+  }
+
+  /** Días de atraso de una cuenta con deuda (0 si no venció). */
+  diasAtraso(c: any): number {
+    const d = this.diasPara(c);
+    return d !== null && d < 0 ? -d : 0;
+  }
+
+  // ── Recordatorio por WhatsApp ──
+
+  /** Teléfono válido (51XXXXXXXXX) del deudor según el padrón, o null. */
+  telefonoDe(c: any): string | null {
+    const delServidor = primerTelefonoValido(c?.telefono);
+    if (delServidor) return delServidor;
+    const clave = claveDeudor(c);
+    return clave ? (this.telefonos.get(clave) ?? null) : null;
+  }
+
+  /** Solo se cobra lo que tiene saldo pendiente. */
+  puedeCobrar(c: any): boolean {
+    return c?.estado !== 'pagado' && c?.estado !== 'anulado' && this.monto(c?.saldo) > 0;
+  }
+
+  /** Los teléfonos vienen del padrón de clientes y empresas: se piden una vez y sin molestar si fallan. */
+  private cargarPadron(): void {
+    if (this.padronCargado) return;
+    this.padronCargado = true;
+    forkJoin([
+      this.gestion.getClientes().pipe(catchError(() => of([] as any[]))),
+      this.receptor.empresas(500).pipe(catchError(() => of([] as any[]))),
+    ]).pipe(takeUntil(this.destruir$)).subscribe(([personas, empresas]) => {
+      const mapa = new Map<string, string>();
+      for (const p of personas ?? []) {
+        const tel = primerTelefonoValido(p?.telefono);
+        if (tel && p?.id_cliente) mapa.set(`c:${Number(p.id_cliente)}`, tel);
+      }
+      for (const e of empresas ?? []) {
+        const tel = primerTelefonoValido(e?.telefonos ?? e?.telefono);
+        if (tel && e?.id_empresa) mapa.set(`e:${Number(e.id_empresa)}`, tel);
+      }
+      this.telefonos = mapa;
+      this.cdr.markForCheck();
+    });
+  }
+
+  abrirRecordatorio(c: any): void {
+    const telefono = this.telefonoDe(c);
+    if (!telefono) return;
+    this.recordatorio = {
+      cuenta: c,
+      telefono,
+      texto: textoRecordatorio({
+        nombre: c.deudor,
+        saldo: c.saldo,
+        idVenta: c.id_venta,
+        comprobante: c.comprobante,
+        fechaVencimiento: c.fecha_vencimiento,
+        dias: this.diasPara(c),
+      }),
+    };
+    this.cdr.markForCheck();
+    setTimeout(() => this.recordatorioTexto?.nativeElement.focus());
+  }
+
+  @HostListener('document:keydown.escape')
+  cerrarRecordatorio(): void {
+    if (!this.recordatorio) return;
+    this.recordatorio = null;
+    this.cdr.markForCheck();
+  }
+
+  /** Enlace wa.me con el texto editado; null si el texto quedó vacío. */
+  get enlaceRecordatorio(): string | null {
+    const r = this.recordatorio;
+    return r && r.texto.trim() ? urlWhatsappCliente(r.telefono, r.texto) : null;
+  }
+
+  enviarRecordatorio(): void {
+    const url = this.enlaceRecordatorio;
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    this.recordatorio = null;
+    this.cdr.markForCheck();
+  }
+
+  /** Importe formateado para textos (también lo usa la plantilla del cuadro). */
+  soles(valor: unknown): string {
+    return soles(valor);
+  }
+
+  /** Ruta de la hoja de estado de cuenta del deudor de la cuenta, o null si no se sabe quién es. */
+  rutaEstadoCuenta(c: any): string[] | null {
+    const clave = claveDeudor(c);
+    if (!clave) return null;
+    const [tipo, id] = clave.split(':');
+    return ['/dashboard/mantenimiento/cuentas-por-cobrar/estado-cuenta', tipo === 'e' ? 'empresa' : 'cliente', id];
   }
 
   get totalSaldo(): number {
@@ -261,6 +463,10 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
 
   identificarCuenta(_i: number, c: any): number {
     return c.id_cxc;
+  }
+
+  identificarTramo(_i: number, t: ResumenTramo): string {
+    return t.clave;
   }
 
   identificarAbono(_i: number, a: any): number | string {
@@ -461,6 +667,9 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
         this.cuentas = resp?.data ?? [];
         this.refiltrar();
         this.total = Number(resp?.total ?? 0);
+        // El servidor ya trae el teléfono en cada cuenta (Fase F0): el padrón solo se pide si alguna cuenta cobrable no lo trae.
+        if (this.cuentas.some((c) => this.puedeCobrar(c) && !primerTelefonoValido(c?.telefono))) this.cargarPadron();
+        this.cargarAntiguedad();
         this.cargando = false;
         alTerminar();
         this.cdr.markForCheck();
@@ -478,6 +687,93 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Pide al servidor la antigüedad exacta (todas las cuentas); si no responde, se queda el cálculo local. */
+  private cargarAntiguedad(): void {
+    this.gestion.getAntiguedadCxc().pipe(takeUntil(this.destruir$)).subscribe({
+      next: (r) => {
+        const valida = r && ['al_dia', 'de_1_a_30', 'de_31_a_60', 'mas_de_60'].every((k) => r[k] && Number.isFinite(Number(r[k].saldo)));
+        this.antiguedadServidor = valida ? r : null;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.antiguedadServidor = null;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /**
+   * El servidor entrega las cuentas de a 50: si hay más, ordenar aquí ordenaría solo esas 50 y
+   * engañaría. Con la lista completa (total ≤ filas cargadas) sí se puede ordenar por columna.
+   */
+  get listaCompleta(): boolean {
+    return this.total <= this.cuentas.length;
+  }
+
+  /** Lo que muestra la tabla: las cuentas visibles (del tramo elegido), ordenadas si la lista está completa. */
+  get cuentasMostradas(): readonly any[] {
+    const completa = this.listaCompleta;
+    const tramo = this.filtroTramo;
+    const m = this.memoOrden;
+    if (m && m.lista === this.cuentasVisibles && m.orden === this.orden && m.completa === completa && m.tramo === tramo) return m.resultado;
+    const orden = this.orden;
+    const base = tramo ? this.cuentasVisibles.filter((c) => this.tramoDe(c) === tramo) : this.cuentasVisibles;
+    const resultado = completa && orden.clave
+      ? ordenarLista(base, (c) => this.valorDeOrden(c, orden.clave!), orden.dir)
+      : base;
+    this.memoOrden = { lista: this.cuentasVisibles, orden, completa, tramo, resultado };
+    return resultado;
+  }
+
+  private valorDeOrden(c: any, clave: string): unknown {
+    switch (clave) {
+      case 'deudor': return c.deudor;
+      case 'venta': return Number(c.id_venta);
+      case 'vence': return c.fecha_vencimiento ? String(c.fecha_vencimiento) : null;
+      case 'total': return this.monto(c.monto_total);
+      case 'saldo': return this.monto(c.saldo);
+      case 'estado': return c.estado;
+      default: return null;
+    }
+  }
+
+  ordenar(clave: string): void {
+    this.fijarOrden(alternarOrden(this.orden, clave));
+  }
+
+  fijarOrden(orden: EstadoOrden): void {
+    this.orden = orden;
+    guardarOrden('cuentas-por-cobrar', orden);
+  }
+
+  ariaSort(clave: string): 'ascending' | 'descending' | 'none' | null {
+    return this.listaCompleta ? ariaSort(this.orden, clave) : null;
+  }
+  iconoOrden(clave: string): string { return iconoOrden(this.orden, clave); }
+
+  /** Descarga las cuentas que se ven (con el orden elegido); si el servidor tiene más, lo dice. */
+  exportarCsv(): void {
+    const filas = this.cuentasMostradas;
+    if (!filas.length) return;
+    const columnas: ColumnaCsv<any>[] = [
+      { titulo: 'Deudor', valor: (c) => c.deudor },
+      { titulo: 'Documento', valor: (c) => (c.documento ? String(c.documento) : '') },
+      { titulo: 'Venta', valor: (c) => (c.comprobante ? String(c.comprobante) : c.id_venta ? `#${c.id_venta}` : '') },
+      { titulo: 'Vence', valor: (c) => (c.fecha_vencimiento ? String(c.fecha_vencimiento).slice(0, 10) : '') },
+      { titulo: 'Días de atraso', valor: (c) => (this.puedeCobrar(c) ? this.diasAtraso(c) : '') },
+      { titulo: 'Total', valor: (c) => this.monto(c.monto_total) },
+      { titulo: 'Saldo', valor: (c) => this.monto(c.saldo) },
+      { titulo: 'Cobrado (%)', valor: (c) => this.pctCobro(c) },
+      { titulo: 'Estado', valor: (c) => c.estado },
+    ];
+    const cuantas = exportarCsv('cuentas-por-cobrar', columnas, filas);
+    this.alerta.toast({
+      type: 'success',
+      title: `CSV descargado: ${cuantas} ${cuantas === 1 ? 'fila' : 'filas'}`,
+      message: this.listaCompleta || this.filtroTexto.trim() ? undefined : `Hay ${this.total} cuentas en total: se exportaron las ${cuantas} que se ven. Filtre por estado para ver otras.`,
+    });
+  }
+
   /** Filtra al instante las cuentas ya cargadas; el servidor completa el resultado en segundo plano. */
   alBuscarCuentas(): void {
     this.busqueda.iniciar();
@@ -487,7 +783,7 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
 
   private refiltrar(): void {
     // Deudor y n.º de venta: lo que se ve en la fila y lo que busca el servidor (credito.repository).
-    this.cuentasVisibles = filtrarInstantaneo(this.cuentas, this.filtroTexto, (c) => [c.deudor, c.id_venta]);
+    this.cuentasVisibles = filtrarInstantaneo(this.cuentas, this.filtroTexto, (c) => [c.deudor, c.id_venta, c.comprobante]);
   }
 
   ver(c: any): void {

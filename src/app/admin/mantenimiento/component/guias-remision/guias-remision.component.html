@@ -175,7 +175,7 @@
                     <div class="adm-tabla__secundario adm-texto-peligro gre-tabla__texto" [attr.title]="g.error_mensaje">{{ g.error_mensaje }}</div>
                   }
                   @if (g.estado === 'enviado' && g.sunat_ticket) {
-                    <div class="adm-tabla__secundario">Ticket {{ g.sunat_ticket }}</div>
+                    <div class="adm-tabla__secundario">N.º de seguimiento {{ g.sunat_ticket }}</div>
                   }
                 </td>
                 <td data-etiqueta="Acciones">
@@ -249,8 +249,8 @@
 @if (panel === 'detalle') {
   <app-guia-detalle [guia]="guiaAbierta" [cargando]="cargandoDetalle" [error]="errorDetalle" [resultado]="resultado"
                     [validacion]="validacion" [modo]="modo" [accion]="accionAbierta" [consultaAutomatica]="consultaAutomatica"
-                    [puedeEscribir]="puedeEscribir"
+                    [puedeEscribir]="puedeEscribir" [esAdmin]="esAdmin"
                     (cerrar)="cerrarPanel()" (recargar)="recargarDetalle()" (editar)="editar($event)" (emitir)="emitir($event)"
-                    (consultar)="consultar($event)" (validar)="validar($event)" (anular)="anular($event)"
+                    (consultar)="consultar($event)" (validar)="validar($event)" (anular)="anular($event)" (liberar)="liberar($event)"
                     (descargar)="descargar($event.guia, $event.tipo)" />
 }

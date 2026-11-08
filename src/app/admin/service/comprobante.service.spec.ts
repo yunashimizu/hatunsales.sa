@@ -81,6 +81,27 @@ describe('ComprobanteService: comprobantes, envíos a SUNAT y notas de crédito'
     confirmacion.flush({ estado: 'emitido', aceptada_sunat: true });
   });
 
+  it('«Reintentar ahora» manda forzar solo cuando se pide; el reintento común sigue con cuerpo vacío', () => {
+    service.reintentar(7, true).subscribe();
+    const forzado = http.expectOne(urlConstants.comprobante.reintentar(7));
+    expect(forzado.request.method).toBe('POST');
+    expect(forzado.request.body).toEqual({ forzar: true });
+    forzado.flush({ estado: 'emitido' });
+
+    service.reintentar(7, false).subscribe();
+    const comun = http.expectOne(urlConstants.comprobante.reintentar(7));
+    expect(comun.request.body).toEqual({});
+    comun.flush({ estado: 'pendiente' });
+  });
+
+  it('«Informar por resumen» es un POST sin cuerpo a /comprobante/:id/resumir', () => {
+    service.informarPorResumen(7).subscribe();
+    const resumen = http.expectOne(`${urlConstants.comprobante.base}/7/resumir`);
+    expect(resumen.request.method).toBe('POST');
+    expect(resumen.request.body).toEqual({});
+    resumen.flush({ id_envio: 70, identificador: 'RC-20261105-00001', comprobantes: 1 });
+  });
+
   it('pide el contexto y emite la nota de crédito con el cuerpo del asistente', () => {
     service.contextoNotaCredito(10).subscribe();
     const contexto = http.expectOne(urlConstants.comprobante.contextoNotaCredito(10));

@@ -37,7 +37,8 @@
 
     <p class="adm-filtros__resumen ped-resumen">
       <i class="bi bi-funnel" aria-hidden="true"></i>
-      <strong class="adm-tabular">{{ pedidosFiltrados.length }}</strong> de {{ pedidos.length }}
+      <strong class="adm-tabular">{{ paginaPedidos.desde }}–{{ paginaPedidos.hasta }}</strong> de {{ pedidosFiltrados.length }}
+      <span *ngIf="hayFiltros && pedidos.length !== pedidosFiltrados.length"> · {{ pedidos.length }} en total</span>
     </p>
   </section>
 
@@ -50,6 +51,12 @@
           <span class="adm-insignia adm-insignia--neutra">{{ pedidosFiltrados.length }}</span>
         </h2>
         <p class="adm-tarjeta__sub">Toque un pedido para ver su detalle y pasarlo al siguiente paso.</p>
+      </div>
+      <div class="adm-tarjeta__extra">
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" id="ped-exportar" (click)="exportarCsv()"
+                [disabled]="!pedidosFiltrados.length" title="Descarga la lista filtrada completa, no solo la página que se ve">
+          <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
+        </button>
       </div>
     </div>
 
@@ -110,21 +117,22 @@
     </div>
 
     <div class="adm-tabla-envoltorio" *ngIf="pedidosFiltrados.length">
+      <app-orden-movil idCampo="ped-orden-movil" [columnas]="columnasOrden" [estado]="orden" (estadoChange)="fijarOrden($event)"></app-orden-movil>
       <table class="adm-tabla adm-tabla--adaptable adm-tabla--adaptable-tablet ped-tabla">
         <thead>
           <tr>
-            <th>Pedido</th>
-            <th class="ped-col-sec">Fecha</th>
-            <th>Cliente</th>
+            <th [attr.aria-sort]="ariaSort('codigo')"><button type="button" class="adm-tabla__orden" (click)="ordenar('codigo')">Pedido <i class="bi" [ngClass]="iconoOrden('codigo')" aria-hidden="true"></i></button></th>
+            <th class="ped-col-sec" [attr.aria-sort]="ariaSort('fecha')"><button type="button" class="adm-tabla__orden" (click)="ordenar('fecha')">Fecha <i class="bi" [ngClass]="iconoOrden('fecha')" aria-hidden="true"></i></button></th>
+            <th [attr.aria-sort]="ariaSort('cliente')"><button type="button" class="adm-tabla__orden" (click)="ordenar('cliente')">Cliente <i class="bi" [ngClass]="iconoOrden('cliente')" aria-hidden="true"></i></button></th>
             <th class="adm-num ped-col-sec">Ítems</th>
-            <th class="adm-num">Total</th>
+            <th class="adm-num" [attr.aria-sort]="ariaSort('total')"><button type="button" class="adm-tabla__orden" (click)="ordenar('total')">Total <i class="bi" [ngClass]="iconoOrden('total')" aria-hidden="true"></i></button></th>
             <th class="ped-col-sec">Pago</th>
-            <th>Estado</th>
+            <th [attr.aria-sort]="ariaSort('estado')"><button type="button" class="adm-tabla__orden" (click)="ordenar('estado')">Estado <i class="bi" [ngClass]="iconoOrden('estado')" aria-hidden="true"></i></button></th>
             <th class="adm-centro">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of pedidosFiltrados; trackBy: identificar" class="ped-fila" (click)="abrir(p)"
+          <tr *ngFor="let p of paginaPedidos.filas; trackBy: identificar" class="ped-fila" (click)="abrir(p)"
               [class.adm-recien-creado]="idDestacado === p.id_pedido"
               [class.adm-fila--seleccionada]="panelAbierto && seleccionado?.id_pedido === p.id_pedido">
             <td data-etiqueta="Pedido" class="ped-td-codigo">
@@ -160,6 +168,8 @@
         </tbody>
       </table>
     </div>
+    <app-pie-paginacion [resultado]="paginaPedidos" etiqueta="Paginación de pedidos"
+                        (paginaChange)="irAPagina($event)" (porPaginaChange)="cambiarFilasPorPagina($event)"></app-pie-paginacion>
     <ng-template #pedSinDato><span class="ped-sin-dato">—</span></ng-template>
   </section>
 </div>
@@ -227,9 +237,25 @@
           <dt class="adm-dato__etiqueta">Cliente</dt>
           <dd class="adm-dato__valor">{{ cliente(p) }}<span class="ped-dato__extra" *ngIf="p.nombre_receptor && p.documento_receptor"> · {{ p.documento_receptor }}</span></dd>
         </div>
-        <div class="adm-dato" *ngIf="etiquetaComprobante(p)">
+        <div class="adm-dato" *ngIf="etiquetaComprobante(p) && !p.comprobante">
           <dt class="adm-dato__etiqueta">Comprobante</dt>
           <dd class="adm-dato__valor">{{ etiquetaComprobante(p) }}</dd>
+        </div>
+        <div class="adm-dato ped-comprobante" *ngIf="estadoComprobante(p) as c" data-prueba="ped-comprobante">
+          <dt class="adm-dato__etiqueta">Comprobante</dt>
+          <dd class="adm-dato__valor">
+            <ng-container *ngIf="p.comprobante?.id_comprobante; else pedSinComprobante">
+              <a class="ped-comprobante__enlace" [routerLink]="rutaDocumentos"
+                 [queryParams]="parametrosComprobante(p.comprobante!.id_comprobante!)"
+                 [attr.aria-label]="'Abrir el comprobante ' + p.comprobante!.numero_formateado + ' en Documentos'">{{ p.comprobante!.numero_formateado }}</a>
+              <span class="adm-insignia adm-insignia--punto adm-insignia--sm ped-comprobante__estado" [ngClass]="'adm-insignia--' + c.tono">{{ c.texto }}</span>
+            </ng-container>
+            <ng-template #pedSinComprobante>
+              <span class="ped-comprobante__pedido" *ngIf="etiquetaComprobante(p)">{{ etiquetaComprobante(p) }} pedida</span>
+              <span class="adm-insignia adm-insignia--punto adm-insignia--sm" [ngClass]="'adm-insignia--' + c.tono">{{ c.texto }}</span>
+              <span class="ped-comprobante__motivo" *ngIf="p.comprobante?.motivo">{{ p.comprobante!.motivo }}</span>
+            </ng-template>
+          </dd>
         </div>
         <div class="adm-dato" *ngIf="p.metodo_envio">
           <dt class="adm-dato__etiqueta">Envío</dt>

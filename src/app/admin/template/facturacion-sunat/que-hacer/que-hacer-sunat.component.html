@@ -1,0 +1,10 @@
+<section class="que-hacer" [class.que-hacer--peligro]="tono === 'peligro'" [class.que-hacer--aviso]="tono === 'aviso'" role="group" [attr.aria-label]="titulo">
+  <div class="que-hacer__titulo">
+    <i class="bi" [ngClass]="tono === 'peligro' ? 'bi-signpost-split' : 'bi-lightbulb'" aria-hidden="true"></i>
+    {{ titulo }}
+  </div>
+  <p class="que-hacer__texto">{{ texto }}</p>
+  <div class="que-hacer__acciones">
+    <ng-content></ng-content>
+  </div>
+</section>

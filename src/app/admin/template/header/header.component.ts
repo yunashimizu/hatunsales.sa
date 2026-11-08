@@ -9,6 +9,7 @@ import {
   Input,
   OnInit,
   Output,
+  ViewChild,
   computed,
   inject,
 } from '@angular/core';
@@ -20,13 +21,18 @@ import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
 import { EstadoFiscalGlobal } from '../../models/fiscal.models';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
 import { BotonTemaComponent } from '../../../shared/ui/boton-tema.component';
+import { ActualizacionAppService } from '../../../shared/ui/actualizacion-app.service';
+import { Densidad, DensidadService } from '../../../shared/ui/densidad.service';
+import { ModoTema, TemaService } from '../../../shared/ui/tema.service';
+import { AyudaAtajosService } from '../ayuda-atajos/ayuda-atajos.service';
+import { NotificacionesComponent } from '../notificaciones/notificaciones.component';
 import { PaletaComandosService } from '../paleta-comandos/paleta-comandos.service';
 
 @Component({
   selector: 'app-header',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterModule, BotonTemaComponent],
+  imports: [CommonModule, RouterModule, BotonTemaComponent, NotificacionesComponent],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
 })
@@ -56,6 +62,9 @@ export class HeaderComponent implements OnInit {
   mostrarEstadoFiscal = false;
   /** El chip lleva al panel fiscal solo si el usuario puede abrirlo. */
   esAdmin = false;
+  /** La campana de avisos solo se ofrece con la sesión iniciada. */
+  mostrarAvisos = false;
+  @ViewChild(NotificacionesComponent) private campana?: NotificacionesComponent;
 
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
@@ -64,6 +73,24 @@ export class HeaderComponent implements OnInit {
   private readonly titleDoc = inject(Title);
   private readonly fiscal = inject(FiscalEstadoService);
   private readonly paleta = inject(PaletaComandosService);
+  private readonly ayudaAtajos = inject(AyudaAtajosService);
+  protected readonly tema = inject(TemaService);
+  protected readonly densidad = inject(DensidadService);
+  /** «Instalar HatunSales» solo aparece cuando el navegador ofrece instalar la app. */
+  protected readonly actualizacion = inject(ActualizacionAppService);
+  /** Opciones del menú de usuario (Tema y Densidad). */
+  protected readonly modosTema: ReadonlyArray<{ valor: ModoTema; etiqueta: string }> = [
+    { valor: 'claro', etiqueta: 'Claro' },
+    { valor: 'oscuro', etiqueta: 'Oscuro' },
+    { valor: 'sistema', etiqueta: 'Sistema' },
+  ];
+  protected readonly densidades: ReadonlyArray<{ valor: Densidad; etiqueta: string }> = [
+    { valor: 'comoda', etiqueta: 'Cómoda' },
+    { valor: 'compacta', etiqueta: 'Compacta' },
+  ];
+  /** La densidad compacta solo tiene efecto con ratón o trackpad: en pantallas táctiles no se ofrece. */
+  protected readonly densidadDisponible =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: fine)').matches;
   /** Atajo de teclado que abre la paleta de comandos (⌘ K en Mac, Ctrl K en el resto). */
   readonly atajoPaleta = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ K' : 'Ctrl K';
   /** Oculto mientras el estado no se pudo leer: el servicio reintenta solo. */
@@ -106,6 +133,42 @@ export class HeaderComponent implements OnInit {
 
   toggleUser(): void {
     this.showUser = !this.showUser;
+    // Un solo menú abierto a la vez: abrir el de usuario cierra la campana.
+    if (this.showUser) this.campana?.cerrar();
+  }
+
+  /** Abrir la campana cierra el menú de usuario. */
+  protected cerrarMenuUsuario(): void {
+    if (!this.showUser) return;
+    this.showUser = false;
+    this.cdr.markForCheck();
+  }
+
+  /** Esc cierra el menú de usuario y devuelve el foco a su botón (la campana lo hace por su cuenta). */
+  @HostListener('document:keydown.escape')
+  protected cerrarConEscape(): void {
+    if (!this.showUser) return;
+    this.showUser = false;
+    this.cdr.markForCheck();
+    document.querySelector<HTMLElement>('.topbar .user-pill')?.focus();
+  }
+
+  protected elegirTema(modo: ModoTema): void {
+    this.tema.elegir(modo);
+  }
+
+  protected elegirDensidad(valor: Densidad): void {
+    this.densidad.fijar(valor);
+  }
+
+  protected abrirAtajos(): void {
+    this.showUser = false;
+    this.ayudaAtajos.abrir();
+  }
+
+  protected instalarApp(): void {
+    this.showUser = false;
+    void this.actualizacion.instalar();
   }
 
   /** Enter/Espacio sobre la píldora (no sobre los enlaces del desplegable, que ya responden solos). */
@@ -134,6 +197,7 @@ export class HeaderComponent implements OnInit {
     this.sesion = this.auth.getSesion();
     this.mostrarEstadoFiscal = this.auth.isLoggedIn() && this.auth.puedeVer(ROLES_ESTADO_FISCAL);
     this.esAdmin = this.mostrarEstadoFiscal && this.auth.puedeVer(['admin']);
+    this.mostrarAvisos = this.auth.isLoggedIn();
     if (this.mostrarEstadoFiscal) this.fiscal.iniciar();
   }
 

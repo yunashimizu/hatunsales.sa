@@ -8,7 +8,7 @@
         <span class="adm-cabecera__eyebrow">Reportes</span>
         <h1 class="adm-cabecera__titulo">Reportes de ventas</h1>
         <p class="adm-cabecera__sub">
-          Indicadores, tendencia y ranking de clientes por periodo. Descargue el mismo reporte en Excel o PDF.
+          Indicadores, tendencia y ranking de clientes por periodo o por fechas. Descargue el mismo reporte en Excel, PDF o CSV; el administrador también el registro de ventas para el SIRE.
         </p>
       </div>
     </div>
@@ -20,8 +20,8 @@
         <button type="button"
                 class="adm-segmento rep-seg"
                 *ngFor="let p of periodos"
-                [class.adm-segmento--activo]="periodo === p.id"
-                [attr.aria-pressed]="periodo === p.id"
+                [class.adm-segmento--activo]="periodo === p.id && !rango"
+                [attr.aria-pressed]="periodo === p.id && !rango"
                 [title]="p.plan"
                 (click)="elegirPeriodo(p.id)"
                 [disabled]="cargando">
@@ -33,17 +33,96 @@
     </div>
 
     <div class="adm-acciones rep-barra__acciones">
-      <button type="button" class="adm-btn adm-btn--suave" (click)="cargar()" [disabled]="cargando"
+      <button type="button" class="adm-btn adm-btn--suave rep-actualizar" (click)="cargar()" [disabled]="cargando"
               title="Volver a consultar el periodo seleccionado">
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
         Actualizar
       </button>
+      @if (puedeSire) {
+        <div class="rep-sire">
+          <button type="button" class="adm-btn adm-btn--suave rep-sire__boton" id="rep-sire-boton"
+                  aria-haspopup="dialog" [attr.aria-expanded]="sireAbierto" aria-controls="rep-sire-panel"
+                  (click)="abrirSire()"
+                  title="Descargar el registro de ventas de un mes para el SIRE de SUNAT">
+            <i class="bi bi-journal-arrow-down" aria-hidden="true"></i>
+            Registro de ventas (SIRE)
+            <i class="bi rep-sire__flecha" [ngClass]="sireAbierto ? 'bi-chevron-up' : 'bi-chevron-down'" aria-hidden="true"></i>
+          </button>
+
+          @if (sireAbierto) {
+            <div class="rep-sire__panel" id="rep-sire-panel" role="dialog" aria-labelledby="rep-sire-titulo">
+              <h2 class="rep-sire__titulo" id="rep-sire-titulo">Registro de ventas para el SIRE</h2>
+              <p class="rep-sire__texto">
+                Las facturas, boletas y notas del mes aceptadas por SUNAT (las de crédito van en negativo), listas para su contador.
+              </p>
+              <label class="adm-etiqueta" for="rep-sire-mes">Mes</label>
+              <select id="rep-sire-mes" class="adm-select" name="mesSire" [(ngModel)]="mesSire" [disabled]="!!descargandoSire">
+                @for (mes of mesesSire; track mes.valor) {
+                  <option [value]="mes.valor">{{ mes.etiqueta }}</option>
+                }
+              </select>
+              <div class="rep-sire__botones">
+                <button type="button" class="adm-btn adm-btn--primario" id="rep-sire-txt"
+                        (click)="descargarSire('txt')" [disabled]="!!descargandoSire"
+                        title="Archivo de texto con la estructura del Registro de Ventas e Ingresos Electrónico">
+                  <i class="bi" [ngClass]="descargandoSire === 'txt' ? 'bi-arrow-repeat adm-girando' : 'bi-filetype-txt'" aria-hidden="true"></i>
+                  TXT para el SIRE
+                </button>
+                <button type="button" class="adm-btn adm-btn--suave" id="rep-sire-csv"
+                        (click)="descargarSire('csv')" [disabled]="!!descargandoSire"
+                        title="Las mismas filas con cabeceras, para revisarlas en Excel">
+                  <i class="bi" [ngClass]="descargandoSire === 'csv' ? 'bi-arrow-repeat adm-girando' : 'bi-filetype-csv'" aria-hidden="true"></i>
+                  CSV para el contador
+                </button>
+              </div>
+              <p class="rep-sire__aviso" role="note">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                <span>{{ avisoSire }}</span>
+              </p>
+              @if (resumenSire; as resumen) {
+                <div class="rep-sire__resumen" role="status">
+                  <strong>
+                    @if (resumen.filas === 0) {
+                      El mes no tiene ventas aceptadas por SUNAT: el archivo va vacío.
+                    } @else {
+                      {{ resumen.filas }} {{ resumen.filas === 1 ? 'comprobante' : 'comprobantes' }} en el archivo
+                      @if (resumen.anulados) {
+                        ({{ resumen.anulados }} {{ resumen.anulados === 1 ? 'dado de baja, en cero' : 'dados de baja, en cero' }})
+                      }
+                    }
+                  </strong>
+                  @if (omitidosSire.length) {
+                    <span>Quedaron fuera: {{ omitidosSire.join('; ') }}.</span>
+                  }
+                  @if (resumen.en_dolares) {
+                    <span>{{ resumen.en_dolares }} en dólares: el tipo de cambio queda vacío, complételo en el SIRE.</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
       <button type="button" class="adm-btn adm-btn--suave reporte-btn-excel"
               (click)="exportarExcel()"
               [disabled]="!!exportando || cargando"
               title="Descargar el reporte del periodo en Excel">
         <i class="bi" [ngClass]="exportando === 'excel' ? 'bi-arrow-repeat adm-girando' : 'bi-file-earmark-excel'" aria-hidden="true"></i>
         Excel
+      </button>
+      <button type="button" class="adm-btn adm-btn--suave reporte-btn-csv" id="rep-csv"
+              (click)="exportarCsv()"
+              [disabled]="cargando || !detalle.length"
+              title="Descargar el detalle del periodo en CSV">
+        <i class="bi bi-filetype-csv" aria-hidden="true"></i>
+        CSV
+      </button>
+      <button type="button" class="adm-btn adm-btn--suave reporte-btn-imprimir"
+              (click)="imprimir()"
+              [disabled]="cargando || errorCarga"
+              title="Imprimir esta pantalla (sin el menú ni los botones)">
+        <i class="bi bi-printer" aria-hidden="true"></i>
+        Imprimir
       </button>
       <button type="button" class="adm-btn adm-btn--primario"
               (click)="exportarPdf()"
@@ -56,12 +135,46 @@
   </header>
 
   <!-- Plan del periodo y rango de fechas -->
-  <div class="rep-periodo__info" *ngIf="planTexto" aria-label="Plan del periodo" aria-live="polite">
-    <p class="rep-periodo__plan"><strong>{{ periodoActivo.etiqueta }}</strong> · {{ planTexto }}</p>
-    <span class="reporte-rango" *ngIf="fechaInicio && fechaFin">
-      <i class="bi bi-calendar-range" aria-hidden="true"></i>
-      <span>{{ fechaCorta(fechaInicio) }} — {{ fechaCorta(fechaFin) }}</span>
-    </span>
+  <div class="rep-periodo__info" aria-label="Plan del periodo" aria-live="polite">
+    <p class="rep-periodo__plan" *ngIf="textoPlan"><strong>{{ etiquetaActiva }}</strong> · {{ textoPlan }}</p>
+
+    <div class="rep-fechas">
+      <button type="button" class="reporte-rango rep-fechas__boton" id="rep-fechas-boton"
+              aria-haspopup="dialog" [attr.aria-expanded]="fechasAbiertas" aria-controls="rep-fechas-panel"
+              (click)="abrirFechas()" title="Elegir fechas">
+        <i class="bi bi-calendar-range" aria-hidden="true"></i>
+        <span>{{ fechaInicio && fechaFin ? fechaCorta(fechaInicio) + ' — ' + fechaCorta(fechaFin) : 'Elegir fechas' }}</span>
+        <i class="bi rep-fechas__flecha" [ngClass]="fechasAbiertas ? 'bi-chevron-up' : 'bi-chevron-down'" aria-hidden="true"></i>
+      </button>
+
+      <div class="rep-fechas__panel" id="rep-fechas-panel" role="dialog" aria-label="Elegir fechas del reporte" *ngIf="fechasAbiertas">
+        <ul class="rep-fechas__lista">
+          <li *ngFor="let p of presets">
+            <button type="button" class="rep-fechas__preset"
+                    [attr.aria-pressed]="presetActivo === p.id || (p.id === 'personalizado' && personalizando)"
+                    [class.rep-fechas__preset--activo]="presetActivo === p.id || (p.id === 'personalizado' && personalizando)"
+                    (click)="elegirPreset(p.id)">
+              {{ p.etiqueta }}
+            </button>
+          </li>
+        </ul>
+
+        <form class="rep-fechas__rango" *ngIf="personalizando" (ngSubmit)="aplicarPersonalizado()" novalidate>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="rep-desde">Desde</label>
+            <input id="rep-desde" name="desde" class="adm-input" type="date" [(ngModel)]="fechaDesde"
+                   [attr.aria-invalid]="errorFechas ? true : null" [attr.aria-describedby]="errorFechas ? 'rep-error-fechas' : null">
+          </div>
+          <div class="adm-campo">
+            <label class="adm-etiqueta" for="rep-hasta">Hasta</label>
+            <input id="rep-hasta" name="hasta" class="adm-input" type="date" [(ngModel)]="fechaHasta"
+                   [attr.aria-invalid]="errorFechas ? true : null" [attr.aria-describedby]="errorFechas ? 'rep-error-fechas' : null">
+          </div>
+          <p class="adm-ayuda adm-ayuda--error rep-fechas__error" id="rep-error-fechas" role="alert" *ngIf="errorFechas">{{ errorFechas }}</p>
+          <button type="submit" class="adm-btn adm-btn--primario adm-btn--sm rep-fechas__aplicar">Aplicar</button>
+        </form>
+      </div>
+    </div>
   </div>
 
   <!-- Error de carga: sustituye a los indicadores en cero y a los vacíos engañosos -->
@@ -82,6 +195,17 @@
             Ventas netas del periodo
           }
         </div>
+        @if (deltaTotal; as d) {
+          <div class="rep-delta">
+            <span class="adm-delta" [class.adm-delta--sube]="d.tipo === 'sube'" [class.adm-delta--baja]="d.tipo === 'baja'">
+              @if (d.signo) { <span class="adm-delta__signo" aria-hidden="true">{{ d.signo }}</span> }
+              <span class="adm-delta__valor">{{ d.texto }}</span>
+              <span class="adm-delta__ref">{{ referenciaPrevio }}</span>
+            </span>
+          </div>
+        } @else if (comparando) {
+          <div class="rep-delta" aria-hidden="true"><span class="adm-esqueleto rep-delta__esqueleto"></span></div>
+        }
       </div>
     </div>
     <div class="adm-metrica">
@@ -90,6 +214,17 @@
         <div class="adm-metrica__valor" [attr.aria-hidden]="cargando ? 'true' : null"><span [hsCountUp]="cantidadComprobantes"></span></div>
         <div class="adm-metrica__etiqueta">Comprobantes</div>
         <div class="adm-metrica__delta">Documentos de venta</div>
+        @if (deltaComprobantes; as d) {
+          <div class="rep-delta">
+            <span class="adm-delta" [class.adm-delta--sube]="d.tipo === 'sube'" [class.adm-delta--baja]="d.tipo === 'baja'">
+              @if (d.signo) { <span class="adm-delta__signo" aria-hidden="true">{{ d.signo }}</span> }
+              <span class="adm-delta__valor">{{ d.texto }}</span>
+              <span class="adm-delta__ref">{{ referenciaPrevio }}</span>
+            </span>
+          </div>
+        } @else if (comparando) {
+          <div class="rep-delta" aria-hidden="true"><span class="adm-esqueleto rep-delta__esqueleto"></span></div>
+        }
       </div>
     </div>
     <div class="adm-metrica">
@@ -98,6 +233,17 @@
         <div class="adm-metrica__valor" [attr.aria-hidden]="cargando ? 'true' : null"><span [hsCountUp]="ticketPromedio" [hsDecimales]="2" hsPrefijo="S/ "></span></div>
         <div class="adm-metrica__etiqueta">Ticket promedio</div>
         <div class="adm-metrica__delta">Por comprobante</div>
+        @if (deltaTicket; as d) {
+          <div class="rep-delta">
+            <span class="adm-delta" [class.adm-delta--sube]="d.tipo === 'sube'" [class.adm-delta--baja]="d.tipo === 'baja'">
+              @if (d.signo) { <span class="adm-delta__signo" aria-hidden="true">{{ d.signo }}</span> }
+              <span class="adm-delta__valor">{{ d.texto }}</span>
+              <span class="adm-delta__ref">{{ referenciaPrevio }}</span>
+            </span>
+          </div>
+        } @else if (comparando) {
+          <div class="rep-delta" aria-hidden="true"><span class="adm-esqueleto rep-delta__esqueleto"></span></div>
+        }
       </div>
     </div>
     <div class="adm-metrica">
@@ -174,23 +320,36 @@
         <p>No hay ventas registradas en este periodo.</p>
       </div>
 
-      <!-- Columnas: vista general de un vistazo (el detalle exacto está en la lista de abajo) -->
-      <div class="rep-grafico" *ngIf="serie.length" aria-hidden="true">
-        <div class="rep-grafico__eje">
+      <!-- Columnas: vista general de un vistazo (el detalle exacto está en la lista de abajo y en el tooltip) -->
+      <div class="rep-grafico" *ngIf="serie.length" role="group"
+           aria-label="Gráfico de columnas con lo vendido en cada tramo del periodo. Use las flechas para recorrerlas; los valores exactos están en la lista que sigue.">
+        <div class="rep-grafico__eje" aria-hidden="true">
           <span>{{ monedaCorta(maxSerie) }}</span>
           <span>{{ monedaCorta(maxSerie / 2) }}</span>
           <span>S/ 0</span>
         </div>
         <div class="rep-grafico__area">
           <div class="rep-columna" *ngFor="let p of serie; trackBy: identificarSerie; let i = index"
+               role="img" [attr.aria-label]="textoColumna(p)" [attr.tabindex]="i === indiceFoco ? 0 : -1"
                [class.rep-columna--pico]="p.porcentaje === 100"
                [class.rep-columna--neg]="p.total < 0"
+               [class.rep-columna--activa]="tooltipColumna?.indice === i"
                [style.--n]="p.porcentaje" [style.--i]="i"
-               [title]="p.etiqueta + ' · ' + moneda(p.total) + ' · ' + p.cantidad + ' comprobante' + (p.cantidad === 1 ? '' : 's')">
+               (mouseenter)="activarColumna(i, $event)" (mouseleave)="cerrarTooltipColumna()"
+               (focus)="activarColumna(i, $event)" (blur)="cerrarTooltipColumna()" (click)="activarColumna(i, $event)"
+               (keydown)="teclaColumna($event, i)">
             <i></i>
           </div>
+          @if (tooltipColumna && puntoTooltip; as t) {
+            <div class="adm-tooltip-grafico rep-tooltip" aria-hidden="true"
+                 [style.left.px]="tooltipColumna.izquierda" [style.top.px]="tooltipColumna.arriba">
+              <strong class="adm-tooltip-grafico__titulo">{{ t.etiqueta }}</strong>
+              <span class="adm-tooltip-grafico__linea"><i class="adm-tooltip-grafico__punto"></i><b>{{ moneda(t.total) }}</b></span>
+              <span class="adm-tooltip-grafico__linea">{{ t.cantidad }} comprobante{{ t.cantidad === 1 ? '' : 's' }}</span>
+            </div>
+          }
         </div>
-        <div class="rep-grafico__x">
+        <div class="rep-grafico__x" aria-hidden="true">
           <span>{{ serie[0].etiqueta }}</span>
           <span>{{ serie[serie.length - 1].etiqueta }}</span>
         </div>
@@ -214,6 +373,8 @@
         <span class="adm-spinner"></span>
       </div>
     </section>
+
+    <div class="rep-lateral">
 
     <!-- Top clientes -->
     <section class="adm-tarjeta reporte-top">
@@ -276,7 +437,60 @@
         <span class="adm-spinner"></span>
       </div>
     </section>
+
+    <!-- Por tipo de comprobante -->
+    <section class="adm-tarjeta rep-tipos" aria-labelledby="rep-tipos-titulo">
+      <div class="adm-tarjeta__cabecera">
+        <div class="adm-tarjeta__encabezado">
+          <h2 class="adm-tarjeta__titulo" id="rep-tipos-titulo"><i class="bi bi-receipt-cutoff"></i> Por tipo de comprobante</h2>
+          <p class="adm-tarjeta__sub">Cuánto se vendió en facturas y en boletas.</p>
+        </div>
+      </div>
+
+      <div class="adm-vacio adm-vacio--compacto" *ngIf="!cargando && !textoTipos">
+        <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-receipt" aria-hidden="true"></i></div>
+        <div class="adm-vacio__titulo">Sin facturas ni boletas</div>
+        <p>No hay ventas con comprobante en este periodo.</p>
+      </div>
+
+      <div class="rep-tipos__cuerpo" *ngIf="textoTipos">
+        <div class="rep-tipos__barra" role="img" [attr.aria-label]="'Reparto de lo vendido: ' + textoTipos">
+          <ng-container *ngFor="let t of tiposDeVenta">
+            <span class="rep-tipos__tramo" *ngIf="t.porcentaje > 0" [ngClass]="claseTipo(t)" [style.flex-grow]="t.porcentaje"></span>
+          </ng-container>
+        </div>
+
+        <table class="adm-tabla rep-tipos__tabla">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th class="adm-num" title="Cantidad de comprobantes">Cant.</th>
+              <th class="adm-num">Total</th>
+              <th class="adm-num">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of tiposDeVenta">
+              <td><span class="rep-tipos__punto" [ngClass]="claseTipo(t)" aria-hidden="true"></span> {{ t.tipo }}</td>
+              <td class="adm-num">{{ t.cantidad }}</td>
+              <td class="adm-num"><strong class="reporte-monto">{{ moneda(t.total) }}</strong></td>
+              <td class="adm-num">{{ t.porcentaje | number:'1.0-0' }} %</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="rep-tipos__notas" *ngIf="!cargando && (notasCredito.cantidad || notasDebito.cantidad || textoTipos)">
+        Notas de crédito: <strong>{{ notasCredito.cantidad }}</strong> (−{{ moneda(notasCredito.total) }})
+        · Notas de débito: <strong>{{ notasDebito.cantidad }}</strong> (+{{ moneda(notasDebito.total) }})
+      </p>
+    </section>
+
+    </div>
   </div>
+
+  <!-- Análisis de mercado: rentabilidad, stock estancado y mapa de calor (solo con el reporte ya cargado) -->
+  <app-reporte-mercado *ngIf="rangoMercado" [rango]="rangoMercado" [admin]="puedeSire"></app-reporte-mercado>
 
   <!-- Detalle -->
   <section class="adm-tarjeta adm-tarjeta--acento reporte-detalle">

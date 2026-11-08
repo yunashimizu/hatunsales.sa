@@ -10,6 +10,7 @@ import {
   Output,
   inject,
 } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Subscription, finalize } from 'rxjs';
@@ -21,7 +22,13 @@ import {
   ResultadoAsignacionCodigoSunat,
 } from '../../../service/producto-admin.service';
 
+import { buscarClases, CatalogoSunat25, ClaseCatalogo25, leerCatalogo25, RUTA_CATALOGO_25 } from './catalogo-sunat-25';
+
 const LIMITE_LISTA = 500;
+/** Resultados que muestra el buscador a la vez. */
+const RESULTADOS_BUSCADOR = 8;
+/** Marca del buscador de «Código para los seleccionados». */
+export const BUSQUEDA_LOTE = -1;
 const CODIGO_VALIDO = /^\d{8}$/;
 const MENSAJE_CODIGO = 'El código SUNAT debe tener 8 dígitos';
 
@@ -54,6 +61,16 @@ export class ProductosSinCodigoComponent implements OnInit {
   /** Producto que se está guardando ahora; `-1` mientras corre la asignación en bloque. */
   idEnProceso: number | null = null;
 
+  /** Buscador abierto: id del producto, `BUSQUEDA_LOTE` para el código de los seleccionados, o null. */
+  busquedaAbierta: number | null = null;
+  textoBusqueda = '';
+  resultados: ClaseCatalogo25[] = [];
+  catalogo: CatalogoSunat25 | null = null;
+  cargandoCatalogo = false;
+  errorCatalogo = false;
+  readonly BUSQUEDA_LOTE = BUSQUEDA_LOTE;
+
+  private readonly http = inject(HttpClient);
   private readonly productosApi = inject(ProductoAdminService);
   private readonly alerta = inject(AlertService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -106,6 +123,73 @@ export class ProductosSinCodigoComponent implements OnInit {
           this.productos = [];
           this.total = 0;
           this.error = mensajeDeError(e, 'No se pudo consultar los productos sin código SUNAT');
+        },
+      });
+  }
+
+  // ── Buscador del catálogo 25 ──────────────────────────────────────
+
+  /** Abre (o cierra) el buscador de una fila; la lista del catálogo se baja una sola vez. */
+  alternarBusqueda(id: number): void {
+    if (this.busquedaAbierta === id) {
+      this.cerrarBusqueda();
+      return;
+    }
+    this.busquedaAbierta = id;
+    this.textoBusqueda = '';
+    this.resultados = [];
+    this.cargarCatalogo();
+    // El cursor va al cuadro de búsqueda en cuanto aparece.
+    setTimeout(() => document.getElementById(`${id === BUSQUEDA_LOTE ? 'sin-codigo-buscador-lote' : 'sin-codigo-buscador-' + id}-texto`)?.focus());
+  }
+
+  cerrarBusqueda(): void {
+    this.busquedaAbierta = null;
+    this.textoBusqueda = '';
+    this.resultados = [];
+    this.cdr.markForCheck();
+  }
+
+  alBuscar(texto: string): void {
+    this.textoBusqueda = texto;
+    this.resultados = this.catalogo ? buscarClases(this.catalogo.clases, texto, RESULTADOS_BUSCADOR) : [];
+  }
+
+  /** Elegir un resultado rellena el código de la fila (o el del lote) y cierra el buscador. */
+  elegir(clase: ClaseCatalogo25): void {
+    const id = this.busquedaAbierta;
+    if (id === null) return;
+    if (id === BUSQUEDA_LOTE) this.codigoLote = clase.codigo;
+    else this.codigos[id] = clase.codigo;
+    this.cerrarBusqueda();
+  }
+
+  reintentarCatalogo(): void {
+    this.errorCatalogo = false;
+    this.cargarCatalogo();
+  }
+
+  private cargarCatalogo(): void {
+    if (this.catalogo || this.cargandoCatalogo) return;
+    this.cargandoCatalogo = true;
+    this.http
+      .get<unknown>(RUTA_CATALOGO_25)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.cargandoCatalogo = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (crudo) => {
+          this.catalogo = leerCatalogo25(crudo);
+          this.errorCatalogo = this.catalogo.clases.length === 0;
+          // Si ya se había escrito algo mientras bajaba la lista, se busca ahora.
+          this.alBuscar(this.textoBusqueda);
+        },
+        error: () => {
+          this.errorCatalogo = true;
         },
       });
   }

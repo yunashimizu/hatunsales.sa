@@ -1,7 +1,25 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { urlConstants } from '../../../constants/urlConstants';
+import { peticionSilenciosa } from '../../../interceptors/contexto-http';
+
+/** Días de Lima (AAAA-MM-DD). */
+export interface RangoReporteVentas {
+  desde?: string;
+  hasta?: string;
+}
+
+/** Lo que el servidor dice del Registro de ventas (SIRE) generado: qué entró y qué quedó fuera (cabecera `X-Rvie-Resumen`). */
+export interface ResumenRegistroVentasSire {
+  periodo: string;
+  filas: number;
+  anulados: number;
+  por_tipo: { factura: number; boleta: number; nota_credito: number; nota_debito: number };
+  en_dolares: number;
+  omitidos: { pruebas: number; con_error: number; rechazados: number; sin_aceptar: number; anulados_sin_sunat: number };
+  aviso: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class GestionService {
@@ -30,36 +48,79 @@ export class GestionService {
     );
   }
 
+  /**
+   * Deuda por antigüedad calculada en el servidor (`credito/cuentas/antiguedad`, Fase F0): suma TODAS las cuentas con saldo,
+   * no solo las que carga la lista. Silenciosa: si el servidor aún no la tiene, la pantalla calcula con las cuentas cargadas.
+   */
+  getAntiguedadCxc(): Observable<any> {
+    return this.http.get<any>(`${urlConstants.credito.cuentas}/antiguedad`, {
+      headers: this.getHeaders(),
+      withCredentials: true,
+      context: peticionSilenciosa(),
+    });
+  }
+
   getUsuarios(): Observable<any[]> {
     return this.http.get<any>(urlConstants.usuario.base, { headers: this.getHeaders(), withCredentials: true }).pipe(
       map((response: any) => Array.isArray(response) ? response : response?.data ?? [])
     );
   }
 
-  getReportesVentas(periodo = 'diario'): Observable<any> {
+  /**
+   * Con `rango` (desde y hasta, AAAA-MM-DD de Lima) el servidor filtra por esas fechas y usa `periodo`
+   * solo para agrupar la tendencia. Sin rango, o con uno incompleto, manda solo el periodo como siempre.
+   */
+  getReportesVentas(
+    periodo = 'diario',
+    rango?: RangoReporteVentas,
+    opciones: { silenciosa?: boolean } = {},
+  ): Observable<any> {
     return this.http.get<any>(urlConstants.reportes.ventas, {
       headers: this.getHeaders(),
       withCredentials: true,
-      params: { periodo },
+      params: this.paramsReporte(periodo, rango),
+      ...(opciones.silenciosa ? { context: peticionSilenciosa() } : {}),
     });
   }
 
-  exportReportesVentasExcel(periodo = 'diario'): Observable<Blob> {
+  exportReportesVentasExcel(periodo = 'diario', rango?: RangoReporteVentas): Observable<Blob> {
     return this.http.get(urlConstants.reportes.ventasExcel, {
       headers: this.getHeaders(),
       withCredentials: true,
-      params: { periodo },
+      params: this.paramsReporte(periodo, rango),
       responseType: 'blob',
     });
   }
 
-  exportReportesVentasPdf(periodo = 'diario'): Observable<Blob> {
+  exportReportesVentasPdf(periodo = 'diario', rango?: RangoReporteVentas): Observable<Blob> {
     return this.http.get(urlConstants.reportes.ventasPdf, {
+      headers: this.getHeaders(),
+      withCredentials: true,
+      params: this.paramsReporte(periodo, rango),
+      responseType: 'blob',
+    });
+  }
+
+  /**
+   * Registro de ventas para el SIRE (RVIE) de un mes (`AAAAMM`): el TXT de importación o el CSV con cabeceras para el contador.
+   * Solo administrador. Devuelve la respuesta completa: el nombre del archivo viene en `Content-Disposition` y el resumen
+   * (qué entró y qué quedó fuera) en `X-Rvie-Resumen`.
+   */
+  descargarRegistroVentasSire(periodo: string, formato: 'txt' | 'csv'): Observable<HttpResponse<Blob>> {
+    const ruta = formato === 'csv' ? 'rvie.csv' : 'rvie';
+    return this.http.get(`${urlConstants.reportes.ventas}/${ruta}`, {
       headers: this.getHeaders(),
       withCredentials: true,
       params: { periodo },
       responseType: 'blob',
+      observe: 'response',
     });
+  }
+
+  private paramsReporte(periodo: string, rango?: RangoReporteVentas): Record<string, string> {
+    return rango?.desde && rango?.hasta
+      ? { periodo, fecha_inicio: rango.desde, fecha_fin: rango.hasta }
+      : { periodo };
   }
 
   getStockResumen(): Observable<any> {

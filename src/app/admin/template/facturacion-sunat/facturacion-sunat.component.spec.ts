@@ -14,7 +14,7 @@ function configuracionPrueba(): ConfiguracionSunat {
     proveedor_efectivo: 'nubefact',
     ambiente: 'beta',
     boletas_modo: 'individual',
-    envio_en_linea: true,
+    resumen_hora: '23:30',
     envio_diferido: false,
     tareas_activas: true,
     aplicar_reglas_2027: 'auto',
@@ -145,6 +145,16 @@ describe('FacturacionSunatComponent', () => {
     });
   }
 
+  /** Al abrir «Configuración» nace la tarjeta «Llave y alertas» y pide el estado y el correo de avisos. */
+  function responderLlaveYAlertas(): void {
+    for (const p of http.match((r) => r.url === urlConstants.fiscal.estado)) {
+      p.flush({ llave: { anterior_definida: false, secretos_con_llave_anterior: 0 } });
+    }
+    for (const p of http.match((r) => r.url === urlConstants.fiscal.estado.replace(/estado$/, 'alertas'))) {
+      p.flush({ correo: null, correo_efectivo: 'ventas@hatunsales.pe', origen: 'emisor' });
+    }
+  }
+
   beforeEach(async () => {
     vi.clearAllMocks();
     await TestBed.configureTestingModule({
@@ -191,16 +201,98 @@ describe('FacturacionSunatComponent', () => {
     expect(component.sol.clave).toBe('');
   });
 
+  it('la tarjeta «Llave y alertas» solo se crea al abrir Configuración', () => {
+    responderConfiguracion();
+    expect(fixture.nativeElement.querySelector('app-llave-alertas-sunat')).toBeNull();
+    http.expectNone((r) => r.url === urlConstants.fiscal.estado.replace(/estado$/, 'alertas'));
+
+    component.seccion = 'configuracion';
+    fixture.componentInstance['cdr'].markForCheck();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-llave-alertas-sunat')).not.toBeNull();
+    responderLlaveYAlertas();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Llave y alertas');
+    expect(fixture.nativeElement.textContent).not.toMatch(/nubefact/i);
+  });
+
   it('el formulario de operación ya no cambia el ambiente ni las confirmaciones', () => {
     responderConfiguracion();
     component.guardarOperacion();
     const peticion = http.expectOne(urlConstants.fiscal.configuracion);
     expect(peticion.request.method).toBe('PUT');
     expect(Object.keys(peticion.request.body).sort()).toEqual(
-      ['aplicar_reglas_2027', 'boletas_modo', 'codigo_producto_defecto', 'envio_diferido', 'envio_en_linea', 'series'].sort(),
+      ['aplicar_reglas_2027', 'boletas_modo', 'codigo_producto_defecto', 'envio_diferido', 'resumen_hora', 'series'].sort(),
     );
     peticion.flush(configuracionPrueba());
     responderConfiguracion();
+  });
+
+  describe('boletas por resumen diario y el interruptor único de envío (S2 y S3)', () => {
+    it('un solo interruptor «enviar a SUNAT al cobrar»: encendido es envio_diferido apagado, y ya no se manda envio_en_linea', async () => {
+      responderConfiguracion();
+      expect(component.enviarAlCobrar).toBe(true);
+      component.enviarAlCobrar = false;
+      expect(component.operacion.envio_diferido).toBe(true);
+
+      await component.guardarOperacion();
+
+      const peticion = http.expectOne(urlConstants.fiscal.configuracion);
+      expect(peticion.request.body).toMatchObject({ envio_diferido: true, boletas_modo: 'individual', resumen_hora: '23:30' });
+      expect(peticion.request.body).not.toHaveProperty('envio_en_linea');
+      peticion.flush({ ...configuracionPrueba(), envio_diferido: true });
+      responderConfiguracion({ ...configuracionPrueba(), envio_diferido: true });
+      expect(component.enviarAlCobrar).toBe(false);
+    });
+
+    it('con «Resumen diario» aparece la hora y el texto verdadero; con «Envío individual», no', () => {
+      responderConfiguracion();
+      component.seccion = 'configuracion';
+      fixture.detectChanges();
+      responderLlaveYAlertas();
+      const raiz = fixture.nativeElement as HTMLElement;
+      expect(raiz.querySelector('#fiscal-resumen-hora')).toBeNull();
+      expect(raiz.querySelector('#fiscal-boletas-ayuda')?.textContent).toContain('cada boleta va a SUNAT al cobrar');
+
+      component.operacion.boletas_modo = 'resumen';
+      component.operacion.resumen_hora = '22:15';
+      fixture.componentInstance['cdr'].markForCheck();
+      fixture.detectChanges();
+      expect((raiz.querySelector('#fiscal-resumen-hora') as HTMLInputElement | null)).not.toBeNull();
+      expect(raiz.querySelector('#fiscal-boletas-ayuda')?.textContent).toContain('se informan juntas a las 22:15');
+      expect(raiz.textContent).toContain('el cliente recibe su boleta igual');
+      expect(raiz.textContent).not.toMatch(/nubefact/i);
+    });
+
+    it('cambiar a resumen diario pide confirmación (si se cancela no se guarda nada) y guarda la hora', async () => {
+      responderConfiguracion();
+      component.operacion.boletas_modo = 'resumen';
+      component.operacion.resumen_hora = '21:30';
+      alerta.confirmar.mockResolvedValueOnce(false);
+
+      await component.guardarOperacion();
+
+      expect(alerta.confirmar).toHaveBeenCalledWith(
+        expect.objectContaining({ title: '¿Informar las boletas por resumen diario?', message: expect.stringContaining('21:30') }),
+      );
+      http.expectNone(urlConstants.fiscal.configuracion);
+
+      await component.guardarOperacion();
+      const peticion = http.expectOne(urlConstants.fiscal.configuracion);
+      expect(peticion.request.body).toMatchObject({ boletas_modo: 'resumen', resumen_hora: '21:30' });
+      peticion.flush({ ...configuracionPrueba(), boletas_modo: 'resumen', resumen_hora: '21:30' });
+      responderConfiguracion({ ...configuracionPrueba(), boletas_modo: 'resumen', resumen_hora: '21:30' });
+      expect(component.operacion.resumen_hora).toBe('21:30');
+    });
+
+    it('guardar sin cambiar el modo de boletas no pregunta nada', async () => {
+      responderConfiguracion();
+      alerta.confirmar.mockClear();
+      await component.guardarOperacion();
+      expect(alerta.confirmar).not.toHaveBeenCalled();
+      http.expectOne(urlConstants.fiscal.configuracion).flush(configuracionPrueba());
+      responderConfiguracion();
+    });
   });
 
   it('envía el certificado como multipart y borra el archivo y su clave tras guardar', () => {
@@ -222,6 +314,103 @@ describe('FacturacionSunatComponent', () => {
     responderConfiguracion();
     expect(component.claveCertificado).toBe('');
     expect(component.archivo).toBeNull();
+  });
+
+  describe('reemplazar un certificado que ya está cargado', () => {
+    const cargado = { ambiente: 'produccion', titular: 'HATUNSALES SAC', vigente_hasta: '2027-06-30T00:00:00.000Z', vencido: false, dias_para_vencer: 200 } as unknown as CertificadoFiscal;
+
+    it('pide confirmación de peligro con lo que cambia; si se cancela no sube nada', async () => {
+      responderConfiguracion({ ...configuracionPrueba(), certificado: { beta: null, produccion: cargado } });
+      component.archivo = new File(['nuevo'], 'nuevo.pfx');
+      component.claveCertificado = 'clave';
+      component.ambienteCertificado = 'produccion';
+      alerta.confirmarPeligro.mockResolvedValueOnce(false);
+
+      await component.subirCertificado();
+
+      expect(alerta.confirmarPeligro).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: '¿Reemplazar el certificado de producción?',
+          message: expect.stringContaining('Reemplazará el certificado actual de producción'),
+          confirmText: 'Sí, reemplazar',
+        }),
+      );
+      http.expectNone(urlConstants.fiscal.certificado);
+      expect(component.archivo).not.toBeNull();
+    });
+
+    it('confirmado, sube el certificado nuevo como siempre', async () => {
+      responderConfiguracion({ ...configuracionPrueba(), certificado: { beta: null, produccion: cargado } });
+      component.archivo = new File(['nuevo'], 'nuevo.pfx');
+      component.claveCertificado = 'clave';
+      component.ambienteCertificado = 'produccion';
+
+      await component.subirCertificado();
+
+      const peticion = http.expectOne(urlConstants.fiscal.certificado);
+      expect(peticion.request.body.get('ambiente')).toBe('produccion');
+      peticion.flush({ id: 2 });
+      responderConfiguracion();
+    });
+
+    it('si el ambiente elegido no tiene certificado (aunque el otro sí), sube sin preguntar', async () => {
+      responderConfiguracion({ ...configuracionPrueba(), certificado: { beta: null, produccion: cargado } });
+      component.archivo = new File(['nuevo'], 'beta.pfx');
+      component.ambienteCertificado = 'beta';
+
+      await component.subirCertificado();
+
+      expect(alerta.confirmarPeligro).not.toHaveBeenCalled();
+      http.expectOne(urlConstants.fiscal.certificado).flush({ id: 3 });
+      responderConfiguracion();
+    });
+
+    it('la bitácora traduce TODAS las acciones nuevas (constancia, nota de crédito, guías, resumen, pedido web, alertas, llaves)', () => {
+      responderConfiguracion();
+      const esperado: Record<string, string> = {
+        FISCAL_CDR_RECUPERADO: 'Constancia de SUNAT pedida',
+        FISCAL_NC_EMITIDA: 'Nota de crédito emitida',
+        FISCAL_GRE_EMITIDA: 'Guía de remisión emitida',
+        FISCAL_GRE_ANULADA: 'Guía de remisión anulada',
+        FISCAL_RESUMEN_SOLICITADO: 'Resumen diario de boletas enviado a SUNAT',
+        FISCAL_PEDIDO_WEB_EMITIDO: 'Comprobante de un pedido de la tienda',
+        FISCAL_ALERTA_ENVIADA: 'Aviso enviado por correo',
+        FISCAL_SECRETOS_RECIFRADOS: 'Claves y certificados re-cifrados con la llave vigente',
+        ENVIO_DESCARTADO_POR_ANULACION: 'Envío descartado al anular la venta',
+      };
+      for (const [codigo, texto] of Object.entries(esperado)) expect(component.nombreAccion(codigo)).toBe(texto);
+      // Una acción que el panel no conoce se muestra tal cual (nunca queda vacía).
+      expect(component.nombreAccion('FISCAL_FUTURA')).toBe('FISCAL_FUTURA');
+      expect(component.nombreAccion('PROVEEDOR_CAMBIADO')).toBe('Emisión electrónica activada o apagada');
+    });
+
+    it('en la tabla de la bitácora se lee el nombre y el código técnico queda solo en el title', () => {
+      responderConfiguracion();
+      component.auditoria = [
+        { id_auditoria: 1, creado_en: '2026-11-08T15:00:00.000Z', id_usuario: 3, accion: 'FISCAL_NC_EMITIDA', entidad: 'comprobantes', detalle: null },
+      ] as typeof component.auditoria;
+      component.seccion = 'bitacora';
+      fixture.detectChanges();
+      const celda = fixture.nativeElement.querySelector('td[data-etiqueta="Acción"]') as HTMLElement;
+      expect(celda.textContent?.trim()).toBe('Nota de crédito emitida');
+      expect(celda.querySelector('.adm-tabla__principal')?.getAttribute('title')).toBe('FISCAL_NC_EMITIDA');
+      expect(celda.textContent).not.toContain('FISCAL_NC_EMITIDA');
+      expect(fixture.nativeElement.querySelector('.adm-tabla__mono')).toBeNull();
+    });
+
+    it('«Apagar la emisión electrónica» es el nombre del apagado; la palabra del proveedor histórico no se ve en la pantalla', () => {
+      responderConfiguracion();
+      expect(component.nombreAccion('PROVEEDOR_CAMBIADO')).not.toMatch(/desactiv/i);
+      expect(fixture.nativeElement.textContent).not.toMatch(/nubefact/i);
+    });
+
+    it('la bitácora nombra en palabras las acciones nuevas de reintento y liberación', () => {
+      responderConfiguracion();
+      expect(component.nombreAccion('FISCAL_REINTENTO_MANUAL')).toBe('Envío reintentado a mano');
+      expect(component.nombreAccion('FISCAL_LOTE_LIBERADO')).toContain('liberado');
+      expect(component.nombreAccion('FISCAL_GRE_LIBERADA')).toContain('Guía de remisión liberada');
+      expect(component.nombreAccion('FISCAL_BAJA_SOLICITADA')).toContain('Baja');
+    });
   });
 
   it('propone subir el certificado al ambiente vigente (producción si se trabaja en producción)', () => {

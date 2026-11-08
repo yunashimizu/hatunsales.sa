@@ -15,36 +15,117 @@
         <p class="ini-saludo__turno">{{ lineaTurno }}</p>
       }
     </div>
-    @if (veVender || veCaja) {
-      <div class="ini-saludo__acciones">
-        @if (veVender) {
-          <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/ventas">
-            <i class="bi bi-receipt" aria-hidden="true"></i> Vender
-          </a>
-        }
-        @if (veCaja) {
-          <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/caja-sesion">
-            <i class="bi bi-cash-stack" aria-hidden="true"></i> Ver el turno
-          </a>
+    <div class="ini-saludo__acciones">
+      @if (veVender) {
+        <a class="adm-btn adm-btn--primario" routerLink="/dashboard/mantenimiento/ventas">
+          <i class="bi bi-receipt" aria-hidden="true"></i> Vender
+        </a>
+      }
+      @if (veCaja) {
+        <a class="adm-btn adm-btn--suave" routerLink="/dashboard/mantenimiento/caja-sesion">
+          <i class="bi bi-cash-stack" aria-hidden="true"></i> Ver el turno
+        </a>
+      }
+      <button type="button" class="adm-btn adm-btn--suave ini-actualizar" (click)="actualizar()"
+              [attr.aria-busy]="actualizando" title="Volver a leer los datos">
+        <i class="bi bi-arrow-clockwise" [class.ini-girar]="actualizando" aria-hidden="true"></i>
+        <span class="ini-actualizar__texto">Actualizar</span>
+        <span class="ini-solo-lectores">el inicio</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Periodo y tarjetas visibles -->
+  <div class="ini-periodo">
+    @if (veReportes) {
+      <span class="ini-periodo__rotulo" id="ini-periodo-rotulo">Resumen de</span>
+      <div class="adm-segmentado ini-segmentado" role="group" aria-labelledby="ini-periodo-rotulo">
+        @for (p of periodos; track p.id) {
+          <button type="button" class="adm-segmento"
+                  [class.adm-segmento--activo]="periodo === p.id"
+                  [attr.aria-pressed]="periodo === p.id"
+                  (click)="cambiarPeriodo(p.id)">{{ p.etiqueta }}</button>
         }
       </div>
     }
-  </section>
+    <div class="ini-personalizar">
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm ini-personalizar__boton"
+              aria-haspopup="true" aria-controls="ini-personalizar-panel"
+              [attr.aria-expanded]="personalizando" (click)="alternarPersonalizar()">
+        <i class="bi bi-sliders" aria-hidden="true"></i> Personalizar
+      </button>
+      @if (personalizando) {
+        <div class="ini-personalizar__panel" id="ini-personalizar-panel" role="group" aria-labelledby="ini-personalizar-titulo">
+          <p class="ini-personalizar__titulo" id="ini-personalizar-titulo">Qué mostrar en el inicio</p>
+          @for (t of tarjetasPersonalizables; track t.id) {
+            <label class="adm-check ini-personalizar__fila">
+              <input type="checkbox" [checked]="t.visible" (change)="alternarTarjeta(t.id)" />
+              {{ t.nombre }}
+            </label>
+          }
+        </div>
+      }
+    </div>
+  </div>
 
-  <!-- Indicadores del día -->
-  <section class="ini-kpis" aria-label="Indicadores del día" [style.--ini-kpis]="kpisVisibles" [attr.aria-busy]="cargando">
+  <!-- Indicadores del periodo -->
+  <section class="ini-kpis" aria-label="Indicadores del periodo" [style.--ini-kpis]="kpisVisibles" [attr.aria-busy]="cargandoVentas">
     @if (veReportes) {
       <div class="ini-kpi ini-kpi--principal">
-        <span class="ini-kpi__etiqueta">Ventas de hoy</span>
-        @if (cargando) {
+        <span class="ini-kpi__etiqueta">{{ rotulos.ventas }}</span>
+        @if (cargandoVentas) {
           <span class="adm-esqueleto ini-esqueleto-valor" aria-hidden="true"></span>
         } @else {
-          <span class="ini-kpi__valor">{{ ventasHoy != null ? soles(ventasHoy) : '—' }}</span>
+          <span class="ini-kpi__valor">{{ ventasPeriodo != null ? soles(ventasPeriodo) : '—' }}</span>
+          @if (deltaVentas; as d) {
+            <span class="adm-delta" [class.adm-delta--sube]="d.tipo === 'sube'" [class.adm-delta--baja]="d.tipo === 'baja'">
+              @if (d.signo) { <span class="adm-delta__signo" aria-hidden="true">{{ d.signo }}</span> }
+              <span class="ini-solo-lectores">{{ d.lector }}</span>
+              <span class="adm-delta__valor">{{ d.texto }}</span>
+              @if (d.referencia) { <span class="adm-delta__ref">{{ d.referencia }}</span> }
+            </span>
+          }
         }
+
+        @if (puedeMeta && !cargandoVentas && ventasPeriodo != null) {
+          <div class="ini-meta">
+            @if (editandoMeta) {
+              <form class="ini-meta__form" (ngSubmit)="guardarMeta()" (keydown.escape)="cancelarMeta()">
+                <label class="ini-solo-lectores" for="ini-meta-campo">Meta de ventas del día, en soles</label>
+                <input id="ini-meta-campo" name="meta" class="adm-input adm-input--chico adm-input--num ini-meta__campo"
+                       appNumero="moneda" placeholder="Ej. 8,500" autocomplete="off" [(ngModel)]="metaBorrador" />
+                <button type="submit" class="adm-btn adm-btn--primario adm-btn--sm">Guardar</button>
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cancelarMeta()">Cancelar</button>
+              </form>
+            } @else if (metaDiaria) {
+              <div class="ini-meta__barra" role="progressbar" aria-label="Avance de la meta del día"
+                   aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="avanceMeta">
+                <span class="ini-meta__relleno" [class.ini-meta__relleno--lograda]="metaCumplida"
+                      [style.width.%]="avanceMeta"></span>
+              </div>
+              <p class="ini-meta__texto">
+                @if (metaCumplida) {
+                  <span class="ini-meta__lograda"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Meta cumplida</span>
+                  · {{ soles(metaDiaria) }}
+                } @else {
+                  {{ porcentajeMeta }} % de la meta {{ soles(metaDiaria) }}
+                }
+                <button type="button" class="ini-meta__editar" (click)="editarMeta()" aria-label="Cambiar la meta del día" title="Cambiar la meta">
+                  <i class="bi bi-pencil" aria-hidden="true"></i>
+                </button>
+              </p>
+            } @else {
+              <button type="button" class="ini-meta__definir" (click)="editarMeta()">
+                <i class="bi bi-bullseye" aria-hidden="true"></i> Definir meta del día
+              </button>
+            }
+          </div>
+        }
+
         <span class="ini-kpi__detalle">
-          @if (!cargando && ventasHoy != null) {
-            Neto del día · al {{ actualizadoA }}
-          } @else if (!cargando) {
+          @if (!cargandoVentas && ventasPeriodo != null) {
+            {{ rotulos.neto }}@if (textoActualizado) { · {{ textoActualizado }} }
+          } @else if (!cargandoVentas) {
             No se pudo cargar
           }
         </span>
@@ -52,15 +133,23 @@
 
       <div class="ini-kpi">
         <span class="ini-kpi__etiqueta">Ticket promedio</span>
-        @if (cargando) {
+        @if (cargandoVentas) {
           <span class="adm-esqueleto ini-esqueleto-valor" aria-hidden="true"></span>
         } @else {
           <span class="ini-kpi__valor">{{ ticketPromedio != null ? soles(ticketPromedio) : '—' }}</span>
+          @if (deltaTicket; as d) {
+            <span class="adm-delta" [class.adm-delta--sube]="d.tipo === 'sube'" [class.adm-delta--baja]="d.tipo === 'baja'">
+              @if (d.signo) { <span class="adm-delta__signo" aria-hidden="true">{{ d.signo }}</span> }
+              <span class="ini-solo-lectores">{{ d.lector }}</span>
+              <span class="adm-delta__valor">{{ d.texto }}</span>
+              @if (d.referencia) { <span class="adm-delta__ref">{{ d.referencia }}</span> }
+            </span>
+          }
         }
         <span class="ini-kpi__detalle">
-          @if (!cargando && numVentas != null) {
+          @if (!cargandoVentas && numVentas != null) {
             @if (numVentas === 0) { Sin ventas todavía } @else { {{ numVentas }} {{ numVentas === 1 ? 'venta' : 'ventas' }} }
-          } @else if (!cargando) {
+          } @else if (!cargandoVentas) {
             No se pudo cargar
           }
         </span>
@@ -115,20 +204,22 @@
     }
   </section>
 
-  <div class="ini-fila" [class.ini-fila--sola]="!veReportes">
+  <!-- Fila 1 · gráfico y atención -->
+  @if (tarjetasFila1 > 0) {
+  <div class="ini-fila" [class.ini-fila--sola]="tarjetasFila1 === 1">
 
-    <!-- Ventas de la semana -->
-    @if (veReportes) {
-      <section class="ini-tarjeta" aria-labelledby="ini-semana-titulo" [attr.aria-busy]="cargando">
+    <!-- Ventas por hora, por día de la semana o del mes -->
+    @if (verGrafico) {
+      <section class="ini-tarjeta" aria-labelledby="ini-semana-titulo" [attr.aria-busy]="cargandoVentas">
         <div class="ini-tarjeta__cabecera">
-          <h2 id="ini-semana-titulo" class="ini-tarjeta__titulo">{{ horaConDatos ? 'Ventas por hora' : 'Ventas de la semana' }}</h2>
-          @if (horaConDatos && !cargando) {
+          <h2 id="ini-semana-titulo" class="ini-tarjeta__titulo">{{ tituloGrafico }}</h2>
+          @if (horaConDatos && !cargandoVentas) {
             <div class="ini-leyenda" aria-hidden="true">
-              <span><i class="ini-leyenda__punto"></i>Hoy</span>
+              <span><i class="ini-leyenda__punto"></i>{{ nombreDia }}</span>
               <span><i class="ini-leyenda__punto ini-leyenda__punto--hoy"></i>Hora pico</span>
               <span><i class="ini-leyenda__punto ini-leyenda__punto--prev"></i>Semana pasada</span>
             </div>
-          } @else if (semanaConDatos) {
+          } @else if (diasConDatos && !cargandoVentas) {
             <div class="ini-leyenda" aria-hidden="true">
               <span><i class="ini-leyenda__punto ini-leyenda__punto--hoy"></i>Hoy</span>
               <span><i class="ini-leyenda__punto"></i>Días anteriores</span>
@@ -136,11 +227,11 @@
           }
         </div>
 
-        @if (cargando) {
+        @if (cargandoVentas) {
           <span class="adm-esqueleto ini-esqueleto-grafico" aria-hidden="true"></span>
         } @else if (horaConDatos) {
-          <svg class="ini-grafico" viewBox="0 0 640 200" preserveAspectRatio="xMidYMid meet" role="img"
-               aria-label="Gráfico de barras con las ventas de hoy hora por hora, comparadas con el mismo día de la semana pasada. Los valores están en la tabla que sigue.">
+          <svg class="ini-grafico ini-grafico--horas" viewBox="0 0 640 200" preserveAspectRatio="xMidYMid meet" role="group"
+               [attr.aria-label]="'Gráfico de barras con las ventas de ' + (periodo === 'ayer' ? 'ayer' : 'hoy') + ' hora por hora, comparadas con el mismo día de la semana pasada. Los valores están en la tabla que sigue.'">
             <g class="ini-grafico__rejilla">
               @for (m of marcasEjeHora; track m.y) {
                 <line x1="40" [attr.y1]="m.y" x2="640" [attr.y2]="m.y" />
@@ -151,7 +242,7 @@
                 <text x="34" [attr.y]="m.y + 4">{{ m.texto }}</text>
               }
             </g>
-            @for (b of barrasHora; track b.hora) {
+            @for (b of barrasHora; track b.hora; let i = $index) {
               @if (b.altoPrev > 0) {
                 <rect class="ini-grafico__barra ini-grafico__barra--prev" [attr.x]="b.xPrev" [attr.y]="b.yPrev"
                       [attr.width]="b.ancho" [attr.height]="b.altoPrev" rx="2" />
@@ -160,7 +251,12 @@
                 <rect class="ini-grafico__barra" [class.ini-grafico__barra--hoy]="b.esPico"
                       [attr.x]="b.xHoy" [attr.y]="b.yHoy" [attr.width]="b.ancho" [attr.height]="b.altoHoy" rx="2" />
               }
-              <rect class="ini-grafico__zona" [attr.x]="b.xPrev" y="20" [attr.width]="b.ancho * 2 + 2" height="150">
+              <rect class="ini-grafico__zona" [class.ini-grafico__zona--activa]="zonaActiva === i"
+                    [attr.x]="b.xZona" y="20" [attr.width]="b.anchoZona" height="150"
+                    role="img" [attr.aria-label]="b.titulo" [attr.tabindex]="(zonaActiva ?? 0) === i ? 0 : -1"
+                    (mouseenter)="activarZona(i, $event)" (mouseleave)="cerrarTooltip()"
+                    (focus)="activarZona(i, $event)" (blur)="cerrarTooltip()" (click)="activarZona(i, $event)"
+                    (keydown)="teclaZona($event, i, barrasHora.length)">
                 <title>{{ b.titulo }}</title>
               </rect>
               @if (b.esPico) {
@@ -169,13 +265,14 @@
               }
               @if (b.mostrarEtiqueta) {
                 <text class="ini-grafico__texto ini-grafico__texto--dia" text-anchor="middle"
-                      [class.ini-grafico__texto--hoy]="b.esPico" [attr.x]="b.xc" y="192">{{ b.etiqueta }}</text>
+                      [class.ini-grafico__texto--hoy]="b.esPico" [class.ini-grafico__texto--alterna]="i % 2 === 1"
+                      [attr.x]="b.xc" y="192">{{ b.etiqueta }}</text>
               }
             }
           </svg>
           <table class="ini-solo-lectores">
-            <caption>Ventas netas por hora, hoy y el mismo día de la semana pasada</caption>
-            <thead><tr><th scope="col">Hora</th><th scope="col">Hoy</th><th scope="col">Semana pasada</th></tr></thead>
+            <caption>Ventas netas por hora, {{ periodo === 'ayer' ? 'ayer' : 'hoy' }} y el mismo día de la semana pasada</caption>
+            <thead><tr><th scope="col">Hora</th><th scope="col">{{ nombreDia }}</th><th scope="col">Semana pasada</th></tr></thead>
             <tbody>
               @for (b of barrasHora; track b.hora) {
                 <tr><th scope="row">{{ b.etiqueta }}{{ b.esPico ? ' (hora pico)' : '' }}</th><td>{{ soles(b.totalHoy) }}</td><td>{{ soles(b.totalPrev) }}</td></tr>
@@ -183,9 +280,9 @@
             </tbody>
           </table>
           <p class="ini-pie">{{ hallazgoHora }} <span class="ini-pie__aparte">{{ resumenHora }}</span></p>
-        } @else if (semanaConDatos) {
-          <svg class="ini-grafico" viewBox="0 0 640 200" preserveAspectRatio="xMidYMid meet" role="img"
-               aria-label="Gráfico de barras con las ventas de cada día de esta semana, de lunes a hoy. Los valores están en la tabla que sigue.">
+        } @else if (diasConDatos) {
+          <svg class="ini-grafico" viewBox="0 0 640 200" preserveAspectRatio="xMidYMid meet" role="group"
+               [attr.aria-label]="'Gráfico de barras con las ventas de cada día ' + (periodo === 'mes' ? 'de este mes' : 'de esta semana') + ', hasta hoy. Los valores están en la tabla que sigue.'">
             <g class="ini-grafico__rejilla">
               @for (m of marcasEje; track m.y) {
                 <line x1="40" [attr.y1]="m.y" x2="640" [attr.y2]="m.y" />
@@ -196,40 +293,64 @@
                 <text x="34" [attr.y]="m.y + 4">{{ m.texto }}</text>
               }
             </g>
-            @for (b of barras; track b.etiqueta) {
+            @for (b of barras; track $index; let i = $index) {
               @if (b.alto > 0) {
                 <rect class="ini-grafico__barra" [class.ini-grafico__barra--hoy]="b.esHoy"
-                      [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.ancho" [attr.height]="b.alto" rx="3">
-                  <title>{{ b.titulo }}</title>
-                </rect>
+                      [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.ancho" [attr.height]="b.alto" rx="3" />
               }
-              <text class="ini-grafico__texto ini-grafico__texto--valor" text-anchor="middle"
-                    [attr.x]="b.xc" [attr.y]="b.yValor">{{ b.valorCorto }}</text>
-              <text class="ini-grafico__texto ini-grafico__texto--dia" text-anchor="middle"
-                    [class.ini-grafico__texto--hoy]="b.esHoy" [attr.x]="b.xc" y="192">{{ b.etiqueta }}</text>
+              <rect class="ini-grafico__zona" [class.ini-grafico__zona--activa]="zonaActiva === i"
+                    [attr.x]="b.xZona" y="20" [attr.width]="b.anchoZona" height="150"
+                    role="img" [attr.aria-label]="b.titulo" [attr.tabindex]="(zonaActiva ?? 0) === i ? 0 : -1"
+                    (mouseenter)="activarZona(i, $event)" (mouseleave)="cerrarTooltip()"
+                    (focus)="activarZona(i, $event)" (blur)="cerrarTooltip()" (click)="activarZona(i, $event)"
+                    (keydown)="teclaZona($event, i, barras.length)">
+                <title>{{ b.titulo }}</title>
+              </rect>
+              @if (b.mostrarValor) {
+                <text class="ini-grafico__texto ini-grafico__texto--valor" text-anchor="middle"
+                      [attr.x]="b.xc" [attr.y]="b.yValor">{{ b.valorCorto }}</text>
+              }
+              @if (b.mostrarEtiqueta) {
+                <text class="ini-grafico__texto ini-grafico__texto--dia" text-anchor="middle"
+                      [class.ini-grafico__texto--hoy]="b.esHoy" [attr.x]="b.xc" y="192">{{ b.etiqueta }}</text>
+              }
             }
           </svg>
           <table class="ini-solo-lectores">
-            <caption>Ventas netas por día, de lunes a hoy</caption>
+            <caption>Ventas netas por día, {{ periodo === 'mes' ? 'del día 1 a hoy' : 'de lunes a hoy' }}</caption>
             <thead><tr><th scope="col">Día</th><th scope="col">Ventas</th></tr></thead>
             <tbody>
-              @for (b of barras; track b.etiqueta) {
-                <tr><th scope="row">{{ b.etiqueta }}{{ b.esHoy ? ' (hoy)' : '' }}</th><td>{{ soles(b.valor) }}</td></tr>
+              @for (b of barras; track $index) {
+                <tr><th scope="row">{{ b.titulo.split(':')[0] }}{{ b.esHoy ? ' (hoy)' : '' }}</th><td>{{ soles(b.valor) }}</td></tr>
               }
             </tbody>
           </table>
-          <p class="ini-pie">{{ hallazgoSemana }} <span class="ini-pie__aparte">{{ resumenSemana }}</span></p>
+          <p class="ini-pie">{{ hallazgoDias }} <span class="ini-pie__aparte">{{ resumenDias }}</span></p>
         } @else {
           <div class="ini-vacio" role="status">
             <i class="bi bi-bar-chart-line ini-vacio__icono" aria-hidden="true"></i>
-            <p class="ini-vacio__titulo">{{ semanaFalla ? 'No se pudieron cargar las ventas' : 'Sin ventas esta semana todavía' }}</p>
-            <p class="ini-vacio__texto">{{ semanaFalla ? 'Revisa la conexión y vuelve a entrar al inicio.' : 'Cuando registres ventas, aparecerán aquí día por día.' }}</p>
+            <p class="ini-vacio__titulo">{{ semanaFalla ? 'No se pudieron cargar las ventas' : rotulos.vacioGrafico }}</p>
+            <p class="ini-vacio__texto">{{ semanaFalla ? 'Revisa la conexión y pulsa Actualizar.' : 'Cuando registres ventas, aparecerán aquí.' }}</p>
+          </div>
+        }
+
+        @if (tooltip; as t) {
+          <div class="adm-tooltip-grafico ini-tooltip" aria-hidden="true"
+               [style.left.px]="t.izquierda" [style.top.px]="t.arriba">
+            <strong class="adm-tooltip-grafico__titulo">{{ t.tip.titulo }}</strong>
+            @for (l of t.tip.lineas; track l.rotulo) {
+              <span class="adm-tooltip-grafico__linea">
+                <i class="adm-tooltip-grafico__punto" [class.adm-tooltip-grafico__punto--previo]="l.tono === 'previo'"></i>
+                {{ l.rotulo }} <b>{{ l.valor }}</b>
+              </span>
+            }
           </div>
         }
       </section>
     }
 
     <!-- Necesita tu atención -->
+    @if (verAtencion) {
     <section class="ini-tarjeta" aria-labelledby="ini-atencion-titulo" [attr.aria-busy]="cargando">
       <div class="ini-tarjeta__cabecera">
         <h2 id="ini-atencion-titulo" class="ini-tarjeta__titulo">Necesita tu atención</h2>
@@ -268,23 +389,119 @@
         <div class="ini-vacio" role="status">
           <i class="bi bi-wifi-off ini-vacio__icono" aria-hidden="true"></i>
           <p class="ini-vacio__titulo">No se pudo revisar</p>
-          <p class="ini-vacio__texto">Revisa la conexión y vuelve a entrar al inicio.</p>
+          <p class="ini-vacio__texto">Revisa la conexión y pulsa Actualizar.</p>
         </div>
       }
     </section>
+    }
   </div>
+  }
 
-  <div class="ini-fila ini-fila--pareja" [class.ini-fila--sola]="!veReportes || accesos.length === 0">
+  <!-- Fila 2 · actividad reciente y cobros del turno -->
+  @if (tarjetasFila2 > 0) {
+  <div class="ini-fila ini-fila--pareja" [class.ini-fila--sola]="tarjetasFila2 === 1">
 
-    <!-- Lo más vendido -->
-    @if (veReportes) {
-      <section class="ini-tarjeta" aria-labelledby="ini-top-titulo" [attr.aria-busy]="cargando">
+    @if (verActividad) {
+      <section class="ini-tarjeta" aria-labelledby="ini-actividad-titulo" [attr.aria-busy]="cargando">
         <div class="ini-tarjeta__cabecera">
-          <h2 id="ini-top-titulo" class="ini-tarjeta__titulo">Lo más vendido hoy</h2>
-          <a class="ini-tarjeta__enlace" routerLink="/dashboard/mantenimiento/reportes">Reporte completo</a>
+          <h2 id="ini-actividad-titulo" class="ini-tarjeta__titulo">Actividad reciente</h2>
+          <a class="ini-tarjeta__enlace" [routerLink]="rutaDocumentos">Ver todos</a>
         </div>
 
         @if (cargando) {
+          <div class="ini-esqueletos" aria-hidden="true">
+            <span class="adm-esqueleto adm-esqueleto--fila"></span>
+            <span class="adm-esqueleto adm-esqueleto--fila"></span>
+            <span class="adm-esqueleto adm-esqueleto--fila"></span>
+          </div>
+        } @else if (actividad.length > 0) {
+          <ul class="ini-lista">
+            @for (f of actividad; track f.id) {
+              <li class="ini-lista__fila ini-lista__fila--act">
+                <a class="ini-act" [routerLink]="rutaDocumentos" [queryParams]="parametrosComprobante(f.id)">
+                  <span class="ini-act__numero"><strong>{{ f.numero }}</strong><small>{{ f.tipo }}</small></span>
+                  <span class="ini-act__cliente"><span class="ini-act__nombre">{{ f.cliente }}</span><small>{{ hace(f.creadoEn) }}</small></span>
+                  <span class="ini-act__total">{{ soles(f.total) }}</span>
+                  <span class="ini-punto" [class]="'ini-punto--' + f.tono" [attr.title]="f.estado"></span>
+                  <span class="ini-solo-lectores">{{ f.estado }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        } @else {
+          <div class="ini-vacio" role="status">
+            <i class="bi bi-receipt ini-vacio__icono" aria-hidden="true"></i>
+            <p class="ini-vacio__titulo">{{ actividadCargada ? 'Aún no hay comprobantes' : 'No se pudo cargar' }}</p>
+            <p class="ini-vacio__texto">{{ actividadCargada ? 'Los últimos que emitas aparecerán aquí.' : 'Revisa la conexión y pulsa Actualizar.' }}</p>
+          </div>
+        }
+      </section>
+    }
+
+    @if (verCobros) {
+      <section class="ini-tarjeta" aria-labelledby="ini-cobros-titulo" [attr.aria-busy]="cargando">
+        <div class="ini-tarjeta__cabecera">
+          <h2 id="ini-cobros-titulo" class="ini-tarjeta__titulo">Cobros del turno por medio de pago</h2>
+        </div>
+
+        @if (cargando) {
+          <div class="ini-esqueletos" aria-hidden="true">
+            <span class="adm-esqueleto adm-esqueleto--fila"></span>
+            <span class="adm-esqueleto adm-esqueleto--fila"></span>
+          </div>
+        } @else if (cajaAbierta === true && cobros.length > 0) {
+          <div class="ini-apilada" role="img"
+               [attr.aria-label]="'Reparto de ' + soles(cobrosTotal) + ' cobrados en el turno por medio de pago'">
+            @for (c of cobros; track c.nombre) {
+              <span class="ini-apilada__tramo" [class]="'ini-medio--' + c.tono" [style.flex]="c.total + ' 1 0'"></span>
+            }
+          </div>
+          <ul class="ini-medios">
+            @for (c of cobros; track c.nombre) {
+              <li class="ini-medios__fila">
+                <i class="ini-medios__punto" [class]="'ini-medio--' + c.tono" aria-hidden="true"></i>
+                <span class="ini-medios__nombre">{{ c.nombre }}</span>
+                <span class="ini-medios__valor">{{ soles(c.total) }} · {{ c.cobros }} {{ c.cobros === 1 ? 'cobro' : 'cobros' }} · {{ c.porcentaje }} %</span>
+              </li>
+            }
+          </ul>
+        } @else if (cajaAbierta === true) {
+          <div class="ini-vacio" role="status">
+            <i class="bi bi-cash-coin ini-vacio__icono" aria-hidden="true"></i>
+            <p class="ini-vacio__titulo">Aún no hay cobros</p>
+            <p class="ini-vacio__texto">Cuando cobres en este turno, verás aquí cómo te pagan.</p>
+          </div>
+        } @else if (cajaAbierta === false) {
+          <div class="ini-vacio" role="status">
+            <i class="bi bi-lock ini-vacio__icono" aria-hidden="true"></i>
+            <p class="ini-vacio__titulo">Sin turno abierto</p>
+            <p class="ini-vacio__texto"><a routerLink="/dashboard/mantenimiento/caja-sesion">Ir a Caja</a> para abrir tu turno.</p>
+          </div>
+        } @else {
+          <div class="ini-vacio" role="status">
+            <i class="bi bi-wifi-off ini-vacio__icono" aria-hidden="true"></i>
+            <p class="ini-vacio__titulo">No se pudo cargar</p>
+            <p class="ini-vacio__texto">Revisa la conexión y pulsa Actualizar.</p>
+          </div>
+        }
+      </section>
+    }
+  </div>
+  }
+
+  <!-- Fila 3 · lo más vendido y accesos -->
+  @if (tarjetasFila3 > 0) {
+  <div class="ini-fila ini-fila--pareja" [class.ini-fila--sola]="tarjetasFila3 === 1">
+
+    <!-- Lo más vendido -->
+    @if (verTop) {
+      <section class="ini-tarjeta" aria-labelledby="ini-top-titulo" [attr.aria-busy]="cargandoVentas">
+        <div class="ini-tarjeta__cabecera">
+          <h2 id="ini-top-titulo" class="ini-tarjeta__titulo">{{ rotulos.top }}</h2>
+          <a class="ini-tarjeta__enlace" routerLink="/dashboard/mantenimiento/reportes">Reporte completo</a>
+        </div>
+
+        @if (cargandoVentas) {
           <div class="ini-esqueletos" aria-hidden="true">
             <span class="adm-esqueleto adm-esqueleto--fila"></span>
             <span class="adm-esqueleto adm-esqueleto--fila"></span>
@@ -306,15 +523,15 @@
         } @else {
           <div class="ini-vacio" role="status">
             <i class="bi bi-basket ini-vacio__icono" aria-hidden="true"></i>
-            <p class="ini-vacio__titulo">{{ ventasHoy == null ? 'No se pudo cargar' : 'Aún no hay ventas hoy' }}</p>
-            <p class="ini-vacio__texto">{{ ventasHoy == null ? 'Revisa la conexión y vuelve a entrar al inicio.' : 'Los productos más vendidos del día aparecerán aquí.' }}</p>
+            <p class="ini-vacio__titulo">{{ ventasPeriodo == null ? 'No se pudo cargar' : rotulos.vacioTop }}</p>
+            <p class="ini-vacio__texto">{{ ventasPeriodo == null ? 'Revisa la conexión y pulsa Actualizar.' : 'Los productos más vendidos aparecerán aquí.' }}</p>
           </div>
         }
       </section>
     }
 
     <!-- Accesos de todos los días -->
-    @if (accesos.length > 0) {
+    @if (verAccesos) {
       <section class="ini-tarjeta" aria-labelledby="ini-accesos-titulo">
         <div class="ini-tarjeta__cabecera">
           <h2 id="ini-accesos-titulo" class="ini-tarjeta__titulo">Accesos de todos los días</h2>
@@ -330,5 +547,27 @@
       </section>
     }
   </div>
+  }
+
+  <!-- Por sucursal (solo administrador y solo si hay más de una) -->
+  @if (verSucursales) {
+    <div class="ini-fila ini-fila--sola">
+      <section class="ini-tarjeta" aria-labelledby="ini-sucursales-titulo">
+        <div class="ini-tarjeta__cabecera">
+          <h2 id="ini-sucursales-titulo" class="ini-tarjeta__titulo">Por sucursal · hoy</h2>
+          <a class="ini-tarjeta__enlace" routerLink="/dashboard/mantenimiento/arqueo-caja">Arqueo por sucursal</a>
+        </div>
+        <ul class="ini-lista">
+          @for (s of sucursales; track s.nombre) {
+            <li class="ini-lista__fila ini-lista__fila--suc">
+              <span class="ini-lista__texto">{{ s.nombre }}</span>
+              <span class="ini-barra" aria-hidden="true"><span class="ini-barra__relleno" [style.width.%]="s.ancho"></span></span>
+              <span class="ini-lista__monto">{{ s.total != null ? soles(s.total) : '—' }}<small>{{ s.turnos }} {{ s.turnos === 1 ? 'turno' : 'turnos' }}</small></span>
+            </li>
+          }
+        </ul>
+      </section>
+    </div>
+  }
 
 </div>

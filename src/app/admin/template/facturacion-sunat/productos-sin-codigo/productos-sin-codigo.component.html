@@ -8,7 +8,7 @@
         }
       </h2>
       <p class="adm-tarjeta__sub">
-        Código de producto del catálogo 25 de SUNAT (UNSPSC, 8 dígitos). Desde el 1/1/2027 es obligatorio en cada línea del comprobante.
+        Código de producto del catálogo 25 de SUNAT (UNSPSC, 8 dígitos). Desde el 1/1/2027 SUNAT lo revisa en cada línea del comprobante.
       </p>
     </div>
     <div class="adm-tarjeta__extra">
@@ -47,8 +47,8 @@
         <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto" role="status">
           <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
           <span>
-            No hay código por defecto: desde el 1/1/2027 estos productos no se podrán facturar. Cárguelos aquí o fije
-            un código por defecto en «Operación y series».
+            No hay código por defecto: estos productos salen con el código genérico de su categoría (ninguna venta se
+            bloquea). Conviene cargar aquí el código real de cada uno.
           </span>
         </div>
       }
@@ -64,9 +64,16 @@
         <div class="adm-fila" role="group" aria-label="Asignar un código a los productos marcados">
           <div class="adm-campo">
             <label class="adm-etiqueta" for="sin-codigo-lote">Código para los seleccionados</label>
-            <input id="sin-codigo-lote" class="adm-input adm-mono" type="text" inputmode="numeric" maxlength="8"
-                   autocomplete="off" placeholder="8 dígitos (UNSPSC)" [(ngModel)]="codigoLote" name="codigoLote"
-                   [disabled]="ocupado">
+            <div class="sin-codigo-con-buscador">
+              <input id="sin-codigo-lote" class="adm-input adm-mono" type="text" inputmode="numeric" maxlength="8"
+                     autocomplete="off" placeholder="8 dígitos (UNSPSC)" [(ngModel)]="codigoLote" name="codigoLote"
+                     [disabled]="ocupado">
+              <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="alternarBusqueda(BUSQUEDA_LOTE)"
+                      [disabled]="ocupado" [attr.aria-expanded]="busquedaAbierta === BUSQUEDA_LOTE"
+                      aria-controls="sin-codigo-buscador-lote" data-prueba="buscar-lote">
+                <i class="bi bi-search" aria-hidden="true"></i> Buscar
+              </button>
+            </div>
           </div>
           <div class="adm-campo adm-campo--accion">
             <span class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</span>
@@ -77,6 +84,9 @@
             </button>
           </div>
         </div>
+        @if (busquedaAbierta === BUSQUEDA_LOTE) {
+          <ng-container *ngTemplateOutlet="buscador; context: { idRegion: 'sin-codigo-buscador-lote', etiqueta: 'los productos seleccionados' }"></ng-container>
+        }
       </div>
 
       <div class="adm-tabla-envoltorio">
@@ -124,12 +134,22 @@
                            [name]="'codigo-' + p.id_producto" [(ngModel)]="codigos[p.id_producto]" [disabled]="ocupado"
                            [class.adm-input--error]="!!codigos[p.id_producto] && !esValido(codigos[p.id_producto])"
                            [attr.aria-label]="'Código SUNAT de ' + p.nombre">
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-btn--icono" (click)="alternarBusqueda(p.id_producto)"
+                            [disabled]="ocupado" title="Buscar el código por nombre (martillo, pintura…)"
+                            [attr.aria-expanded]="busquedaAbierta === p.id_producto"
+                            [attr.aria-controls]="'sin-codigo-buscador-' + p.id_producto"
+                            [attr.aria-label]="'Buscar el código SUNAT de ' + p.nombre" data-prueba="buscar-fila">
+                      <i class="bi bi-search" aria-hidden="true"></i>
+                    </button>
                     <button type="submit" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="ocupado"
                             [attr.aria-label]="'Guardar código SUNAT de ' + p.nombre">
                       <i class="bi" [ngClass]="idEnProceso === p.id_producto ? 'bi-arrow-repeat adm-girando' : 'bi-check2'" aria-hidden="true"></i>
                       Guardar
                     </button>
                   </form>
+                  @if (busquedaAbierta === p.id_producto) {
+                    <ng-container *ngTemplateOutlet="buscador; context: { idRegion: 'sin-codigo-buscador-' + p.id_producto, etiqueta: p.nombre }"></ng-container>
+                  }
                 </td>
               </tr>
             }
@@ -145,3 +165,40 @@
     }
   }
 </section>
+
+<!-- Buscador local del catálogo 25: se escribe el nombre del producto y se elige la clase. -->
+<ng-template #buscador let-idRegion="idRegion" let-etiqueta="etiqueta">
+  <div class="sin-codigo-buscador" [id]="idRegion" role="region" [attr.aria-label]="'Buscar código SUNAT para ' + etiqueta"
+       (keydown.escape)="cerrarBusqueda()">
+    <label class="adm-etiqueta" [for]="idRegion + '-texto'">Buscar por nombre o por código</label>
+    <input class="adm-input adm-input--chico" type="search" [id]="idRegion + '-texto'" autocomplete="off" autofocus
+           placeholder="Ej.: martillo, pintura, cable, tubo PVC" [ngModel]="textoBusqueda"
+           (ngModelChange)="alBuscar($event)" [ngModelOptions]="{ standalone: true }" data-prueba="texto-busqueda">
+    @if (cargandoCatalogo) {
+      <p class="adm-ayuda" role="status">Cargando la lista…</p>
+    } @else if (errorCatalogo) {
+      <p class="adm-ayuda sin-codigo-buscador__error" role="alert">
+        No se pudo cargar la lista de códigos.
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="reintentarCatalogo()">Reintentar</button>
+      </p>
+    } @else if (resultados.length) {
+      <ul class="sin-codigo-buscador__lista" role="listbox" aria-label="Códigos encontrados">
+        @for (clase of resultados; track clase.codigo) {
+          <li role="option">
+            <button type="button" class="sin-codigo-buscador__opcion" (click)="elegir(clase)" data-prueba="resultado-busqueda">
+              <span class="adm-mono sin-codigo-buscador__codigo">{{ clase.codigo }}</span>
+              <span>{{ clase.nombre }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    } @else if (textoBusqueda.trim()) {
+      <p class="adm-ayuda" role="status">No hay códigos con ese nombre. Pruebe con otra palabra (por ejemplo «llave» en vez de «llave inglesa»).</p>
+    }
+    @if (catalogo && !catalogo.oficial) {
+      <p class="adm-ayuda sin-codigo-buscador__nota">
+        Lista de apoyo armada por el equipo ({{ catalogo.fecha }}), no es la oficial: confirme el código en el catálogo 25 de SUNAT antes de usarlo.
+      </p>
+    }
+  </div>
+</ng-template>

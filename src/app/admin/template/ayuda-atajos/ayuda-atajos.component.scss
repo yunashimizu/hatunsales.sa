@@ -1,0 +1,63 @@
+:host {
+  display: contents;
+}
+
+.aya-marco {
+  width: min(560px, 100%);
+}
+
+.aya-marco:focus {
+  outline: none;
+}
+
+.aya-cuerpo {
+  gap: 18px;
+}
+
+.aya-grupo__titulo {
+  margin: 0 0 6px;
+  font-size: var(--adm-fs-rotulo, 11.5px);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--adm-texto-tenue);
+}
+
+.aya-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.aya-tabla tr + tr {
+  border-top: 1px solid var(--adm-borde);
+}
+
+.aya-tabla th,
+.aya-tabla td {
+  padding: 9px 0;
+  vertical-align: middle;
+  font-size: var(--adm-fs-cuerpo, 15px);
+  text-align: left;
+}
+
+.aya-tabla td {
+  color: var(--adm-texto-2);
+}
+
+/* Columna de teclas: ancho fijo para que las descripciones queden alineadas */
+.aya-teclas {
+  width: 38%;
+  padding-right: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.aya-teclas kbd + kbd {
+  margin-left: 4px;
+}
+
+@media (max-width: 480px) {
+  .aya-teclas {
+    width: 40%;
+  }
+}

@@ -4,7 +4,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { urlConstants } from '../../../../constants/urlConstants';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { ProductoSinCodigoSunat } from '../../../service/producto-admin.service';
-import { ProductosSinCodigoComponent } from './productos-sin-codigo.component';
+import { RUTA_CATALOGO_25 } from './catalogo-sunat-25';
+import { BUSQUEDA_LOTE, ProductosSinCodigoComponent } from './productos-sin-codigo.component';
 
 function producto(id: number, cambios: Partial<ProductoSinCodigoSunat> = {}): ProductoSinCodigoSunat {
   return {
@@ -136,5 +137,105 @@ describe('ProductosSinCodigoComponent', () => {
     expect(aviso.textContent).toContain('No se pudo consultar los productos sin código SUNAT');
     (aviso.querySelector('button') as HTMLButtonElement).click();
     lectura().flush({ total: 0, datos: [] });
+  });
+
+  describe('buscador del catálogo 25 (S6)', () => {
+    const CATALOGO = {
+      fuente: 'Lista de apoyo (NO es el anexo oficial)',
+      fecha: '2026-11-08',
+      oficial: false,
+      clases: [
+        ['27111800', 'Martillos y mazos'],
+        ['31211500', 'Pinturas'],
+        ['31211900', 'Brochas, rodillos y accesorios de pintura'],
+      ],
+    };
+    const buscadores = () => fixture.nativeElement.querySelectorAll('.sin-codigo-buscador');
+
+    function abrirFila(id = 1): void {
+      lectura().flush({ total: 2, datos: [producto(1), producto(2)] });
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelectorAll('[data-prueba="buscar-fila"]')[id - 1] as HTMLButtonElement).click();
+      fixture.detectChanges();
+    }
+
+    function escribir(valor: string): void {
+      const campo = fixture.nativeElement.querySelector('[data-prueba="texto-busqueda"]') as HTMLInputElement;
+      campo.value = valor;
+      campo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    }
+
+    it('abre el buscador de la fila, baja la lista una sola vez y filtra al escribir', async () => {
+      abrirFila(1);
+      http.expectOne(RUTA_CATALOGO_25).flush(CATALOGO);
+      fixture.detectChanges();
+      expect(buscadores().length).toBe(1);
+
+      escribir('martillo');
+      const opciones = Array.from(fixture.nativeElement.querySelectorAll('[data-prueba="resultado-busqueda"]')) as HTMLElement[];
+      expect(opciones.length).toBe(1);
+      expect(opciones[0].querySelector('.sin-codigo-buscador__codigo')?.textContent).toBe('27111800');
+      expect(opciones[0].textContent).toContain('Martillos y mazos');
+      expect(texto()).toContain('no es la oficial');
+
+      // Cerrar y volver a abrir no vuelve a pedir el archivo.
+      component.cerrarBusqueda();
+      fixture.detectChanges();
+      expect(buscadores().length).toBe(0);
+      component.alternarBusqueda(2);
+      http.expectNone(RUTA_CATALOGO_25);
+    });
+
+    it('elegir un resultado rellena el código de ESA fila y cierra el buscador', () => {
+      abrirFila(2);
+      http.expectOne(RUTA_CATALOGO_25).flush(CATALOGO);
+      fixture.detectChanges();
+      escribir('pintura');
+      (fixture.nativeElement.querySelector('[data-prueba="resultado-busqueda"]') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(component.codigos[2]).toBe('31211500');
+      expect(component.codigos[1]).toBeUndefined();
+      expect(buscadores().length).toBe(0);
+      const campo = fixture.nativeElement.querySelectorAll('.sin-codigo-input')[1] as HTMLInputElement;
+      expect(component.esValido(component.codigos[2])).toBe(true);
+      expect(campo).toBeTruthy();
+    });
+
+    it('el buscador del lote rellena «Código para los seleccionados»', () => {
+      lectura().flush({ total: 1, datos: [producto(1)] });
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('[data-prueba="buscar-lote"]') as HTMLButtonElement).click();
+      http.expectOne(RUTA_CATALOGO_25).flush(CATALOGO);
+      fixture.detectChanges();
+      expect(component.busquedaAbierta).toBe(BUSQUEDA_LOTE);
+
+      escribir('2711');
+      (fixture.nativeElement.querySelector('[data-prueba="resultado-busqueda"]') as HTMLButtonElement).click();
+      expect(component.codigoLote).toBe('27111800');
+    });
+
+    it('sin resultados lo dice con una sugerencia y si la lista no carga permite reintentar', () => {
+      abrirFila(1);
+      http.expectOne(RUTA_CATALOGO_25).flush('boom', { status: 404, statusText: 'Not Found' });
+      fixture.detectChanges();
+      expect(texto()).toContain('No se pudo cargar la lista de códigos');
+
+      (fixture.nativeElement.querySelector('.sin-codigo-buscador__error button') as HTMLButtonElement).click();
+      http.expectOne(RUTA_CATALOGO_25).flush(CATALOGO);
+      fixture.detectChanges();
+      escribir('zzzz');
+      expect(texto()).toContain('No hay códigos con ese nombre');
+    });
+
+    it('Escape cierra el buscador', () => {
+      abrirFila(1);
+      http.expectOne(RUTA_CATALOGO_25).flush(CATALOGO);
+      fixture.detectChanges();
+      (buscadores()[0] as HTMLElement).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      fixture.detectChanges();
+      expect(buscadores().length).toBe(0);
+    });
   });
 });

@@ -250,7 +250,7 @@
         </div>
         @if (g.sunat.ticket || g.sunat.codigo_hash) {
           <p class="adm-ayuda gre-detalle__sunat-datos">
-            @if (g.sunat.ticket) { Ticket SUNAT <span class="adm-mono">{{ g.sunat.ticket }}</span> }
+            @if (g.sunat.ticket) { N.º de seguimiento SUNAT <span class="adm-mono">{{ g.sunat.ticket }}</span> }
             @if (g.sunat.codigo) { · código {{ g.sunat.codigo }} }
             @if (g.sunat.codigo_hash) { · hash <span class="adm-mono">{{ g.sunat.codigo_hash }}</span> }
           </p>
@@ -286,10 +286,17 @@
           <i class="bi bi-pencil" aria-hidden="true"></i> {{ g.estado === 'rechazado' ? 'Corregir' : 'Editar' }}
         </button>
       }
+      @if (esAdmin && g.acciones.puede_liberar) {
+        <button type="button" class="adm-btn adm-btn--suave" (click)="liberar.emit(g)" [disabled]="ocupado"
+                title="Suelta la guía para reenviarla después de revisarla en SUNAT Operaciones en Línea">
+          <i class="bi" [ngClass]="accion === 'liberar' ? 'bi-arrow-repeat adm-girando' : 'bi-unlock'" aria-hidden="true"></i>
+          {{ accion === 'liberar' ? 'Liberando…' : 'Liberar' }}
+        </button>
+      }
       @if (puedeEscribir && g.acciones.puede_consultar) {
         <button type="button" class="adm-btn adm-btn--primario" (click)="consultar.emit(g)" [disabled]="ocupado">
           <i class="bi" [ngClass]="accion === 'consultar' ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-repeat'" aria-hidden="true"></i>
-          {{ accion === 'consultar' ? 'Consultando…' : 'Consultar en SUNAT' }}
+          {{ accion === 'consultar' ? 'Consultando…' : 'Consultar ahora' }}
         </button>
       }
       @if (puedeEscribir && g.acciones.puede_emitir) {

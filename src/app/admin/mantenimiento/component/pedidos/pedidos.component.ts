@@ -3,15 +3,25 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   HostListener,
   OnInit,
   inject,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import { EstadoPedido, Pedido, PedidoEstado, PedidoItem } from '../../../../store/models/tienda.models';
+import { ColumnaOrdenable, OrdenMovilComponent } from '../../../../shared/components/orden-movil/orden-movil.component';
+import { PiePaginacionComponent } from '../../../../shared/components/pie-paginacion/pie-paginacion.component';
 import { AlertService } from '../../../../shared/services/alert.service';
+import { ColumnaCsv, exportarCsv, fechaCsv } from '../../../../shared/utils/exportar-csv';
+import { EscritorFiltrosUrl, EsquemaFiltros, leerFiltros } from '../../../../shared/utils/filtros-url';
+import {
+  EstadoOrden, alternarOrden, ariaSort, guardarOrden, iconoOrden, leerOrdenGuardado, ordenarLista,
+} from '../../../../shared/utils/orden-lista';
+import { PaginaLocal, guardarFilasPorPagina, leerFilasPorPagina, paginar } from '../../../../shared/utils/paginacion-local';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { mensajeDeError } from '../../../service/api-base.service';
 import { PedidoAdminService, pedidoCancelable, siguienteEstadoPedido } from '../../../service/pedido-admin.service';
@@ -40,6 +50,23 @@ export const META_ESTADO: Record<EstadoPedido, MetaEstado> = {
 /** Orden de los chips: el flujo y, al final, los cancelados. */
 const ORDEN_CHIPS: EstadoPedido[] = ['pendiente', 'pagado', 'preparando', 'enviado', 'entregado', 'cancelado'];
 
+/** Qué se guarda en la URL: enlace compartible y filtros que sobreviven a F5. */
+const ESQUEMA_URL: EsquemaFiltros = {
+  q: { tipo: 'texto' },
+  estado: { tipo: 'opcion', opciones: ORDEN_CHIPS, defecto: '' },
+};
+
+const COLUMNAS_ORDEN: ColumnaOrdenable[] = [
+  { clave: 'codigo', titulo: 'Pedido', tipo: 'texto' },
+  { clave: 'fecha', titulo: 'Fecha', tipo: 'fecha' },
+  { clave: 'cliente', titulo: 'Cliente', tipo: 'texto' },
+  { clave: 'total', titulo: 'Total', tipo: 'numero' },
+  { clave: 'estado', titulo: 'Estado', tipo: 'flujo' },
+];
+
+/** Sin elegir columna: los más recientes primero (como siempre). */
+const ORDEN_INICIAL: EstadoOrden = { clave: 'fecha', dir: 'desc' };
+
 function minusculas(texto: unknown): string {
   return String(texto ?? '').toLowerCase();
 }
@@ -53,7 +80,7 @@ function minusculas(texto: unknown): string {
   selector: 'app-pedidos',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, PiePaginacionComponent, OrdenMovilComponent],
   templateUrl: './pedidos.component.html',
   styleUrl: './pedidos.component.css',
 })
@@ -63,8 +90,29 @@ export class PedidosComponent implements OnInit {
   /** La última carga falló (para mostrar el estado de error en pantalla). */
   errorCarga = false;
 
-  filtroEstado: FiltroEstado = '';
-  filtro = '';
+  // Los filtros son propiedades con setter: cambiarlos vuelve a la página 1 y los deja en la URL.
+  private filtroEst: FiltroEstado = '';
+  private filtroTexto = '';
+
+  get filtroEstado(): FiltroEstado { return this.filtroEst; }
+  set filtroEstado(valor: FiltroEstado) {
+    if (valor === this.filtroEst) return;
+    this.filtroEst = valor;
+    this.alCambiarFiltros(false);
+  }
+
+  get filtro(): string { return this.filtroTexto; }
+  set filtro(valor: string) {
+    if (valor === this.filtroTexto) return;
+    this.filtroTexto = valor;
+    this.alCambiarFiltros(true);
+  }
+
+  /** Orden de la tabla; se recuerda mientras la pestaña siga abierta. */
+  orden: EstadoOrden = this.ordenGuardado();
+  readonly columnasOrden = COLUMNAS_ORDEN;
+  pagina = 1;
+  porPagina = leerFilasPorPagina();
 
   /** Ficha lateral abierta con este pedido. */
   seleccionado: Pedido | null = null;
@@ -82,6 +130,12 @@ export class PedidosComponent implements OnInit {
   readonly chips = ORDEN_CHIPS;
 
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly urlFiltros = new EscritorFiltrosUrl(this.router, this.route, ESQUEMA_URL);
+  private memoFiltrados?: { pedidos: Pedido[]; estado: FiltroEstado; texto: string; orden: EstadoOrden; resultado: Pedido[] };
+  private memoPagina?: { lista: Pedido[]; pagina: number; porPagina: number; resultado: PaginaLocal<Pedido> };
 
   constructor(
     private readonly api: PedidoAdminService,
@@ -90,10 +144,19 @@ export class PedidosComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.destroyRef.onDestroy(() => this.urlFiltros.cancelar());
+    // La URL manda antes de la primera carga; si la ruta cambia desde fuera (menú o paleta hacia
+    // /admin/pedidos limpio), los filtros se vacían.
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.aplicarFiltrosDeUrl());
     this.cargar();
   }
 
   // ── Lista ──────────────────────────────────────────────────────────
+
+  private ordenGuardado(): EstadoOrden {
+    const guardado = leerOrdenGuardado('pedidos', COLUMNAS_ORDEN.map((c) => c.clave));
+    return guardado.clave ? guardado : { ...ORDEN_INICIAL };
+  }
 
   /** Cuántos pedidos hay en cada estado (con todos los pedidos, no solo los visibles). */
   conteo(estado: EstadoPedido): number {
@@ -101,22 +164,104 @@ export class PedidosComponent implements OnInit {
   }
 
   get hayFiltros(): boolean {
-    return !!this.filtro.trim() || this.filtroEstado !== '';
+    return !!this.filtroTexto.trim() || this.filtroEst !== '';
   }
 
-  /** Por estado y por texto (código, cliente, documento o pago); más recientes primero. */
+  /** Por estado y por texto (código, cliente, documento o pago), en el orden elegido; sin elegir, más recientes primero. */
   get pedidosFiltrados(): Pedido[] {
-    const t = minusculas(this.filtro).trim();
-    return this.pedidos
-      .filter((p) => !this.filtroEstado || p.estado === this.filtroEstado)
+    const m = this.memoFiltrados;
+    if (m && m.pedidos === this.pedidos && m.estado === this.filtroEst && m.texto === this.filtroTexto && m.orden === this.orden) {
+      return m.resultado;
+    }
+    const t = minusculas(this.filtroTexto).trim();
+    const filtrados = this.pedidos
+      .filter((p) => !this.filtroEst || p.estado === this.filtroEst)
       .filter(
         (p) =>
           !t ||
           `${p.codigo} ${p.nombre_receptor ?? ''} ${p.documento_receptor ?? ''} ${p.metodo_pago ?? ''}`
             .toLowerCase()
             .includes(t),
-      )
-      .sort((a, b) => new Date(b.creado_en).getTime() - new Date(a.creado_en).getTime());
+      );
+    const orden = this.orden.clave ? this.orden : ORDEN_INICIAL;
+    const resultado = ordenarLista(filtrados, (p) => this.valorDeOrden(p, orden.clave!), orden.dir);
+    this.memoFiltrados = { pedidos: this.pedidos, estado: this.filtroEst, texto: this.filtroTexto, orden: this.orden, resultado };
+    return resultado;
+  }
+
+  private valorDeOrden(p: Pedido, clave: string): unknown {
+    switch (clave) {
+      case 'codigo': return p.codigo;
+      case 'fecha': return new Date(p.creado_en).getTime();
+      case 'cliente': return this.cliente(p);
+      case 'total': return Number(p.total);
+      case 'estado': return ORDEN_CHIPS.indexOf(p.estado);
+      default: return null;
+    }
+  }
+
+  get paginaPedidos(): PaginaLocal<Pedido> {
+    const lista = this.pedidosFiltrados;
+    const m = this.memoPagina;
+    if (m && m.lista === lista && m.pagina === this.pagina && m.porPagina === this.porPagina) return m.resultado;
+    const resultado = paginar(lista, this.pagina, this.porPagina);
+    this.memoPagina = { lista, pagina: this.pagina, porPagina: this.porPagina, resultado };
+    return resultado;
+  }
+
+  ordenar(clave: string): void {
+    this.fijarOrden(alternarOrden(this.orden, clave));
+  }
+
+  fijarOrden(orden: EstadoOrden): void {
+    this.orden = orden;
+    guardarOrden('pedidos', orden);
+    this.pagina = 1;
+  }
+
+  ariaSort(clave: string): 'ascending' | 'descending' | 'none' { return ariaSort(this.orden, clave); }
+  iconoOrden(clave: string): string { return iconoOrden(this.orden, clave); }
+
+  irAPagina(pagina: number): void { this.pagina = pagina; }
+
+  cambiarFilasPorPagina(porPagina: number): void {
+    this.porPagina = porPagina;
+    guardarFilasPorPagina(porPagina);
+    this.pagina = 1;
+  }
+
+  /** Descarga la lista filtrada y ordenada completa (no solo la página que se ve). */
+  exportarCsv(): void {
+    const filas = this.pedidosFiltrados;
+    if (!filas.length) return;
+    const columnas: ColumnaCsv<Pedido>[] = [
+      { titulo: 'Pedido', valor: (p) => p.codigo },
+      { titulo: 'Fecha', valor: (p) => fechaCsv(p.creado_en) },
+      { titulo: 'Cliente', valor: (p) => this.cliente(p) },
+      { titulo: 'Documento', valor: (p) => p.documento_receptor },
+      { titulo: 'Ítems', valor: (p) => Number(p.cantidad_items) || 0 },
+      { titulo: 'Total', valor: (p) => Number(p.total) || 0 },
+      { titulo: 'Pago', valor: (p) => p.metodo_pago },
+      { titulo: 'Estado', valor: (p) => META_ESTADO[p.estado]?.etiqueta ?? p.estado },
+      { titulo: 'Comprobante', valor: (p) => this.etiquetaComprobante(p) },
+    ];
+    const total = exportarCsv('pedidos-web', columnas, filas);
+    this.alerta.toast({ type: 'success', title: `CSV descargado: ${total} ${total === 1 ? 'fila' : 'filas'}` });
+  }
+
+  private alCambiarFiltros(teclando: boolean): void {
+    this.pagina = 1;
+    this.urlFiltros.escribir({ q: this.filtroTexto, estado: this.filtroEst }, { retardar: teclando });
+  }
+
+  /** Lleva a pantalla lo que dice la URL (sin volver a escribirla). */
+  private aplicarFiltrosDeUrl(): void {
+    if (this.urlFiltros.ocupado) return; // es el eco de lo que acabamos de escribir
+    const f = leerFiltros(this.route, ESQUEMA_URL);
+    this.filtroTexto = String(f['q'] ?? '');
+    this.filtroEst = String(f['estado'] ?? '') as FiltroEstado;
+    this.pagina = 1;
+    this.cdr.markForCheck();
   }
 
   identificar(_i: number, p: Pedido): number {
@@ -154,8 +299,9 @@ export class PedidosComponent implements OnInit {
   }
 
   limpiarFiltros(): void {
-    this.filtro = '';
-    this.filtroEstado = '';
+    this.filtroTexto = '';
+    this.filtroEst = '';
+    this.alCambiarFiltros(false);
   }
 
   // ── Ficha ──────────────────────────────────────────────────────────
@@ -305,6 +451,26 @@ export class PedidosComponent implements OnInit {
   /** Cliente para la tabla: nombre del receptor o, si falta, su documento. */
   cliente(p: Pedido): string {
     return (p.nombre_receptor || '').trim() || (p.documento_receptor || '').trim() || 'Sin nombre';
+  }
+
+  /** Parámetro de Documentos que abre un comprobante (`PARAMETRO_COMPROBANTE` en doc.component.ts). */
+  readonly rutaDocumentos = '/dashboard/mantenimiento/doc';
+  parametrosComprobante(id: number): Record<string, number> {
+    return { comprobante: id };
+  }
+
+  /** Estado del comprobante en palabras de quien atiende: «B001-123 · Aceptado», «En proceso»… */
+  estadoComprobante(p: Pedido): { texto: string; tono: TonoInsignia } | null {
+    const c = p.comprobante;
+    if (!c) return null;
+    switch (c.estado) {
+      case 'aceptado': return { texto: 'Aceptado por SUNAT', tono: 'exito' };
+      case 'en_proceso': return { texto: 'En proceso', tono: 'info' };
+      case 'requiere_revision': return { texto: 'Requiere revisión', tono: 'aviso' };
+      case 'rechazado': return { texto: 'Rechazado por SUNAT', tono: 'aviso' };
+      case 'anulado': return { texto: 'Anulado', tono: 'neutra' };
+      default: return { texto: 'Sin comprobante', tono: 'neutra' };
+    }
   }
 
   etiquetaComprobante(p: Pedido): string {

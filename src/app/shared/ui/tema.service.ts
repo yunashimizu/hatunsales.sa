@@ -3,6 +3,11 @@ import { Injectable, PLATFORM_ID, computed, inject, signal } from '@angular/core
 import { movimientoPermitido } from './movimiento.util';
 
 export type Tema = 'claro' | 'oscuro';
+/** Lo que elige el usuario: un tema fijo o «según el sistema». */
+export type ModoTema = Tema | 'sistema';
+
+/** Color de la barra del navegador (Android) cuando ninguna zona pide uno propio: el de la tienda. */
+const COLOR_BARRA_PREDETERMINADO = '#0d1220';
 
 /** Misma clave que el script de index.html (que aplica el tema antes del primer pintado). */
 const CLAVE_TEMA = 'hs.tema';
@@ -14,6 +19,9 @@ const CLAVE_TEMA = 'hs.tema';
  *   (prefers-color-scheme) y sigue al sistema mientras el usuario no elija.
  * - Aplica <html data-tema="…">; todo el oscuro sale de redefinir tokens
  *   (shared/styles/tema-oscuro.css), no hay lógica de negocio implicada.
+ * - `modo()` dice si hay una elección guardada (claro/oscuro) o se sigue al sistema;
+ *   `elegir('sistema')` borra lo guardado y vuelve a seguirlo.
+ * - `fijarColorBarra()` deja que una zona (el panel) pinte la barra del navegador con su fondo.
  * - Al cambiar con el botón, el nuevo tema se «revela» como un círculo que crece
  *   desde el botón (View Transitions); sin soporte o con movimiento reducido, cambia al instante.
  */
@@ -25,13 +33,54 @@ export class TemaService {
   readonly tema = signal<Tema>(this.leerInicial());
   readonly esOscuro = computed(() => this.tema() === 'oscuro');
 
+  /** Elección guardada; null = sigue al sistema. */
+  private readonly guardado = signal<Tema | null>(this.leerGuardado());
+  readonly modo = computed<ModoTema>(() => this.guardado() ?? 'sistema');
+
+  private coloresBarra: { claro: string; oscuro: string } | null = null;
+
   constructor() {
     if (!this.navegador) return;
     this.aplicar(this.tema());
     const sistema = window.matchMedia?.('(prefers-color-scheme: dark)');
     sistema?.addEventListener?.('change', (e) => {
-      if (this.leerGuardado() === null) this.fijar(e.matches ? 'oscuro' : 'claro', false);
+      if (this.guardado() === null) this.fijar(e.matches ? 'oscuro' : 'claro', false);
     });
+  }
+
+  /** Elige claro, oscuro o «sistema» (borra la elección guardada y aplica el tema del sistema). */
+  elegir(modo: ModoTema): void {
+    if (modo !== 'sistema') {
+      this.fijar(modo);
+      return;
+    }
+    this.guardado.set(null);
+    if (this.navegador) {
+      try {
+        localStorage.removeItem(CLAVE_TEMA);
+      } catch {
+        /* almacenamiento bloqueado: el modo vale para esta visita */
+      }
+    }
+    this.fijar(this.temaDelSistema(), false);
+  }
+
+  /**
+   * Imprimir siempre es en papel blanco: mientras dura el diálogo de impresión el documento va en
+   * claro. No toca la señal ni lo guardado; al terminar vuelve al tema de la persona.
+   */
+  paraImpresion(activo: boolean): void {
+    if (!this.navegador) return;
+    this.doc.documentElement.setAttribute('data-tema', activo ? 'claro' : this.tema());
+  }
+
+  /**
+   * Color de la barra del navegador en móvil (`<meta name="theme-color">`).
+   * Con colores, sigue al tema; con null vuelve al de la tienda.
+   */
+  fijarColorBarra(colores: { claro: string; oscuro: string } | null): void {
+    this.coloresBarra = colores;
+    this.aplicarColorBarra();
   }
 
   /** Cambia entre claro y oscuro; `origen` (el botón pulsado) marca de dónde nace el círculo. */
@@ -59,6 +108,7 @@ export class TemaService {
     this.tema.set(tema);
     this.aplicar(tema);
     if (!persistir || !this.navegador) return;
+    this.guardado.set(tema);
     try {
       localStorage.setItem(CLAVE_TEMA, tema);
     } catch {
@@ -69,6 +119,23 @@ export class TemaService {
   private aplicar(tema: Tema): void {
     if (!this.navegador) return;
     this.doc.documentElement.setAttribute('data-tema', tema);
+    this.aplicarColorBarra();
+  }
+
+  private aplicarColorBarra(): void {
+    if (!this.navegador) return;
+    const color = this.coloresBarra ? this.coloresBarra[this.tema()] : COLOR_BARRA_PREDETERMINADO;
+    let meta = this.doc.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!meta) {
+      meta = this.doc.createElement('meta');
+      meta.name = 'theme-color';
+      this.doc.head.appendChild(meta);
+    }
+    if (meta.content !== color) meta.content = color;
+  }
+
+  private temaDelSistema(): Tema {
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
   }
 
   private leerGuardado(): Tema | null {
@@ -86,6 +153,6 @@ export class TemaService {
     // El script de index.html ya resolvió guardado/sistema: se respeta su resultado.
     const aplicado = this.doc.documentElement.getAttribute('data-tema');
     if (aplicado === 'oscuro' || aplicado === 'claro') return aplicado;
-    return this.leerGuardado() ?? (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro');
+    return this.leerGuardado() ?? this.temaDelSistema();
   }
 }

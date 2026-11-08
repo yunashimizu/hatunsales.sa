@@ -1971,9 +1971,11 @@ export class VentasComponent implements OnInit, OnDestroy {
           } else {
             this.alerta.toast({
               type: 'success',
-              title: venta.comprobante?.envio_diferido
-                ? `${venta.comprobante.numero_formateado ?? 'Venta'} registrada; SUNAT la confirma en segundos`
-                : `${venta.comprobante?.numero_formateado ?? 'Venta'} emitida`,
+              title: venta.comprobante?.por_resumen
+                ? 'Boleta registrada: se informa a SUNAT en el resumen diario'
+                : venta.comprobante?.envio_diferido
+                  ? `${venta.comprobante.numero_formateado ?? 'Venta'} registrada; SUNAT la confirma en segundos`
+                  : `${venta.comprobante?.numero_formateado ?? 'Venta'} emitida`,
               timer: 3500,
             });
           }

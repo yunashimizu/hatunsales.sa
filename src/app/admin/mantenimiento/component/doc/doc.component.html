@@ -112,7 +112,7 @@
           <div>
             <div class="adm-metrica__valor">{{ atencion.pendientes }}</div>
             <div class="adm-metrica__etiqueta">Esperando a SUNAT</div>
-            <div class="adm-metrica__delta">{{ atencion.pendientes ? 'Reintente o recupere el CDR' : 'Todo respondido' }}</div>
+            <div class="adm-metrica__delta">{{ atencion.pendientes ? 'Reintente o recupere la constancia' : 'Todo respondido' }}</div>
           </div>
         </div>
       </section>
@@ -348,7 +348,7 @@
 
                         @if (fila.puede_recuperar_cdr) {
                           <button type="button" class="adm-btn-icono" (click)="abrirDetalle(fila.id_comprobante, 'recuperar_cdr')"
-                                  title="Recuperar la constancia (CDR)"
+                                  title="Recuperar la constancia de SUNAT"
                                   [attr.aria-label]="'Recuperar la constancia de ' + fila.numero_formateado + ' en SUNAT'">
                             <i class="bi bi-cloud-download" aria-hidden="true"></i>
                           </button>

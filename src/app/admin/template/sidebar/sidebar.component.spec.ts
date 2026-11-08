@@ -1,11 +1,15 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 
 import { PedidoAdminService } from '../../service/pedido-admin.service';
 import { Pedido } from '../../../store/models/tienda.models';
 import { SECCIONES_MENU, SidebarComponent } from './sidebar.component';
+
+@Component({ template: '' })
+class PaginaVacia {}
 
 describe('SidebarComponent', () => {
   let component: SidebarComponent;
@@ -43,5 +47,18 @@ describe('SidebarComponent', () => {
     expect(component.tonoBadge(item)).toBe('aviso');
     expect(component.tituloBadge(item)).toContain('1 por cobrar');
     expect(component.tituloBadge(item)).toContain('2 pagados');
+  });
+
+  it('marca con aria-current="page" solo el enlace de la pantalla actual', async () => {
+    const router = TestBed.inject(Router);
+    router.resetConfig([{ path: '**', component: PaginaVacia }]);
+    await router.navigateByUrl('/dashboard/mantenimiento/productos');
+    fixture.detectChanges();
+    await new Promise<void>((resolver) => setTimeout(resolver, 0)); // RouterLinkActive se actualiza en un microtask
+    fixture.detectChanges();
+
+    const actuales = Array.from(fixture.nativeElement.querySelectorAll('a[aria-current="page"]')) as HTMLAnchorElement[];
+    expect(actuales.length).toBe(1);
+    expect(actuales[0].getAttribute('href')).toBe('/dashboard/mantenimiento/productos');
   });
 });

@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { PedidosComponent } from './pedidos.component';
@@ -233,5 +233,164 @@ describe('PedidosComponent', () => {
     fixture.detectChanges();
     expect(el().querySelector('.ped-ficha')).toBeNull();
     expect(componente.seleccionado).toBeNull();
+  });
+});
+
+/** Lista de pedidos: orden por columna, páginas, CSV y filtros en la URL (R17d). */
+describe('PedidosComponent · comprobante en la ficha (S5)', () => {
+  let fixture: ComponentFixture<PedidosComponent>;
+  let detalleActual: Pedido;
+
+  const api = { listar: vi.fn(), detalle: vi.fn(), cambiarEstado: vi.fn(), confirmarPago: vi.fn(), publicarDesde: vi.fn() };
+  const el = (): HTMLElement => fixture.nativeElement as HTMLElement;
+  const bloque = () => el().querySelector('[data-prueba="ped-comprobante"]') as HTMLElement | null;
+
+  async function abrirFicha(detalle: Pedido): Promise<void> {
+    detalleActual = detalle;
+    api.listar.mockImplementation(() => of([pedido(detalle.id_pedido, detalle.estado)]));
+    api.detalle.mockImplementation(() => of(detalleActual));
+    await TestBed.configureTestingModule({
+      imports: [PedidosComponent],
+      providers: [
+        provideRouter([]),
+        { provide: PedidoAdminService, useValue: api },
+        { provide: AlertService, useValue: { confirmarPeligro: vi.fn(), error: vi.fn() } },
+        { provide: NotificationService, useValue: { exito: vi.fn(), error: vi.fn() } },
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(PedidosComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.abrir(pedido(detalle.id_pedido, detalle.estado));
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it('un pedido con comprobante aceptado muestra «B001-123 · Aceptado por SUNAT» con enlace a Documentos', async () => {
+    await abrirFicha(pedido(3, 'pagado', {
+      comprobante: { estado: 'aceptado', id_comprobante: 41, numero_formateado: 'B001-123', tipo: 'boleta', puede_descargar: true },
+    }));
+
+    const enlace = bloque()!.querySelector('a') as HTMLAnchorElement;
+    expect(enlace.textContent?.trim()).toBe('B001-123');
+    expect(enlace.getAttribute('href')).toBe('/dashboard/mantenimiento/doc?comprobante=41');
+    expect(bloque()!.textContent).toContain('Aceptado por SUNAT');
+  });
+
+  it('un comprobante que SUNAT todavía recibe sale «En proceso»', async () => {
+    await abrirFicha(pedido(3, 'pagado', {
+      comprobante: { estado: 'en_proceso', id_comprobante: 42, numero_formateado: 'F001-9', tipo: 'factura', puede_descargar: true },
+    }));
+    expect(bloque()!.textContent).toContain('En proceso');
+    expect(bloque()!.textContent).toContain('F001-9');
+  });
+
+  it('sin comprobante muestra el motivo que dio el servidor y ningún enlace', async () => {
+    await abrirFicha(pedido(3, 'pagado', {
+      comprobante: { estado: 'sin_comprobante', puede_descargar: false, motivo: 'El comprador pidió factura, pero el pedido no trae un RUC válido.' },
+    }));
+    expect(bloque()!.textContent).toContain('Sin comprobante');
+    expect(bloque()!.textContent).toContain('no trae un RUC válido');
+    expect(bloque()!.querySelector('a')).toBeNull();
+  });
+
+  it('si el servidor no manda la sección de comprobante, la ficha no inventa nada', async () => {
+    await abrirFicha(pedido(3, 'pagado'));
+    expect(bloque()).toBeNull();
+  });
+});
+
+describe('PedidosComponent · orden, páginas, CSV y URL', () => {
+  const estados: EstadoPedido[] = ['pendiente', 'pagado', 'preparando', 'enviado', 'entregado', 'cancelado'];
+  const lista: Pedido[] = Array.from({ length: 40 }, (_, i) => pedido(i + 1, estados[i % 6], {
+    codigo: `PW-${String(i + 1).padStart(3, '0')}`,
+    total: 10 + i,
+    nombre_receptor: `Cliente ${String(40 - i).padStart(2, '0')}`,
+    creado_en: new Date(Date.UTC(2026, 9, 1 + i, 15)).toISOString(),
+  }));
+  const api = {
+    listar: vi.fn(() => of(lista)),
+    detalle: vi.fn(),
+    publicarDesde: vi.fn(),
+  };
+  const alerta = { toast: vi.fn(), error: vi.fn() };
+  let router: Router;
+
+  async function montar(url = '/pedidos') {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    localStorage.clear();
+    await TestBed.configureTestingModule({
+      imports: [PedidosComponent],
+      providers: [
+        provideRouter([{ path: 'pedidos', component: PedidosComponent }]),
+        { provide: PedidoAdminService, useValue: api },
+        { provide: AlertService, useValue: alerta },
+        { provide: NotificationService, useValue: { exito: vi.fn(), error: vi.fn() } },
+      ],
+    }).compileComponents();
+    router = TestBed.inject(Router);
+    await router.navigateByUrl(url);
+    const fixture = TestBed.createComponent(PedidosComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    return fixture;
+  }
+
+  it('sin orden elegido muestra los más recientes primero; la cabecera ordena y marca aria-sort', async () => {
+    const fixture = await montar();
+    const raiz: HTMLElement = fixture.nativeElement;
+    const c = fixture.componentInstance;
+    expect(c.pedidosFiltrados[0].codigo).toBe('PW-040');
+    expect(c.ariaSort('fecha')).toBe('descending');
+
+    raiz.querySelector<HTMLButtonElement>('thead th:nth-child(5) button')!.click(); // Total
+    fixture.detectChanges();
+    expect(raiz.querySelector('thead th:nth-child(5)')!.getAttribute('aria-sort')).toBe('ascending');
+    expect(c.pedidosFiltrados[0].codigo).toBe('PW-001');
+
+    c.ordenar('estado');
+    expect(c.pedidosFiltrados[0].estado).toBe('pendiente');
+    c.ordenar('estado');
+    expect(c.pedidosFiltrados[0].estado).toBe('cancelado');
+  });
+
+  it('pagina de 25 en 25, exporta la lista completa y avisa cuántas filas', async () => {
+    const fixture = await montar();
+    const raiz: HTMLElement = fixture.nativeElement;
+    expect(raiz.querySelectorAll('tbody tr')).toHaveLength(25);
+    expect(raiz.querySelector('.adm-paginacion')!.textContent).toContain('1–25');
+
+    let blob: Blob | null = null;
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((b) => { blob = b as Blob; return 'blob:x'; });
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    raiz.querySelector<HTMLButtonElement>('#ped-exportar')!.click();
+
+    expect((await blob!.text()).split('\r\n').filter(Boolean)).toHaveLength(41);
+    expect(alerta.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'CSV descargado: 40 filas' }));
+    vi.restoreAllMocks();
+  });
+
+  it('el estado y la búsqueda viajan en la URL; entrar con el enlace ya filtra y la ruta limpia vacía todo', async () => {
+    const fixture = await montar('/pedidos?estado=pagado&q=cliente');
+    const c = fixture.componentInstance;
+    expect(c.filtroEstado).toBe('pagado');
+    expect(c.filtro).toBe('cliente');
+    expect(c.pedidosFiltrados.every((p) => p.estado === 'pagado')).toBe(true);
+
+    c.elegirEstado('enviado');
+    await vi.waitFor(() => expect(router.url).toContain('estado=enviado'));
+    expect(router.url).toContain('q=cliente');
+
+    c.limpiarFiltros();
+    await vi.waitFor(() => expect(router.url).toBe('/pedidos'));
+
+    await router.navigateByUrl('/pedidos?estado=entregado');
+    expect(c.filtroEstado).toBe('entregado');
+    await router.navigateByUrl('/pedidos');
+    expect(c.filtroEstado).toBe('');
+    expect(c.hayFiltros).toBe(false);
   });
 });

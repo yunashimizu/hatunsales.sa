@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { AuthService } from '../../../auth/service/auth.service';
+import { AyudaAtajosService } from '../ayuda-atajos/ayuda-atajos.service';
 import { PaletaComandosComponent } from './paleta-comandos.component';
 import { PaletaComandosService } from './paleta-comandos.service';
 
@@ -115,6 +116,18 @@ describe('PaletaComandosComponent', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
     expect(paleta.abierta()).toBe(true);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'K', metaKey: true, bubbles: true }));
+    expect(paleta.abierta()).toBe(false);
+  });
+
+  it('«Ver atajos de teclado» se encuentra por «teclado» o «ayuda» y abre la ayuda', async () => {
+    await abrir();
+    for (const palabra of ['teclado', 'ayuda', 'atajos']) {
+      escribir(palabra);
+      expect(etiquetas()).toContain('Ver atajos de teclado');
+    }
+    escribir('atajos');
+    tecla('Enter');
+    expect(TestBed.inject(AyudaAtajosService).abierta()).toBe(true);
     expect(paleta.abierta()).toBe(false);
   });
 });

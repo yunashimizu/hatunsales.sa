@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable, catchError, map, of } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
 import { OpcionCategoria, OpcionMarca, ProductoAdmin } from '../models/admin.models';
-import { opcionesHttp } from './api-base.service';
+import { cacheCorto, opcionesHttp } from './api-base.service';
 
 /** Campos que acepta el backend al crear o editar. */
 export interface ProductoFormulario {
@@ -24,6 +24,11 @@ export interface ProductoFormulario {
   destacado?: boolean;
   /** Solo al crear: cantidad inicial en inventario. */
   stock?: number;
+  /**
+   * Solo al editar: ajuste de stock que viaja en el mismo PUT (el servidor lo aplica en la misma
+   * transacción y responde 409 `STOCK_DESACTUALIZADO` si el stock real ya no es `stock_anterior`).
+   */
+  ajuste_stock?: { id_almacen: number; stock_nuevo: number; stock_anterior: number };
 }
 
 /** Producto activo que todavía no tiene código de producto SUNAT. */
@@ -48,6 +53,13 @@ export interface ResultadoAsignacionCodigoSunat {
 
 @Injectable({ providedIn: 'root' })
 export class ProductoAdminService {
+
+  /**
+   * Categorías y marcas casi no cambian y las piden «Nuevo» y «Editar» en cada apertura:
+   * se comparten 60 s. Marcas y Categorías llaman a `invalidarCatalogos()` tras guardar o borrar.
+   */
+  private categoriasCompartidas = cacheCorto<OpcionCategoria[]>(60_000);
+  private marcasCompartidas = cacheCorto<OpcionMarca[]>(60_000);
 
   constructor(private http: HttpClient) {}
 
@@ -95,13 +107,16 @@ export class ProductoAdminService {
   }
 
   categorias(): Observable<OpcionCategoria[]> {
-    return this.http.get<any>(urlConstants.categoria, opcionesHttp())
-      .pipe(map((respuesta) => (Array.isArray(respuesta) ? respuesta : respuesta?.data ?? [])));
+    return this.categoriasCompartidas(() =>
+      this.http.get<any>(urlConstants.categoria, opcionesHttp())
+        .pipe(map((respuesta) => (Array.isArray(respuesta) ? respuesta : respuesta?.data ?? []))),
+    );
   }
 
   /**
    * Marcas activas desde el CRUD `/marca` (misma tabla que Productos).
-   * Si el endpoint aún no está desplegado, cae a `/tienda/marcas`.
+   * Si el endpoint aún no está desplegado, cae a `/tienda/marcas`. Si ambos fallan entrega `[]`,
+   * pero ese resultado vacío no se guarda en la caché (un error no se cachea).
    */
   marcas(): Observable<OpcionMarca[]> {
     const mapear = (respuesta: any): OpcionMarca[] => {
@@ -111,14 +126,19 @@ export class ProductoAdminService {
         .map((m: any) => ({ id_marca: Number(m.id_marca), nombre: String(m.nombre ?? '') }));
     };
 
-    return this.http.get<any>(urlConstants.marca, opcionesHttp()).pipe(
-      map(mapear),
-      catchError(() =>
-        this.http.get<any>(urlConstants.tienda.marcas, opcionesHttp()).pipe(
-          map(mapear),
-          catchError(() => of([])),
+    return this.marcasCompartidas(() =>
+      this.http.get<any>(urlConstants.marca, opcionesHttp()).pipe(
+        map(mapear),
+        catchError(() =>
+          this.http.get<any>(urlConstants.tienda.marcas, opcionesHttp()).pipe(map(mapear)),
         ),
       ),
-    );
+    ).pipe(catchError(() => of([] as OpcionMarca[])));
+  }
+
+  /** Descarta la caché de categorías y marcas (se llama tras crear, editar o borrar una de ellas). */
+  invalidarCatalogos(): void {
+    this.categoriasCompartidas = cacheCorto<OpcionCategoria[]>(60_000);
+    this.marcasCompartidas = cacheCorto<OpcionMarca[]>(60_000);
   }
 }

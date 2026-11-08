@@ -52,7 +52,9 @@ import {
   claseAviso,
   claseInsignia,
   estadoDeComprobante,
+  nombreLote,
   fechaYmdLegible,
+  textoPlazoVencido,
   nombreDescarga,
   textoAccionSunat,
 } from '../documentos-sunat';
@@ -61,7 +63,7 @@ import { HojaComprobante, hojaDesdeDetalle } from '../hoja-comprobante/hoja-comp
 import { ResultadoSunatComponent } from '../resultado-sunat/resultado-sunat.component';
 
 /** Acción que la lista pide ejecutar apenas se abre el detalle. */
-export type AccionDetalle = 'reintentar' | 'recuperar_cdr' | 'confirmar' | 'anular' | 'baja';
+export type AccionDetalle = 'reintentar' | 'recuperar_cdr' | 'confirmar' | 'anular' | 'baja' | 'resumir';
 
 /** Cómo se rotula cada estado del correo al cliente. */
 const TEXTO_CORREO: Readonly<Record<EstadoCorreo, { titulo: string; tono: TonoEstado; icono: string }>> = {
@@ -84,7 +86,7 @@ const ESTADO_GUIA: Readonly<Record<string, string>> = {
   legacy: 'Registro anterior',
   borrador: 'Borrador',
   pendiente: 'Pendiente de envío',
-  enviado: 'En proceso en SUNAT',
+  enviado: 'SUNAT lo está procesando',
   aceptado: 'Aceptada por SUNAT',
   rechazado: 'Rechazada por SUNAT',
   anulado: 'Anulada',
@@ -173,6 +175,7 @@ export class ComprobanteDetalleComponent implements OnChanges {
   /** El backend emite notas de crédito para admin y vendedor (caja solo las consulta). */
   readonly puedeEmitirNota: boolean;
 
+  private readonly auth = inject(AuthService);
   private readonly api = inject(ComprobanteService);
   private readonly alerta = inject(AlertService);
   private readonly fiscal = inject(FiscalEstadoService);
@@ -188,9 +191,8 @@ export class ComprobanteDetalleComponent implements OnChanges {
   }
 
   constructor() {
-    const auth = inject(AuthService);
-    this.esAdmin = auth.puedeVer(['admin']);
-    this.puedeEmitirNota = auth.puedeVer(['admin', 'vendedor']);
+    this.esAdmin = this.auth.puedeVer(['admin']);
+    this.puedeEmitirNota = this.auth.puedeVer(['admin', 'vendedor']);
   }
 
   ngOnChanges(cambios: SimpleChanges): void {
@@ -232,12 +234,19 @@ export class ComprobanteDetalleComponent implements OnChanges {
     if (!d) return false;
     return (
       d.puede_reintentar ||
+      (d.puede_reintentar_ahora === true && this.esAdmin) ||
       d.puede_recuperar_cdr ||
       (d.puede_confirmar_manual && this.esAdmin) ||
+      this.puedeInformarPorResumen ||
       (d.puede_nota_credito && this.puedeEmitirNota) ||
       (d.puede_anular_sin_nota === true && this.esAdmin) ||
       (d.puede_anular && this.esAdmin)
     );
+  }
+
+  /** «Informar por resumen»: lo ofrece el servidor (boleta por resumir o vencida dentro de los 7 días); lo usan el administrador y el vendedor. */
+  get puedeInformarPorResumen(): boolean {
+    return this.detalle?.puede_informar_por_resumen === true && this.auth.puedeVer(['admin', 'vendedor']);
   }
 
   /** Vuelve a leer el comprobante (también lo pide Documentos tras emitir una nota de crédito). */
@@ -301,15 +310,94 @@ export class ComprobanteDetalleComponent implements OnChanges {
 
   // ── Acciones con SUNAT ───────────────────────────────────────
 
-  reintentar(): void {
+  async reintentar(): Promise<void> {
+    const d = this.detalle;
+    if (!d || this.enProceso) return;
+    const confirmado = await this.alerta.confirmar({
+      title: `¿Reintentar el envío de ${d.numero_formateado}?`,
+      message: 'Se vuelve a mandar a SUNAT el mismo archivo firmado: no se crea un número nuevo ni se duplica el comprobante.',
+      confirmText: 'Sí, reintentar',
+      type: 'question',
+    });
+    if (!confirmado || this.destroyRef.destroyed || this.enProceso) return;
     this.ejecutar('reintentar', this.api.reintentar(this.idComprobante), 'No se pudo reintentar el envío a SUNAT');
   }
 
-  recuperarCdr(): void {
+  /** «Reintentar ahora» (solo administrador): el envío quedó en «Requiere revisión» y aún está dentro de su plazo. */
+  async reintentarAhora(): Promise<void> {
+    const d = this.detalle;
+    if (!d || this.enProceso || !this.esAdmin) return;
+    const confirmado = await this.alerta.confirmar({
+      title: `¿Reintentar ahora ${d.numero_formateado}?`,
+      message:
+        `Se intentó ${d.envio?.intento ?? 'varias'} veces sin una respuesta válida de SUNAT. Se vuelve a mandar el mismo archivo firmado ` +
+        '(en facturas de producción antes se pregunta a SUNAT si ya lo tiene). Queda registrado con su usuario.',
+      confirmText: 'Sí, reintentar ahora',
+      type: 'warning',
+    });
+    if (!confirmado || this.destroyRef.destroyed || this.enProceso) return;
+    this.ejecutar('reintentar_ahora', this.api.reintentar(this.idComprobante, true), 'No se pudo reintentar el envío a SUNAT');
+  }
+
+  /**
+   * «Informar por resumen» (administrador o vendedor): mete la boleta en el resumen diario de su fecha de emisión, que
+   * se manda a SUNAT en el acto. Sirve hasta 7 días después de la emisión. Queda en la bitácora con el usuario.
+   */
+  async informarPorResumen(): Promise<void> {
+    const d = this.detalle;
+    if (!d || this.enProceso || !this.puedeInformarPorResumen) return;
+    const confirmado = await this.alerta.confirmar({
+      title: `¿Informar ${d.numero_formateado} en un resumen diario?`,
+      message:
+        'Se manda a SUNAT, ahora mismo, un resumen diario con esta boleta. ' +
+        'Si SUNAT ya la había recibido por otro camino, rechazará el resumen como repetido y la boleta vuelve a quedar como estaba. Queda registrado con su usuario.',
+      confirmText: 'Sí, informar por resumen',
+      type: 'question',
+    });
+    if (!confirmado || this.destroyRef.destroyed || this.enProceso) return;
+    this.enProceso = 'resumir';
+    this.limpiarResultados();
+    this.cdr.markForCheck();
+    this.api
+      .informarPorResumen(this.idComprobante)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.enProceso = null;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (r) => {
+          this.alerta.toast({
+            type: r.aceptado ? 'success' : 'info',
+            title: `${d.numero_formateado} va en el resumen ${r.identificador}`,
+            message: r.mensaje ?? 'SUNAT lo está procesando; el resultado se ve aquí y en Lotes.',
+          });
+          this.cambio.emit();
+          this.cargar();
+        },
+        error: (e) => {
+          void this.alerta.error(errorOperativo(e, 'No se pudo informar la boleta por resumen'));
+          this.cargar();
+        },
+      });
+  }
+
+  async recuperarCdr(): Promise<void> {
+    const d = this.detalle;
+    if (!d || this.enProceso) return;
+    const confirmado = await this.alerta.confirmar({
+      title: `¿Pedir a SUNAT la constancia de ${d.numero_formateado}?`,
+      message: 'Solo se pregunta a SUNAT si ya tiene este comprobante: no se envía nada nuevo.',
+      confirmText: 'Sí, consultar',
+      type: 'question',
+    });
+    if (!confirmado || this.destroyRef.destroyed || this.enProceso) return;
     this.ejecutar(
       'recuperar_cdr',
       this.api.recuperarCdr(this.idComprobante),
-      'No se pudo consultar la constancia (CDR) en SUNAT',
+      'No se pudo consultar la constancia de SUNAT',
     );
   }
 
@@ -476,6 +564,11 @@ export class ComprobanteDetalleComponent implements OnChanges {
     this.enviarAnulacion({ id_comprobante: d.id_comprobante, motivo, sin_nota: true }, 'baja');
   }
 
+  /** «Baja del 05/11 (n.º 1)» / «Resumen del 05/11 (n.º 2)»; el identificador técnico va en el `title`. */
+  nombreBaja(baja: BajaComprobante): string {
+    return nombreLote(baja.identificador).texto;
+  }
+
   /** Cómo se cuenta el estado del lote de baja o resumen que anula este comprobante. */
   textoBaja(baja: BajaComprobante): { titulo: string; detalle: string; tono: TonoEstado; icono: string } {
     const tipo = baja.operacion === 'baja' ? 'comunicación de baja' : 'resumen de anulación';
@@ -500,7 +593,7 @@ export class ComprobanteDetalleComponent implements OnChanges {
       case 'TICKET_PENDIENTE':
         return {
           titulo: 'SUNAT está procesando la baja',
-          detalle: baja.sunat_ticket ? `Ticket ${baja.sunat_ticket}. Normalmente tarda unos minutos.` : 'Normalmente tarda unos minutos.',
+          detalle: baja.sunat_ticket ? `N.º de seguimiento ${baja.sunat_ticket}. Normalmente tarda unos minutos.` : 'Normalmente tarda unos minutos.',
           tono: 'aviso',
           icono: 'bi-hourglass-split',
         };
@@ -636,14 +729,17 @@ export class ComprobanteDetalleComponent implements OnChanges {
   }
 
   /**
-   * Qué hacer con un comprobante fuera de plazo (D5.2): la factura y sus notas (series F) ya no se
-   * reenvían; la boleta y sus notas (series B) se informan por resumen diario.
+   * Qué hacer con un comprobante fuera de plazo (D5.2): la factura y sus notas (series F) ya no se reenvían (si SUNAT
+   * quizá la recibió, se recupera su constancia); la boleta y sus notas (series B) se informan en un resumen diario
+   * hasta 7 días después de la emisión y, pasado ese plazo, se anulan con nota de crédito si el cliente las reclama.
    */
   textoVencido(d: ComprobanteDetalle): string {
-    const limite = fechaYmdLegible(d.fecha_limite_envio);
-    return d.serie.toUpperCase().startsWith('F')
-      ? `El plazo de envío venció el ${limite}: SUNAT ya no lo recibe. Emita un comprobante nuevo.`
-      : `El plazo de envío individual venció el ${limite}: informe la boleta por resumen diario en SUNAT.`;
+    return textoPlazoVencido(
+      d.serie,
+      d.fecha_limite_envio,
+      d.envio?.accion,
+      d.puede_informar_por_resumen === undefined ? undefined : d.puede_informar_por_resumen || d.envio?.accion === 'RESUMIR',
+    );
   }
 
   // ── Interno ──────────────────────────────────────────────────
@@ -653,8 +749,9 @@ export class ComprobanteDetalleComponent implements OnChanges {
     const d = this.detalle;
     if (!accion || !d || this.enProceso) return;
     this.accionPendiente = null;
-    if (accion === 'reintentar' && d.puede_reintentar) this.reintentar();
-    else if (accion === 'recuperar_cdr' && d.puede_recuperar_cdr) this.recuperarCdr();
+    if (accion === 'reintentar' && d.puede_reintentar) void this.reintentar();
+    else if (accion === 'resumir' && this.puedeInformarPorResumen) void this.informarPorResumen();
+    else if (accion === 'recuperar_cdr' && d.puede_recuperar_cdr) void this.recuperarCdr();
     else if (accion === 'confirmar' && d.puede_confirmar_manual && this.esAdmin) void this.confirmarAceptado();
     else if (accion === 'anular' && d.puede_anular && this.esAdmin) void this.anular();
     else if (accion === 'baja' && d.puede_anular_sin_nota === true && this.esAdmin) void this.darDeBaja();

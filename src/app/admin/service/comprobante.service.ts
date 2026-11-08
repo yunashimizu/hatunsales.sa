@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
 import { ComprobanteFila, Paginado } from '../models/admin.models';
+import type { ResultadoResumen } from '../models/fiscal.models';
 import {
   AmbienteFiscal,
   AnulacionComprobante,
@@ -103,9 +104,20 @@ export class ComprobanteService {
     });
   }
 
-  /** Reenvío seguro del MISMO XML (o, si SUNAT lo permite, primero la consulta de su constancia). */
-  reintentar(id: number): Observable<ResultadoComprobante> {
-    return this.http.post<ResultadoComprobante>(urlConstants.comprobante.reintentar(id), {}, opcionesHttp());
+  /**
+   * Reenvío seguro del MISMO XML (o, si SUNAT lo permite, primero la consulta de su constancia). Con `forzar`
+   * («Reintentar ahora», solo administrador) también reintenta un envío que quedó en «Requiere revisión».
+   */
+  reintentar(id: number, forzar = false): Observable<ResultadoComprobante> {
+    return this.http.post<ResultadoComprobante>(urlConstants.comprobante.reintentar(id), forzar ? { forzar: true } : {}, opcionesHttp());
+  }
+
+  /**
+   * «Informar por resumen»: mete la boleta (o nota de boleta) en el resumen diario de su fecha de emisión; se puede
+   * hasta 7 días después. Queda en la bitácora con el usuario.
+   */
+  informarPorResumen(id: number): Observable<ResultadoResumen> {
+    return this.http.post<ResultadoResumen>(`${urlConstants.comprobante.base}/${id}/resumir`, {}, opcionesHttp());
   }
 
   /** Pide a SUNAT la constancia (CDR) sin reenviar nada. */

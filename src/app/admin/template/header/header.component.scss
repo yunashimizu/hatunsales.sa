@@ -435,6 +435,43 @@
         }
       }
 
+      /* Botón con el aspecto de un ítem del menú */
+      .ud-item--boton {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        font-family: inherit;
+        text-align: left;
+
+        &:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: -2px; }
+      }
+
+      /* Ajustes rápidos: rótulo y segmentado chico de 32 px */
+      .ud-ajuste {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 10px 6px;
+      }
+
+      .ud-ajuste__rotulo {
+        font-size: var(--adm-fs-rotulo, 11.5px);
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--adm-texto-tenue);
+      }
+
+      .ud-segmentado {
+        padding: 3px;
+
+        .adm-segmento {
+          min-height: 32px;
+          padding: 4px 6px;
+          font-size: 12.5px;
+        }
+      }
+
       .ud-divider {
         height: 1px;
         background: var(--adm-borde);
@@ -513,6 +550,10 @@
        y el título recupera ~43 px; si no cabe, termina en puntos suspensivos. */
     .tb-fiscal { padding: 0 8px; min-width: 32px; justify-content: center; }
     .tb-fiscal .tb-fiscal__corto { display: none; }
+
+    /* R17: con la campana de avisos el título perdía 44 px («Produc…», «Docum…»). El tema se elige
+       en el menú de usuario (Claro · Oscuro · Sistema), así que el botón rápido se retira solo aquí. */
+    .tb-tema { display: none; }
     .tb-title { flex: 1 1 auto; min-width: 0; }
     .tb-title__text { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   }
@@ -530,6 +571,7 @@
        ni el chip en punto se vuelve un óvalo que le quite sitio al título. */
     a.tb-fiscal::after { content: ''; position: absolute; top: -6px; bottom: -6px; left: -2px; right: -2px; }
     .user-pill .user-dropdown .ud-item { min-height: 44px; }
+    .user-pill .user-dropdown .ud-segmentado .adm-segmento { min-height: 44px; }
   }
 }
 

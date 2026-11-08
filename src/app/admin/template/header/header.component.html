@@ -22,6 +22,10 @@
   </button>
 
   <div class="tb-actions">
+    @if (mostrarAvisos) {
+      <app-notificaciones class="tb-avisos" (alAbrir)="cerrarMenuUsuario()" />
+    }
+
     @if (mostrarEstadoFiscal ? chipFiscal() : null; as chip) {
       @if (esAdmin) {
         <a class="tb-fiscal" [ngClass]="'tb-fiscal--' + chip.tono" routerLink="/dashboard/facturacion-sunat"
@@ -86,6 +90,31 @@
             <span class="ud-rol">{{ etiquetaRol }}</span>
           </div>
         </div>
+        <div class="ud-ajuste" role="group" aria-labelledby="ud-tema-rotulo">
+          <span class="ud-ajuste__rotulo" id="ud-tema-rotulo">Tema</span>
+          <div class="adm-segmentado adm-segmentado--bloque ud-segmentado">
+            @for (m of modosTema; track m.valor) {
+              <button type="button" class="adm-segmento"
+                      [class.adm-segmento--activo]="tema.modo() === m.valor"
+                      [attr.aria-pressed]="tema.modo() === m.valor"
+                      (click)="elegirTema(m.valor)">{{ m.etiqueta }}</button>
+            }
+          </div>
+        </div>
+        @if (densidadDisponible) {
+          <div class="ud-ajuste" role="group" aria-labelledby="ud-densidad-rotulo">
+            <span class="ud-ajuste__rotulo" id="ud-densidad-rotulo">Densidad</span>
+            <div class="adm-segmentado adm-segmentado--bloque ud-segmentado">
+              @for (d of densidades; track d.valor) {
+                <button type="button" class="adm-segmento"
+                        [class.adm-segmento--activo]="densidad.densidad() === d.valor"
+                        [attr.aria-pressed]="densidad.densidad() === d.valor"
+                        (click)="elegirDensidad(d.valor)">{{ d.etiqueta }}</button>
+              }
+            </div>
+          </div>
+        }
+        <div class="ud-divider"></div>
         <a class="ud-item" routerLink="/dashboard/perfil">
           <i class="bi bi-person" aria-hidden="true"></i> Mi perfil
         </a>
@@ -95,6 +124,14 @@
         <a class="ud-item" routerLink="/store">
           <i class="bi bi-shop" aria-hidden="true"></i> Ir a la tienda
         </a>
+        <button type="button" class="ud-item ud-item--boton" (click)="abrirAtajos()">
+          <i class="bi bi-keyboard" aria-hidden="true"></i> Atajos de teclado
+        </button>
+        @if (actualizacion.instalable()) {
+          <button type="button" class="ud-item ud-item--boton" (click)="instalarApp()">
+            <i class="bi bi-download" aria-hidden="true"></i> Instalar HatunSales
+          </button>
+        }
         <div class="ud-divider"></div>
         <a class="ud-item ud-logout" (click)="logout()">
           <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar sesión

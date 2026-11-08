@@ -1,0 +1,92 @@
+<section class="adm-tarjeta" aria-labelledby="rd-titulo">
+  <div class="adm-tarjeta__cabecera">
+    <div class="adm-tarjeta__encabezado">
+      <h2 class="adm-tarjeta__titulo" id="rd-titulo"><i class="bi bi-envelope-paper" aria-hidden="true"></i> Resumen diario por correo</h2>
+      <p class="adm-tarjeta__sub">{{ explicacion }}</p>
+    </div>
+    <ul class="adm-tarjeta__extra rd-estado" *ngIf="config" aria-label="Estado del resumen diario">
+      <li class="adm-insignia adm-insignia--punto" [ngClass]="config.activo ? 'adm-insignia--exito' : 'adm-insignia--neutra'">
+        {{ config.activo ? 'Encendido' : 'Apagado' }}
+      </li>
+    </ul>
+  </div>
+
+  <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !config" aria-busy="true">
+    <span class="visually-hidden">Cargando el resumen diario…</span>
+    <div class="rd-carga" aria-hidden="true">
+      <div class="adm-esqueleto adm-esqueleto--fila"></div>
+      <div class="adm-esqueleto adm-esqueleto--fila"></div>
+    </div>
+  </div>
+
+  <div class="adm-tarjeta__cuerpo" *ngIf="errorCarga && !cargando">
+    <div class="adm-aviso adm-aviso--peligro adm-aviso--compacto" role="alert">
+      <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+      <span>{{ errorCarga }}</span>
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-aviso__accion" (click)="cargar()">Reintentar</button>
+    </div>
+  </div>
+
+  <form class="adm-tarjeta__cuerpo rd-form" *ngIf="config" (ngSubmit)="guardar()" novalidate>
+    <label class="adm-switch rd-interruptor">
+      <input type="checkbox" name="rdActivo" [(ngModel)]="form.activo" [disabled]="guardando" />
+      <strong>Enviarme el resumen cada día</strong>
+    </label>
+
+    <div class="rd-campos">
+      <div class="adm-campo rd-hora">
+        <label class="adm-etiqueta" for="rd-hora">Hora de envío (24 h, hora de Lima)</label>
+        <input id="rd-hora" class="adm-input adm-tabular" type="text" inputmode="numeric" maxlength="5" placeholder="20:30" name="rdHora" [(ngModel)]="form.hora"
+               [class.adm-input--error]="!!errorHora" [attr.aria-invalid]="!!errorHora" [attr.aria-describedby]="errorHora ? 'rd-error-hora' : null"
+               [disabled]="guardando" />
+        <p class="adm-ayuda adm-ayuda--error" id="rd-error-hora" role="alert" *ngIf="errorHora">{{ errorHora }}</p>
+      </div>
+
+      <div class="adm-campo rd-correos">
+        <label class="adm-etiqueta" for="rd-correos">Correos que lo reciben</label>
+        <input id="rd-correos" class="adm-input" type="text" name="rdCorreos" [(ngModel)]="form.correos" autocomplete="off"
+               placeholder="dueno@ejemplo.pe, contador@ejemplo.pe"
+               [class.adm-input--error]="!!errorCorreos" [attr.aria-invalid]="!!errorCorreos"
+               [attr.aria-describedby]="errorCorreos ? 'rd-error-correos' : 'rd-ayuda-correos'" [disabled]="guardando" />
+        <p class="adm-ayuda adm-ayuda--error" id="rd-error-correos" role="alert" *ngIf="errorCorreos">{{ errorCorreos }}</p>
+        <p class="adm-ayuda" id="rd-ayuda-correos" *ngIf="!errorCorreos">
+          Sepárelos con comas.
+          <ng-container *ngIf="!form.correos.trim()">
+            Si lo deja vacío se usa el correo del emisor<ng-container *ngIf="destinoActual">: <strong>{{ destinoActual }}</strong></ng-container>
+            <ng-container *ngIf="!destinoActual">, que todavía no está configurado en «Emisor y series»</ng-container>.
+          </ng-container>
+        </p>
+      </div>
+    </div>
+
+    <p class="adm-ayuda rd-ultimo" *ngIf="ultimoEnvio">
+      <i class="bi bi-check2-circle" aria-hidden="true"></i> Último envío automático: {{ ultimoEnvio }}.
+    </p>
+
+    <div class="rd-acciones">
+      <button type="submit" class="adm-btn adm-btn--primario" [disabled]="!puedeGuardar">
+        <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
+        {{ guardando ? 'Guardando…' : 'Guardar' }}
+      </button>
+      <button type="button" class="adm-btn adm-btn--suave" id="rd-probar" (click)="enviarPrueba()"
+              [disabled]="enviando || sinGuardar || guardando"
+              [title]="sinGuardar ? 'Guarde los cambios para probar con ellos' : 'Envía hoy mismo el resumen de lo que va del día'">
+        <i class="bi" [ngClass]="enviando ? 'bi-arrow-repeat adm-girando' : 'bi-send'" aria-hidden="true"></i>
+        {{ enviando ? 'Enviando…' : 'Enviar ahora de prueba' }}
+      </button>
+    </div>
+
+    <div class="adm-aviso adm-aviso--exito adm-aviso--compacto" *ngIf="resultado?.ok" role="status">
+      <i class="bi bi-check-circle" aria-hidden="true"></i>
+      <span>{{ resultado!.mensaje }}</span>
+    </div>
+    <div class="adm-aviso adm-aviso--aviso adm-aviso--compacto" *ngIf="resultado?.ok && resultado!.aviso" role="status">
+      <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+      <span>{{ resultado!.aviso }}</span>
+    </div>
+    <div class="adm-aviso adm-aviso--peligro adm-aviso--compacto" *ngIf="resultado && !resultado.ok" role="alert">
+      <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+      <span>{{ resultado.mensaje }}</span>
+    </div>
+  </form>
+</section>

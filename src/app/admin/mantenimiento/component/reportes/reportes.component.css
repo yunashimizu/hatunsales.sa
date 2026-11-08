@@ -77,6 +77,83 @@
 
 .reporte-rango > i { color: var(--adm-marca-texto); }
 
+/* ── Selector de fechas: el chip es un botón que abre un desplegable con atajos ── */
+
+.rep-fechas { position: relative; }
+
+.rep-fechas__boton {
+  cursor: pointer;
+  min-height: 36px;
+  transition: border-color var(--adm-transicion), box-shadow var(--adm-transicion);
+}
+.rep-fechas__boton:hover { border-color: var(--adm-marca); }
+.rep-fechas__boton:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
+.rep-fechas__boton[aria-expanded='true'] { border-color: var(--adm-marca); box-shadow: var(--adm-anillo); }
+.rep-fechas__flecha { font-size: 11px; color: var(--adm-texto-tenue); }
+
+.rep-fechas__panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  padding: 14px;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  box-shadow: var(--adm-sombra-md);
+}
+
+.rep-fechas__lista {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rep-fechas__preset {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-sm);
+  background: var(--adm-superficie);
+  color: var(--adm-texto-2);
+  font: inherit;
+  font-size: var(--adm-fs-etiqueta);
+  font-weight: var(--fw-semi);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--adm-transicion), border-color var(--adm-transicion);
+}
+.rep-fechas__preset:hover { background: var(--adm-superficie-3); }
+.rep-fechas__preset:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 1px; }
+.rep-fechas__preset--activo {
+  border-color: var(--adm-primario);
+  background: var(--adm-primario);
+  color: var(--adm-primario-texto);
+}
+.rep-fechas__preset--activo:hover { background: var(--adm-primario); }
+
+.rep-fechas__rango {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--adm-borde-fuerte);
+}
+.rep-fechas__error,
+.rep-fechas__aplicar { grid-column: 1 / -1; margin: 0; }
+
+/* ── Comparación con el periodo anterior bajo cada indicador ── */
+
+.rep-delta { margin-top: 6px; }
+.rep-delta__esqueleto { display: block; width: 150px; max-width: 80%; height: 12px; border-radius: 6px; }
+
 /* ── Indicadores ── */
 
 /* La cifra se ajusta al ancho real de la tarjeta: los montos largos
@@ -170,6 +247,10 @@
 }
 
 .rep-columna--neg > i { background: var(--adm-peligro); }
+.rep-columna:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; border-radius: 6px; }
+.rep-columna--activa > i { filter: brightness(1.08); }
+.rep-grafico__area { position: relative; }
+.rep-tooltip { z-index: 5; }
 
 @media (hover: hover) {
   .rep-grafico__area:hover .rep-columna:not(:hover) > i { opacity: 0.5; }
@@ -320,6 +401,45 @@
 
 .reporte-top { display: flex; flex-direction: column; }
 
+/* Columna derecha: ranking de clientes y reparto por tipo de comprobante */
+.rep-lateral { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* ── Por tipo de comprobante: barra apilada, tabla chica y línea de notas ── */
+
+.rep-tipos__cuerpo { display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 6px; }
+
+.rep-tipos__barra {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--adm-superficie-3);
+}
+.rep-tipos__tramo { flex: 0 1 0; min-width: 3px; }
+.rep-tipos__tramo--factura,
+.rep-tipos__punto.rep-tipos__tramo--factura { background: var(--adm-primario); }
+.rep-tipos__tramo--boleta,
+.rep-tipos__punto.rep-tipos__tramo--boleta { background: var(--adm-marca); }
+.rep-tipos__tramo--otro,
+.rep-tipos__punto.rep-tipos__tramo--otro { background: var(--adm-borde-fuerte); }
+
+.rep-tipos__punto { display: inline-block; width: 9px; height: 9px; margin-right: 6px; border-radius: 3px; }
+
+.rep-tipos__tabla { width: 100%; }
+.rep-tipos__tabla thead th { position: static; }
+.rep-tipos__tabla tbody td { height: 40px; }
+
+.rep-tipos__notas {
+  margin: 0;
+  padding: 12px 20px 16px;
+  font-size: var(--adm-fs-etiqueta);
+  line-height: 1.5;
+  color: var(--adm-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+.rep-tipos__notas strong { color: var(--adm-texto); }
+
 /* Pie del ranking: cuánto del total concentran los clientes listados */
 .reporte-top__pie {
   margin-top: auto;
@@ -379,6 +499,15 @@
   .rep-seg__icono { display: none; }
 
   .rep-grafico { grid-template-rows: 132px auto; padding: 16px 14px 6px; }
+  .rep-tipos__cuerpo { padding: 14px 14px 4px; }
+  .rep-tipos__notas { padding: 12px 14px 14px; }
+  .rep-tipos__tabla thead th,
+  .rep-tipos__tabla tbody td { padding-inline: 6px; }
+  .rep-tipos__tabla thead th:first-child,
+  .rep-tipos__tabla tbody td:first-child { padding-left: 4px; }
+  .rep-tipos__tabla thead th:last-child,
+  .rep-tipos__tabla tbody td:last-child { padding-right: 4px; }
+  .rep-fechas__panel { left: 0; width: min(300px, calc(100vw - 32px)); }
   .reporte-barras { padding: 14px; }
   .reporte-top__pie { padding: 14px; }
 
@@ -387,11 +516,12 @@
   .reporte-top .reporte-cliente .adm-tabla__principal { text-align: left; }
 }
 
-/* R16e: periodo en 2×2 y las tres acciones en una fila */
+/* R16e: periodo en 2×2 y las descargas (Excel, CSV, Imprimir, PDF) en 2×2; «Actualizar» ocupa su propia fila */
 @media (max-width: 480px) {
   .rep-segmentado { display: grid; grid-template-columns: 1fr 1fr; }
-  .rep-barra__acciones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .rep-barra__acciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .rep-barra__acciones > .adm-btn { min-width: 0; padding-inline: 8px; justify-content: center; }
+  .rep-barra__acciones > .rep-actualizar { grid-column: 1 / -1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -401,4 +531,62 @@
   .reporte-top__pie-barra > i { animation: none; }
   .reporte-barra__lleno,
   .rep-columna > i { transition: none; }
+}
+
+/* SUNAT-4 · «Registro de ventas (SIRE)»: botón con panel de mes y dos descargas */
+.rep-sire { position: relative; }
+.rep-sire__flecha { font-size: 11px; color: var(--adm-texto-tenue); }
+.rep-sire__boton[aria-expanded='true'] { border-color: var(--adm-marca); box-shadow: var(--adm-anillo); }
+.rep-sire__panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  gap: 8px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  padding: 14px;
+  background: var(--adm-superficie);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-md);
+  box-shadow: var(--adm-sombra-md);
+  text-align: left;
+}
+.rep-sire__titulo { margin: 0; font-size: var(--adm-fs-cuerpo); font-weight: var(--fw-negrita); color: var(--adm-texto); }
+.rep-sire__texto { margin: 0; font-size: var(--adm-fs-etiqueta); color: var(--adm-texto-suave); }
+.rep-sire__botones { display: flex; flex-wrap: wrap; gap: 8px; }
+.rep-sire__botones .adm-btn { flex: 1 1 140px; justify-content: center; }
+.rep-sire__aviso {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--adm-info-borde);
+  border-radius: var(--adm-r-md);
+  background: var(--adm-info-claro);
+  color: var(--adm-info-texto);
+  font-size: var(--adm-fs-etiqueta);
+  line-height: 1.4;
+}
+.rep-sire__aviso > i { flex-shrink: 0; margin-top: 2px; }
+.rep-sire__resumen {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--adm-exito-borde, var(--adm-borde));
+  border-radius: var(--adm-r-md);
+  background: var(--adm-exito-claro);
+  color: var(--adm-texto);
+  font-size: var(--adm-fs-etiqueta);
+}
+.rep-sire__resumen span { color: var(--adm-texto-suave); }
+
+@media (max-width: 768px) {
+  .rep-sire__panel { right: auto; left: 0; width: min(360px, calc(100vw - 32px)); }
+}
+@media (max-width: 480px) {
+  .rep-barra__acciones > .rep-sire { grid-column: 1 / -1; }
+  .rep-barra__acciones > .rep-sire > .adm-btn { width: 100%; }
+  .rep-sire__panel { width: 100%; max-width: none; }
 }

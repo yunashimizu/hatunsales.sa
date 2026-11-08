@@ -27,20 +27,35 @@ export type AccionSunat =
   | 'EMITIR_NUEVO'
   | 'RECUPERAR_CDR'
   | 'REVISAR_CONFIG'
-  | 'CONSULTAR_TICKET';
+  | 'CONSULTAR_TICKET'
+  | 'LIBERAR'
+  | 'LIBERADO'
+  /** Boleta que se informa a SUNAT en un resumen diario, no por envío individual. */
+  | 'RESUMIR';
 
 export type AmbienteFiscal = 'beta' | 'produccion';
 
 /** Tono visual de un estado (se traduce a las variantes exito/aviso/peligro/info/neutro de adm-*). */
 export type TonoEstado = 'exito' | 'aviso' | 'peligro' | 'info' | 'neutro';
 
+/**
+ * Glosario único del módulo SUNAT (SUNAT-4, S10.2): la jerga se dice igual en Documentos, Envíos, Lotes y el detalle.
+ * Los códigos (CDR, ticket, RA-/RC-, PENDIENTE_REENVIO…) solo viajan en el `title` o en archivos descargados.
+ */
+export const GLOSARIO_SUNAT = {
+  /** «CDR» (constancia de recepción) */
+  constancia: 'constancia de SUNAT',
+  /** «ticket» de un lote o de una guía */
+  seguimiento: 'número de seguimiento',
+} as const;
+
 /** El estado SUNAT siempre se muestra en palabras, nunca el código crudo. */
 export const TEXTO_ESTADO_SUNAT: Readonly<Record<EstadoSunat, string>> = {
   NO_ENVIADO: 'Sin enviar a SUNAT',
-  POR_RESUMIR: 'Por informar en resumen diario',
+  POR_RESUMIR: 'Va en el resumen diario',
   ENVIANDO: 'Enviando a SUNAT',
-  PENDIENTE_REENVIO: 'Pendiente de reenvío',
-  TICKET_PENDIENTE: 'En proceso en SUNAT',
+  PENDIENTE_REENVIO: 'Por reenviar',
+  TICKET_PENDIENTE: 'SUNAT lo está procesando',
   ACEPTADO: 'Aceptado por SUNAT',
   ACEPTADO_OBS: 'Aceptado con observaciones',
   RECHAZADO: 'Rechazado por SUNAT',
@@ -282,6 +297,8 @@ export interface ResultadoComprobante {
   estado_sunat?: string | null;
   id_envio_ultimo?: number;
   accion_sunat?: string | null;
+  /** true: modo «resumen diario»: la boleta quedó firmada y guardada y SUNAT la recibe en el resumen, no al cobrar. */
+  por_resumen?: boolean;
   archivos?: string[];
   /** Aviso del ambiente («Prueba SUNAT BETA: sin validez tributaria.»). */
   aviso?: string | null;
@@ -442,12 +459,16 @@ export interface ComprobanteDetalle {
   archivos: string[];
   aviso: string | null;
   puede_reintentar: boolean;
+  /** «Reintentar ahora» (solo administrador): el envío quedó en «Requiere revisión» y aún está dentro de plazo. */
+  puede_reintentar_ahora?: boolean;
   puede_recuperar_cdr: boolean;
   puede_confirmar_manual: boolean;
   puede_nota_credito: boolean;
   puede_anular: boolean;
   /** Dar de baja en SUNAT (factura) o informar como anulada en un resumen (boleta), sin nota de crédito. */
   puede_anular_sin_nota?: boolean;
+  /** «Informar por resumen»: la boleta espera su resumen diario o venció su envío individual y está dentro de los 7 días. */
+  puede_informar_por_resumen?: boolean;
   /** Último pedido de baja o resumen de anulación de este comprobante (ausente en un backend anterior). */
   baja?: BajaComprobante | null;
   /** Envío del comprobante por correo al cliente (ausente en un backend anterior). */

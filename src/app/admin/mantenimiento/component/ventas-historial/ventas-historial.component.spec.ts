@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
@@ -455,6 +455,47 @@ describe('VentasHistorialComponent', () => {
     });
   });
 
+  describe('filtros en la URL', () => {
+    async function entrar(url: string) {
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        providers: [
+          provideRouter([{ path: 'ventas-historial', component: VentasHistorialComponent }]),
+          { provide: ComprobanteService, useValue: api },
+          { provide: AlertService, useValue: { error: vi.fn(), toast: vi.fn() } },
+        ],
+      }).compileComponents();
+      const harness = await RouterTestingHarness.create();
+      const instancia = await harness.navigateByUrl(url, VentasHistorialComponent);
+      harness.detectChanges();
+      return { harness, instancia, router: TestBed.inject(Router) };
+    }
+
+    it('abre con los filtros del enlace ya aplicados en la primera consulta', async () => {
+      const { instancia } = await entrar('/ventas-historial?q=acme&estado=activa&comprobante=si&desde=2026-10-01&hasta=2026-10-31&pagina=2');
+      expect(api.historialVentas).toHaveBeenCalledTimes(1);
+      expect(api.historialVentas).toHaveBeenCalledWith(expect.objectContaining({
+        texto: 'acme', estado: 'activa', tiene_comprobante: 'si', desde: '2026-10-01', hasta: '2026-10-31', pagina: 2,
+      }));
+      expect(instancia.conFiltros).toBe(true);
+    });
+
+    it('al filtrar escribe la URL sin perder ?venta= y la ruta limpia vuelve a cargar sin filtros', async () => {
+      const { instancia, router } = await entrar('/ventas-historial?venta=33');
+      instancia.filtro = { ...instancia.filtro, estado: 'anulada' };
+      instancia.cargar(1);
+      await vi.waitFor(() => expect(router.url).toContain('estado=anulada'));
+      expect(router.url).toContain('venta=33');
+      expect(router.url).not.toContain('pagina=');
+
+      api.historialVentas.mockClear();
+      await router.navigateByUrl('/ventas-historial');
+      await vi.waitFor(() => expect(api.historialVentas).toHaveBeenCalledTimes(1));
+      expect(instancia.conFiltros).toBe(false);
+      expect(api.historialVentas).toHaveBeenCalledWith(expect.objectContaining({ estado: '', pagina: 1 }));
+    });
+  });
+
   describe('exportar a CSV', () => {
     it('exporta la página con BOM, comillas escapadas y sin fórmulas ejecutables', async () => {
       let contenido: Blob | null = null;
@@ -467,13 +508,16 @@ describe('VentasHistorialComponent', () => {
         pagina([{ ...FILA_FACTURA, cliente_denominacion: '=HYPERLINK("http://x")' }, FILA_SIN_COMPROBANTE]),
       );
       await montar();
+      let nombre = '';
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) { nombre = this.download; });
       component.exportarCsv();
+      expect(nombre).toMatch(/^ventas-pagina-1-\d{4}-\d{2}-\d{2}\.csv$/);
       const blob = contenido as unknown as Blob;
       // Blob.text() quita el BOM al decodificar: se comprueba en los bytes.
       expect(Array.from(new Uint8Array(await blob.arrayBuffer()).slice(0, 3))).toEqual([0xef, 0xbb, 0xbf]);
       const lineas = (await blob.text()).split('\r\n');
       expect(lineas[0]).toContain('"Venta","Fecha"');
-      expect(lineas.length).toBe(3);
+      expect(lineas.length).toBe(4); // cabecera + 2 ventas + el salto final de línea
       expect(lineas[1]).toContain('"\'=HYPERLINK(""http://x"")"');
       expect(lineas[1]).toContain('"118.00"');
       expect(lineas[1]).toContain('"F001-00000012"');

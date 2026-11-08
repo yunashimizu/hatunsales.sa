@@ -122,6 +122,10 @@
       </div>
 
       <div class="adm-tarjeta__extra inv-leyendas">
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" id="inv-exportar" (click)="exportarCsv()"
+                [disabled]="!filasVisibles.length" title="Exporta la página actual">
+          <i class="bi bi-download" aria-hidden="true"></i> Exportar CSV
+        </button>
         <ul class="adm-leyenda inv-leyenda" aria-label="Leyenda de estados y de la barra de nivel">
           <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--exito"></span> Disponible</li>
           <li class="adm-leyenda__item"><span class="adm-leyenda__punto adm-leyenda__punto--aviso"></span> Bajo mínimo</li>

@@ -1,0 +1,51 @@
+:host {
+  display: block;
+}
+.que-hacer {
+  --que-hacer-color: var(--adm-aviso-texto);
+  --que-hacer-fondo: var(--adm-aviso-claro);
+  --que-hacer-borde: var(--adm-aviso-borde);
+  max-width: 360px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--que-hacer-borde);
+  border-left: 3px solid var(--que-hacer-color);
+  border-radius: var(--adm-r-md);
+  background: var(--que-hacer-fondo);
+  color: var(--adm-texto);
+  text-align: left;
+}
+.que-hacer--peligro {
+  --que-hacer-color: var(--adm-peligro-texto);
+  --que-hacer-fondo: var(--adm-peligro-claro);
+  --que-hacer-borde: var(--adm-peligro-borde);
+}
+.que-hacer__titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  color: var(--que-hacer-color);
+  font-size: var(--adm-fs-etiqueta);
+  font-weight: var(--fw-negrita, 700);
+}
+.que-hacer__texto {
+  margin: 0;
+  font-size: var(--adm-fs-etiqueta);
+  line-height: 1.45;
+  color: var(--adm-texto);
+}
+.que-hacer__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.que-hacer__acciones:empty {
+  display: none;
+}
+@media (max-width: 900px) {
+  .que-hacer {
+    max-width: none;
+  }
+}

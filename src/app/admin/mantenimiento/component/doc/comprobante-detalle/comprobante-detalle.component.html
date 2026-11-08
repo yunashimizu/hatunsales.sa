@@ -78,8 +78,7 @@
           <div class="det-aviso__cuerpo">
             <strong class="adm-aviso__titulo">{{ textoBaja(baja).titulo }}</strong>
             <p class="det-parrafo">
-              {{ baja.operacion === 'baja' ? 'Comunicación de baja' : 'Resumen de anulación' }}
-              <span class="adm-mono">{{ baja.identificador }}</span>
+              <span [attr.title]="baja.identificador">{{ nombreBaja(baja) }}</span>
               @if (textoBaja(baja).detalle) {
                 · {{ textoBaja(baja).detalle }}
               }
@@ -137,7 +136,7 @@
                 </div>
               }
             }
-            @if (d.fecha_limite_envio && !d.aceptada_sunat && !d.anulado) {
+            @if (d.fecha_limite_envio && !d.aceptada_sunat && !d.anulado && d.estado_sunat !== 'POR_RESUMIR') {
               <div class="adm-dato">
                 <dt class="adm-dato__etiqueta">Plazo de envío</dt>
                 <dd class="adm-dato__valor adm-tabular">Hasta el {{ fechaLegible(d.fecha_limite_envio) }}</dd>
@@ -175,9 +174,9 @@
           </div>
         }
 
-        @if (d.error_mensaje && d.estado === 'error') {
-          <div class="adm-aviso adm-aviso--peligro adm-aviso--compacto">
-            <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+        @if (d.error_mensaje && (d.estado === 'error' || d.estado === 'pendiente')) {
+          <div class="adm-aviso adm-aviso--compacto" [ngClass]="d.estado === 'error' ? 'adm-aviso--peligro' : 'adm-aviso--aviso'">
+            <i class="bi" [ngClass]="d.estado === 'error' ? 'bi-exclamation-octagon' : 'bi-hourglass-split'" aria-hidden="true"></i>
             <span class="det-texto-largo">{{ d.error_mensaje }}</span>
           </div>
         }
@@ -430,10 +429,24 @@
           Reintentar envío
         </button>
       }
+      @if (puedeInformarPorResumen) {
+        <button type="button" class="adm-btn adm-btn--primario" (click)="informarPorResumen()" [disabled]="enProceso !== null"
+                title="La boleta se informa a SUNAT en un resumen diario (hasta 7 días después de la emisión)">
+          <i class="bi" [ngClass]="enProceso === 'resumir' ? 'bi-arrow-repeat adm-girando' : 'bi-calendar-check'" aria-hidden="true"></i>
+          Informar por resumen
+        </button>
+      }
+      @if (d.puede_reintentar_ahora && esAdmin) {
+        <button type="button" class="adm-btn adm-btn--primario" (click)="reintentarAhora()" [disabled]="enProceso !== null"
+                title="El envío quedó en «Requiere revisión»: se vuelve a mandar el mismo archivo firmado">
+          <i class="bi" [ngClass]="enProceso === 'reintentar_ahora' ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-repeat'" aria-hidden="true"></i>
+          Reintentar ahora
+        </button>
+      }
       @if (d.puede_recuperar_cdr) {
         <button type="button" class="adm-btn adm-btn--suave" (click)="recuperarCdr()" [disabled]="enProceso !== null">
           <i class="bi" [ngClass]="enProceso === 'recuperar_cdr' ? 'bi-arrow-repeat adm-girando' : 'bi-cloud-download'" aria-hidden="true"></i>
-          Recuperar CDR
+          Recuperar constancia
         </button>
       }
       @if (d.puede_confirmar_manual && esAdmin) {

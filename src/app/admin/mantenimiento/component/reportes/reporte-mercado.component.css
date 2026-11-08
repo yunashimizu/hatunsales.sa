@@ -1,0 +1,102 @@
+:host { display: block; }
+
+.rm-pestanias { margin: 0 0 14px; overflow-x: auto; }
+.rm-pestanias .adm-pestania { white-space: nowrap; min-height: 44px; }
+
+.rm-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin-bottom: 12px; }
+.rm-barra__texto { margin: 0; }
+
+.rm-aviso { margin: 8px 0; }
+
+.rm-resumen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 10px;
+}
+.rm-resumen > div {
+  padding: 10px 14px;
+  background: var(--adm-superficie-2);
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-sm);
+}
+.rm-resumen dt { font-size: var(--adm-fs-rotulo); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--adm-texto-suave); }
+.rm-resumen dd { margin: 2px 0 0; font-size: var(--adm-fs-titulo-tarjeta); font-weight: 700; color: var(--adm-texto); }
+.rm-resumen__pct { font-size: var(--adm-fs-etiqueta); font-weight: 600; color: var(--adm-texto-suave); }
+
+.rm-resumen-linea { margin: 0 0 10px; color: var(--adm-texto-2); }
+.rm-nota { display: flex; gap: 6px; align-items: flex-start; margin: 4px 0 12px; }
+.rm-nota .bi { flex: none; margin-top: 2px; }
+.rm-subtitulo { margin: 20px 0 8px; font-size: var(--adm-fs-cuerpo); font-weight: 700; color: var(--adm-texto); }
+.rm-neg { color: var(--adm-peligro-texto); }
+.rm-sincosto { margin-left: 6px; }
+
+/* ── Mapa de calor ── */
+.rm-mejor { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; margin: 0 0 12px; color: var(--adm-texto-2); }
+.rm-mejor .bi { color: var(--adm-marca-texto); align-self: center; }
+.rm-mejor__total { color: var(--adm-texto-suave); }
+.rm-mejor__total::before { content: '—'; margin-right: 6px; }
+
+.rm-calor { position: relative; }
+.rm-calor__desplazable { overflow-x: auto; padding-bottom: 4px; }
+.rm-calor__rejilla { display: flex; flex-direction: column; gap: 3px; min-width: 660px; }
+
+.rm-fila { display: grid; grid-template-columns: 38px repeat(24, minmax(0, 1fr)); gap: 3px; align-items: center; }
+.rm-dia { position: sticky; left: 0; z-index: 2; background: var(--adm-superficie); font-size: var(--adm-fs-ayuda); font-weight: 600; color: var(--adm-texto-suave); }
+.rm-hora { font-size: 10.5px; text-align: center; color: var(--adm-texto-tenue); font-variant-numeric: tabular-nums; }
+
+.rm-celda {
+  position: relative;
+  height: 32px;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--adm-superficie-3);
+  border: 1px solid var(--adm-borde);
+  border-radius: 5px;
+  cursor: default;
+}
+.rm-celda::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--adm-marca);
+  opacity: var(--i, 0);
+}
+.rm-celda--vacia { background: var(--adm-superficie-2); }
+.rm-celda--mejor { border-color: var(--adm-texto); box-shadow: 0 0 0 1px var(--adm-texto); }
+.rm-celda:hover { border-color: var(--adm-marca-osc); }
+.rm-celda:focus-visible { outline: 2px solid var(--adm-texto); outline-offset: 1px; z-index: 1; }
+
+.rm-tooltip { z-index: 5; }
+
+.rm-leyenda { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin: 12px 0 4px; font-size: var(--adm-fs-ayuda); color: var(--adm-texto-suave); }
+.rm-leyenda__item, .rm-leyenda__escala { display: inline-flex; align-items: center; gap: 5px; }
+.rm-leyenda__muestra {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 14px;
+  overflow: hidden;
+  background: var(--adm-superficie-3);
+  border: 1px solid var(--adm-borde);
+  border-radius: 4px;
+}
+.rm-leyenda__muestra::before { content: ''; position: absolute; inset: 0; background: var(--adm-marca); opacity: var(--i, 0); }
+.rm-leyenda__muestra--vacia { background: var(--adm-superficie-2); }
+.rm-leyenda__muestra--mejor { border-color: var(--adm-texto); box-shadow: 0 0 0 1px var(--adm-texto); }
+
+@media (max-width: 640px) {
+  .rm-resumen { grid-template-columns: 1fr; }
+  .rm-barra { align-items: stretch; }
+  /* La rejilla de 24 horas se desplaza en horizontal; una máscara a la derecha avisa que sigue. */
+  .rm-calor__desplazable {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rm-celda::before { transition: opacity 140ms ease-out; }
+}
+.rm-tabla th:first-child, .rm-tabla td:first-child { min-width: 190px; }

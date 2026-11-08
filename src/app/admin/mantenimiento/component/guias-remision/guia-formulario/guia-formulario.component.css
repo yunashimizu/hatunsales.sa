@@ -55,3 +55,12 @@
   .gre-form__pie .gre-form__navegacion { justify-content: space-between; margin-right: 0; }
   .gre-form__acciones .adm-btn { flex: 1 1 auto; }
 }
+
+/* Aviso fijo de cabecera: SUNAT no tiene ambiente de pruebas para guías. */
+.gre-form__aviso-real {
+  margin-bottom: 4px;
+}
+/* «Va en moto o auto particular»: una opción sola, con el mismo aspecto que las de motivo. */
+.gre-opcion--casilla {
+  margin: 4px 0 12px;
+}

@@ -214,6 +214,17 @@ const routes: Routes = [
     loadComponent: () => import('./component/cuentas-por-cobrar/cuentas-por-cobrar.component').then((c) => c.CuentasPorCobrarComponent),
   },
   {
+    path: 'cuentas-por-cobrar/estado-cuenta/:tipo/:id',
+    canActivate: [roleGuard],
+    data: {
+      roles: ['admin', 'caja', 'vendedor'],
+      title: 'Estado de cuenta',
+      subtitle: 'Lo que debe un cliente, para imprimir o enviar.',
+      icon: 'fa-hand-holding-usd',
+    },
+    loadComponent: () => import('./component/cuentas-por-cobrar/estado-cuenta/estado-cuenta.component').then((c) => c.EstadoCuentaComponent),
+  },
+  {
     path: 'almacen',
     canActivate: [roleGuard],
     data: {

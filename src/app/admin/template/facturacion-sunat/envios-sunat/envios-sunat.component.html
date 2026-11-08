@@ -8,7 +8,7 @@
         }
       </h2>
       <p class="adm-tarjeta__sub">
-        Facturas, boletas y notas enviadas a SUNAT BETA o a producción, con sus archivos y la constancia (CDR).
+        Facturas, boletas y notas enviadas a SUNAT BETA o a producción, con sus archivos y la constancia de SUNAT.
       </p>
     </div>
     <div class="adm-tarjeta__extra">
@@ -34,7 +34,7 @@
         <select id="envios-estado" class="adm-select" name="estado" [(ngModel)]="filtro.estado" (ngModelChange)="cargar(1)">
           <option value="">Todos</option>
           @for (estado of estados; track estado) {
-            <option [value]="estado">{{ nombresEstado[estado] }}</option>
+            <option [value]="estado">{{ nombreEstado(estado) }}</option>
           }
         </select>
       </div>
@@ -133,8 +133,17 @@
                       {{ envio.mensaje_sunat }}
                     </div>
                   }
+                  @if (mensajeSistema(envio); as texto) {
+                    <div class="adm-tabla__secundario envios-mensaje" [attr.title]="texto">{{ texto }}</div>
+                  }
                   @if (indicacion(envio); as texto) {
-                    <div class="adm-tabla__secundario adm-texto-aviso">{{ texto }}</div>
+                    @if (conTarjeta(envio)) {
+                      <app-que-hacer-sunat [texto]="texto" tono="peligro">
+                        <ng-container *ngTemplateOutlet="accionesEnvio; context: { $implicit: envio }"></ng-container>
+                      </app-que-hacer-sunat>
+                    } @else {
+                      <div class="adm-tabla__secundario adm-texto-aviso envios-indicacion">{{ texto }}</div>
+                    }
                   }
                   @if (envio.estado === 'PENDIENTE_REENVIO' && envio.proximo_intento_en) {
                     <div class="adm-tabla__secundario">
@@ -157,32 +166,16 @@
                 </div>
               </td>
               <td data-etiqueta="Acciones">
-                <div class="envios-botones">
-                  @if (puedeReintentar(envio)) {
-                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
-                            (click)="reintentar(envio)" [disabled]="idEnProceso !== null"
-                            [attr.aria-label]="'Reintentar el envío de ' + documento(envio)">
-                      <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Reintentar
-                    </button>
-                  }
-                  @if (puedeRecuperarCdr(envio)) {
-                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
-                            (click)="recuperarCdr(envio)" [disabled]="idEnProceso !== null"
-                            [attr.aria-label]="'Recuperar CDR de ' + documento(envio) + ' en SUNAT'">
-                      <i class="bi bi-cloud-download" aria-hidden="true"></i> Recuperar CDR
-                    </button>
-                  }
-                  @if (puedeConfirmarAceptado(envio)) {
-                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
-                            (click)="confirmarAceptado(envio)" [disabled]="idEnProceso !== null"
-                            [attr.aria-label]="'Confirmar aceptado ' + documento(envio) + ' tras verificarlo en SUNAT'">
-                      <i class="bi bi-patch-check" aria-hidden="true"></i> Confirmar aceptado
-                    </button>
-                  }
-                  @if (!tieneAcciones(envio)) {
-                    <span class="adm-texto-tenue">Sin acciones</span>
-                  }
-                </div>
+                @if (conTarjeta(envio)) {
+                  <span class="adm-texto-tenue">Ver «¿Qué hacer?»</span>
+                } @else {
+                  <div class="envios-botones">
+                    <ng-container *ngTemplateOutlet="accionesEnvio; context: { $implicit: envio }"></ng-container>
+                    @if (!tieneAcciones(envio)) {
+                      <span class="adm-texto-tenue">Sin acciones</span>
+                    }
+                  </div>
+                }
               </td>
             </tr>
           }
@@ -205,3 +198,34 @@
     }
   }
 </section>
+
+<ng-template #accionesEnvio let-envio>
+  @if (puedeReintentar(envio)) {
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+            (click)="reintentar(envio)" [disabled]="idEnProceso !== null"
+            [attr.aria-label]="'Reintentar el envío de ' + documento(envio)">
+      <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Reintentar
+    </button>
+  }
+  @if (puedeReintentarAhora(envio)) {
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+            (click)="reintentarAhora(envio)" [disabled]="idEnProceso !== null"
+            [attr.aria-label]="'Reintentar ahora el envío de ' + documento(envio) + ' que requiere revisión'">
+      <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Reintentar ahora
+    </button>
+  }
+  @if (puedeRecuperarCdr(envio)) {
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+            (click)="recuperarCdr(envio)" [disabled]="idEnProceso !== null"
+            [attr.aria-label]="'Recuperar la constancia de ' + documento(envio) + ' en SUNAT'">
+      <i class="bi bi-cloud-download" aria-hidden="true"></i> Recuperar constancia
+    </button>
+  }
+  @if (puedeConfirmarAceptado(envio)) {
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
+            (click)="confirmarAceptado(envio)" [disabled]="idEnProceso !== null"
+            [attr.aria-label]="'Confirmar aceptado ' + documento(envio) + ' tras verificarlo en SUNAT'">
+      <i class="bi bi-patch-check" aria-hidden="true"></i> Confirmar aceptado
+    </button>
+  }
+</ng-template>

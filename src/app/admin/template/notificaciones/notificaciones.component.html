@@ -1,0 +1,59 @@
+<button type="button"
+        class="nt-boton"
+        [class.nt-boton--abierto]="abierto"
+        [attr.aria-label]="etiquetaBoton()"
+        [attr.aria-expanded]="abierto"
+        aria-haspopup="dialog"
+        aria-controls="nt-panel"
+        title="Avisos"
+        (click)="alternar()">
+  <i class="bi" [class.bi-bell]="!abierto" [class.bi-bell-fill]="abierto" aria-hidden="true"></i>
+  @if (avisos.noVistos() > 0) {
+    <span class="nt-contador" [class.nt-contador--peligro]="avisos.hayPeligro()" aria-hidden="true">{{ textoContador() }}</span>
+  }
+</button>
+
+@if (abierto) {
+  <div class="nt-panel" id="nt-panel" role="dialog" aria-labelledby="nt-titulo" [attr.aria-busy]="avisos.cargando()">
+    <header class="nt-cabecera">
+      <div class="nt-cabecera__textos">
+        <h2 class="nt-titulo" id="nt-titulo">Avisos</h2>
+        <p class="nt-actualizado" role="status">{{ textoActualizado() }}</p>
+      </div>
+      <button type="button" class="nt-marcar" [disabled]="avisos.noVistos() === 0" (click)="marcarVistos()">Marcar vistos</button>
+    </header>
+
+    @if (avisos.items().length > 0) {
+      <ul class="nt-lista">
+        @for (a of avisos.items(); track trackAviso($index, a)) {
+          <li class="nt-fila" [class.nt-fila--peligro]="a.tono === 'peligro'">
+            <span class="nt-icono" [class]="'nt-icono--' + a.tono" aria-hidden="true"><i class="bi" [class]="a.icono"></i></span>
+            <span class="nt-texto">
+              <span class="nt-texto__principal">{{ a.texto }}</span>
+              @if (a.detalle) { <small>{{ a.detalle }}</small> }
+            </span>
+            @if (a.ruta && a.accion) {
+              <a class="nt-accion" [routerLink]="a.ruta" (click)="cerrar()">{{ a.accion }}<span class="nt-solo-lectores">: {{ a.texto }}</span></a>
+            }
+          </li>
+        }
+      </ul>
+    } @else if (avisos.sinLectura()) {
+      <div class="nt-vacio" role="status">
+        <i class="bi bi-wifi-off nt-vacio__icono" aria-hidden="true"></i>
+        <p class="nt-vacio__titulo">No se pudo revisar</p>
+        <p class="nt-vacio__texto">Revisa la conexión; se intentará de nuevo en un minuto.</p>
+      </div>
+    } @else {
+      <div class="nt-vacio" role="status">
+        <i class="bi bi-check2-circle nt-vacio__icono nt-vacio__icono--ok" aria-hidden="true"></i>
+        <p class="nt-vacio__titulo">Todo en orden</p>
+        <p class="nt-vacio__texto">No hay nada pendiente por ahora.</p>
+      </div>
+    }
+
+    <footer class="nt-pie">
+      <a class="nt-pie__enlace" routerLink="/dashboard/home" (click)="cerrar()">Ir al inicio</a>
+    </footer>
+  </div>
+}

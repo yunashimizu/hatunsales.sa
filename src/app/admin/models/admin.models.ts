@@ -144,6 +144,8 @@ export interface ComprobanteEmitido {
   error?: string;
   /** true: el comprobante está guardado y su envío a SUNAT sigue en segundo plano. */
   envio_diferido?: boolean;
+  /** true: boleta en modo «resumen diario»: se informa a SUNAT en el resumen, no al cobrar. */
+  por_resumen?: boolean;
   proveedor_fiscal?: 'sunat_directo';
   ambiente_fiscal?: 'beta' | 'produccion';
   estado_sunat?: string;
