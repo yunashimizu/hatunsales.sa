@@ -8,7 +8,7 @@
   <!-- Saludo, turno y acciones -->
   <section class="ini-saludo" aria-label="Saludo y accesos al turno">
     <div class="ini-saludo__texto">
-      <p class="ini-saludo__titulo">{{ saludo }}, {{ nombreCorto }}</p>
+      <p class="ini-saludo__titulo">{{ saludo }}, <span class="ini-saludo__nombre">{{ nombreCorto }}</span></p>
       @if (cargando && veCaja) {
         <span class="adm-esqueleto ini-esqueleto-linea" aria-hidden="true"></span>
       } @else if (lineaTurno) {
@@ -367,7 +367,7 @@
           @for (fila of filasAtencion; track fila.id) {
             <li class="ini-lista__fila">
               <span class="ini-lista__texto">
-                {{ fila.texto }}
+                @if (fila.cantidad) { <strong class="ini-lista__cantidad">{{ fila.cantidad }}</strong> {{ fila.resto }} } @else { {{ fila.texto }} }
                 @if (fila.detalle) { <small>{{ fila.detalle }}</small> }
               </span>
               <span class="ini-tag" [class.ini-tag--peligro]="fila.tono === 'peligro'" [class.ini-tag--aviso]="fila.tono === 'aviso'">{{ fila.etiqueta }}</span>

@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
+import { peticionSilenciosa } from '../../interceptors/contexto-http';
 import {
   Almacen, FilaInventario, MovimientoInventario, Paginado, ResumenInventario,
 } from '../models/admin.models';
@@ -58,9 +59,12 @@ export class InventarioAdminService {
     });
   }
 
-  resumen(): Observable<ResumenInventario> {
+  resumen(opciones: { silenciosa?: boolean } = {}): Observable<ResumenInventario> {
     return this.resumenCompartido(() =>
-      this.http.get<ResumenInventario>(urlConstants.inventario.resumen, opcionesHttp()),
+      this.http.get<ResumenInventario>(urlConstants.inventario.resumen, {
+        ...opcionesHttp(),
+        ...(opciones.silenciosa ? { context: peticionSilenciosa() } : {}),
+      }),
     );
   }
 

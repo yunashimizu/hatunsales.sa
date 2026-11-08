@@ -48,6 +48,10 @@
   text-wrap: balance;
 }
 
+.ini-saludo__nombre {
+  color: var(--adm-marca-texto);
+}
+
 .ini-saludo__turno {
   margin: 4px 0 0;
   color: var(--adm-texto-suave);
@@ -80,11 +84,12 @@
 }
 
 /* KPI principal: línea superior dorada suave (guía la vista); el resto conserva el borde neutro */
-.ini-kpi--principal { border-top: 2px solid var(--adm-marca-contorno); padding-top: 17px; }
+.ini-kpi--principal { border-top: 3px solid var(--adm-marca); padding-top: 16px; }
+.ini-kpi--principal .ini-kpi__etiqueta { color: var(--adm-marca-osc); }
 
 .ini-kpi__etiqueta {
   font-size: var(--adm-fs-etiqueta);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--adm-texto-suave);
 }
 
@@ -165,7 +170,7 @@
   display: inline-flex;
   align-items: center;
   font-size: var(--adm-fs-etiqueta);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--adm-marca-texto);
 }
 
@@ -291,12 +296,20 @@
 
 .ini-lista__texto {
   min-width: 0;
+  font-weight: 600;
+  color: var(--adm-texto);
+}
+
+.ini-lista__cantidad {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .ini-lista__texto small {
   display: block;
   margin-top: 1px;
   font-size: var(--adm-fs-ayuda);
+  font-weight: 400;
   color: var(--adm-texto-tenue);
   font-variant-numeric: tabular-nums;
 }
@@ -551,7 +564,7 @@
   /* Los cuatro indicadores en 2×2 (se leen de un vistazo) */
   .ini-kpis { gap: 10px; }
   .ini-kpi { padding: 14px 14px; }
-  .ini-kpi--principal { padding-top: 13px; }
+  .ini-kpi--principal { padding-top: 12px; }
 
   /* Gráfico: el SVG se escala (viewBox 640 de ancho), así que los textos van en unidades de viewBox */
   .ini-grafico__texto { font-size: 18px; }

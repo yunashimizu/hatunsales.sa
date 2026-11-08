@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { urlConstants } from '../../constants/urlConstants';
+import { SILENCIOSA } from '../../interceptors/contexto-http';
 import { CajaSesionService } from './caja-sesion.service';
 
 describe('CajaSesionService: apertura y arqueo por sucursal', () => {
@@ -92,5 +93,60 @@ describe('CajaSesionService: apertura y arqueo por sucursal', () => {
     expect(urlConstants.caja.aperturas.endsWith('/caja/aperturas')).toBe(true);
     expect(urlConstants.caja.resumenSucursales.endsWith('/caja/resumen-sucursales')).toBe(true);
     expect(urlConstants.caja.resumenSucursalesPdf.endsWith('/caja/resumen-sucursales/pdf')).toBe(true);
+  });
+
+  describe('sesion() compartida 5 s', () => {
+    const abierta = { modo: 'blando', abierta: true, apertura: null };
+
+    it('dos lecturas seguidas hacen una sola petición', () => {
+      const recibidas: unknown[] = [];
+      servicio.sesion().subscribe((r) => recibidas.push(r));
+      servicio.sesion({ silenciosa: true }).subscribe((r) => recibidas.push(r));
+      const peticion = http.expectOne(urlConstants.caja.sesion);
+      // La primera en pedir decide el contexto.
+      expect(peticion.request.context.get(SILENCIOSA)).toBe(false);
+      peticion.flush(abierta);
+      expect(recibidas).toEqual([abierta, abierta]);
+    });
+
+    it('con silenciosa la petición lleva el contexto SILENCIOSA', () => {
+      servicio.sesion({ silenciosa: true }).subscribe();
+      const peticion = http.expectOne(urlConstants.caja.sesion);
+      expect(peticion.request.context.get(SILENCIOSA)).toBe(true);
+      peticion.flush(abierta);
+    });
+
+    it('tras abrir() vuelve a pedir la sesión', () => {
+      servicio.sesion().subscribe();
+      http.expectOne(urlConstants.caja.sesion).flush({ ...abierta, abierta: false });
+
+      servicio.abrir({ id_caja: 1, monto_inicial: 0 }).subscribe();
+      http.expectOne(urlConstants.caja.abrir).flush({ id_apertura: 9 });
+
+      servicio.sesion().subscribe();
+      http.expectOne(urlConstants.caja.sesion).flush(abierta);
+    });
+
+    it('tras cerrar() vuelve a pedir la sesión', () => {
+      servicio.sesion().subscribe();
+      http.expectOne(urlConstants.caja.sesion).flush(abierta);
+
+      servicio.cerrar({ id_apertura: 9, monto_conteo: 10 }).subscribe();
+      http.expectOne(urlConstants.caja.cerrar).flush({ id_apertura: 9, id_cierre: 2, cerrada: true, monto_conteo: 10 });
+
+      servicio.sesion().subscribe();
+      http.expectOne(urlConstants.caja.sesion).flush({ ...abierta, abierta: false });
+    });
+
+    it('si abrir() falla, la sesión guardada se conserva', () => {
+      servicio.sesion().subscribe();
+      http.expectOne(urlConstants.caja.sesion).flush(abierta);
+
+      servicio.abrir({ id_caja: 1 }).subscribe({ error: () => undefined });
+      http.expectOne(urlConstants.caja.abrir).flush('x', { status: 409, statusText: 'Conflict' });
+
+      servicio.sesion().subscribe();
+      http.expectNone(urlConstants.caja.sesion);
+    });
   });
 });

@@ -192,19 +192,21 @@
 
 .cfg-permiso__modulo { text-transform: capitalize; }
 
+/* Rol y destino son palabras: el tamaño sigue al ancho de la tarjeta (contenedor de .adm-metrica)
+   para que «Administrador» no se parta a ningún ancho (R18, A1) */
+.cfg-metrica__texto {
+  font-size: clamp(1.05rem, 0.4rem + 6cqi, 1.5rem);
+  white-space: normal;
+  overflow-wrap: normal;
+  hyphens: manual;
+}
+
 /* Atajos: el foco de luz que sigue al cursor toma el tono de marca del panel */
 .cfg-atajos .adm-atajo { --x-brillo-color: color-mix(in srgb, var(--adm-primario) 14%, transparent); --x-brillo-radio: 220px; }
 
 @media (max-width: 640px) {
   /* En columna, el texto ocupa todo el ancho para que el "…" funcione */
   .cfg-metrica__cuerpo { align-self: stretch; }
-
-  /* Rol y destino son palabras: mejor partir línea que cortarlas con "…" */
-  .cfg-metrica__texto {
-    font-size: 17px;
-    white-space: normal;
-    overflow-wrap: break-word;
-  }
 
   .cfg-estados { margin-left: 0; }
 

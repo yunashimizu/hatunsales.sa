@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
+import { peticionSilenciosa } from '../../interceptors/contexto-http';
 import { ComprobanteFila, Paginado } from '../models/admin.models';
 import type { ResultadoResumen } from '../models/fiscal.models';
 import {
@@ -75,9 +76,12 @@ export class ComprobanteService {
   }
 
   /** Contador de CPE pendiente/error para el badge del menú Documentos. */
-  monitorAtencion(): Observable<MonitorAtencion> {
+  monitorAtencion(opciones: { silenciosa?: boolean } = {}): Observable<MonitorAtencion> {
     return this.monitorCompartido(() =>
-      this.http.get<MonitorAtencion>(urlConstants.comprobante.monitorAtencion, opcionesHttp()),
+      this.http.get<MonitorAtencion>(urlConstants.comprobante.monitorAtencion, {
+        ...opcionesHttp(),
+        ...(opciones.silenciosa ? { context: peticionSilenciosa() } : {}),
+      }),
     );
   }
 

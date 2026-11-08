@@ -34,6 +34,13 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <!-- App instalable (PWA): un solo manifiesto; el panel es lo que se instala (start_url). -->
   <link rel="manifest" href="manifest.webmanifest">
+  <!-- Conexión anticipada: DNS + TCP + TLS se abren mientras carga el JS. Sin crossorigin a propósito
+       (las peticiones al API llevan credenciales y las fotos son <img> normales). El API es el mismo
+       dominio de urlConstants.dominio: cambiarlo a la vez. -->
+  <link rel="preconnect" href="https://hatunsales-production.up.railway.app">
+  <link rel="dns-prefetch" href="https://hatunsales-production.up.railway.app">
+  <link rel="preconnect" href="https://res.cloudinary.com">
+  <link rel="dns-prefetch" href="https://res.cloudinary.com">
   <!-- Fuentes autoalojadas (Fontsource): se precargan las de alfabeto latino;
        latin-ext solo se descarga si aparece un carácter de ese rango. -->
   <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>

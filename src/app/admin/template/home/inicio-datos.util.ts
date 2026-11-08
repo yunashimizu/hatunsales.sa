@@ -154,9 +154,21 @@ export interface FilaAtencion {
   tono: 'peligro' | 'aviso';
   etiqueta: string;
   texto: string;
+  /** `texto` partido para pintar la cantidad inicial en negrita (R18); `cantidad` es null si no empieza con número. */
+  cantidad: string | null;
+  resto: string;
   detalle?: string;
   accion?: string;
   ruta?: string;
+}
+
+/**
+ * Separa la cantidad con la que empieza un texto («3 comprobantes…» → «3» + «comprobantes…»).
+ * Si no empieza con un número («Certificado…», «S/ 2,140.00…») no parte nada.
+ */
+export function partirCantidad(texto: string): { cantidad: string | null; resto: string } {
+  const m = /^(\d[\d.,]*)\s+/.exec(texto);
+  return m ? { cantidad: m[1], resto: texto.slice(m[0].length) } : { cantidad: null, resto: texto };
 }
 
 export interface ProductoTop {
@@ -308,7 +320,7 @@ export function construirTopProductos(rep: ReporteVentasResumen): ProductoTop[] 
  * servicio que usa la barra superior (se renueva solo; aquí solo se lee).
  */
 export function construirFilasAtencion(e: EntradaAtencion): FilaAtencion[] {
-  const filas: FilaAtencion[] = [];
+  const filas: Omit<FilaAtencion, 'cantidad' | 'resto'>[] = [];
   const estadoFiscal = e.estadoFiscal;
 
   if (e.veDocumentos && e.cpeAtencion) {
@@ -448,5 +460,5 @@ export function construirFilasAtencion(e: EntradaAtencion): FilaAtencion[] {
     });
   }
 
-  return filas;
+  return filas.map((f) => ({ ...f, ...partirCantidad(f.texto) }));
 }

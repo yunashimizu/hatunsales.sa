@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, forkJoin, map, tap } from 'rxjs';
+import { BehaviorSubject, Observable, map, tap } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
 import { peticionSilenciosa } from '../../interceptors/contexto-http';
 import { EstadoPedido, Pedido } from '../../store/models/tienda.models';
@@ -67,19 +67,16 @@ export class PedidoAdminService {
     return this.http.put<Pedido>(`${urlConstants.admin.pedidos}/${id}/confirmar-pago`, cuerpo, opcionesHttp());
   }
 
-  /** Cuenta pendientes y pagados (dos lecturas filtradas, ligeras) y publica el resultado. Silenciosa: no avisa si falla. */
+  /** Pendientes y pagados por preparar: una sola lectura de conteo en el servidor (`admin/pedidos/resumen`) que se publica en `resumen`. Silenciosa: no avisa si falla. */
   porPreparar(): Observable<ResumenPedidosWeb> {
-    return this.compartir(() => {
-      const leer = (estado: EstadoPedido) =>
-        this.http.get<Pedido[]>(urlConstants.admin.pedidos, {
+    return this.compartir(() =>
+      this.http
+        .get<{ pendientes?: number; pagados?: number }>(urlConstants.admin.pedidosResumen, {
           ...opcionesHttp(),
-          params: new HttpParams().set('estado', estado),
           context: peticionSilenciosa(),
-        });
-      return forkJoin({ p: leer('pendiente'), g: leer('pagado') }).pipe(
-        map(({ p, g }) => this.armarResumen(Array.isArray(p) ? p.length : 0, Array.isArray(g) ? g.length : 0)),
-      );
-    }).pipe(tap((r) => this.resumen$.next(r)));
+        })
+        .pipe(map((r) => this.armarResumen(Number(r?.pendientes) || 0, Number(r?.pagados) || 0))),
+    ).pipe(tap((r) => this.resumen$.next(r)));
   }
 
   /** La pantalla de pedidos ya tiene la lista completa: publica el resumen sin otra petición. */

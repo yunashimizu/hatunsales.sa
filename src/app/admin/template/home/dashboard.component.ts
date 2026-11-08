@@ -18,6 +18,7 @@ import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
 import { InventarioAdminService } from '../../service/inventario-admin.service';
 import { ComprobanteService } from '../../service/comprobante.service';
 import { CajaSesionService, SesionCaja } from '../../service/caja-sesion.service';
+import { CreditoAdminService, ResumenVencidas } from '../../service/credito-admin.service';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
 import { PeriodoReporte, RangoReporte, ReporteVentasResumen, ReportesService } from '../../service/reportes.service';
 import { PedidoAdminService, ResumenPedidosWeb } from '../../service/pedido-admin.service';
@@ -92,11 +93,6 @@ const CLAVE_PERIODO = 'hs.inicio.periodo';
 const CLAVE_OCULTAS = 'hs.inicio.ocultas';
 const CLAVE_META = 'hs.panel.meta-diaria';
 
-interface CuentasCobrarApi {
-  data?: { saldo?: number | string; estado?: string }[];
-  total?: number | string;
-}
-
 interface TooltipVista {
   izquierda: number;
   arriba: number;
@@ -114,7 +110,7 @@ interface ResultadoBase {
   cpe: { total?: number } | null;
   pedidos: ResumenPedidosWeb | null;
   caja: SesionCaja | null;
-  cxc: CuentasCobrarApi | null;
+  cxc: ResumenVencidas | null;
   actividad: Paginado<ComprobanteFila> | null;
   sucursales: ResumenSucursalesCaja | null;
 }
@@ -238,6 +234,7 @@ export class DashboardComponent implements OnInit {
   private readonly fiscal = inject(FiscalEstadoService);
   private readonly reportes = inject(ReportesService);
   private readonly pedidos = inject(PedidoAdminService);
+  private readonly credito = inject(CreditoAdminService);
 
   private subTodo: Subscription | null = null;
   private subPeriodo: Subscription | null = null;
@@ -620,20 +617,13 @@ export class DashboardComponent implements OnInit {
 
   /** Lo que no depende del periodo: stock, SUNAT, pedidos, caja, cuentas, actividad y sucursales. */
   private cargarBase(silenciosa: boolean): Observable<void> {
-    const contexto = silenciosa ? { context: peticionSilenciosa() } : {};
     const hoy = claveDia(new Date());
     return forkJoin({
       inv: this.sinPermiso(this.veStock, () => this.inventario.resumen()),
       cpe: this.sinPermiso(this.veDocumentos, () => this.comprobantes.monitorAtencion()),
       pedidos: this.sinPermiso(this.vePedidos, () => this.pedidos.porPreparar()),
       caja: this.sinPermiso(this.veCaja, () => this.caja.sesion()),
-      cxc: this.sinPermiso(this.veCxc, () =>
-        this.http.get<CuentasCobrarApi>(urlConstants.credito.cuentas, {
-          ...opcionesHttp(),
-          ...contexto,
-          params: new HttpParams().set('estado', 'vencido').set('limite', '100'),
-        }),
-      ),
+      cxc: this.sinPermiso(this.veCxc, () => this.credito.vencidasResumen({ silenciosa })),
       actividad: this.sinPermiso(this.verActividad, () =>
         this.http.get<Paginado<ComprobanteFila>>(urlConstants.comprobante.base, {
           ...opcionesHttp(),
@@ -863,16 +853,10 @@ export class DashboardComponent implements OnInit {
         : `${quien} todavía no hay ventas; en gris, el mismo día de la semana pasada.`;
   }
 
-  private aplicarCuentas(cxc: CuentasCobrarApi | null): void {
-    this.cxcVencidoMonto = null;
-    this.cxcVencidoCuentas = null;
+  private aplicarCuentas(r: ResumenVencidas | null): void {
+    this.cxcVencidoCuentas = r?.cuentas ?? null;
+    this.cxcVencidoMonto = r?.total ?? null;
     this.cxcParcial = false;
-    if (!cxc || !Array.isArray(cxc.data)) return;
-    const vencidas = cxc.data.filter((c) => !c.estado || c.estado === 'vencido');
-    const total = cxc.total != null ? numero(cxc.total) : vencidas.length;
-    this.cxcVencidoCuentas = Math.max(total, vencidas.length);
-    this.cxcVencidoMonto = vencidas.reduce((s, c) => s + numero(c.saldo), 0);
-    this.cxcParcial = this.cxcVencidoCuentas > vencidas.length;
   }
 
   private aplicarActividad(lista: Paginado<ComprobanteFila> | null): void {

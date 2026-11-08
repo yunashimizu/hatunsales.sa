@@ -3,6 +3,7 @@ import {
   construirCobros,
   construirFilasAtencion,
   construirSucursales,
+  partirCantidad,
   tonoDeMedio,
   vistaDelta,
 } from './inicio-datos.util';
@@ -58,5 +59,20 @@ describe('inicio-datos.util', () => {
     expect(filas.map((f) => f.id)).toEqual(['sin-stock', 'cxc']);
     expect(filas[1].detalle).toBe('Al menos S/ 250.00 por cobrar');
     expect(filas[0].ruta).toBe('/dashboard/mantenimiento/inventario');
+  });
+
+  it('partirCantidad separa el número inicial y no toca lo demás', () => {
+    expect(partirCantidad('3 comprobantes necesitan atención')).toEqual({ cantidad: '3', resto: 'comprobantes necesitan atención' });
+    expect(partirCantidad('19 productos sin stock')).toEqual({ cantidad: '19', resto: 'productos sin stock' });
+    expect(partirCantidad('El certificado digital está vencido')).toEqual({ cantidad: null, resto: 'El certificado digital está vencido' });
+    expect(partirCantidad('S/ 2,140.00 por cobrar')).toEqual({ cantidad: null, resto: 'S/ 2,140.00 por cobrar' });
+  });
+
+  it('las filas de atención llevan la cantidad ya partida', () => {
+    const base = {
+      estadoFiscal: null, veDocumentos: true, vePedidos: true, veFiscalPanel: false, veInventario: true, veStock: true, veCxc: true,
+      cpeAtencion: null, pedidosWeb: null, sinStock: 19, bajoStock: null, cxcVencidoCuentas: null, cxcVencidoMonto: null, cxcParcial: false,
+    };
+    expect(construirFilasAtencion(base)[0]).toMatchObject({ cantidad: '19', resto: 'productos sin stock' });
   });
 });

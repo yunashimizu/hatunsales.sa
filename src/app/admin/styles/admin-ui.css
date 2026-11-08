@@ -547,7 +547,7 @@
 .adm-metrica__etiqueta {
   margin-top: 3px;
   font-size: var(--adm-fs-rotulo);
-  font-weight: 650;
+  font-weight: var(--fw-negrita);
   line-height: 1.4;
   color: var(--adm-texto-suave);
   text-transform: uppercase;
@@ -590,9 +590,9 @@
   flex-wrap: wrap;
   gap: 4px 6px;
   font-size: var(--adm-fs-etiqueta);
-  font-weight: var(--fw-semi);
+  font-weight: 650;
   line-height: 1.35;
-  color: var(--adm-texto-2);
+  color: var(--adm-texto);
 }
 
 .adm-etiqueta__opcional {
@@ -844,7 +844,7 @@
   transition: transform var(--adm-transicion);
 }
 
-.adm-switch input:checked { background: var(--adm-primario); }
+.adm-switch input:checked { background: var(--adm-marca); }
 .adm-switch input:checked::after { transform: translateX(18px); }
 .adm-switch input:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 2px; }
 .adm-switch input:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -1049,9 +1049,10 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 
 .adm-pestania--activa {
   color: var(--adm-texto);
+  font-weight: var(--fw-negrita);
   background: var(--adm-superficie);
   border-color: transparent;
-  box-shadow: 0 1px 2px rgba(31, 32, 31, 0.08);
+  box-shadow: inset 0 0 0 1px var(--adm-marca-borde), 0 1px 2px rgba(31, 32, 31, 0.08);
 }
 
 .adm-pestania .adm-insignia { padding: 1px 8px; font-size: 11.5px; }
@@ -1060,7 +1061,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 /* Pestañas subrayadas (alternativa para cabeceras de tarjeta) */
 .adm-pestanias--linea { padding: 0; background: transparent; border-bottom: 1px solid var(--adm-borde); border-radius: 0; gap: 0; }
 .adm-pestanias--linea .adm-pestania { border-radius: 0; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 10px 14px; }
-.adm-pestanias--linea .adm-pestania--activa { background: transparent; box-shadow: none; border-bottom-color: var(--adm-marca); color: var(--adm-texto); }
+.adm-pestanias--linea .adm-pestania--activa { background: transparent; box-shadow: none; border-bottom: 2px solid var(--adm-marca); color: var(--adm-texto); font-weight: var(--fw-negrita); }
 
 /* Segmentado (elegir uno de pocos: Boleta / Factura) */
 .adm-segmentado {
@@ -1096,7 +1097,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 }
 
 .adm-segmento:hover:not(.adm-segmento--activo):not(:disabled) { color: var(--adm-texto); }
-.adm-segmento--activo { color: var(--adm-texto); background: var(--adm-superficie); border-color: transparent; box-shadow: 0 1px 2px rgba(31, 32, 31, 0.08); }
+.adm-segmento--activo { color: var(--adm-texto); font-weight: var(--fw-negrita); background: var(--adm-superficie); border-color: transparent; box-shadow: inset 0 0 0 1px var(--adm-marca-borde), 0 1px 2px rgba(31, 32, 31, 0.08); }
 .adm-segmento:disabled { opacity: 0.5; cursor: not-allowed; }
 .adm-segmento:focus-visible { outline: 2px solid var(--adm-marca); outline-offset: 1px; }
 
@@ -1176,7 +1177,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   text-transform: uppercase;
   letter-spacing: var(--tracking-mayus);
   font-feature-settings: 'case' 1;
-  color: var(--adm-texto-tenue);
+  color: var(--adm-texto-suave);
   background: var(--adm-superficie-2);
   border-bottom: 1px solid var(--adm-borde);
   white-space: nowrap;
@@ -1211,7 +1212,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-tabla .adm-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .adm-tabla .adm-centro { text-align: center; }
 
-.adm-tabla__principal { font-weight: var(--fw-semi); color: var(--adm-texto); }
+.adm-tabla__principal { font-weight: 650; color: var(--adm-texto); }
 .adm-tabla__secundario { margin-top: 2px; font-size: var(--adm-fs-ayuda); font-weight: var(--fw-regular); line-height: 1.4; color: var(--adm-texto-suave); }
 .adm-tabla__mono { font-family: var(--adm-fuente-mono); font-size: var(--adm-fs-ayuda); color: var(--adm-texto-suave); }
 
@@ -1252,7 +1253,7 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
   gap: 5px;
   padding: 3px 10px;
   font-size: var(--adm-fs-ayuda);
-  font-weight: var(--fw-semi);
+  font-weight: 650;
   line-height: 1.5;
   border-radius: 999px;
   white-space: nowrap;
@@ -2214,7 +2215,10 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-tabla__orden:hover { background: var(--adm-superficie-3); color: var(--adm-texto-2); }
 .adm-tabla__orden:focus-visible { outline: 1px solid var(--adm-marca); box-shadow: var(--adm-anillo); }
 th[aria-sort='ascending'] .adm-tabla__orden,
-th[aria-sort='descending'] .adm-tabla__orden { color: var(--adm-marca-texto); }
+th[aria-sort='descending'] .adm-tabla__orden { color: var(--adm-marca-osc); }
+/* Columna ordenada: hilo de oro bajo la cabecera (rol «orientación», R18) */
+.adm-tabla thead th[aria-sort='ascending'],
+.adm-tabla thead th[aria-sort='descending'] { box-shadow: inset 0 -2px 0 var(--adm-marca); color: var(--adm-marca-osc); }
 th[aria-sort='ascending'] .adm-tabla__orden .bi,
 th[aria-sort='descending'] .adm-tabla__orden .bi { opacity: 1; }
 
@@ -2582,11 +2586,17 @@ th[aria-sort='descending'] .adm-tabla__orden .bi { opacity: 1; }
   .adm-cabecera--barra .adm-cabecera__eyebrow {
     flex: none;
     margin: 0;
-    color: var(--adm-texto-tenue);
+    color: var(--adm-marca-osc);
     white-space: nowrap;
   }
 
-  .adm-cabecera--barra .adm-cabecera__eyebrow::before { display: none; }
+  /* La «gota» de oro: ancla la franja y orienta (rol «orientación», R18) */
+  .adm-cabecera--barra .adm-cabecera__eyebrow::before {
+    display: inline-block;
+    flex: none;
+    background: var(--adm-marca);
+    opacity: 1;
+  }
 
   .adm-cabecera--barra .adm-cabecera__sub {
     flex: 0 1 auto;

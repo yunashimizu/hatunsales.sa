@@ -29,6 +29,7 @@ export const urlConstants = {
     crearUsuarioAdmin: `${dominio}admin/roles/usuarios`,
     cambiarRolAdmin: (id: string | number) => `${dominio}admin/roles/usuarios/${id}/rol`,
     pedidos: `${dominio}admin/pedidos`,
+    pedidosResumen: `${dominio}admin/pedidos/resumen`,
   },
 
   usuario: {
@@ -109,6 +110,7 @@ export const urlConstants = {
   credito: {
     linea: `${dominio}credito/linea`,
     cuentas: `${dominio}credito/cuentas`,
+    vencidasResumen: `${dominio}credito/cuentas/vencidas-resumen`,
     cuenta: (id: string | number) => `${dominio}credito/cuentas/${id}`,
     abonar: (id: string | number) => `${dominio}credito/cuentas/${id}/abonos`,
     cliente: (id: string | number) => `${dominio}credito/cliente/${id}`,

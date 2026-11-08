@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
-import { opcionesHttp } from './api-base.service';
+import { peticionSilenciosa } from '../../interceptors/contexto-http';
+import { cacheCorto, opcionesHttp } from './api-base.service';
 import {
   FiltroTurnosCaja,
   ListadoTurnosCaja,
@@ -63,10 +64,23 @@ function parametros(valores: object): Record<string, string | number> {
 
 @Injectable({ providedIn: 'root' })
 export class CajaSesionService {
+  /** El Inicio, la campana y el POS piden la sesión a la vez: una sola petición cada 5 s. No es readonly: abrir/cerrar la recrean. */
+  private sesionCompartida = cacheCorto<SesionCaja>(5000);
+
   constructor(private readonly http: HttpClient) {}
 
-  sesion(): Observable<SesionCaja> {
-    return this.http.get<SesionCaja>(urlConstants.caja.sesion, opcionesHttp());
+  sesion(opciones: { silenciosa?: boolean } = {}): Observable<SesionCaja> {
+    return this.sesionCompartida(() =>
+      this.http.get<SesionCaja>(urlConstants.caja.sesion, {
+        ...opcionesHttp(),
+        ...(opciones.silenciosa ? { context: peticionSilenciosa() } : {}),
+      }),
+    );
+  }
+
+  /** Olvida la sesión guardada: la siguiente lectura consulta de nuevo (tras abrir o cerrar caja). */
+  invalidarSesion(): void {
+    this.sesionCompartida = cacheCorto<SesionCaja>(5000);
   }
 
   disponibles(): Observable<{ items: CajaDisponible[] }> {
@@ -74,7 +88,9 @@ export class CajaSesionService {
   }
 
   abrir(body: AbrirCajaBody): Observable<AperturaCaja> {
-    return this.http.post<AperturaCaja>(urlConstants.caja.abrir, body, opcionesHttp());
+    return this.http
+      .post<AperturaCaja>(urlConstants.caja.abrir, body, opcionesHttp())
+      .pipe(tap(() => this.invalidarSesion()));
   }
 
   /** Turnos paginados. Solo se mandan los filtros con valor. */
@@ -115,12 +131,14 @@ export class CajaSesionService {
     monto_conteo: number | null;
     resumen?: ResumenTurnoCaja;
   }> {
-    return this.http.post<{
-      id_apertura: number;
-      id_cierre: number | null;
-      cerrada: boolean;
-      monto_conteo: number | null;
-      resumen?: ResumenTurnoCaja;
-    }>(urlConstants.caja.cerrar, body, opcionesHttp());
+    return this.http
+      .post<{
+        id_apertura: number;
+        id_cierre: number | null;
+        cerrada: boolean;
+        monto_conteo: number | null;
+        resumen?: ResumenTurnoCaja;
+      }>(urlConstants.caja.cerrar, body, opcionesHttp())
+      .pipe(tap(() => this.invalidarSesion()));
   }
 }

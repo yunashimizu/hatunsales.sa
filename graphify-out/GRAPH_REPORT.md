@@ -1,27 +1,27 @@
-# Graph Report - ferreteria  (2026-11-05)
+# Graph Report - ferreteria  (2026-11-08)
 
 ## Corpus Check
-- 287 files · ~264,674 words
+- 357 files · ~362,028 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 83 file(s) not represented in the graph (top: .css 75, .scss 4, (none) 3)
+- Unclassified: 94 file(s) not represented in the graph (top: .css 82, .scss 7, (none) 3)
 
 ## Summary
-- 3874 nodes · 9875 edges · 162 communities (86 shown, 76 thin omitted)
-- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 431 edges (avg confidence: 0.85)
+- 4877 nodes · 12640 edges · 174 communities (111 shown, 63 thin omitted)
+- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 494 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0ac68c16`
+- Built from commit: `01640456`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - VentasComponent
 - CotizacionesComponent
-- @angular/router
-- api-base.service.ts
+- tienda.models.ts
+- alert.service.ts
 - @angular/core
-- auth.service.ts
+- auth-shell.component.ts
 - mensajeDeError
 - aviso-login.util.ts
 - VentasHistorialComponent
@@ -30,40 +30,40 @@
 - ProductosComponent
 - nota-credito-asistente.component.ts
 - documentos.models.ts
-- ProductoCardComponent
+- productos.component.ts
 - guias-remision.component.ts
-- AlertService
+- CajaSesionComponent
 - GuiasRemisionComponent
 - errores-http.util.ts
 - activacion-produccion.component.ts
 - NotificationService
-- CategoriaTienda
+- contacto.component.ts
 - RecepcionComponent
 - comprobante-detalle.component.ts
 - fiscal.models.ts
 - FacturacionSunatComponent
 - CarritoComponent
 - ✅ CHECKLIST DE IMPLEMENTACIÓN
-- alert.service.ts
+- rxjs
 - ComprobanteDetalleComponent
-- fecha-es.pipe.ts
+- ReporteMercadoComponent
 - SelectorUnidadComponent
 - 🚀 STORE PREMIUM COMPLETADO - RESUMEN EJECUTIVO
 - error.interceptor.ts
 - imagen-cliente.util.ts
-- caja-arqueo.component.ts
+- CajaArqueoComponent
 - VentasSinComprobanteComponent
 - NumeroDirective
 - CuentasPorCobrarComponent
-- producto-rapido.component.ts
+- ProductoRapidoComponent
 - GestionService
 - opcionesHttp
 - PedidoDetalleComponent
 - ClientesComponent
-- ProductoTienda
+- @angular/router
 - ProductoDetalleComponent
 - guia-remision.service.ts
-- ProductoRapidoComponent
+- inicio-graficos.util.ts
 - DocComponent
 - guia-formulario.component.ts
 - EtiquetasProductoComponent
@@ -84,30 +84,30 @@
 - InventarioComponent
 - PaletaComandosComponent
 - LotesSunatComponent
-- escapeHtmlAlerta
+- AlertService
 - CatalogoComponent
 - CartService
-- ReceptorService
+- avisos-panel.service.ts
 - MarcasComponent
-- PerfilComponent
-- ToastsComponent
+- pages/perfil/perfil.component.ts
+- notification.service.ts
 - FiltrosComponent
 - AlmacenComponent
-- FiscalEstadoService
+- fiscal-estado.service.ts
 - ReporteProductosComponent
-- SugerenciaReceptor
+- .cargar
 - UbigeoBuscadorComponent
 - GuiaRemisionService
-- notification.service.ts
+- reportes.service.ts
 - schematics
-- admin.models.ts
-- aNumero
+- dashboard.component.ts
+- reportes.component.ts
 - ProductosSinCodigoComponent
 - HeroBannerComponent
 - importe-en-letras.util.ts
-- ProductoVenta
-- StockComponent
-- .ingresarStock
+- AvisosPanelService
+- ArqueoCajaPaginaComponent
+- PedidosComponent
 - HeaderComponent
 - AuthService
 - options
@@ -116,350 +116,380 @@
 - ProveedoresComponent
 - SidebarComponent
 - VisorImagenComponent
-- InventarioAdminService
-- RecepcionService
-- RegisterComponent
-- FilaInventario
+- Paginado
+- ResumenDiarioConfigComponent
+- Pedido
+- rango-fechas.util.ts
 - ReporteTiposComponent
 - SonidoCajaService
 - server.ts
-- GoogleSignInComponent
+- admin/template/header/header.component.ts
 - devDependencies
 - paleta-comandos.component.ts
 - DashboardComponent
-- reveal.directive.spec.ts
+- ObservadorFalso
 - FavoritosComponent
 - 🎨 GUÍA VISUAL DEL STORE PREMIUM
 - ProductoAdminService
-- LoginComponent
+- ayuda-atajos.component.ts
 - CarritoPanelComponent
-- contacto.component.ts
+- ActualizacionAppService
 - development
+- EstadoPedido
 - AdminConfiguracionComponent
-- AdminPerfilComponent
 - ConectividadService
-- AuthShellComponent
 - scripts
 - Ferreteria
-- CuentaTiendaService
+- caja-arqueo.component.ts
 - RolesAdminService
 - CajaArqueoService
 - TemplateComponent
-- login-response.model.ts
+- caja-sesion.component.ts
 - TemaService
-- ConfiguracionPasarela
+- sidebar.component.ts
 - angular.json
 - build
-- ParallaxPunteroDirective
+- LlaveAlertasSunatComponent
 - ColaEscaneos
-- resultado-compra.ts
-- UnidadMedidaService
-- UbigeoService
-- admin/template/header/header.component.ts
+- recepcion.component.ts
+- arqueo-caja-pagina.component.ts
+- ubigeo.service.ts
+- ui/index.ts
 - production
 - ferreteria
-- whatsapp.util.ts
-- MovimientoInventario
-- GoogleSignInPrueba
+- urlWhatsappCliente
+- cobranza.util.ts
 - ProductoService
 - sonido-caja.service.spec.ts
-- CotizacionService
+- .diasPara
 - vercel.json
 - overrides
-- PagePlaceholderComponent
-- ContactoComponent
+- .descargarSire
+- lotes-sunat.component.ts
 - login-request.model.ts
 - general-constants.ts
-- FiltrosActivosComponent
-- formulario-resena.component.ts
-- MetodoPago
-- store.module.ts
-- Almacen
+- stock-sucursales.component.ts
+- EstadoCuentaComponent
+- template-routing.module.ts
+- .cargar
+- .cerrarFechas
+- calcularDelta
+- notificaciones.component.ts
+- BarraProgresoComponent
+- filtrarInstantaneo
+- .exportarCsv
+- pedidos.component.spec.ts
+- rangoValido
+- facturacion-sunat.component.spec.ts
+- DensidadService
+- ngsw-config.json
+- pedido-detalle.component.spec.ts
+- PRESETS
 
 ## God Nodes (most connected - your core abstractions)
-1. `@angular/core` - 214 edges
-2. `mensajeDeError()` - 178 edges
-3. `@angular/common` - 161 edges
-4. `opcionesHttp()` - 160 edges
-5. `VentasComponent` - 142 edges
-6. `CotizacionesComponent` - 122 edges
-7. `AlertService` - 119 edges
-8. `rxjs` - 101 edges
-9. `@angular/router` - 97 edges
-10. `AuthService` - 79 edges
+1. `@angular/core` - 260 edges
+2. `mensajeDeError()` - 198 edges
+3. `opcionesHttp()` - 190 edges
+4. `@angular/common` - 186 edges
+5. `VentasComponent` - 158 edges
+6. `AlertService` - 131 edges
+7. `rxjs` - 122 edges
+8. `CotizacionesComponent` - 122 edges
+9. `@angular/router` - 118 edges
+10. `ProductosComponent` - 95 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `EscaneoPendiente` --references--> `ProductoVenta`  [EXTRACTED]
-  src/app/admin/mantenimiento/component/cotizaciones/cotizaciones.component.ts → src/app/admin/models/admin.models.ts
-- `CotizacionesComponent` --references--> `ProductoVenta`  [EXTRACTED]
-  src/app/admin/mantenimiento/component/cotizaciones/cotizaciones.component.ts → src/app/admin/models/admin.models.ts
-- `CotizacionesComponent` --references--> `Receptor`  [EXTRACTED]
-  src/app/admin/mantenimiento/component/cotizaciones/cotizaciones.component.ts → src/app/admin/models/admin.models.ts
-- `CotizacionesComponent` --references--> `SugerenciaReceptor`  [EXTRACTED]
-  src/app/admin/mantenimiento/component/cotizaciones/cotizaciones.component.ts → src/app/admin/models/admin.models.ts
-- `CotizacionesComponent` --references--> `ConfigFiscal`  [EXTRACTED]
-  src/app/admin/mantenimiento/component/cotizaciones/cotizaciones.component.ts → src/app/admin/service/configuracion-fiscal.service.ts
+- `ArqueoCajaPaginaComponent` --references--> `CajaArqueoComponent`  [EXTRACTED]
+  src/app/admin/mantenimiento/component/caja-sesion/arqueo-caja-pagina.component.ts → src/app/admin/mantenimiento/component/caja-sesion/caja-arqueo.component.ts
+- `ArqueoCajaPaginaComponent` --references--> `ResumenSucursalesCaja`  [EXTRACTED]
+  src/app/admin/mantenimiento/component/caja-sesion/arqueo-caja-pagina.component.ts → src/app/admin/models/caja-arqueo.models.ts
+- `ArqueoCajaPaginaComponent` --references--> `TurnoCajaListado`  [EXTRACTED]
+  src/app/admin/mantenimiento/component/caja-sesion/arqueo-caja-pagina.component.ts → src/app/admin/models/caja-arqueo.models.ts
+- `ArqueoCajaPaginaComponent` --references--> `CajaDisponible`  [EXTRACTED]
+  src/app/admin/mantenimiento/component/caja-sesion/arqueo-caja-pagina.component.ts → src/app/admin/service/caja-sesion.service.ts
+- `CajaArqueoComponent` --references--> `ArqueoEsperado`  [EXTRACTED]
+  src/app/admin/mantenimiento/component/caja-sesion/caja-arqueo.component.ts → src/app/admin/models/caja-arqueo.models.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (162 total, 76 thin omitted)
-
-### Community 0 - "VentasComponent"
-Cohesion: 0.03
-Nodes (6): VentasComponent, LineaVenta, extraerMultiplicador(), LARGO_MAXIMO_CODIGO, normalizarCodigo(), pareceCodigoExacto()
+## Communities (174 total, 63 thin omitted)
 
 ### Community 1 - "CotizacionesComponent"
 Cohesion: 0.04
-Nodes (7): CotizacionesComponent, errorLocal(), numeroOpcional(), redondear2(), soloDigitos(), Cotizacion, CrearCotizacionPayload
+Nodes (8): CotizacionesComponent, errorLocal(), numeroOpcional(), redondear2(), soloDigitos(), Cotizacion, CotizacionService, CrearCotizacionPayload
 
-### Community 2 - "@angular/router"
-Cohesion: 0.04
-Nodes (51): @angular/router, SpotlightDirective, ICONOS, TONOS, EstrellasComponent, WhatsappFlotanteComponent, EMPRESA_TIENDA, urlMailto() (+43 more)
+### Community 2 - "tienda.models.ts"
+Cohesion: 0.08
+Nodes (26): ConfiguracionPasarela, CrearPedidoPayload, CuponValidado, Especificacion, EstadoComprobantePedido, FiltrosDisponibles, PagarPedidoPayload, PedidoComprobante (+18 more)
 
-### Community 3 - "api-base.service.ts"
+### Community 3 - "alert.service.ts"
 Cohesion: 0.07
-Nodes (29): @angular/forms, Pestania, ModoPanel, MOTIVOS, COPIAS_MAXIMAS, COPIAS_MINIMAS, FORMULARIO_VACIO, FotoPendiente (+21 more)
+Nodes (28): @angular/forms, COPIAS_MAXIMAS, COPIAS_MINIMAS, FiltroEstado, routes, ATRIBUTOS_PERMITIDOS, CLAVES_TRANSPORTE, ETIQUETAS_PELIGROSAS (+20 more)
 
 ### Community 4 - "@angular/core"
 Cohesion: 0.05
-Nodes (32): @angular/common, @angular/core, EstadoBusqueda, LURIN, UbigeoElegido, EstadoFiscalApi, RespuestaEnvioWhatsapp, AsignacionCodigoSunat (+24 more)
+Nodes (26): @angular/common, @angular/core, ProductoCotizadoReporte, ProductoVendidoReporte, ICONOS, PorTipoReporte, RangoReporteVentas, cuerpo (+18 more)
 
-### Community 5 - "auth.service.ts"
-Cohesion: 0.07
-Nodes (15): lottie-web, AdminModule, AdminRoutingModule, routes, TemplateModule, TemplateRoutingModule, AuthModule, AuthRoutingModule (+7 more)
+### Community 5 - "auth-shell.component.ts"
+Cohesion: 0.09
+Nodes (10): lottie-web, AdminModule, AdminRoutingModule, routes, TemplateModule, AuthShellComponent, CARGAR_LOTTIE, PRECARGAR_PANEL (+2 more)
 
 ### Community 6 - "mensajeDeError"
-Cohesion: 0.08
-Nodes (3): ImagenProducto, esAccionDestructiva(), mensajeDeError()
+Cohesion: 0.07
+Nodes (4): ImagenProducto, esAccionDestructiva(), mensajeDeError(), partirEnLotes()
 
 ### Community 7 - "aviso-login.util.ts"
-Cohesion: 0.17
-Nodes (18): authGuard(), roleGuard(), NotFoundComponent, almacen(), AvisoLogin, borrar(), escribir(), esMotivo() (+10 more)
+Cohesion: 0.24
+Nodes (15): authGuard(), almacen(), AvisoLogin, borrar(), escribir(), esMotivo(), esRedireccionSegura(), guardarAvisoLogin() (+7 more)
 
 ### Community 8 - "VentasHistorialComponent"
-Cohesion: 0.08
-Nodes (7): celdaCsv(), enteroPositivo(), hoyEnLima(), rangoDe(), sumarDias(), VentasHistorialComponent, VentaHistorialFila
+Cohesion: 0.06
+Nodes (13): AccionDetalle, enteroPositivo(), FilaHistorial, hoyEnLima(), rangoDe(), FILA_ANULADA, FILA_FACTURA, FILA_SIN_COMPROBANTE (+5 more)
 
 ### Community 9 - "hoja-comprobante.model.ts"
-Cohesion: 0.07
-Nodes (51): HojaComprobanteComponent, ROTULOS_PDF, ambienteDe(), AVISO_BETA_HOJA, cantidad(), capitalizar(), COLUMNAS_TABLA, conMiles() (+43 more)
+Cohesion: 0.06
+Nodes (53): HojaComprobanteComponent, LOGO_OFICIAL_SRC, ROTULOS_PDF, ambienteDe(), AVISO_BETA_HOJA, cantidad(), capitalizar(), COLUMNAS_TABLA (+45 more)
 
 ### Community 10 - "GuiaFormularioComponent"
-Cohesion: 0.06
-Nodes (4): bloque(), GuiaFormularioComponent, ExcesoCantidadGuia, GuardarGuiaRemision
+Cohesion: 0.05
+Nodes (9): bloque(), conTresDecimales(), GuiaFormularioComponent, milesimas(), pasoDeCampo(), sumarDiasFecha(), ExcesoCantidadGuia, GuardarGuiaRemision (+1 more)
 
 ### Community 11 - "ProductosComponent"
 Cohesion: 0.06
-Nodes (3): ProductosComponent, OpcionCategoria, ProductoAdmin
+Nodes (3): ProductosComponent, StockPorAlmacen, ProductoFormulario
 
 ### Community 12 - "nota-credito-asistente.component.ts"
-Cohesion: 0.07
-Nodes (14): centesimas(), conDosDecimales(), estimarDevolucion(), EXPLICACION_MOTIVO, MOTIVOS_QUE_BAJAN_DEUDA, NOMBRE_FORMA, NotaCreditoAsistenteComponent, PasoAsistente (+6 more)
+Cohesion: 0.06
+Nodes (17): RUTA_DOCUMENTOS, centesimas(), conDosDecimales(), estimarDevolucion(), EXPLICACION_MOTIVO, MOTIVOS_QUE_BAJAN_DEUDA, NOMBRE_FORMA, NotaCreditoAsistenteComponent (+9 more)
 
 ### Community 13 - "documentos.models.ts"
+Cohesion: 0.06
+Nodes (30): FiltroDocumentos, AccionDocumento, AccionSunat, AmbienteFiscal, CatalogoMotivosNota, ComprobanteDeVenta, ContextoNotaCredito, CorreoHistorial (+22 more)
+
+### Community 14 - "productos.component.ts"
 Cohesion: 0.05
-Nodes (37): FiltroDocumentos, HISTORICA, ComprobanteFila, Paginado, AccionDocumento, AccionSunat, AmbienteFiscal, CatalogoMotivosNota (+29 more)
+Nodes (62): COLUMNAS_EMPRESAS, COLUMNAS_PERSONAS, Pestania, DefinicionTramo, AntiguedadServidor, CAMPO_TRAMO, COLUMNAS_ORDEN, ResumenTramo (+54 more)
 
 ### Community 15 - "guias-remision.component.ts"
-Cohesion: 0.08
-Nodes (29): DescargaGuia, GuiaDetalleComponent, NOMBRE_DOCUMENTO, enteroPositivo(), FiltroPantalla, FILTROS_ESTADO, filtroVacio(), Manejo (+21 more)
+Cohesion: 0.07
+Nodes (32): DescargaGuia, GuiaDetalleComponent, NOMBRE_DOCUMENTO, enviada(), pendiente(), enteroPositivo(), FiltroPantalla, FILTROS_ESTADO (+24 more)
 
-### Community 16 - "AlertService"
-Cohesion: 0.11
-Nodes (9): CajaSesionComponent, AperturaCaja, CajaDisponible, ResumenTurnoCaja, SesionCaja, CLASES_ESTADO, NOMBRES_ARCHIVO, NOMBRES_ESTADO (+1 more)
+### Community 16 - "CajaSesionComponent"
+Cohesion: 0.08
+Nodes (4): CajaSesionComponent, DenominacionSol, LineaConteo, CajaDisponible
 
 ### Community 17 - "GuiasRemisionComponent"
-Cohesion: 0.11
-Nodes (4): GuiasRemisionComponent, AccionGuia, GuiaRemisionResumen, OperacionGuia
+Cohesion: 0.12
+Nodes (3): GuiasRemisionComponent, GuiaRemisionResumen, OperacionGuia
 
 ### Community 18 - "errores-http.util.ts"
 Cohesion: 0.07
-Nodes (41): claveAvisoDe(), codigoPorEstado(), CODIGOS_ERROR, CODIGOS_FRONT, CODIGOS_GLOBALES, CODIGOS_TRANSPORTE, describirError(), DescripcionError (+33 more)
+Nodes (42): claveAvisoDe(), codigoPorEstado(), CODIGOS_ERROR, CODIGOS_FRONT, CODIGOS_GLOBALES, CODIGOS_TRANSPORTE, CuerpoErrorApi, describirError() (+34 more)
 
 ### Community 19 - "activacion-produccion.component.ts"
-Cohesion: 0.06
-Nodes (18): CambiosConfiguracionFiscal, ConfirmacionesActivacion, ItemChecklistFiscal, ResultadoPruebaCredenciales, SeriesSunat, ActivacionProduccionComponent, CONFIRMACIONES_SOL, Correlativo (+10 more)
+Cohesion: 0.07
+Nodes (17): CambiosConfiguracionFiscal, ConfirmacionesActivacion, ItemChecklistFiscal, SeriesSunat, ActivacionProduccionComponent, CONFIRMACIONES_SOL, Correlativo, correlativosDe() (+9 more)
 
-### Community 21 - "CategoriaTienda"
-Cohesion: 0.18
-Nodes (3): CategoriasGridComponent, CategoriaTienda, FooterComponent
+### Community 20 - "NotificationService"
+Cohesion: 0.11
+Nodes (3): NotificationService, recortarTexto(), crear()
+
+### Community 21 - "contacto.component.ts"
+Cohesion: 0.07
+Nodes (23): CategoriasGridComponent, ICONOS, TONOS, WhatsappFlotanteComponent, EMPRESA_TIENDA, urlMailto(), urlMapaAbrir(), urlMapaEmbed() (+15 more)
 
 ### Community 23 - "comprobante-detalle.component.ts"
-Cohesion: 0.06
-Nodes (43): AccionDetalle, ESTADO_GUIA, TEXTO_ANULACION, TEXTO_CORREO, FilaDocumento, FILTRO_VACIO, Pestana, archivosDescargables() (+35 more)
+Cohesion: 0.07
+Nodes (44): ESTADO_GUIA, TEXTO_ANULACION, TEXTO_CORREO, FilaDocumento, FILTRO_VACIO, Pestana, aunPuedeResumirse(), chipAmbiente (+36 more)
 
 ### Community 24 - "fiscal.models.ts"
-Cohesion: 0.08
-Nodes (35): AuditoriaFiscal, BloqueoEmision, CertificadoFiscal, ChecklistFiscal, ConfigGre, EmisorBeta, EmisorSunat, EstadoPosBetaFiscal (+27 more)
+Cohesion: 0.09
+Nodes (37): AlertasFiscalesApi, AuditoriaFiscal, BloqueoEmision, CertificadoFiscal, ChecklistFiscal, ConfigGre, EmisorBeta, EmisorSunat (+29 more)
 
 ### Community 25 - "FacturacionSunatComponent"
 Cohesion: 0.08
-Nodes (5): ConfiguracionSunat, EstadoFiscalGlobal, DestinoFiscal, advertenciasDe(), FacturacionSunatComponent
+Nodes (5): ConfiguracionSunat, EstadoFiscalGlobal, DestinoFiscal, FacturacionSunatComponent, lecturaSegura()
 
 ### Community 27 - "✅ CHECKLIST DE IMPLEMENTACIÓN"
 Cohesion: 0.05
 Nodes (39): 1. Instalar dependencias, 1. Servicios, 2. Compilar TypeScript, 2. Componentes Principales, 3. Componentes Actualizados, 3. Ejecutar dev server, 4. Índices y Barrels, 5. Documentación (+31 more)
 
-### Community 28 - "alert.service.ts"
-Cohesion: 0.06
-Nodes (36): rxjs, sweetalert2, CuentaDeposito, DOCUMENTOS, LineaCot, OrigenSugerencias, ResultadoBusqueda, CUENTA_BCP (+28 more)
+### Community 28 - "rxjs"
+Cohesion: 0.05
+Nodes (41): rxjs, CuentaDeposito, DOCUMENTOS, LineaCot, OrigenSugerencias, ResultadoBusqueda, CUENTA_BCP, pintar() (+33 more)
 
 ### Community 29 - "ComprobanteDetalleComponent"
 Cohesion: 0.08
-Nodes (5): ComprobanteDetalleComponent, correoPlausible(), AnulacionComprobante, ComprobanteDetalle, SolicitudAnularComprobante
+Nodes (6): ComprobanteDetalleComponent, correoPlausible(), archivosDescargables(), AnulacionComprobante, ComprobanteDetalle, SolicitudAnularComprobante
 
-### Community 30 - "fecha-es.pipe.ts"
-Cohesion: 0.29
-Nodes (4): EstiloFecha, FechaEsPipe, MESES, MESES_CORTOS
+### Community 30 - "ReporteMercadoComponent"
+Cohesion: 0.06
+Nodes (8): fechaCorta(), horaTexto(), ReporteMercadoComponent, soles(), EstancadosReporte, MapaCalorReporte, RentabilidadReporte, ReportesService
 
 ### Community 31 - "SelectorUnidadComponent"
-Cohesion: 0.15
-Nodes (3): UnidadAmigable, GrupoOpciones, SelectorUnidadComponent
+Cohesion: 0.10
+Nodes (7): claveUnidad(), ResolucionUnidad, UNIDAD_POR_DEFECTO, UnidadAmigable, UnidadMedidaService, GrupoOpciones, SelectorUnidadComponent
 
 ### Community 32 - "🚀 STORE PREMIUM COMPLETADO - RESUMEN EJECUTIVO"
 Cohesion: 0.06
 Nodes (35): 10. **HomeComponent Rediseñado** 🏠, 1. **AlertService** 🔔, 1. Verificar que todo está importado, 2. **HeroBannerComponent** 🎬, 2. Ver en navegador, 3. **CategoriasGridComponent** 🏷️, 3. Probar funcionalidades, 4. Código de prueba descuento (+27 more)
 
 ### Community 33 - "error.interceptor.ts"
-Cohesion: 0.11
-Nodes (30): LIMITE_SUNAT_MS, cuerpo, AVISO_GLOBAL, conReintentos(), REINTENTOS, SILENCIOSA, TIEMPO_LIMITE_MS, aplicarPolitica() (+22 more)
+Cohesion: 0.15
+Nodes (24): AVISO_GLOBAL, REINTENTOS, aplicarPolitica(), cantidadDeReintentos(), debeReintentar(), errorInterceptor(), esperaDeReintento(), ESPERAS_REINTENTO_MS (+16 more)
 
 ### Community 34 - "imagen-cliente.util.ts"
-Cohesion: 0.10
-Nodes (25): aBlob(), ArchivoImagen, BitmapLike, CALIDAD_JPEG, CanvasLike, comprimirImagen(), Contexto2DLike, extensionDe() (+17 more)
-
-### Community 35 - "caja-arqueo.component.ts"
-Cohesion: 0.10
-Nodes (8): ArqueoCajaPaginaComponent, CajaArqueoComponent, arqueoGuardado, ArqueoEsperado, ArqueoResumen, MetodoEsperado, MovimientoCaja, RegistrarArqueo
+Cohesion: 0.09
+Nodes (24): aBlob(), ArchivoImagen, BitmapLike, CALIDAD_JPEG, CanvasLike, comprimirImagen(), Contexto2DLike, extensionDe() (+16 more)
 
 ### Community 36 - "VentasSinComprobanteComponent"
 Cohesion: 0.08
-Nodes (6): consultaNoPublicada(), soloDigitos(), VentasSinComprobanteComponent, codigoDeError(), esErrorDeRed(), esEstadoDeRed()
+Nodes (7): consultaNoPublicada(), soloDigitos(), VentasSinComprobanteComponent, VentaSinComprobante, codigoDeError(), esErrorDeRed(), esEstadoDeRed()
 
 ### Community 37 - "NumeroDirective"
 Cohesion: 0.05
 Nodes (39): aTipo(), ErrorValidacionNumero, NumeroDirective, primerNumeroInvalido(), AnfitrionComponent, VacioNumero, buscarSeparadorDecimal(), CANTIDAD_MAXIMA (+31 more)
 
-### Community 39 - "producto-rapido.component.ts"
-Cohesion: 0.11
-Nodes (25): armarComentario(), buscarDuplicadoExacto(), CampoAltaRapida, cantidadSeLleva(), coincideConTexto(), combinarParecidos(), construirProductoVenta(), EntradaValidacion (+17 more)
+### Community 39 - "ProductoRapidoComponent"
+Cohesion: 0.05
+Nodes (42): EscaneoPendiente, aNumero(), armarComentario(), avisoPrecioBajoCosto(), buscarDuplicadoExacto(), CampoAltaRapida, cantidadSeLleva(), coincideConTexto() (+34 more)
 
 ### Community 41 - "opcionesHttp"
-Cohesion: 0.12
+Cohesion: 0.09
 Nodes (3): AmbienteFiscal, opcionesHttp(), FiscalAdminService
 
-### Community 42 - "PedidoDetalleComponent"
-Cohesion: 0.08
-Nodes (3): EstadoPedido, PedidoDetalleComponent, PedidosComponent
-
-### Community 44 - "ProductoTienda"
-Cohesion: 0.10
-Nodes (6): MarcaTienda, Pagina, ProductoDetalle, ProductoTienda, HomeComponent, CatalogoService
+### Community 44 - "@angular/router"
+Cohesion: 0.05
+Nodes (15): @angular/router, EstrellasComponent, ProductoCardComponent, BannerTienda, MarcaTienda, ProductoDetalle, ProductoTienda, HomeComponent (+7 more)
 
 ### Community 46 - "guia-remision.service.ts"
 Cohesion: 0.07
-Nodes (25): ErrorGuia, Paginado, AccionesGuia, ConductorGuia, ConductorGuiaCuerpo, DestinatarioGuia, DestinatarioGuiaCuerpo, DocumentoRelacionadoGuia (+17 more)
+Nodes (26): ErrorGuia, Paginado, AccionesGuia, ConductorGuia, ConductorGuiaCuerpo, DestinatarioGuia, DestinatarioGuiaCuerpo, DocumentoRelacionadoGuia (+18 more)
+
+### Community 47 - "inicio-graficos.util.ts"
+Cohesion: 0.08
+Nodes (36): VentaPorHora, VentasPorHora, SesionCaja, ReporteVentasResumen, ResultadoPeriodo, construirTopProductos(), agruparPorHora(), BarraDia (+28 more)
 
 ### Community 49 - "guia-formulario.component.ts"
 Cohesion: 0.10
-Nodes (21): aVentaEncontrada(), conTresDecimales(), DestinoRuc, FormularioGuia, formularioVacio(), ItemFormulario, MensajeFormulario, milesimas() (+13 more)
+Nodes (21): aVentaEncontrada(), AVISO_DIAS_INICIO_TRASLADO, DESTINATARIO_PROPIO_POR_DEFECTO, DestinoRuc, FormularioGuia, formularioVacio(), ItemFormulario, MAXIMO_DIAS_INICIO_TRASLADO (+13 more)
 
 ### Community 50 - "EtiquetasProductoComponent"
 Cohesion: 0.10
 Nodes (13): EtiquetasProductoComponent, ProductoEtiqueta, AnfitrionComponent, codificarEan13(), esEan13Valido(), OpcionesSvgEan13, PARIDAD_PRIMER_DIGITO, VALIDOS (+5 more)
 
 ### Community 54 - "EnviosSunatComponent"
-Cohesion: 0.17
+Cohesion: 0.15
 Nodes (3): EnvioSunat, EnviosSunatComponent, partesNombre()
 
 ### Community 55 - "package.json"
 Cohesion: 0.08
-Nodes (24): name, packageManager, private, version, @angular/build, @angular/cdk, @angular/cli, @angular/compiler (+16 more)
+Nodes (25): name, packageManager, private, version, @angular/build, @angular/cdk, @angular/cli, @angular/compiler (+17 more)
 
 ### Community 56 - "RolesComponent"
 Cohesion: 0.13
 Nodes (3): RolesComponent, RolAdmin, RolesAdminCrudService
+
+### Community 57 - "CheckoutComponent"
+Cohesion: 0.07
+Nodes (3): MetodoEnvio, MetodoPago, CheckoutComponent
 
 ### Community 59 - "Componentes Creados"
 Cohesion: 0.08
 Nodes (24): 1️⃣ AlertService (Notificaciones Globales), 2️⃣ HeroBannerComponent, 3️⃣ CategoriasGridComponent, 4️⃣ ProductoCardComponent, 5️⃣ FiltrosComponent, 6️⃣ CarritoModalComponent, 7️⃣ CartService, 8️⃣ HeaderComponent (Actualizado) (+16 more)
 
 ### Community 61 - "roles.constants.ts"
-Cohesion: 0.13
-Nodes (15): ALIAS_ROL, esRolCliente(), esRolConsulta(), esRolStaff(), normalizarRol(), puedeEditarCatalogo(), ROL_IDS, rolCanonicoPorId() (+7 more)
+Cohesion: 0.10
+Nodes (19): ALIAS_ROL, esRolCliente(), esRolConsulta(), esRolStaff(), normalizarRol(), puedeEditarCatalogo(), ROL_IDS, rolCanonicoPorId() (+11 more)
 
 ### Community 62 - "guias-remision.component.spec.ts"
 Cohesion: 0.09
-Nodes (10): CATALOGOS, guiaGuardada(), operacion(), ESPERAS_CONSULTA_MS, ACCIONES, FormularioFalso, SIN_ACCIONES, TEXTO (+2 more)
+Nodes (12): CATALOGOS, guiaGuardada(), operacion(), ESPERAS_CONSULTA_MS, abrirDetalle(), ACCIONES, crear(), FormularioFalso (+4 more)
 
 ### Community 63 - "app.config.ts"
 Cohesion: 0.16
-Nodes (13): crear(), crear(), alCrearTransicion(), alFallarNavegacion(), rutaSinConsulta(), routes, authInterceptor(), leerToken() (+5 more)
+Nodes (13): crear(), alCrearTransicion(), alFallarNavegacion(), omitirTransicion(), rutaSinConsulta(), routes, authInterceptor(), leerToken() (+5 more)
 
 ### Community 64 - "dependencies"
-Cohesion: 0.09
-Nodes (23): dependencies, @angular/cdk, @angular/common, @angular/compiler, @angular/core, @angular/forms, @angular/platform-browser, @angular/platform-server (+15 more)
+Cohesion: 0.08
+Nodes (24): dependencies, @angular/cdk, @angular/common, @angular/compiler, @angular/core, @angular/forms, @angular/platform-browser, @angular/platform-server (+16 more)
 
-### Community 66 - "PaletaComandosComponent"
-Cohesion: 0.12
-Nodes (3): PaletaComandosComponent, abrir(), PaletaComandosService
+### Community 65 - "InventarioComponent"
+Cohesion: 0.05
+Nodes (5): InventarioComponent, StockComponent, Almacen, FilaInventario, FiltroInventario
 
 ### Community 67 - "LotesSunatComponent"
 Cohesion: 0.14
-Nodes (4): LoteSunat, TipoArchivoLote, LotesSunatComponent, nombreDescarga()
+Nodes (3): fechaYmdCorta(), LoteSunat, LotesSunatComponent
 
-### Community 68 - "escapeHtmlAlerta"
+### Community 68 - "AlertService"
 Cohesion: 0.10
-Nodes (6): copiarNodosSeguros(), sanearHtml(), textoBoton(), decodificarEntidadesHtml(), escapeHtmlAlerta(), htmlATextoPlano()
+Nodes (7): AlertService, copiarNodosSeguros(), sanearHtml(), textoBoton(), decodificarEntidadesHtml(), escapeHtmlAlerta(), htmlATextoPlano()
 
 ### Community 69 - "CatalogoComponent"
-Cohesion: 0.11
-Nodes (3): ChipFiltro, ConsultaCatalogo, CatalogoComponent
+Cohesion: 0.07
+Nodes (5): ChipFiltro, FiltrosActivosComponent, ConsultaCatalogo, Pagina, CatalogoComponent
 
-### Community 71 - "ReceptorService"
-Cohesion: 0.12
-Nodes (3): CajaSesionService, ConfiguracionFiscalService, ReceptorService
+### Community 71 - "avisos-panel.service.ts"
+Cohesion: 0.04
+Nodes (32): MovimientoInventario, FiltroTurnosCaja, ListadoTurnosCaja, CLAVE_AVISOS_VISTOS, FuenteRemota, ORDEN_TONO, Resultados, ROLES_CAJA (+24 more)
 
-### Community 74 - "ToastsComponent"
-Cohesion: 0.16
-Nodes (7): ICONOS, rutaSinConsulta(), TemaAvisos, temaDeUrl(), ToastsComponent, Aviso, TipoAviso
+### Community 73 - "pages/perfil/perfil.component.ts"
+Cohesion: 0.09
+Nodes (6): DireccionEnvio, DireccionPayload, DIRECCION_VACIA, PerfilComponent, Seccion, CuentaTiendaService
 
-### Community 77 - "FiscalEstadoService"
-Cohesion: 0.16
-Nodes (4): FiscalEstadoService, numero(), resumirEstadoFiscal(), peticionSilenciosa()
+### Community 74 - "notification.service.ts"
+Cohesion: 0.07
+Nodes (23): ICONOS, rutaSinConsulta(), TemaAvisos, temaDeUrl(), ToastsComponent, AccionAviso, Aviso, COBERTURA_GLOBAL (+15 more)
 
-### Community 78 - "ReporteProductosComponent"
-Cohesion: 0.11
-Nodes (3): ProductoCotizadoReporte, ProductoVendidoReporte, ReporteProductosComponent
+### Community 77 - "fiscal-estado.service.ts"
+Cohesion: 0.09
+Nodes (10): HISTORICA, VENTA_EMPRESA, VENTA_PERSONA, EstadoFiscalApi, cacheCorto(), estadoFiscal(), FiscalEstadoService, numero() (+2 more)
 
 ### Community 81 - "GuiaRemisionService"
 Cohesion: 0.12
-Nodes (4): GuiaRemisionService, opcionesSunat(), parametros(), conTiempoLimite()
+Nodes (3): GuiaRemisionService, opcionesSunat(), parametros()
 
-### Community 82 - "notification.service.ts"
-Cohesion: 0.12
-Nodes (17): AccionAviso, COBERTURA_GLOBAL, DURACION_BASE, esPromesa(), ETIQUETA_LECTOR, MotivoPausa, OpcionesAviso, OpcionesErrorHttp (+9 more)
+### Community 82 - "reportes.service.ts"
+Cohesion: 0.10
+Nodes (14): DetalleVentaReporte, FilaRentabilidadCategoria, RAIZ_REPORTES, TopProductoReporte, Fase, cargaGlobalInterceptor(), conReintentos(), conTiempoLimite() (+6 more)
 
 ### Community 83 - "schematics"
 Cohesion: 0.12
 Nodes (17): schematics, type, type, typeSeparator, typeSeparator, typeSeparator, typeSeparator, typeSeparator (+9 more)
 
-### Community 84 - "admin.models.ts"
-Cohesion: 0.13
-Nodes (13): VENTA_EMPRESA, VENTA_PERSONA, FILA_ANULADA, FILA_FACTURA, FILA_SIN_COMPROBANTE, html(), texto(), ComprobanteEmitido (+5 more)
+### Community 84 - "dashboard.component.ts"
+Cohesion: 0.11
+Nodes (34): PeriodoReporte, RangoReporte, TooltipVista, Acceso, CobroMedio, construirAccesos(), construirActividad(), construirCobros() (+26 more)
 
-### Community 85 - "aNumero"
-Cohesion: 0.21
-Nodes (8): aNumero(), avisoPrecioBajoCosto(), esEnteroPositivo(), formatearMoneda(), ResultadoValidacion, textoCantidades(), validarAltaRapida(), validarCantidades()
+### Community 85 - "reportes.component.ts"
+Cohesion: 0.09
+Nodes (22): ESQUEMA_URL, ModoPanel, MOTIVOS, RangoYmd, DatosPrevio, ESQUEMA_URL, FilaTipo, MESES_SIRE (+14 more)
+
+### Community 86 - "ProductosSinCodigoComponent"
+Cohesion: 0.10
+Nodes (11): ResultadoAsignacionCodigoSunat, buscarClases(), CatalogoSunat25, ClaseCatalogo25, leerCatalogo25(), normalizarBusqueda(), raiz(), RUTA_CATALOGO_25 (+3 more)
 
 ### Community 88 - "importe-en-letras.util.ts"
-Cohesion: 0.21
+Cohesion: 0.23
 Nodes (12): apocopar(), CENTENAS, centenasALetras(), DECENAS, decenasALetras(), enteroALetras(), grupoALetras(), hastaMillonALetras() (+4 more)
 
-### Community 89 - "ProductoVenta"
-Cohesion: 0.17
-Nodes (5): EscaneoPendiente, ResultadoAltaRapida, ProductoVenta, ResultadoCodigo, escapeHtml()
+### Community 89 - "AvisosPanelService"
+Cohesion: 0.10
+Nodes (7): AvisoPanel, AvisosPanelService, guardarVistos(), horaEnLima(), numero(), plural(), NotificacionesComponent
+
+### Community 90 - "ArqueoCajaPaginaComponent"
+Cohesion: 0.09
+Nodes (4): aMilisegundos(), ArqueoCajaPaginaComponent, hoyEnLima(), normalizarTotales()
+
+### Community 92 - "HeaderComponent"
+Cohesion: 0.11
+Nodes (3): HeaderComponent, paginaDe(), Densidad
+
+### Community 93 - "AuthService"
+Cohesion: 0.05
+Nodes (17): AuthModule, AuthRoutingModule, routes, LoginComponent, AuthShellPrueba, GoogleSignInPrueba, loginRequest, loginResponse (+9 more)
 
 ### Community 94 - "options"
 Cohesion: 0.13
@@ -470,40 +500,64 @@ Cohesion: 0.19
 Nodes (8): @angular/platform-browser, @angular/ssr, zone.js, App, appConfig, config, serverConfig, serverRoutes
 
 ### Community 96 - "errorOperativo"
-Cohesion: 0.34
-Nodes (5): nombreDescarga(), FormatoPdfComprobante, descargarArchivo(), errorOperativo(), normalizarErrorBlob()
+Cohesion: 0.13
+Nodes (17): nombrePdfResumen(), nombreDescarga(), ESQUEMA_URL, FILTRO_HISTORIAL_VACIO, FiltroHistorial, RangoRapido, TIPO_BOLETA, TIPO_FACTURA (+9 more)
 
-### Community 104 - "ReporteTiposComponent"
-Cohesion: 0.15
-Nodes (3): ICONOS, PorTipoReporte, ReporteTiposComponent
+### Community 98 - "SidebarComponent"
+Cohesion: 0.14
+Nodes (4): ResumenPedidosWeb, EntradaAtencion, SidebarComponent, SesionUsuario
+
+### Community 100 - "Paginado"
+Cohesion: 0.14
+Nodes (9): ComprobanteFila, Paginado, ResumenInventario, ResumenSucursalesCaja, ResumenVencidas, ayerDe(), ResultadoBase, construirSucursales() (+1 more)
+
+### Community 101 - "ResumenDiarioConfigComponent"
+Cohesion: 0.11
+Nodes (5): ConfigResumenDiario, ResumenDiarioService, diaLegible(), ResumenDiarioConfigComponent, separarCorreos()
+
+### Community 103 - "rango-fechas.util.ts"
+Cohesion: 0.24
+Nodes (15): armar(), aYmd(), diasEnRango(), etiquetaRango(), fechaCortaYmd(), hoyEnLima(), msDe(), partes() (+7 more)
 
 ### Community 106 - "server.ts"
 Cohesion: 0.17
 Nodes (8): express, browserDir, csr, index, angularApp, app, browserDistFolder, reqHandler
+
+### Community 107 - "admin/template/header/header.component.ts"
+Cohesion: 0.13
+Nodes (9): ChipFiscal, PaginaPanel, PAGINAS, ROLES_ESTADO_FISCAL, COLOR_BARRA_PANEL, rutaSinConsulta(), BotonTemaComponent, ModoTema (+1 more)
 
 ### Community 108 - "devDependencies"
 Cohesion: 0.18
 Nodes (11): devDependencies, @angular/build, @angular/cli, @angular/compiler-cli, jsdom, prettier, tailwindcss, @types/express (+3 more)
 
 ### Community 109 - "paleta-comandos.component.ts"
-Cohesion: 0.15
-Nodes (11): FooterComponent, Comando, ComandoVisible, GrupoVisible, normalizar(), PALABRAS, puntaje(), CUENTA_MENU (+3 more)
+Cohesion: 0.14
+Nodes (9): Comando, ComandoVisible, GrupoVisible, normalizar(), PALABRAS, puntaje(), abrir(), PaletaComandosService (+1 more)
 
-### Community 111 - "reveal.directive.spec.ts"
-Cohesion: 0.18
-Nodes (4): reiniciarObservacion(), AnfitrionRevelado, Entrada, ObservadorFalso
+### Community 110 - "DashboardComponent"
+Cohesion: 0.06
+Nodes (4): DashboardComponent, guardar(), IdTarjeta, PeriodoInicio
 
 ### Community 113 - "🎨 GUÍA VISUAL DEL STORE PREMIUM"
 Cohesion: 0.18
 Nodes (10): 🎭 ANIMACIONES, 🛒 CARRITO MODAL (Deslizable desde derecha), 💻 DESKTOP (1200px+), Estructura Visual, 🔍 FILTROS SIDEBAR, 🎨 GUÍA VISUAL DEL STORE PREMIUM, 📱 MOBILE (375px), 🎨 PALETA DE COLORES (+2 more)
 
-### Community 117 - "contacto.component.ts"
-Cohesion: 0.24
-Nodes (11): urlMapaAbrir(), urlMapaEmbed(), ABREVIATURAS, calcularEstadoTienda(), DIAS, EstadoTienda, formatearHora(), leerDias() (+3 more)
+### Community 115 - "ayuda-atajos.component.ts"
+Cohesion: 0.14
+Nodes (5): Atajo, AyudaAtajosComponent, GrupoAtajos, AyudaAtajosService, esCampoDeEscritura()
+
+### Community 117 - "ActualizacionAppService"
+Cohesion: 0.18
+Nodes (4): @angular/service-worker, ActualizacionAppService, EventoInstalacion, REVISION_VERSION_MS
 
 ### Community 118 - "development"
 Cohesion: 0.22
 Nodes (9): serve, development, buildTarget, extractLicenses, optimization, sourceMap, builder, configurations (+1 more)
+
+### Community 122 - "ConectividadService"
+Cohesion: 0.23
+Nodes (6): fechaCorta(), FooterComponent, FECHA_VERSION, VERSION, Contexto, ConectividadService
 
 ### Community 124 - "scripts"
 Cohesion: 0.25
@@ -513,9 +567,17 @@ Nodes (8): scripts, build, ng, postbuild, serve:ssr:ferreteria, start, test, wat
 Cohesion: 0.25
 Nodes (7): Additional Resources, Building, Code scaffolding, Development server, Ferreteria, Running end-to-end tests, Running unit tests
 
-### Community 130 - "login-response.model.ts"
-Cohesion: 0.39
-Nodes (3): PermisoResponse, RolResponse, UsuarioLoginResponse
+### Community 126 - "caja-arqueo.component.ts"
+Cohesion: 0.23
+Nodes (9): arqueoGuardado, ArqueoEsperado, ArqueoResumen, MetodoEsperado, MontoPorMetodo, MovimientoCaja, RegistrarArqueo, ResumenSucursalCaja (+1 more)
+
+### Community 130 - "caja-sesion.component.ts"
+Cohesion: 0.28
+Nodes (11): cantidadEfectiva(), cantidadValida(), DENOMINACIONES_SOL, hayConteo(), lineasConteoVacias(), MAX_CANTIDAD_DENOMINACION, subtotalCentimos(), TipoDenominacionSol (+3 more)
+
+### Community 132 - "sidebar.component.ts"
+Cohesion: 0.18
+Nodes (7): BarraInferiorComponent, ENTRADAS, ItemMenu, ROLES_PEDIDOS_MENU, SECCIONES_MENU, SeccionMenu, PaginaVacia
 
 ### Community 133 - "angular.json"
 Cohesion: 0.29
@@ -525,21 +587,41 @@ Nodes (6): cli, packageManager, newProjectRoot, projects, $schema, version
 Cohesion: 0.29
 Nodes (7): build, test, builder, configurations, defaultConfiguration, architect, builder
 
-### Community 140 - "admin/template/header/header.component.ts"
+### Community 135 - "LlaveAlertasSunatComponent"
+Cohesion: 0.13
+Nodes (3): LlaveAlertasSunatComponent, URL_ALERTAS, URL_RECIFRAR
+
+### Community 137 - "recepcion.component.ts"
+Cohesion: 0.31
+Nodes (6): EscaneoRecepcion, LineaRecepcion, extraerMultiplicador(), LARGO_MAXIMO_CODIGO, normalizarCodigo(), pareceCodigoExacto()
+
+### Community 138 - "arqueo-caja-pagina.component.ts"
+Cohesion: 0.20
+Nodes (7): FiltrosArqueo, SignoDiferencia, montar(), RESUMEN, turno(), TarjetaSucursal, TurnoCajaListado
+
+### Community 139 - "ubigeo.service.ts"
+Cohesion: 0.23
+Nodes (8): EstadoBusqueda, LURIN, UbigeoElegido, claveBusqueda(), Guardado, MINIMO_CARACTERES_UBIGEO, Ubigeo, UbigeoService
+
+### Community 140 - "ui/index.ts"
 Cohesion: 0.06
-Nodes (19): ChipFiscal, PaginaPanel, PAGINAS, ROLES_ESTADO_FISCAL, BotonTemaComponent, MagneticDirective, acotar(), alEntrarEnPantalla() (+11 more)
+Nodes (18): MagneticDirective, acotar(), alEntrarEnPantalla(), crearObservador(), easeOutExpo(), esperando, movimientoPermitido(), punteroFino() (+10 more)
 
 ### Community 141 - "production"
-Cohesion: 0.40
-Nodes (5): production, budgets, buildTarget, optimization, outputHashing
+Cohesion: 0.33
+Nodes (6): production, budgets, buildTarget, optimization, outputHashing, serviceWorker
 
 ### Community 142 - "ferreteria"
 Cohesion: 0.40
 Nodes (5): prefix, projectType, root, sourceRoot, ferreteria
 
-### Community 143 - "whatsapp.util.ts"
-Cohesion: 0.60
+### Community 143 - "urlWhatsappCliente"
+Cohesion: 0.38
 Nodes (3): normalizarTelefonoPe(), telefonoValidoPe(), urlWhatsappCliente()
+
+### Community 144 - "cobranza.util.ts"
+Cohesion: 0.21
+Nodes (8): claveDeudor(), DatosRecordatorio, fechaCorta(), hoyLima(), soles(), textoRecordatorio(), TonoTramo, TRAMOS
 
 ### Community 149 - "vercel.json"
 Cohesion: 0.50
@@ -549,25 +631,53 @@ Nodes (3): headers, rewrites, $schema
 Cohesion: 0.67
 Nodes (3): lru-cache, overrides, jsdom
 
+### Community 152 - "lotes-sunat.component.ts"
+Cohesion: 0.22
+Nodes (5): CLASES_ESTADO, nombreDescarga(), NOMBRES_ARCHIVO, QueHacerSunatComponent, AnfitrionComponent
+
+### Community 155 - "stock-sucursales.component.ts"
+Cohesion: 0.24
+Nodes (3): StockSucursal, NivelStockComponent, StockSucursalesComponent
+
+### Community 157 - "template-routing.module.ts"
+Cohesion: 0.22
+Nodes (4): MantenimientoModule, MantenimientoRoutingModule, routes, TemplateRoutingModule
+
+### Community 160 - "calcularDelta"
+Cohesion: 0.48
+Nodes (3): calcularDelta(), DeltaReporte, formatoPorcentaje()
+
+### Community 164 - "filtrarInstantaneo"
+Cohesion: 0.43
+Nodes (3): aMinusculas(), BusquedaPendiente, filtrarInstantaneo()
+
+### Community 168 - "facturacion-sunat.component.spec.ts"
+Cohesion: 0.40
+Nodes (3): paginaVacia, responderBeta(), responderConfiguracion()
+
+### Community 170 - "ngsw-config.json"
+Cohesion: 0.40
+Nodes (4): assetGroups, index, navigationUrls, $schema
+
 ## Knowledge Gaps
-- **510 isolated node(s):** `$schema`, `version`, `packageManager`, `newProjectRoot`, `projectType` (+505 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1384 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **76 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **608 isolated node(s):** `$schema`, `version`, `packageManager`, `newProjectRoot`, `projectType` (+603 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1664 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **63 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `@angular/core` connect `@angular/core` to `@angular/router`, `api-base.service.ts`, `auth.service.ts`, `aviso-login.util.ts`, `hoja-comprobante.model.ts`, `nota-credito-asistente.component.ts`, `documentos.models.ts`, `admin/template/header/header.component.ts`, `guias-remision.component.ts`, `AlertService`, `activacion-produccion.component.ts`, `sonido-caja.service.spec.ts`, `comprobante-detalle.component.ts`, `fiscal.models.ts`, `alert.service.ts`, `formulario-resena.component.ts`, `fecha-es.pipe.ts`, `store.module.ts`, `error.interceptor.ts`, `caja-arqueo.component.ts`, `NumeroDirective`, `producto-rapido.component.ts`, `guia-remision.service.ts`, `guia-formulario.component.ts`, `EtiquetasProductoComponent`, `package.json`, `roles.constants.ts`, `guias-remision.component.spec.ts`, `app.config.ts`, `PaletaComandosComponent`, `ToastsComponent`, `FiscalEstadoService`, `ReporteProductosComponent`, `notification.service.ts`, `admin.models.ts`, `app.config.server.ts`, `errorOperativo`, `ReporteTiposComponent`, `paleta-comandos.component.ts`, `reveal.directive.spec.ts`, `contacto.component.ts`, `ConectividadService`?**
-  _High betweenness centrality (0.177) - this node is a cross-community bridge._
+- **Why does `@angular/core` connect `@angular/core` to `caja-sesion.component.ts`, `alert.service.ts`, `sidebar.component.ts`, `auth-shell.component.ts`, `TemaService`, `LlaveAlertasSunatComponent`, `VentasHistorialComponent`, `hoja-comprobante.model.ts`, `arqueo-caja-pagina.component.ts`, `ubigeo.service.ts`, `nota-credito-asistente.component.ts`, `documentos.models.ts`, `productos.component.ts`, `guias-remision.component.ts`, `recepcion.component.ts`, `ui/index.ts`, `tienda.models.ts`, `activacion-produccion.component.ts`, `sonido-caja.service.spec.ts`, `contacto.component.ts`, `comprobante-detalle.component.ts`, `fiscal.models.ts`, `lotes-sunat.component.ts`, `stock-sucursales.component.ts`, `rxjs`, `template-routing.module.ts`, `SelectorUnidadComponent`, `error.interceptor.ts`, `notificaciones.component.ts`, `aviso-login.util.ts`, `NumeroDirective`, `pedidos.component.spec.ts`, `ProductoRapidoComponent`, `facturacion-sunat.component.spec.ts`, `pedido-detalle.component.spec.ts`, `@angular/router`, `guia-remision.service.ts`, `guia-formulario.component.ts`, `EtiquetasProductoComponent`, `UsuariosComponent`, `package.json`, `roles.constants.ts`, `guias-remision.component.spec.ts`, `app.config.ts`, `AlertService`, `CatalogoComponent`, `avisos-panel.service.ts`, `pages/perfil/perfil.component.ts`, `notification.service.ts`, `fiscal-estado.service.ts`, `reportes.service.ts`, `dashboard.component.ts`, `reportes.component.ts`, `ProductosSinCodigoComponent`, `AvisosPanelService`, `AuthService`, `app.config.server.ts`, `errorOperativo`, `admin/template/header/header.component.ts`, `paleta-comandos.component.ts`, `ayuda-atajos.component.ts`, `ActualizacionAppService`, `ConectividadService`, `caja-arqueo.component.ts`?**
+  _High betweenness centrality (0.164) - this node is a cross-community bridge._
 - **What connects `$schema`, `version`, `packageManager` to the rest of the system?**
-  _510 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _608 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `VentasComponent` be split into smaller, more focused modules?**
-  _Cohesion score 0.034451801144652676 - nodes in this community are weakly interconnected._
-- **Why does `mensajeDeError()` connect `mensajeDeError` to `VentasComponent`, `CotizacionesComponent`, `@angular/router`, `api-base.service.ts`, `@angular/core`, `auth.service.ts`, `VentasHistorialComponent`, `GuiaFormularioComponent`, `nota-credito-asistente.component.ts`, `guias-remision.component.ts`, `AlertService`, `GuiasRemisionComponent`, `errores-http.util.ts`, `activacion-produccion.component.ts`, `RecepcionComponent`, `comprobante-detalle.component.ts`, `fiscal.models.ts`, `FacturacionSunatComponent`, `alert.service.ts`, `ComprobanteDetalleComponent`, `.listar`, `caja-arqueo.component.ts`, `VentasSinComprobanteComponent`, `producto-rapido.component.ts`, `PedidoDetalleComponent`, `ClientesComponent`, `DocComponent`, `guia-formulario.component.ts`, `EnviosSunatComponent`, `RolesComponent`, `CheckoutComponent`, `InventarioComponent`, `LotesSunatComponent`, `escapeHtmlAlerta`, `CartService`, `MarcasComponent`, `PerfilComponent`, `AlmacenComponent`, `FiscalEstadoService`, `SugerenciaReceptor`, `UbigeoBuscadorComponent`, `ProductosSinCodigoComponent`, `StockComponent`, `.ingresarStock`, `errorOperativo`, `InventarioAdminService`, `RegisterComponent`, `FilaInventario`, `LoginComponent`, `AdminConfiguracionComponent`?**
-  _High betweenness centrality (0.158) - this node is a cross-community bridge._
+  _Cohesion score 0.02966887417218543 - nodes in this community are weakly interconnected._
+- **Why does `mensajeDeError()` connect `mensajeDeError` to `VentasComponent`, `CotizacionesComponent`, `caja-sesion.component.ts`, `alert.service.ts`, `tienda.models.ts`, `LlaveAlertasSunatComponent`, `VentasHistorialComponent`, `recepcion.component.ts`, `arqueo-caja-pagina.component.ts`, `GuiaFormularioComponent`, `nota-credito-asistente.component.ts`, `ubigeo.service.ts`, `productos.component.ts`, `guias-remision.component.ts`, `GuiasRemisionComponent`, `errores-http.util.ts`, `activacion-produccion.component.ts`, `RecepcionComponent`, `comprobante-detalle.component.ts`, `fiscal.models.ts`, `FacturacionSunatComponent`, `lotes-sunat.component.ts`, `EstadoCuentaComponent`, `rxjs`, `ComprobanteDetalleComponent`, `ReporteMercadoComponent`, `.cargarStockEdicion`, `CajaArqueoComponent`, `VentasSinComprobanteComponent`, `ProductoRapidoComponent`, `PedidoDetalleComponent`, `ClientesComponent`, `.actualizarTelefonoFicha`, `DocComponent`, `guia-formulario.component.ts`, `EnviosSunatComponent`, `RolesComponent`, `CheckoutComponent`, `InventarioComponent`, `LotesSunatComponent`, `AlertService`, `CartService`, `MarcasComponent`, `pages/perfil/perfil.component.ts`, `AlmacenComponent`, `fiscal-estado.service.ts`, `.cargar`, `UbigeoBuscadorComponent`, `reportes.component.ts`, `ProductosSinCodigoComponent`, `ArqueoCajaPaginaComponent`, `PedidosComponent`, `AuthService`, `errorOperativo`, `ProveedoresComponent`, `ResumenDiarioConfigComponent`, `Pedido`, `AdminConfiguracionComponent`, `.error`, `caja-arqueo.component.ts`?**
+  _High betweenness centrality (0.124) - this node is a cross-community bridge._
 - **Should `CotizacionesComponent` be split into smaller, more focused modules?**
-  _Cohesion score 0.037528604118993135 - nodes in this community are weakly interconnected._
-- **Why does `@angular/common` connect `@angular/core` to `@angular/router`, `api-base.service.ts`, `auth.service.ts`, `nota-credito-asistente.component.ts`, `documentos.models.ts`, `admin/template/header/header.component.ts`, `guias-remision.component.ts`, `AlertService`, `errores-http.util.ts`, `activacion-produccion.component.ts`, `comprobante-detalle.component.ts`, `fiscal.models.ts`, `alert.service.ts`, `formulario-resena.component.ts`, `store.module.ts`, `error.interceptor.ts`, `caja-arqueo.component.ts`, `producto-rapido.component.ts`, `guia-remision.service.ts`, `guia-formulario.component.ts`, `package.json`, `roles.constants.ts`, `app.config.ts`, `ToastsComponent`, `ReporteProductosComponent`, `notification.service.ts`, `errorOperativo`, `ReporteTiposComponent`, `paleta-comandos.component.ts`, `contacto.component.ts`, `ConectividadService`?**
-  _High betweenness centrality (0.082) - this node is a cross-community bridge._
-- **Should `@angular/router` be split into smaller, more focused modules?**
-  _Cohesion score 0.04126416219439475 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.03557422969187675 - nodes in this community are weakly interconnected._
+- **Why does `@angular/common` connect `@angular/core` to `caja-sesion.component.ts`, `alert.service.ts`, `sidebar.component.ts`, `auth-shell.component.ts`, `tienda.models.ts`, `LlaveAlertasSunatComponent`, `recepcion.component.ts`, `arqueo-caja-pagina.component.ts`, `ubigeo.service.ts`, `nota-credito-asistente.component.ts`, `documentos.models.ts`, `productos.component.ts`, `guias-remision.component.ts`, `ui/index.ts`, `errores-http.util.ts`, `activacion-produccion.component.ts`, `contacto.component.ts`, `comprobante-detalle.component.ts`, `fiscal.models.ts`, `lotes-sunat.component.ts`, `stock-sucursales.component.ts`, `rxjs`, `template-routing.module.ts`, `SelectorUnidadComponent`, `error.interceptor.ts`, `ProductoRapidoComponent`, `facturacion-sunat.component.spec.ts`, `pedido-detalle.component.spec.ts`, `@angular/router`, `guia-remision.service.ts`, `guia-formulario.component.ts`, `package.json`, `roles.constants.ts`, `app.config.ts`, `AlertService`, `CatalogoComponent`, `avisos-panel.service.ts`, `pages/perfil/perfil.component.ts`, `notification.service.ts`, `fiscal-estado.service.ts`, `reportes.service.ts`, `dashboard.component.ts`, `reportes.component.ts`, `ProductosSinCodigoComponent`, `AuthService`, `errorOperativo`, `admin/template/header/header.component.ts`, `paleta-comandos.component.ts`, `ayuda-atajos.component.ts`, `ActualizacionAppService`, `ConectividadService`, `caja-arqueo.component.ts`?**
+  _High betweenness centrality (0.074) - this node is a cross-community bridge._
+- **Should `tienda.models.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.07535460992907801 - nodes in this community are weakly interconnected._

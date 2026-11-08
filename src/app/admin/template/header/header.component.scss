@@ -3,7 +3,7 @@
 .topbar {
   height: var(--adm-h-barra, 64px);
   background: var(--adm-superficie);
-  border-bottom: 1px solid var(--adm-borde);
+  border-bottom: 1px solid var(--adm-marca-borde);   /* hilo de oro: orienta sin pintar la barra */
   display: flex;
   align-items: center;
   padding: 0 24px;

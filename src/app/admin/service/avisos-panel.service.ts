@@ -1,14 +1,13 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, NgZone, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Observable, Subscription, catchError, forkJoin, map, of } from 'rxjs';
 import { AuthService } from '../../auth/service/auth.service';
-import { urlConstants } from '../../constants/urlConstants';
-import { peticionSilenciosa } from '../../interceptors/contexto-http';
-import { ResumenInventario } from '../models/admin.models';
-import { opcionesHttp } from './api-base.service';
+import { CajaSesionService } from './caja-sesion.service';
+import { ComprobanteService } from './comprobante.service';
+import { CreditoAdminService } from './credito-admin.service';
 import { FiscalEstadoService } from './fiscal-estado.service';
+import { InventarioAdminService } from './inventario-admin.service';
 import { PedidoAdminService } from './pedido-admin.service';
 
 /** Un aviso de la campana. `valor` es la cifra que lo motiva: si cambia, vuelve a contar como «no visto». */
@@ -47,21 +46,6 @@ const HORA_CIERRE = 21;
 
 type FuenteRemota = 'cpe' | 'stock' | 'cxc' | 'caja';
 type Resultados = Partial<Record<FuenteRemota, AvisoPanel[]>>;
-
-interface MonitorCpe {
-  pendientes?: number;
-  errores?: number;
-  total?: number;
-}
-
-interface CuentasPorCobrar {
-  data?: { saldo?: number | string; estado?: string }[];
-  total?: number | string;
-}
-
-interface SesionCajaMinima {
-  abierta?: boolean;
-}
 
 function numero(valor: unknown): number {
   const n = Number(valor);
@@ -111,7 +95,10 @@ function horaEnLima(ahora: Date): number {
  */
 @Injectable({ providedIn: 'root' })
 export class AvisosPanelService {
-  private readonly http = inject(HttpClient);
+  private readonly comprobantes = inject(ComprobanteService);
+  private readonly inventario = inject(InventarioAdminService);
+  private readonly credito = inject(CreditoAdminService);
+  private readonly caja = inject(CajaSesionService);
   private readonly auth = inject(AuthService);
   private readonly fiscal = inject(FiscalEstadoService);
   private readonly pedidos = inject(PedidoAdminService);
@@ -270,12 +257,8 @@ export class AvisosPanelService {
 
   /* ────────────────────────────────────────────────────────────── lecturas del servidor */
 
-  private silenciosa<T>(url: string, params?: HttpParams): Observable<T> {
-    return this.http.get<T>(url, { ...opcionesHttp(), ...(params ? { params } : {}), context: peticionSilenciosa() });
-  }
-
   private leerCpe(): Observable<AvisoPanel[] | null> {
-    return this.silenciosa<MonitorCpe>(urlConstants.comprobante.monitorAtencion).pipe(
+    return this.comprobantes.monitorAtencion({ silenciosa: true }).pipe(
       map((m) => {
         const lista: AvisoPanel[] = [];
         const errores = numero(m?.errores);
@@ -312,7 +295,7 @@ export class AvisosPanelService {
 
   private leerStock(): Observable<AvisoPanel[] | null> {
     const ruta = this.auth.puedeVer(ROLES_INVENTARIO) ? `${RUTA}/inventario` : `${RUTA}/stock`;
-    return this.silenciosa<ResumenInventario>(urlConstants.inventario.resumen).pipe(
+    return this.inventario.resumen({ silenciosa: true }).pipe(
       map((r) => {
         const lista: AvisoPanel[] = [];
         const sin = numero(r?.sin_stock);
@@ -347,14 +330,11 @@ export class AvisosPanelService {
   }
 
   private leerCuentas(): Observable<AvisoPanel[] | null> {
-    const params = new HttpParams().set('estado', 'vencido').set('limite', '100');
-    return this.silenciosa<CuentasPorCobrar>(urlConstants.credito.cuentas, params).pipe(
-      map((c) => {
-        if (!c || !Array.isArray(c.data)) return [];
-        const vencidas = c.data.filter((x) => !x.estado || x.estado === 'vencido');
-        const cuentas = Math.max(c.total != null ? numero(c.total) : 0, vencidas.length);
+    return this.credito.vencidasResumen({ silenciosa: true }).pipe(
+      map((r) => {
+        const cuentas = numero(r?.cuentas);
         if (cuentas <= 0) return [];
-        const monto = vencidas.reduce((s, x) => s + numero(x.saldo), 0);
+        const monto = numero(r?.total);
         const texto = `S/ ${monto.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         return [
           {
@@ -362,7 +342,7 @@ export class AvisosPanelService {
             tono: 'peligro',
             icono: 'bi-wallet2',
             texto: plural(cuentas, 'cuenta por cobrar vencida', 'cuentas por cobrar vencidas'),
-            detalle: monto > 0 ? `${cuentas > vencidas.length ? 'Al menos ' : ''}${texto} por cobrar` : undefined,
+            detalle: monto > 0 ? `${texto} por cobrar` : undefined,
             valor: cuentas,
             ruta: `${RUTA}/cuentas-por-cobrar`,
             accion: 'Cobrar',
@@ -374,7 +354,7 @@ export class AvisosPanelService {
   }
 
   private leerCaja(): Observable<AvisoPanel[] | null> {
-    return this.silenciosa<SesionCajaMinima>(urlConstants.caja.sesion).pipe(
+    return this.caja.sesion({ silenciosa: true }).pipe(
       map((s) => {
         const hora = horaEnLima(this.ahora());
         if (!s || s.abierta !== false || hora < HORA_APERTURA || hora >= HORA_CIERRE) return [];

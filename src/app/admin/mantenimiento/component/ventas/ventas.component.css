@@ -428,7 +428,7 @@
 .pv-resumen__recargo { font-weight: 600; }
 .pv-resumen__desactualizado { opacity: 0.55; }
 .pv-total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.pv-total > span:first-child { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--adm-texto-suave); }
+.pv-total > span:first-child { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--adm-marca-texto); }
 .pv-total > .pv-total__monto {
   font-family: var(--adm-fuente-titulos); font-size: var(--adm-fs-total); font-weight: 800; line-height: 1;
   letter-spacing: -0.03em; color: var(--adm-texto); font-variant-numeric: tabular-nums; overflow-wrap: anywhere;

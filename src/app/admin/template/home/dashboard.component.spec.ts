@@ -7,6 +7,7 @@ import { AuthService } from '../../../auth/service/auth.service';
 import { urlConstants } from '../../../constants/urlConstants';
 import { CajaSesionService } from '../../service/caja-sesion.service';
 import { ComprobanteService } from '../../service/comprobante.service';
+import { CreditoAdminService } from '../../service/credito-admin.service';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
 import { InventarioAdminService } from '../../service/inventario-admin.service';
 import { PedidoAdminService } from '../../service/pedido-admin.service';
@@ -121,6 +122,7 @@ describe('DashboardComponent · centro de mando', () => {
   const comprobantes = { monitorAtencion: vi.fn() };
   const pedidos = { porPreparar: vi.fn(), resumen: of(null) };
   const caja = { sesion: vi.fn(), resumenSucursales: vi.fn() };
+  const credito = { vencidasResumen: vi.fn() };
 
   const filaApi = (id: number) => ({
     id_comprobante: id,
@@ -137,9 +139,8 @@ describe('DashboardComponent · centro de mando', () => {
     estado_sunat: 'ACEPTADO',
   });
 
-  /** Responde las dos lecturas que pasan por HTTP (cuentas por cobrar y actividad reciente). */
+  /** Responde la única lectura que pasa por HTTP directo: la actividad reciente (la deuda vencida va por CreditoAdminService). */
   function responderHttp(): void {
-    http.match((r) => r.url === urlConstants.credito.cuentas).forEach((r) => r.flush({ data: [], total: 0 }));
     http
       .match((r) => r.url === urlConstants.comprobante.base)
       .forEach((r) => r.flush({ datos: [filaApi(7), filaApi(6)], total: 2, pagina: 1, por_pagina: 6 }));
@@ -167,6 +168,7 @@ describe('DashboardComponent · centro de mando', () => {
         { provide: ComprobanteService, useValue: comprobantes },
         { provide: PedidoAdminService, useValue: pedidos },
         { provide: CajaSesionService, useValue: caja },
+        { provide: CreditoAdminService, useValue: credito },
       ],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -191,6 +193,7 @@ describe('DashboardComponent · centro de mando', () => {
     inventario.resumen.mockReset().mockImplementation(() => of({ productos: 10, sin_stock: 1, bajo_stock: 2, valorizado: 0, unidades: 0 }));
     comprobantes.monitorAtencion.mockReset().mockImplementation(() => of({ pendientes: 0, errores: 0, total: 0 }));
     pedidos.porPreparar.mockReset().mockImplementation(() => of({ pendientes: 0, pagados: 0, total: 0 }));
+    credito.vencidasResumen.mockReset().mockImplementation(() => of({ cuentas: 0, total: 0 }));
     caja.sesion.mockReset().mockImplementation(() =>
       of({
         abierta: true,
@@ -223,7 +226,7 @@ describe('DashboardComponent · centro de mando', () => {
     await montar();
     expect(reportes.ventas).toHaveBeenCalledTimes(2); // diario y semana (respaldo del gráfico)
     expect(reportes.ventasPorHora).toHaveBeenCalledTimes(1);
-    [reportes.ventas, reportes.ventasPorHora, inventario.resumen, comprobantes.monitorAtencion, pedidos.porPreparar, caja.sesion, caja.resumenSucursales].forEach((f) => f.mockClear());
+    [reportes.ventas, reportes.ventasPorHora, inventario.resumen, comprobantes.monitorAtencion, pedidos.porPreparar, caja.sesion, caja.resumenSucursales, credito.vencidasResumen].forEach((f) => f.mockClear());
 
     componente.cambiarPeriodo('ayer');
     fixture.detectChanges();
@@ -245,7 +248,7 @@ describe('DashboardComponent · centro de mando', () => {
     expect(pedidos.porPreparar).not.toHaveBeenCalled();
     expect(caja.sesion).not.toHaveBeenCalled();
     expect(caja.resumenSucursales).not.toHaveBeenCalled();
-    http.expectNone(urlConstants.credito.cuentas);
+    expect(credito.vencidasResumen).not.toHaveBeenCalled();
     expect(sessionStorage.getItem('hs.inicio.periodo')).toBe('"mes"');
     fixture.detectChanges();
     expect(texto()).toContain('Ventas del mes');

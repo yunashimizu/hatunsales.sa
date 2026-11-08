@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 
 import { urlConstants } from '../../constants/urlConstants';
+import { SILENCIOSA } from '../../interceptors/contexto-http';
 import { Pedido } from '../../store/models/tienda.models';
 import { PedidoAdminService, pedidoCancelable, siguienteEstadoPedido } from './pedido-admin.service';
 
@@ -72,19 +73,38 @@ describe('PedidoAdminService', () => {
     sin.flush(p('pagado'));
   });
 
-  it('porPreparar suma pendientes y pagados (dos lecturas silenciosas) y publica el resumen', () => {
+  it('porPreparar pide una sola lectura silenciosa del resumen y la publica', () => {
     const vistos: unknown[] = [];
     servicio.resumen.subscribe((r) => vistos.push(r));
     let recibido: unknown;
     servicio.porPreparar().subscribe((r) => (recibido = r));
 
-    const pendientes = http.expectOne((r) => r.url === base && r.params.get('estado') === 'pendiente');
-    const pagados = http.expectOne((r) => r.url === base && r.params.get('estado') === 'pagado');
-    pendientes.flush([p('pendiente'), p('pendiente')]);
-    pagados.flush([p('pagado')]);
+    http.expectNone((r) => r.url === base);
+    const resumen = http.expectOne(urlConstants.admin.pedidosResumen);
+    expect(resumen.request.method).toBe('GET');
+    expect(resumen.request.context.get(SILENCIOSA)).toBe(true);
+    resumen.flush({ pendientes: 2, pagados: 1, total: 3 });
 
     expect(recibido).toEqual({ pendientes: 2, pagados: 1, total: 3 });
     expect(vistos[vistos.length - 1]).toEqual({ pendientes: 2, pagados: 1, total: 3 });
+  });
+
+  it('porPreparar: dos llamadas dentro de 5 s comparten una sola petición', () => {
+    const recibidos: unknown[] = [];
+    servicio.porPreparar().subscribe((r) => recibidos.push(r));
+    servicio.porPreparar().subscribe((r) => recibidos.push(r));
+    http.expectOne(urlConstants.admin.pedidosResumen).flush({ pendientes: 1, pagados: 0, total: 1 });
+    expect(recibidos).toEqual([
+      { pendientes: 1, pagados: 0, total: 1 },
+      { pendientes: 1, pagados: 0, total: 1 },
+    ]);
+  });
+
+  it('porPreparar sin números válidos publica ceros', () => {
+    let recibido: unknown;
+    servicio.porPreparar().subscribe((r) => (recibido = r));
+    http.expectOne(urlConstants.admin.pedidosResumen).flush({ pendientes: 'x' });
+    expect(recibido).toEqual({ pendientes: 0, pagados: 0, total: 0 });
   });
 
   it('publicarDesde cuenta sobre la lista que ya tiene la pantalla', () => {
