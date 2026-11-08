@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { urlConstants } from '../../constants/urlConstants';
 import { ComprobanteService } from './comprobante.service';
+import { EventoPanel, EventosPanelService } from './eventos-panel.service';
 
 describe('ComprobanteService: comprobantes, envíos a SUNAT y notas de crédito', () => {
   let service: ComprobanteService;
@@ -162,5 +163,70 @@ describe('ComprobanteService: comprobantes, envíos a SUNAT y notas de crédito'
     );
     expect(recibido?.status).toBe(409);
     expect(recibido?.error?.id_comprobante).toBe(55);
+  });
+
+  describe('avisos al panel', () => {
+    let eventos: EventoPanel[];
+    let provisionales: EventoPanel[];
+
+    beforeEach(() => {
+      eventos = [];
+      provisionales = [];
+      const bus = TestBed.inject(EventosPanelService);
+      bus.de('comprobante-actualizado').subscribe((e) => eventos.push(e));
+      bus.deConProvisionales('comprobante-actualizado').subscribe((e) => e.provisional && provisionales.push(e));
+    });
+
+    it('reintentar muestra «Enviando…» al instante y, al responder, publica el estado real', () => {
+      service.reintentar(7).subscribe();
+      // Antes de que responda el servidor: estado provisional.
+      expect(provisionales.length).toBe(1);
+      expect(provisionales[0].datos).toMatchObject({ id_comprobante: 7, estado: 'pendiente', estado_sunat: 'ENVIANDO' });
+      expect(eventos.length).toBe(0);
+
+      http.expectOne(urlConstants.comprobante.reintentar(7)).flush({
+        id_comprobante: 7,
+        estado: 'emitido',
+        estado_sunat: 'ACEPTADO',
+        aceptada_sunat: true,
+      });
+      expect(eventos.length).toBe(1);
+      expect(eventos[0].datos).toMatchObject({ id_comprobante: 7, estado: 'emitido', estado_sunat: 'ACEPTADO', aceptada_sunat: true });
+    });
+
+    it('si el reintento falla, avisa que la fila debe volver a como estaba y no publica un estado real', () => {
+      service.reintentar(7).subscribe({ error: () => undefined });
+      http.expectOne(urlConstants.comprobante.reintentar(7)).flush({ message: 'x' }, { status: 500, statusText: 'Error' });
+
+      expect(eventos.length).toBe(0);
+      expect(provisionales.length).toBe(2);
+      expect(provisionales[1].datos).toMatchObject({ id_comprobante: 7, revertir: true });
+    });
+
+    it('recuperar constancia, confirmar, informar por resumen, nota de crédito y anular publican el cambio', () => {
+      service.recuperarCdr(1).subscribe();
+      http.expectOne(urlConstants.comprobante.recuperarCdr(1)).flush({ id_comprobante: 1, estado: 'emitido', estado_sunat: 'ACEPTADO', aceptada_sunat: true });
+      service.confirmarAceptado(2, 'Verificado en SOL').subscribe();
+      http.expectOne(urlConstants.comprobante.confirmarAceptado(2)).flush({ id_comprobante: 2, estado: 'emitido', aceptada_sunat: true });
+      service.informarPorResumen(3).subscribe();
+      http.expectOne(`${urlConstants.comprobante.base}/3/resumir`).flush({ identificador: 'RC-20261108-1' });
+      service.emitirNotaCredito(4, { motivo: '09', sustento: 'Ajuste', monto: 5 }).subscribe();
+      http.expectOne(urlConstants.comprobante.notaCredito(4)).flush({ id_comprobante: 40, estado: 'pendiente', estado_sunat: 'ENVIANDO', envio_diferido: true });
+      service.anular({ id_comprobante: 5, motivo: 'Error de digitación' }).subscribe();
+      http.expectOne(urlConstants.comprobante.anular).flush({ estado: 'anulacion_en_curso', id_comprobante: 5, avisos: [] });
+
+      expect(eventos.map((e) => e.datos?.['id_comprobante'])).toEqual([1, 2, 3, 40, 5]);
+    });
+
+    it('invalidarMonitor hace que la siguiente lectura consulte de nuevo en vez de usar la guardada', () => {
+      service.monitorAtencion().subscribe();
+      http.expectOne(urlConstants.comprobante.monitorAtencion).flush({ pendientes: 0, errores: 0, total: 0 });
+      service.monitorAtencion().subscribe(); // dentro de los 5 s: sin petición nueva
+      http.expectNone(urlConstants.comprobante.monitorAtencion);
+
+      service.invalidarMonitor();
+      service.monitorAtencion().subscribe();
+      http.expectOne(urlConstants.comprobante.monitorAtencion).flush({ pendientes: 1, errores: 0, total: 1 });
+    });
   });
 });

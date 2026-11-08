@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { urlConstants } from '../../constants/urlConstants';
+import { TIEMPO_LIMITE_MS } from '../../interceptors/contexto-http';
 import { FiscalAdminService } from './fiscal-admin.service';
 
 describe('FiscalAdminService: salidas de los envíos y lotes sin respuesta (SUNAT-1)', () => {
@@ -154,5 +155,23 @@ describe('FiscalAdminService: salidas de los envíos y lotes sin respuesta (SUNA
     expect(probar.request.method).toBe('POST');
     expect(probar.request.body).toEqual({});
     probar.flush({ ok: true });
+  });
+
+  it('«Los 4 documentos» manda tipo_cpe todos con 150 s de espera; un documento suelto usa el límite normal', () => {
+    servicio.probar('beta', 'cpe', 'todos').subscribe();
+    const todos = http.expectOne(urlConstants.fiscal.probarConexion);
+    expect(todos.request.body).toEqual({ ambiente: 'beta', documento: 'cpe', tipo_cpe: 'todos' });
+    expect(todos.request.context.get(TIEMPO_LIMITE_MS)).toBe(150_000);
+
+    servicio.probar('beta', 'cpe', '07').subscribe();
+    const nota = http.expectOne(urlConstants.fiscal.probarConexion);
+    expect(nota.request.body).toEqual({ ambiente: 'beta', documento: 'cpe', tipo_cpe: '07' });
+    expect(nota.request.context.get(TIEMPO_LIMITE_MS)).toBeUndefined();
+
+    // En producción 'todos' no se manda (solo se comprueba, no se emite).
+    servicio.probar('produccion', 'cpe', 'todos').subscribe();
+    const produccion = http.expectOne(urlConstants.fiscal.probarConexion);
+    expect(produccion.request.body).toEqual({ ambiente: 'produccion', documento: 'cpe' });
+    expect(produccion.request.context.get(TIEMPO_LIMITE_MS)).toBeUndefined();
   });
 });

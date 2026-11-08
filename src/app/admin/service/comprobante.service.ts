@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { Observable, catchError, defer, tap, throwError } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
 import { peticionSilenciosa } from '../../interceptors/contexto-http';
 import { ComprobanteFila, Paginado } from '../models/admin.models';
@@ -27,6 +27,7 @@ import {
   VentaSinComprobante,
 } from '../models/documentos.models';
 import { cabecerasAutenticadas, cacheCorto, opcionesHttp } from './api-base.service';
+import { EventosPanelService } from './eventos-panel.service';
 
 type MonitorAtencion = { pendientes: number; errores: number; total: number };
 
@@ -63,10 +64,50 @@ function parametros(filtro: object): HttpParams {
 @Injectable({ providedIn: 'root' })
 export class ComprobanteService {
 
-  /** Sidebar, dashboard y Documentos lo piden a la vez al cargar: una sola petición. */
-  private readonly monitorCompartido = cacheCorto<MonitorAtencion>(5000);
+  /** Sidebar, dashboard y Documentos lo piden a la vez al cargar: una sola petición. No es readonly: `invalidarMonitor()` lo recrea. */
+  private monitorCompartido = cacheCorto<MonitorAtencion>(5000);
+  private readonly eventos = inject(EventosPanelService);
 
   constructor(private http: HttpClient) {}
+
+  /** Olvida el contador guardado: la siguiente lectura consulta de nuevo (tras emitir, reintentar o anular). */
+  invalidarMonitor(): void {
+    this.monitorCompartido = cacheCorto<MonitorAtencion>(5000);
+  }
+
+  /** Avisa al panel de que un comprobante cambió (la campana, el Inicio y Documentos se actualizan al instante). */
+  private avisarCambio(r: { id_comprobante?: number; estado?: string; estado_sunat?: string | null; aceptada_sunat?: boolean } | null | undefined): void {
+    this.eventos.emitir({
+      tipo: 'comprobante-actualizado',
+      datos: {
+        id_comprobante: r?.id_comprobante,
+        estado: r?.estado,
+        estado_sunat: r?.estado_sunat,
+        aceptada_sunat: r?.aceptada_sunat,
+      },
+    });
+  }
+
+  /** Antes de enviar: la fila de Documentos pasa a «Enviando…» (provisional); si falla, `revertir` la devuelve a como estaba. */
+  private conEstadoEnviando<T extends { id_comprobante?: number; estado?: string; estado_sunat?: string | null; aceptada_sunat?: boolean }>(
+    id: number,
+    llamada: () => Observable<T>,
+  ): Observable<T> {
+    return defer(() => {
+      this.eventos.emitir({
+        tipo: 'comprobante-actualizado',
+        provisional: true,
+        datos: { id_comprobante: id, estado: 'pendiente', estado_sunat: 'ENVIANDO', aceptada_sunat: false },
+      });
+      return llamada();
+    }).pipe(
+      tap((r) => this.avisarCambio({ id_comprobante: id, ...r })),
+      catchError((error) => {
+        this.eventos.emitir({ tipo: 'comprobante-actualizado', provisional: true, datos: { id_comprobante: id, revertir: true } });
+        return throwError(() => error);
+      }),
+    );
+  }
 
   listar(filtro: FiltroComprobantes = {}): Observable<Paginado<ComprobanteFila>> {
     return this.http.get<Paginado<ComprobanteFila>>(urlConstants.comprobante.base, {
@@ -113,7 +154,9 @@ export class ComprobanteService {
    * («Reintentar ahora», solo administrador) también reintenta un envío que quedó en «Requiere revisión».
    */
   reintentar(id: number, forzar = false): Observable<ResultadoComprobante> {
-    return this.http.post<ResultadoComprobante>(urlConstants.comprobante.reintentar(id), forzar ? { forzar: true } : {}, opcionesHttp());
+    return this.conEstadoEnviando(id, () =>
+      this.http.post<ResultadoComprobante>(urlConstants.comprobante.reintentar(id), forzar ? { forzar: true } : {}, opcionesHttp()),
+    );
   }
 
   /**
@@ -121,12 +164,16 @@ export class ComprobanteService {
    * hasta 7 días después. Queda en la bitácora con el usuario.
    */
   informarPorResumen(id: number): Observable<ResultadoResumen> {
-    return this.http.post<ResultadoResumen>(`${urlConstants.comprobante.base}/${id}/resumir`, {}, opcionesHttp());
+    return this.http
+      .post<ResultadoResumen>(`${urlConstants.comprobante.base}/${id}/resumir`, {}, opcionesHttp())
+      .pipe(tap(() => this.avisarCambio({ id_comprobante: id })));
   }
 
   /** Pide a SUNAT la constancia (CDR) sin reenviar nada. */
   recuperarCdr(id: number): Observable<ResultadoComprobante> {
-    return this.http.post<ResultadoComprobante>(urlConstants.comprobante.recuperarCdr(id), {}, opcionesHttp());
+    return this.http
+      .post<ResultadoComprobante>(urlConstants.comprobante.recuperarCdr(id), {}, opcionesHttp())
+      .pipe(tap((r) => this.avisarCambio({ id_comprobante: id, ...r })));
   }
 
   /** Reenvía el comprobante (PDF y XML) por correo; sin destino usa el del comprobante. Máximo 3 por hora. */
@@ -142,11 +189,9 @@ export class ComprobanteService {
 
   /** Solo admin: verificó en SUNAT Operaciones en Línea que el comprobante fue aceptado (queda auditado). */
   confirmarAceptado(id: number, nota: string): Observable<ResultadoComprobante> {
-    return this.http.post<ResultadoComprobante>(
-      urlConstants.comprobante.confirmarAceptado(id),
-      { nota },
-      opcionesHttp(),
-    );
+    return this.http
+      .post<ResultadoComprobante>(urlConstants.comprobante.confirmarAceptado(id), { nota }, opcionesHttp())
+      .pipe(tap((r) => this.avisarCambio({ id_comprobante: id, ...r })));
   }
 
   /** Catálogo SUNAT de motivos de nota con la forma en que se arma cada una. */
@@ -161,7 +206,9 @@ export class ComprobanteService {
 
   /** Emite la nota y la envía a SUNAT en el acto (409 si otra nota del comprobante sigue en curso). */
   emitirNotaCredito(id: number, solicitud: SolicitudNotaCredito): Observable<NotaCreditoEmitida> {
-    return this.http.post<NotaCreditoEmitida>(urlConstants.comprobante.notaCredito(id), solicitud, opcionesHttp());
+    return this.http
+      .post<NotaCreditoEmitida>(urlConstants.comprobante.notaCredito(id), solicitud, opcionesHttp())
+      .pipe(tap((nota) => this.avisarCambio(nota)));
   }
 
   /**
@@ -169,7 +216,9 @@ export class ComprobanteService {
    * SUNAT la acepta); nunca aceptado: se anula en el sistema.
    */
   anular(solicitud: SolicitudAnularComprobante): Observable<AnulacionComprobante> {
-    return this.http.post<AnulacionComprobante>(urlConstants.comprobante.anular, solicitud, opcionesHttp());
+    return this.http
+      .post<AnulacionComprobante>(urlConstants.comprobante.anular, solicitud, opcionesHttp())
+      .pipe(tap((r) => this.avisarCambio({ id_comprobante: r?.id_comprobante ?? solicitud.id_comprobante })));
   }
 
   /** Historial de ventas (GET /venta): cada fila con su comprobante vigente y cuántas notas y guías tiene. */

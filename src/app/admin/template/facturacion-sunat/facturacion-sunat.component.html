@@ -743,6 +743,9 @@
                   <select id="prueba-tipo-cpe" class="adm-select" [(ngModel)]="tipoCpePrueba">
                     <option value="01">Factura (FB01)</option>
                     <option value="03">Boleta (BB01)</option>
+                    <option value="07">Nota de crédito</option>
+                    <option value="08">Nota de débito</option>
+                    <option value="todos">Los 4 documentos</option>
                   </select>
                 </div>
               }
@@ -750,10 +753,15 @@
             <button class="adm-btn adm-btn--suave adm-mt-3" type="button" (click)="probar()" [disabled]="!puedeProbar">
               {{
                 ambientePrueba === 'beta' && documentoPrueba === 'cpe'
-                  ? 'Generar, firmar y enviar prueba a BETA'
+                  ? tipoCpePrueba === 'todos'
+                    ? 'Enviar los 4 documentos a BETA'
+                    : 'Generar, firmar y enviar prueba a BETA'
                   : 'Validar configuración guardada'
               }}
             </button>
+            @if (ocupado && ambientePrueba === 'beta' && documentoPrueba === 'cpe' && tipoCpePrueba === 'todos') {
+              <p class="adm-ayuda" role="status">Se envían uno por uno a SUNAT BETA: puede tardar hasta 2 minutos.</p>
+            }
           </fieldset>
           @if (!puedeProbar) {
             <p class="adm-ayuda">
@@ -775,13 +783,63 @@
                 Resultado de comprobaciones locales. El módulo de envío todavía está pendiente de habilitar.
               </p>
             }
+            @if (prueba.documentos?.length) {
+              <div class="adm-tabla-envoltorio adm-mt-3">
+                <table class="adm-tabla adm-tabla--adaptable" aria-label="Resultado de cada documento de prueba">
+                  <thead>
+                    <tr>
+                      <th>Documento</th>
+                      <th>Resultado</th>
+                      <th>Código</th>
+                      <th>Tiempo de SUNAT</th>
+                      <th>Envío</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (doc of prueba.documentos; track doc.tipo) {
+                      <tr>
+                        <td data-etiqueta="Documento">
+                          <div class="adm-tabla__principal">{{ nombreDocumentoPrueba[doc.tipo] }}</div>
+                          @if (doc.detalle) {
+                            <div class="adm-tabla__secundario">{{ doc.detalle }}</div>
+                          }
+                        </td>
+                        <td data-etiqueta="Resultado">
+                          <span class="adm-insignia adm-insignia--punto"
+                                [ngClass]="doc.ok === null ? 'adm-insignia--neutra' : doc.ok ? 'adm-insignia--exito' : 'adm-insignia--peligro'">
+                            {{ doc.ok === null ? 'No se intentó' : doc.ok ? 'Aceptado' : 'Rechazado' }}
+                          </span>
+                        </td>
+                        <td data-etiqueta="Código" class="adm-mono">{{ doc.codigo || '—' }}</td>
+                        <td data-etiqueta="Tiempo de SUNAT" class="adm-tabular">{{ segundosSunat(doc.tiempo_ms) || '—' }}</td>
+                        <td data-etiqueta="Envío">
+                          @if (doc.envio_id) {
+                            <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="verEnvios()"
+                                    [attr.aria-label]="'Ver el envío #' + doc.envio_id + ' en la lista de envíos'">
+                              Ver envío
+                            </button>
+                          } @else {
+                            <span class="adm-texto-tenue">—</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
             <ul class="fiscal-lista fiscal-pasos">
-              @for (paso of prueba.pasos; track paso.paso) {
+              @for (paso of prueba.pasos; track $index) {
                 <li class="fiscal-paso" [class.fiscal-paso--ok]="paso.ok === true" [class.fiscal-paso--error]="paso.ok === false">
                   <i class="bi" [ngClass]="paso.ok === null ? 'bi-dash-circle' : (paso.ok ? 'bi-check-circle-fill' : 'bi-x-circle-fill')" aria-hidden="true"></i>
                   <div>
-                    <strong>{{ paso.ok === null ? 'Sin ejecutar' : paso.ok ? 'Correcto' : 'Error' }} · {{ paso.paso }}</strong>
-                    <p class="adm-ayuda">{{ paso.detalle }}</p>
+                    <strong>{{ paso.ok === null ? 'Sin ejecutar' : paso.ok ? 'Correcto' : 'Error' }} · {{ paso.documento ? nombreDocumentoPrueba[paso.documento] + ' · ' : '' }}{{ paso.paso }}</strong>
+                    <p class="adm-ayuda">
+                      {{ paso.detalle }}
+                      @if (segundosSunat(paso.tiempo_ms); as segundos) {
+                        · SUNAT respondió en {{ segundos }}
+                      }
+                    </p>
                   </div>
                 </li>
               }

@@ -133,6 +133,9 @@
                       {{ envio.mensaje_sunat }}
                     </div>
                   }
+                  @if (segundosSunat(envio.tiempo_ms); as segundos) {
+                    <div class="adm-tabla__secundario">SUNAT respondió en {{ segundos }}</div>
+                  }
                   @if (mensajeSistema(envio); as texto) {
                     <div class="adm-tabla__secundario envios-mensaje" [attr.title]="texto">{{ texto }}</div>
                   }

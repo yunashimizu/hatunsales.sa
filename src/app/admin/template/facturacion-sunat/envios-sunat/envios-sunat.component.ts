@@ -31,7 +31,7 @@ import {
   normalizarErrorBlob,
 } from '../../../service/api-base.service';
 import { FiscalAdminService } from '../../../service/fiscal-admin.service';
-import { fechaYmdCorta, nombreEstadoEnvio, plazoVencido, textoPlazoVencido } from '../../../mantenimiento/component/doc/documentos-sunat';
+import { fechaYmdCorta, nombreEstadoEnvio, plazoVencido, segundosSunat, textoPlazoVencido } from '../../../mantenimiento/component/doc/documentos-sunat';
 import { QueHacerSunatComponent } from '../que-hacer/que-hacer-sunat.component';
 
 const CLASES_ESTADO: Readonly<Record<string, string>> = {
@@ -195,6 +195,9 @@ export class EnviosSunatComponent implements OnInit, OnChanges {
     const partes = partesNombre(envio);
     return partes.length >= 4 ? `${partes[2]}-${Number(partes[3])}` : envio.nombre_archivo;
   }
+
+  /** «2,3 s»: lo que tardó SUNAT en la última respuesta (vacío si no se sabe). */
+  readonly segundosSunat = segundosSunat;
 
   nombreEstado(estado: string): string {
     return nombreEstadoEnvio(estado);

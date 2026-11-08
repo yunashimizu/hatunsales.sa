@@ -19,10 +19,12 @@ import { AlertService } from '../../../../shared/services/alert.service';
 import { descargarArchivo } from '../../../../shared/utils/descargar-archivo';
 import { BusquedaPendiente, filtrarInstantaneo } from '../../../../shared/utils/filtro-instantaneo.util';
 import { ComprobanteFila, TIPO_FACTURA, TIPO_BOLETA, TIPO_NOTA_CREDITO, TIPO_NOTA_DEBITO } from '../../../models/admin.models';
-import { AmbienteFiscal, TEXTO_ESTADO_SUNAT, TonoEstado } from '../../../models/documentos.models';
+import { AmbienteFiscal, NotaCreditoEmitida, TEXTO_ESTADO_SUNAT, TonoEstado } from '../../../models/documentos.models';
 import { errorOperativo, mensajeDeError, normalizarErrorBlob } from '../../../service/api-base.service';
 import { ComprobanteService } from '../../../service/comprobante.service';
+import { EventoPanel, EventosPanelService } from '../../../service/eventos-panel.service';
 import { FiscalEstadoService } from '../../../service/fiscal-estado.service';
+import { SeguimientoComprobanteService } from '../../../service/seguimiento-comprobante.service';
 import { AccionDetalle, ComprobanteDetalleComponent } from './comprobante-detalle/comprobante-detalle.component';
 import {
   ChipAmbiente,
@@ -64,6 +66,11 @@ const FILTRO_VACIO: Readonly<FiltroDocumentos> = {
   desde: '',
   hasta: '',
 };
+
+/** Cuántas filas «Enviando a SUNAT» se siguen a la vez al cargar la lista. */
+const MAXIMO_FILAS_SEGUIDAS = 5;
+/** Solo se siguen las filas recién creadas: una que lleva rato así no se va a resolver mirándola 45 s. */
+const EDAD_MAXIMA_SEGUIR_MS = 120_000;
 
 /** Enlaces profundos de Documentos (contrato fijo entre pantallas). */
 const PARAMETRO_COMPROBANTE = 'comprobante';
@@ -153,12 +160,16 @@ export class DocComponent implements OnInit {
   private readonly service = inject(ComprobanteService);
   private readonly alerta = inject(AlertService);
   private readonly fiscal = inject(FiscalEstadoService);
+  private readonly eventos = inject(EventosPanelService);
+  private readonly seguimiento = inject(SeguimientoComprobanteService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly filtrar$ = new Subject<void>();
   private lectura: Subscription | null = null;
+  /** Fila tal como estaba antes de mostrarla «Enviando…» (estado optimista), para devolverla si el reintento falla. */
+  private readonly filasAntesDeEnviar = new Map<number, FilaDocumento>();
 
   @ViewChild(ComprobanteDetalleComponent) private detalle?: ComprobanteDetalleComponent;
 
@@ -199,6 +210,10 @@ export class DocComponent implements OnInit {
     this.route.queryParamMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => this.aplicarEnlace(params));
+    this.eventos
+      .deConProvisionales('comprobante-actualizado')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((evento) => this.alActualizarseComprobante(evento));
     this.cargar(1);
   }
 
@@ -282,10 +297,12 @@ export class DocComponent implements OnInit {
             vistaEstado: estadoDeComprobante(fila),
             vistaAmbiente: chipAmbiente(fila.proveedor_fiscal, fila.ambiente_fiscal),
           }));
+          this.filasAntesDeEnviar.clear();
           this.refiltrar();
           this.total = Number(respuesta.total) || 0;
           this.pagina = Number(respuesta.pagina) || pagina;
           this.cargarMonitor();
+          this.seguirEnvios();
         },
         error: (e) => {
           this.comprobantes = [];
@@ -294,6 +311,70 @@ export class DocComponent implements OnInit {
           this.error = mensajeDeError(e, 'No se pudieron cargar los documentos');
         },
       });
+  }
+
+  /**
+   * Abrir Documentos justo después de cobrar: las filas «Enviando a SUNAT» de la primera página (recién creadas,
+   * como mucho 5) se siguen hasta que SUNAT conteste, y cada cambio llega por el bus a `alActualizarseComprobante`.
+   */
+  private seguirEnvios(): void {
+    if (this.pagina !== 1) return;
+    const ahora = Date.now();
+    this.comprobantes
+      .filter((f) => {
+        const edad = ahora - Date.parse(f.creado_en);
+        return f.estado === 'pendiente' && f.estado_sunat === 'ENVIANDO' && Number.isFinite(edad) && edad < EDAD_MAXIMA_SEGUIR_MS;
+      })
+      .slice(0, MAXIMO_FILAS_SEGUIDAS)
+      .forEach((f) => this.seguimiento.seguir(f.id_comprobante, f.numero_formateado));
+  }
+
+  /**
+   * Un comprobante cambió (lo siguió el seguimiento, se reintentó, se recuperó su constancia…): si su fila está en
+   * esta página se actualiza en el sitio, sin recargar la lista; si no está, no se hace nada.
+   */
+  private alActualizarseComprobante(evento: EventoPanel): void {
+    const datos = evento.datos ?? {};
+    const id = Number(datos['id_comprobante']);
+    const indice = Number.isFinite(id) ? this.comprobantes.findIndex((f) => f.id_comprobante === id) : -1;
+    if (indice < 0) return;
+    const fila = this.comprobantes[indice];
+
+    if (datos['revertir']) {
+      // El reintento falló: la fila vuelve a como estaba.
+      const previa = this.filasAntesDeEnviar.get(id);
+      this.filasAntesDeEnviar.delete(id);
+      if (previa) this.reemplazarFila(indice, previa);
+      return;
+    }
+    if (evento.provisional) {
+      // «Enviando…» mientras responde el servidor.
+      if (!this.filasAntesDeEnviar.has(id)) this.filasAntesDeEnviar.set(id, fila);
+      this.reemplazarFila(indice, {
+        ...fila,
+        estado: 'pendiente',
+        estado_sunat: 'ENVIANDO',
+        aceptada_sunat: false,
+        vistaEstado: { texto: 'Enviando…', tono: 'info' },
+      });
+      return;
+    }
+
+    this.filasAntesDeEnviar.delete(id);
+    const nueva: ComprobanteFila = { ...fila };
+    if (typeof datos['estado'] === 'string') nueva.estado = datos['estado'];
+    if (typeof datos['estado_sunat'] === 'string' || datos['estado_sunat'] === null) nueva.estado_sunat = datos['estado_sunat'] as string | null;
+    if (typeof datos['aceptada_sunat'] === 'boolean') nueva.aceptada_sunat = datos['aceptada_sunat'];
+    if (typeof datos['sunat_description'] === 'string') nueva.sunat_description = datos['sunat_description'];
+    this.reemplazarFila(indice, { ...fila, ...nueva, vistaEstado: estadoDeComprobante(nueva) });
+    this.service.invalidarMonitor();
+    this.cargarMonitor();
+  }
+
+  private reemplazarFila(indice: number, fila: FilaDocumento): void {
+    this.comprobantes = this.comprobantes.map((f, i) => (i === indice ? fila : f));
+    this.refiltrar();
+    this.cdr.markForCheck();
   }
 
   cargarMonitor(): void {
@@ -400,8 +481,14 @@ export class DocComponent implements OnInit {
     this.cargar();
   }
 
-  /** La nota ya se envió a SUNAT: aparece en la lista y el comprobante abierto muestra su saldo nuevo. */
-  alEmitirNota(): void {
+  /**
+   * La nota ya se envió a SUNAT (o sigue enviándose en segundo plano): aparece en la lista y el comprobante abierto
+   * muestra su saldo nuevo. Si quedó pendiente, se sigue hasta que SUNAT conteste.
+   */
+  alEmitirNota(nota?: NotaCreditoEmitida): void {
+    if (nota?.envio_diferido && nota.id_comprobante && !nota.por_resumen) {
+      this.seguimiento.seguir(nota.id_comprobante, nota.numero_formateado ?? `#${nota.id_comprobante}`);
+    }
     this.cargar();
     this.detalle?.cargar();
   }

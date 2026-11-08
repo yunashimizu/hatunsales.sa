@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { urlConstants } from '../../../constants/urlConstants';
+import { TIEMPO_LIMITE_MS } from '../../../interceptors/contexto-http';
 import { AlertService } from '../../../shared/services/alert.service';
 import { CertificadoFiscal, ConfiguracionSunat, EstadoFiscalApi } from '../../models/fiscal.models';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
@@ -570,6 +571,115 @@ describe('FacturacionSunatComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Resultado de comprobaciones locales');
     expect(fixture.nativeElement.textContent).toContain('Sin ejecutar');
+  });
+
+  describe('prueba de «Los 4 documentos»', () => {
+    function configConCertificadoBeta() {
+      const config = configuracionPrueba();
+      config.certificado.beta = {
+        id: 1,
+        ambiente: 'beta',
+        titular: 'Prueba',
+        ruc: config.emisor.ruc,
+        nombre_archivo: null,
+        vigente_hasta: '2030-01-01',
+        dias_para_vencer: 100,
+        vencido: false,
+        autofirmado: true,
+        advertencias: [],
+      };
+      return config;
+    }
+
+    it('ofrece nota de crédito, nota de débito y los 4 documentos, y el botón lo dice', () => {
+      responderConfiguracion(configConCertificadoBeta());
+      const opciones = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('#prueba-tipo-cpe option')).map(
+        (o) => [o.getAttribute('value'), o.textContent?.trim()],
+      );
+      expect(opciones).toEqual([
+        ['01', 'Factura (FB01)'],
+        ['03', 'Boleta (BB01)'],
+        ['07', 'Nota de crédito'],
+        ['08', 'Nota de débito'],
+        ['todos', 'Los 4 documentos'],
+      ]);
+
+      const boton = () =>
+        Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) => /a BETA$/.test(b.textContent?.trim() ?? ''));
+      expect(boton()?.textContent?.trim()).toBe('Generar, firmar y enviar prueba a BETA');
+      component.tipoCpePrueba = 'todos';
+      fixture.detectChanges();
+      expect(boton()?.textContent?.trim()).toBe('Enviar los 4 documentos a BETA');
+    });
+
+    it('con «todos» manda tipo_cpe todos con 150 s de espera y muestra la tabla con el tiempo de SUNAT por documento', () => {
+      const config = configConCertificadoBeta();
+      responderConfiguracion(config);
+      component.tipoCpePrueba = 'todos';
+      component.probar();
+      const peticion = http.expectOne(urlConstants.fiscal.probarConexion);
+      expect(peticion.request.body).toEqual({ ambiente: 'beta', documento: 'cpe', tipo_cpe: 'todos' });
+      expect(peticion.request.context.get(TIEMPO_LIMITE_MS)).toBe(150_000);
+      peticion.flush({
+        ok: false,
+        ambiente: 'beta',
+        documento: 'cpe',
+        tiempo_ms: 9000,
+        envio_disponible: true,
+        pasos: [
+          { paso: 'respuesta_sunat', ok: true, detalle: 'Aceptada', documento: '01', tiempo_ms: 2310, envio_id: 41 },
+          { paso: 'respuesta_sunat', ok: false, detalle: 'Rechazada', documento: '03', tiempo_ms: 800, envio_id: 42 },
+        ],
+        documentos: [
+          { tipo: '01', ok: true, codigo: '0', tiempo_ms: 2310, envio_id: 41, detalle: 'La factura FB01-1 fue aceptada.' },
+          { tipo: '03', ok: false, codigo: '2335', tiempo_ms: 800, envio_id: 42, detalle: 'Rechazada.' },
+          { tipo: '07', ok: null, codigo: null, tiempo_ms: null, envio_id: null, detalle: 'No se intentó.' },
+          { tipo: '08', ok: null, codigo: null, tiempo_ms: null, envio_id: null, detalle: 'No se intentó.' },
+        ],
+      });
+      http.expectOne((r) => r.url === urlConstants.fiscal.auditoria).flush({ registros: [], siguiente: null });
+      responderBeta(config);
+      http.expectOne((r) => r.url === urlConstants.fiscal.envios).flush(paginaVacia);
+      fixture.detectChanges();
+
+      const tabla = (fixture.nativeElement as HTMLElement).querySelector('table[aria-label="Resultado de cada documento de prueba"]')!;
+      const filas = Array.from(tabla.querySelectorAll('tbody tr')).map((f) => (f.textContent ?? '').replace(/\s+/g, ' ').trim());
+      expect(filas.length).toBe(4);
+      expect(filas[0]).toContain('Factura');
+      expect(filas[0]).toContain('Aceptado');
+      expect(filas[0]).toContain('2,3 s');
+      expect(filas[0]).toContain('Ver envío');
+      expect(filas[1]).toContain('Boleta');
+      expect(filas[1]).toContain('Rechazado');
+      expect(filas[1]).toContain('2335');
+      expect(filas[1]).toContain('0,8 s');
+      expect(filas[2]).toContain('Nota de crédito');
+      expect(filas[2]).toContain('No se intentó');
+      expect(filas[2]).not.toContain('Ver envío');
+      expect(filas[3]).toContain('Nota de débito');
+      // Los pasos de envío traen el tiempo junto al detalle.
+      expect(fixture.nativeElement.textContent).toContain('SUNAT respondió en 2,3 s');
+    });
+
+    it('«Ver envío» lleva a la lista de envíos', () => {
+      const config = configConCertificadoBeta();
+      responderConfiguracion(config);
+      component.resultadoPrueba = {
+        ok: true,
+        ambiente: 'beta',
+        documento: 'cpe',
+        tiempo_ms: 1,
+        envio_disponible: true,
+        pasos: [],
+        documentos: [{ tipo: '01', ok: true, codigo: '0', tiempo_ms: 1000, envio_id: 41, detalle: '' }],
+      };
+      component.seccion = 'pruebas';
+      fixture.detectChanges();
+      const boton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Ver envío')!;
+      boton.click();
+      expect(component.seccion).toBe('envios');
+      for (const p of http.match((r) => r.url === urlConstants.fiscal.envios)) p.flush(paginaVacia);
+    });
   });
 
   it('impide guardar valores por defecto si el servidor aún no tiene el módulo', () => {

@@ -8,6 +8,7 @@ import { SonidoCajaService } from '../../../../shared/services/sonido-caja.servi
 import { ReceptorService } from '../../../service/receptor.service';
 import { PuntoVentaService } from '../../../service/punto-venta.service';
 import { CajaSesionService } from '../../../service/caja-sesion.service';
+import { SeguimientoComprobanteService } from '../../../service/seguimiento-comprobante.service';
 import { CotizacionService } from '../../../service/cotizacion.service';
 import { ConfiguracionFiscalService } from '../../../service/configuracion-fiscal.service';
 import { SolicitudVenta } from '../../../service/punto-venta.service';
@@ -93,7 +94,10 @@ describe('VentasComponent', () => {
     };
   }
 
+  const seguimientoMock = { seguir: vi.fn() };
+
   beforeEach(async () => {
+    seguimientoMock.seguir.mockClear();
     previewServicio = vi.fn((solicitud: SolicitudVenta) =>
       of(crearPreview(Number(solicitud.items[0]?.descuento ?? 0) * 2)),
     );
@@ -131,6 +135,7 @@ describe('VentasComponent', () => {
         { provide: SonidoCajaService, useValue: sonidoMock },
         { provide: ReceptorService, useValue: {} },
         { provide: PuntoVentaService, useValue: puntoVentaMock },
+        { provide: SeguimientoComprobanteService, useValue: seguimientoMock },
         { provide: AlertService, useValue: {
           toast: () => undefined,
           confirm: async () => ({ isConfirmed: true }),
@@ -602,6 +607,8 @@ describe('VentasComponent', () => {
       expect(titulos).toContain('B001-00000009 registrada; SUNAT la confirma en segundos');
       expect(titulos).not.toContain('B001-00000009 emitida');
       expect(warning).not.toHaveBeenCalled();
+      // Y se vigila hasta que SUNAT conteste (aceptada o rechazada).
+      expect(seguimientoMock.seguir).toHaveBeenCalledWith(9, 'B001-00000009');
     });
 
     it('con la boleta en modo resumen diario avisa que se informa a SUNAT en el resumen, sin decir que se confirma en segundos', async () => {
@@ -628,6 +635,7 @@ describe('VentasComponent', () => {
       expect(titulos).toContain('Boleta registrada: se informa a SUNAT en el resumen diario');
       expect(titulos.some((t) => t.includes('en segundos'))).toBe(false);
       expect(warning).not.toHaveBeenCalled();
+      expect(seguimientoMock.seguir).not.toHaveBeenCalled();
     });
 
     it('con el cálculo del servidor desactualizado no deja cobrar aunque haya un medio elegido', () => {

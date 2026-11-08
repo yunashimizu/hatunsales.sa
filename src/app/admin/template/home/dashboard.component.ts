@@ -12,13 +12,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { Observable, Subscription, defer, finalize, forkJoin, fromEvent, interval, map, of } from 'rxjs';
+import { Observable, Subscription, debounceTime, defer, finalize, forkJoin, fromEvent, interval, map, of } from 'rxjs';
 import { catchError, filter } from 'rxjs/operators';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
 import { InventarioAdminService } from '../../service/inventario-admin.service';
 import { ComprobanteService } from '../../service/comprobante.service';
 import { CajaSesionService, SesionCaja } from '../../service/caja-sesion.service';
 import { CreditoAdminService, ResumenVencidas } from '../../service/credito-admin.service';
+import { EventosPanelService } from '../../service/eventos-panel.service';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
 import { PeriodoReporte, RangoReporte, ReporteVentasResumen, ReportesService } from '../../service/reportes.service';
 import { PedidoAdminService, ResumenPedidosWeb } from '../../service/pedido-admin.service';
@@ -86,6 +87,10 @@ const PARAMETRO_COMPROBANTE = 'comprobante';
 
 /** Cada cuánto se renueva solo el Inicio mientras la pestaña está visible. */
 const REFRESCO_MS = 60_000;
+/** Al volver a la pestaña se vuelve a leer si la última lectura fue hace más de esto (el reloj de 60 s no cambia). */
+export const UMBRAL_VISIBLE_MS = 10_000;
+/** Tras un cambio del panel (venta, comprobante…) se espera este margen y se lee una sola vez. */
+const ESPERA_EVENTOS_MS = 1_000;
 /** Cada cuánto se recalculan los «hace X min». */
 const RELOJ_MS = 30_000;
 
@@ -235,6 +240,7 @@ export class DashboardComponent implements OnInit {
   private readonly reportes = inject(ReportesService);
   private readonly pedidos = inject(PedidoAdminService);
   private readonly credito = inject(CreditoAdminService);
+  private readonly eventos = inject(EventosPanelService);
 
   private subTodo: Subscription | null = null;
   private subPeriodo: Subscription | null = null;
@@ -555,7 +561,7 @@ export class DashboardComponent implements OnInit {
 
   // ───────────────────────────────────────────────────────────── actualización automática
 
-  /** Cada minuto, con la pestaña visible, vuelve a leer todo; al volver a la pestaña lo hace al instante si pasó más de un minuto. */
+  /** Cada minuto, con la pestaña visible, vuelve a leer todo; al volver a la pestaña lo hace al instante si pasaron más de 10 s. */
   private vigilarRefresco(): void {
     const visible = () => typeof document === 'undefined' || document.visibilityState === 'visible';
     interval(REFRESCO_MS)
@@ -567,12 +573,18 @@ export class DashboardComponent implements OnInit {
         this.ahora = new Date();
         this.cdr.markForCheck();
       });
+    // Una venta, un comprobante, la caja o un pedido que cambian aquí mismo: el Inicio se entera sin esperar al minuto.
+    // La campana ya invalidó las cachés cortas (AvisosPanelService), así que esta lectura trae lo nuevo.
+    this.eventos
+      .de()
+      .pipe(debounceTime(ESPERA_EVENTOS_MS), filter(visible), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.cargarTodo('auto'));
     if (typeof document === 'undefined') return;
     fromEvent(document, 'visibilitychange')
       .pipe(filter(visible), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.ahora = new Date();
-        if (Date.now() - this.ultimaCarga > REFRESCO_MS) this.cargarTodo('auto');
+        if (Date.now() - this.ultimaCarga > UMBRAL_VISIBLE_MS) this.cargarTodo('auto');
         else this.cdr.markForCheck();
       });
   }

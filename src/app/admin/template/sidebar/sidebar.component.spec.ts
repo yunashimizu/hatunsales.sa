@@ -4,6 +4,7 @@ import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 
+import { EventosPanelService } from '../../service/eventos-panel.service';
 import { PedidoAdminService } from '../../service/pedido-admin.service';
 import { Pedido } from '../../../store/models/tienda.models';
 import { SECCIONES_MENU, SidebarComponent } from './sidebar.component';
@@ -60,5 +61,25 @@ describe('SidebarComponent', () => {
     const actuales = Array.from(fixture.nativeElement.querySelectorAll('a[aria-current="page"]')) as HTMLAnchorElement[];
     expect(actuales.length).toBe(1);
     expect(actuales[0].getAttribute('href')).toBe('/dashboard/mantenimiento/productos');
+  });
+
+  it('un pedido que cambia o una venta cobrada renuevan el número de «Pedidos web» al instante', () => {
+    const leer = vi.spyOn(component as unknown as { cargarBadgePedidos(): void }, 'cargarBadgePedidos').mockImplementation(() => undefined);
+    const invalidar = vi.spyOn(TestBed.inject(PedidoAdminService), 'invalidarResumen');
+    fixture.detectChanges(); // ngOnInit: empieza a escuchar
+    leer.mockClear();
+    const bus = TestBed.inject(EventosPanelService);
+
+    bus.emitir({ tipo: 'pedido-cambio' });
+    expect(leer).toHaveBeenCalledTimes(1);
+    bus.emitir({ tipo: 'venta-registrada' });
+    expect(leer).toHaveBeenCalledTimes(2);
+    expect(invalidar).toHaveBeenCalledTimes(2);
+
+    // Lo que no afecta a los pedidos no hace nada.
+    bus.emitir({ tipo: 'caja-cambio' });
+    bus.emitir({ tipo: 'stock-cambio' });
+    bus.emitir({ tipo: 'comprobante-actualizado' });
+    expect(leer).toHaveBeenCalledTimes(2);
   });
 });

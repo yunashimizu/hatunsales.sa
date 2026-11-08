@@ -1,11 +1,12 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { Injectable, NgZone, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Observable, Subscription, catchError, forkJoin, map, of } from 'rxjs';
+import { Observable, Subscription, catchError, debounceTime, forkJoin, map, of } from 'rxjs';
 import { AuthService } from '../../auth/service/auth.service';
 import { CajaSesionService } from './caja-sesion.service';
 import { ComprobanteService } from './comprobante.service';
 import { CreditoAdminService } from './credito-admin.service';
+import { EventosPanelService } from './eventos-panel.service';
 import { FiscalEstadoService } from './fiscal-estado.service';
 import { InventarioAdminService } from './inventario-admin.service';
 import { PedidoAdminService } from './pedido-admin.service';
@@ -39,6 +40,10 @@ const RUTA_FISCAL = '/dashboard/facturacion-sunat';
 
 export const CLAVE_AVISOS_VISTOS = 'hs.panel.avisos-vistos';
 const CADA_MS = 60_000;
+/** Al volver a la pestaña se refresca si el último tic fue hace más de esto (el reloj de 60 s no cambia). */
+export const UMBRAL_VISIBLE_MS = 10_000;
+/** Una venta dispara varios eventos seguidos: se espera este margen y se lee una sola vez. */
+const ESPERA_EVENTOS_MS = 500;
 /** Antes de esta hora (Lima) no se avisa de que falta abrir caja. */
 const HORA_APERTURA = 9;
 /** Pasado el cierre ya no tiene sentido pedir que abra caja. */
@@ -102,6 +107,7 @@ export class AvisosPanelService {
   private readonly auth = inject(AuthService);
   private readonly fiscal = inject(FiscalEstadoService);
   private readonly pedidos = inject(PedidoAdminService);
+  private readonly eventos = inject(EventosPanelService);
   private readonly zona = inject(NgZone);
   private readonly documento = inject(DOCUMENT);
   private readonly navegador = isPlatformBrowser(inject(PLATFORM_ID));
@@ -144,6 +150,7 @@ export class AvisosPanelService {
 
   private iniciado = false;
   private lectura: Subscription | null = null;
+  private escuchaEventos: Subscription | null = null;
   private temporizador: ReturnType<typeof setInterval> | null = null;
   private ultimaVuelta = 0;
   private readonly alCambiarVisibilidad = () => {
@@ -152,7 +159,7 @@ export class AvisosPanelService {
       return;
     }
     this.zona.run(() => {
-      if (Date.now() - this.ultimaVuelta >= CADA_MS) this.refrescar();
+      if (Date.now() - this.ultimaVuelta > UMBRAL_VISIBLE_MS) this.refrescar();
       this.arrancarReloj();
     });
   };
@@ -169,6 +176,7 @@ export class AvisosPanelService {
     if (this.permisos().fiscal) this.fiscal.iniciar();
     this.zona.runOutsideAngular(() => this.documento.addEventListener('visibilitychange', this.alCambiarVisibilidad));
     if (this.documento.visibilityState === 'visible') this.arrancarReloj();
+    this.escucharEventos();
     this.refrescar();
   }
 
@@ -179,6 +187,8 @@ export class AvisosPanelService {
     this.pararReloj();
     this.lectura?.unsubscribe();
     this.lectura = null;
+    this.escuchaEventos?.unsubscribe();
+    this.escuchaEventos = null;
     if (this.navegador) this.documento.removeEventListener('visibilitychange', this.alCambiarVisibilidad);
     this.remotos.set({});
     this.permisos.set({ fiscal: false, pedidos: false, panelFiscal: false });
@@ -236,6 +246,26 @@ export class AvisosPanelService {
     for (const aviso of this.items()) siguiente[aviso.clave] = aviso.valor;
     this.vistos.set(siguiente);
     guardarVistos(siguiente);
+  }
+
+  /**
+   * Cualquier cambio del panel (venta, comprobante, caja, pedido, stock) olvida lo guardado en las cuatro cachés
+   * cortas y vuelve a leer una sola vez, aunque lleguen varios eventos juntos.
+   */
+  private escucharEventos(): void {
+    this.escuchaEventos?.unsubscribe();
+    this.escuchaEventos = this.eventos.de().subscribe(() => {
+      this.comprobantes.invalidarMonitor();
+      this.inventario.invalidarResumen();
+      this.credito.invalidar();
+      this.caja.invalidarSesion();
+    });
+    this.escuchaEventos.add(
+      this.eventos
+        .de()
+        .pipe(debounceTime(ESPERA_EVENTOS_MS))
+        .subscribe(() => this.zona.run(() => this.refrescar())),
+    );
   }
 
   /** Hora actual; aparte para poder probar con otra. */

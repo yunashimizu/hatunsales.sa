@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { urlConstants } from '../../constants/urlConstants';
 import { SILENCIOSA } from '../../interceptors/contexto-http';
 import { CajaSesionService } from './caja-sesion.service';
+import { EventosPanelService } from './eventos-panel.service';
 
 describe('CajaSesionService: apertura y arqueo por sucursal', () => {
   let servicio: CajaSesionService;
@@ -147,6 +148,23 @@ describe('CajaSesionService: apertura y arqueo por sucursal', () => {
 
       servicio.sesion().subscribe();
       http.expectNone(urlConstants.caja.sesion);
+    });
+  });
+
+  describe('avisos al panel', () => {
+    it('abrir y cerrar publican «caja-cambio»; si abrir falla, nada', () => {
+      const tipos: string[] = [];
+      TestBed.inject(EventosPanelService).de().subscribe((e) => tipos.push(e.tipo));
+
+      servicio.abrir({ id_caja: 1 }).subscribe();
+      http.expectOne(urlConstants.caja.abrir).flush({ id_apertura: 9 });
+      servicio.cerrar({ id_apertura: 9, monto_conteo: 10 }).subscribe();
+      http.expectOne(urlConstants.caja.cerrar).flush({ id_apertura: 9, id_cierre: 2, cerrada: true, monto_conteo: 10 });
+      expect(tipos).toEqual(['caja-cambio', 'caja-cambio']);
+
+      servicio.abrir({ id_caja: 1 }).subscribe({ error: () => undefined });
+      http.expectOne(urlConstants.caja.abrir).flush('x', { status: 409, statusText: 'Conflict' });
+      expect(tipos.length).toBe(2);
     });
   });
 });

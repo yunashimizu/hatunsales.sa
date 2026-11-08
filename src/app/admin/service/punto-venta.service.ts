@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, shareReplay, tap } from 'rxjs/operators';
 import { urlConstants } from '../../constants/urlConstants';
@@ -8,6 +8,7 @@ import {
 } from '../models/admin.models';
 import { normalizarCodigo } from '../../shared/utils/codigo-barras.util';
 import { cabecerasAutenticadas, mensajeDeError, opcionesHttp } from './api-base.service';
+import { EventosPanelService } from './eventos-panel.service';
 
 /** Resultado de `resolverCodigo`: el llamador distingue «no existe», «inactivo» y «fallo de red/servidor». */
 export interface ResultadoCodigo {
@@ -83,6 +84,8 @@ export class PuntoVentaService {
    * catálogo lanzado antes de la alta puede no traer todavía.
    */
   private altasLocales = new Map<number, { producto: ProductoVenta; idAlmacen: number | null; registradoEn: number }>();
+
+  private readonly eventos = inject(EventosPanelService);
 
   constructor(private http: HttpClient) {}
 
@@ -423,7 +426,23 @@ export class PuntoVentaService {
   }
 
   registrar(solicitud: SolicitudVenta): Observable<VentaRegistrada> {
-    return this.http.post<VentaRegistrada>(urlConstants.puntoVenta.base, solicitud, opcionesHttp());
+    return this.http.post<VentaRegistrada>(urlConstants.puntoVenta.base, solicitud, opcionesHttp()).pipe(
+      tap((venta) => {
+        this.eventos.emitir({ tipo: 'venta-registrada', datos: { id_venta: venta?.id_venta } });
+        const comprobante = venta?.comprobante;
+        if (comprobante) {
+          this.eventos.emitir({
+            tipo: 'comprobante-actualizado',
+            datos: {
+              id_comprobante: comprobante.id_comprobante,
+              estado: comprobante.estado,
+              estado_sunat: comprobante.estado_sunat,
+              aceptada_sunat: comprobante.aceptada_sunat,
+            },
+          });
+        }
+      }),
+    );
   }
 
   listar(filtros: Record<string, any> = {}): Observable<Paginado<any>> {

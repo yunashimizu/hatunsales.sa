@@ -8,6 +8,7 @@ import { urlConstants } from '../../../constants/urlConstants';
 import { CajaSesionService } from '../../service/caja-sesion.service';
 import { ComprobanteService } from '../../service/comprobante.service';
 import { CreditoAdminService } from '../../service/credito-admin.service';
+import { EventosPanelService } from '../../service/eventos-panel.service';
 import { FiscalEstadoService } from '../../service/fiscal-estado.service';
 import { InventarioAdminService } from '../../service/inventario-admin.service';
 import { PedidoAdminService } from '../../service/pedido-admin.service';
@@ -368,5 +369,47 @@ describe('DashboardComponent · centro de mando', () => {
       estado('visible');
       delete (document as unknown as Record<string, unknown>)['visibilityState'];
     }
+  });
+
+  it('un cambio del panel vuelve a leer el Inicio una sola vez tras 1 s, aunque lleguen varios eventos seguidos', async () => {
+    vi.useFakeTimers();
+    await montar();
+    expect(inventario.resumen).toHaveBeenCalledTimes(1);
+    const bus = TestBed.inject(EventosPanelService);
+
+    bus.emitir({ tipo: 'venta-registrada' });
+    vi.advanceTimersByTime(400);
+    bus.emitir({ tipo: 'comprobante-actualizado' });
+    vi.advanceTimersByTime(999);
+    expect(inventario.resumen).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1);
+    expect(inventario.resumen).toHaveBeenCalledTimes(2);
+    responderHttp();
+
+    vi.advanceTimersByTime(10_000);
+    expect(inventario.resumen).toHaveBeenCalledTimes(2);
+  });
+
+  it('un estado provisional (reintento en curso) no recarga el Inicio', async () => {
+    vi.useFakeTimers();
+    await montar();
+    TestBed.inject(EventosPanelService).emitir({ tipo: 'comprobante-actualizado', provisional: true });
+    vi.advanceTimersByTime(2_000);
+    expect(inventario.resumen).toHaveBeenCalledTimes(1);
+  });
+
+  it('al volver a la pestaña lee si pasaron más de 10 s, y a los 5 s no', async () => {
+    vi.useFakeTimers();
+    await montar();
+    expect(inventario.resumen).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(5_000);
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(inventario.resumen).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(10_000); // 15 s desde la última lectura
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(inventario.resumen).toHaveBeenCalledTimes(2);
+    responderHttp();
   });
 });

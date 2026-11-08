@@ -162,6 +162,8 @@ export interface ComprobanteEmitido {
   ambiente_fiscal?: 'beta' | 'produccion';
   estado_sunat?: string;
   id_envio_ultimo?: number;
+  /** ms que tardó SUNAT en responder (solo cuando el envío terminó en el mismo cobro). */
+  tiempo_sunat_ms?: number | null;
 }
 
 export interface ComprobanteFila {

@@ -14,6 +14,7 @@ import { forkJoin, interval, of } from 'rxjs';
 import { catchError, filter } from 'rxjs/operators';
 import { AuthService, SesionUsuario } from '../../../auth/service/auth.service';
 import { ComprobanteService } from '../../service/comprobante.service';
+import { EventosPanelService } from '../../service/eventos-panel.service';
 import { PedidoAdminService, ResumenPedidosWeb } from '../../service/pedido-admin.service';
 import { InventarioAdminService } from '../../service/inventario-admin.service';
 
@@ -264,6 +265,7 @@ export class SidebarComponent implements OnInit {
   private readonly comprobantes = inject(ComprobanteService);
   private readonly inventario = inject(InventarioAdminService);
   private readonly pedidos = inject(PedidoAdminService);
+  private readonly eventos = inject(EventosPanelService);
 
   sesion: SesionUsuario = {
     idUsuario: 0,
@@ -308,6 +310,14 @@ export class SidebarComponent implements OnInit {
     interval(PERIODO_PEDIDOS_MS)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.cargarBadgePedidos());
+    // Un pedido que cambia de estado o una venta cobrada: el número del menú se renueva al instante, sin esperar al minuto.
+    this.eventos
+      .de('pedido-cambio', 'venta-registrada')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.pedidos.invalidarResumen();
+        this.cargarBadgePedidos();
+      });
 
     this.router.events
       .pipe(

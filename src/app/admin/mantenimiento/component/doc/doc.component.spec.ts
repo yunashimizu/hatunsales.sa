@@ -7,9 +7,12 @@ import { NEVER, of, throwError } from 'rxjs';
 import { AuthService } from '../../../../auth/service/auth.service';
 import { AlertService } from '../../../../shared/services/alert.service';
 import { ComprobanteFila } from '../../../models/admin.models';
+import { NotaCreditoEmitida } from '../../../models/documentos.models';
 import { ComprobanteService } from '../../../service/comprobante.service';
+import { EventosPanelService } from '../../../service/eventos-panel.service';
 import { FiscalEstadoService } from '../../../service/fiscal-estado.service';
 import { ReceptorService } from '../../../service/receptor.service';
+import { SeguimientoComprobanteService } from '../../../service/seguimiento-comprobante.service';
 import { DocComponent } from './doc.component';
 
 function fila(cambios: Partial<ComprobanteFila> = {}): ComprobanteFila {
@@ -60,12 +63,14 @@ describe('DocComponent', () => {
   const api = {
     listar: vi.fn(() => of({ datos: [fila(), HISTORICA], total: 2, pagina: 1, por_pagina: 20 })),
     monitorAtencion: vi.fn(() => of({ pendientes: 0, errores: 0, total: 0 })),
+    invalidarMonitor: vi.fn(),
     detalle: vi.fn(() => NEVER),
     contextoNotaCredito: vi.fn(() => NEVER),
     ventasSinComprobante: vi.fn(() => of({ datos: [], total: 0, pagina: 1, por_pagina: 20 })),
     descargarPdf: vi.fn(),
   };
   const alerta = { toast: vi.fn(), error: vi.fn() };
+  const seguimiento = { seguir: vi.fn() };
 
   async function abrir(url = '/doc'): Promise<{ harness: RouterTestingHarness; component: DocComponent }> {
     const harness = await RouterTestingHarness.create();
@@ -93,6 +98,7 @@ describe('DocComponent', () => {
         { provide: AuthService, useValue: { puedeVer: (permitidos: string[]) => permitidos.some((r) => roles.includes(r)) } },
         { provide: FiscalEstadoService, useValue: { estado: signal(null), iniciar: vi.fn() } },
         { provide: ReceptorService, useValue: { buscar: vi.fn() } },
+        { provide: SeguimientoComprobanteService, useValue: seguimiento },
       ],
     }).compileComponents();
   });
@@ -198,5 +204,141 @@ describe('DocComponent', () => {
     (aviso.querySelector('button') as HTMLButtonElement).click();
     harness.detectChanges();
     expect(harness.routeNativeElement!.querySelectorAll('tbody tr').length).toBe(2);
+  });
+
+  describe('seguimiento y avisos del panel', () => {
+    const enviando = (id: number, cambios: Partial<ComprobanteFila> = {}) =>
+      fila({
+        id_comprobante: id,
+        numero_formateado: `B001-${String(id).padStart(8, '0')}`,
+        estado: 'pendiente',
+        estado_sunat: 'ENVIANDO',
+        aceptada_sunat: false,
+        creado_en: new Date().toISOString(),
+        ...cambios,
+      });
+
+    function conFilas(filas: ComprobanteFila[]): void {
+      api.listar.mockImplementation(() => of({ datos: filas, total: filas.length, pagina: 1, por_pagina: 20 }));
+    }
+
+    const textoFila = (harness: RouterTestingHarness, indice = 0): string =>
+      (harness.routeNativeElement!.querySelectorAll('tbody tr')[indice] as HTMLElement).textContent ?? '';
+
+    it('al cargar sigue las filas «Enviando a SUNAT» recién creadas, de la primera página, máximo 5', async () => {
+      conFilas([
+        ...[1, 2, 3, 4, 5, 6, 7].map((id) => enviando(id)),
+        enviando(8, { creado_en: '2026-10-20T15:00:00.000Z' }), // vieja: no se sigue
+        fila({ id_comprobante: 9 }), // aceptada: no se sigue
+      ]);
+      await abrir();
+      expect(seguimiento.seguir).toHaveBeenCalledTimes(5);
+      expect(seguimiento.seguir).toHaveBeenCalledWith(1, 'B001-00000001');
+      expect(seguimiento.seguir).not.toHaveBeenCalledWith(8, expect.anything());
+      expect(seguimiento.seguir).not.toHaveBeenCalledWith(9, expect.anything());
+    });
+
+    it('no sigue las filas que esperan el reintento automático', async () => {
+      conFilas([enviando(1, { estado_sunat: 'PENDIENTE_REENVIO' })]);
+      await abrir();
+      expect(seguimiento.seguir).not.toHaveBeenCalled();
+    });
+
+    it('no sigue nada cuando la lista mostrada no es la primera página', async () => {
+      api.listar.mockImplementation(() => of({ datos: [enviando(2)], total: 40, pagina: 2, por_pagina: 20 }));
+      await abrir();
+      expect(seguimiento.seguir).not.toHaveBeenCalled();
+    });
+
+    it('una nota pendiente con envío diferido se sigue hasta que SUNAT conteste', async () => {
+      const { component } = await abrir();
+      component.alEmitirNota({ id_comprobante: 55, numero_formateado: 'FC01-3', envio_diferido: true, estado: 'pendiente' } as NotaCreditoEmitida);
+      expect(seguimiento.seguir).toHaveBeenCalledWith(55, 'FC01-3');
+
+      seguimiento.seguir.mockClear();
+      component.alEmitirNota({ id_comprobante: 56, numero_formateado: 'FC01-4', estado: 'emitido' } as NotaCreditoEmitida);
+      component.alEmitirNota();
+      expect(seguimiento.seguir).not.toHaveBeenCalled();
+    });
+
+    it('un cambio de su comprobante actualiza la fila en el sitio, sin recargar la lista, y refresca el monitor', async () => {
+      conFilas([enviando(10), fila({ id_comprobante: 11, numero_formateado: 'B001-00000011' })]);
+      const { harness } = await abrir();
+      expect(textoFila(harness, 0)).toContain('Enviando a SUNAT');
+      api.listar.mockClear();
+      api.monitorAtencion.mockClear();
+
+      TestBed.inject(EventosPanelService).emitir({
+        tipo: 'comprobante-actualizado',
+        datos: { id_comprobante: 10, estado: 'emitido', estado_sunat: 'ACEPTADO', aceptada_sunat: true },
+      });
+      harness.detectChanges();
+
+      expect(textoFila(harness, 0)).toContain('Aceptado por SUNAT');
+      expect(textoFila(harness, 1)).toContain('B001-00000011');
+      expect(api.listar).not.toHaveBeenCalled();
+      expect(api.invalidarMonitor).toHaveBeenCalled();
+      expect(api.monitorAtencion).toHaveBeenCalledTimes(1);
+    });
+
+    it('un rechazo de SUNAT pone la fila «Con error» con su motivo', async () => {
+      conFilas([enviando(10)]);
+      const { harness, component } = await abrir();
+      TestBed.inject(EventosPanelService).emitir({
+        tipo: 'comprobante-actualizado',
+        datos: { id_comprobante: 10, estado: 'error', estado_sunat: 'RECHAZADO', aceptada_sunat: false, sunat_description: 'RUC no existe' },
+      });
+      harness.detectChanges();
+
+      expect(component.comprobantes[0]).toMatchObject({ estado: 'error', estado_sunat: 'RECHAZADO', sunat_description: 'RUC no existe' });
+      expect(textoFila(harness)).toContain('Rechazado por SUNAT');
+      expect(textoFila(harness)).toContain('RUC no existe');
+    });
+
+    it('un comprobante que no está en la página no hace nada: ni toca la lista ni pide el monitor', async () => {
+      const { harness } = await abrir();
+      api.listar.mockClear();
+      api.monitorAtencion.mockClear();
+
+      TestBed.inject(EventosPanelService).emitir({
+        tipo: 'comprobante-actualizado',
+        datos: { id_comprobante: 999, estado: 'emitido', estado_sunat: 'ACEPTADO', aceptada_sunat: true },
+      });
+      harness.detectChanges();
+
+      expect(api.listar).not.toHaveBeenCalled();
+      expect(api.monitorAtencion).not.toHaveBeenCalled();
+      expect(textoFila(harness, 0)).toContain('Aceptado por SUNAT');
+    });
+
+    it('al reintentar la fila muestra «Enviando…» mientras responde y vuelve a como estaba si falla', async () => {
+      conFilas([enviando(10, { estado: 'error', estado_sunat: 'RECHAZADO', puede_reintentar: true })]);
+      const { harness } = await abrir();
+      expect(textoFila(harness)).toContain('Rechazado por SUNAT');
+      const bus = TestBed.inject(EventosPanelService);
+
+      bus.emitir({ tipo: 'comprobante-actualizado', provisional: true, datos: { id_comprobante: 10, estado: 'pendiente', estado_sunat: 'ENVIANDO' } });
+      harness.detectChanges();
+      expect(textoFila(harness)).toContain('Enviando…');
+      expect(api.monitorAtencion).toHaveBeenCalledTimes(1); // solo la carga inicial
+
+      bus.emitir({ tipo: 'comprobante-actualizado', provisional: true, datos: { id_comprobante: 10, revertir: true } });
+      harness.detectChanges();
+      expect(textoFila(harness)).toContain('Rechazado por SUNAT');
+      expect(textoFila(harness)).not.toContain('Enviando…');
+    });
+
+    it('al reintentar con éxito, la fila toma el estado real que publica el servicio', async () => {
+      conFilas([enviando(10, { estado: 'error', estado_sunat: 'RECHAZADO' })]);
+      const { harness } = await abrir();
+      const bus = TestBed.inject(EventosPanelService);
+
+      bus.emitir({ tipo: 'comprobante-actualizado', provisional: true, datos: { id_comprobante: 10 } });
+      bus.emitir({ tipo: 'comprobante-actualizado', datos: { id_comprobante: 10, estado: 'emitido', estado_sunat: 'ACEPTADO', aceptada_sunat: true } });
+      harness.detectChanges();
+
+      expect(textoFila(harness)).toContain('Aceptado por SUNAT');
+      expect(textoFila(harness)).not.toContain('Enviando…');
+    });
   });
 });

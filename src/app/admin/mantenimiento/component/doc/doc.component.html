@@ -416,6 +416,6 @@
 }
 
 @if (idAsistente !== null) {
-  <app-nota-credito-asistente [idComprobante]="idAsistente" (emitida)="alEmitirNota()"
+  <app-nota-credito-asistente [idComprobante]="idAsistente" (emitida)="alEmitirNota($event)"
                               (cerrado)="cerrarAsistente()"></app-nota-credito-asistente>
 }

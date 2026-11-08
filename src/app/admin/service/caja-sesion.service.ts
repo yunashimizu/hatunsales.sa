@@ -1,9 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
 import { peticionSilenciosa } from '../../interceptors/contexto-http';
 import { cacheCorto, opcionesHttp } from './api-base.service';
+import { EventosPanelService } from './eventos-panel.service';
 import {
   FiltroTurnosCaja,
   ListadoTurnosCaja,
@@ -66,6 +67,7 @@ function parametros(valores: object): Record<string, string | number> {
 export class CajaSesionService {
   /** El Inicio, la campana y el POS piden la sesión a la vez: una sola petición cada 5 s. No es readonly: abrir/cerrar la recrean. */
   private sesionCompartida = cacheCorto<SesionCaja>(5000);
+  private readonly eventos = inject(EventosPanelService);
 
   constructor(private readonly http: HttpClient) {}
 
@@ -90,7 +92,12 @@ export class CajaSesionService {
   abrir(body: AbrirCajaBody): Observable<AperturaCaja> {
     return this.http
       .post<AperturaCaja>(urlConstants.caja.abrir, body, opcionesHttp())
-      .pipe(tap(() => this.invalidarSesion()));
+      .pipe(
+        tap(() => {
+          this.invalidarSesion();
+          this.eventos.emitir({ tipo: 'caja-cambio' });
+        }),
+      );
   }
 
   /** Turnos paginados. Solo se mandan los filtros con valor. */
@@ -139,6 +146,11 @@ export class CajaSesionService {
         monto_conteo: number | null;
         resumen?: ResumenTurnoCaja;
       }>(urlConstants.caja.cerrar, body, opcionesHttp())
-      .pipe(tap(() => this.invalidarSesion()));
+      .pipe(
+        tap(() => {
+          this.invalidarSesion();
+          this.eventos.emitir({ tipo: 'caja-cambio' });
+        }),
+      );
   }
 }

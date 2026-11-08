@@ -35,6 +35,7 @@ import {
 import { ComprobanteService } from '../../../../service/comprobante.service';
 import { FiscalEstadoService } from '../../../../service/fiscal-estado.service';
 import { ReceptorService } from '../../../../service/receptor.service';
+import { SeguimientoComprobanteService } from '../../../../service/seguimiento-comprobante.service';
 import { RUTA_DOCUMENTOS_VENTA, nombreDescarga } from '../documentos-sunat';
 import { ResultadoSunatComponent } from '../resultado-sunat/resultado-sunat.component';
 
@@ -116,6 +117,7 @@ export class VentasSinComprobanteComponent implements OnInit {
   private readonly receptores = inject(ReceptorService);
   private readonly alerta = inject(AlertService);
   private readonly fiscal = inject(FiscalEstadoService);
+  private readonly seguimiento = inject(SeguimientoComprobanteService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   private lectura: Subscription | null = null;
@@ -334,6 +336,11 @@ export class VentasSinComprobanteComponent implements OnInit {
         next: (respuesta) => {
           this.resultado = respuesta;
           if (respuesta.comprobante) this.emitido.emit(respuesta);
+          // Con el envío en segundo plano, se vigila hasta que SUNAT conteste y se avisa.
+          const comprobante = respuesta.comprobante;
+          if (comprobante?.envio_diferido && !comprobante.por_resumen && comprobante.id_comprobante) {
+            this.seguimiento.seguir(comprobante.id_comprobante, comprobante.numero_formateado ?? `#${comprobante.id_comprobante}`);
+          }
           // Emitida, la venta sale de la lista; si no, sigue con su nuevo motivo.
           this.cargar(this.pagina);
         },

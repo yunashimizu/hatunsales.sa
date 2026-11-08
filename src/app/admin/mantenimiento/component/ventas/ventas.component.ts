@@ -26,6 +26,7 @@ import { ColaEscaneos } from '../../../../shared/utils/cola-escaneos';
 import { ReceptorService } from '../../../service/receptor.service';
 import { AlmacenPos, PuntoVentaService, SolicitudVenta } from '../../../service/punto-venta.service';
 import { CajaSesionService } from '../../../service/caja-sesion.service';
+import { SeguimientoComprobanteService } from '../../../service/seguimiento-comprobante.service';
 import { CotizacionService } from '../../../service/cotizacion.service';
 import { ConfiguracionFiscalService } from '../../../service/configuracion-fiscal.service';
 import { mensajeDeError, errorOperativo, escapeHtmlAlerta } from '../../../service/api-base.service';
@@ -88,6 +89,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   /** Pitidos del lector (ok / error / aviso) con interruptor junto al campo. */
   readonly sonido = inject(SonidoCajaService);
+  private readonly seguimiento = inject(SeguimientoComprobanteService);
 
   /** Fuerza repaint bajo shell OnPush (mismo patrón que Productos/Clientes). */
   private refrescarVista(): void {
@@ -2002,6 +2004,11 @@ export class VentasComponent implements OnInit, OnDestroy {
                   : `${venta.comprobante?.numero_formateado ?? 'Venta'} emitida`,
               timer: 3500,
             });
+            // El envío sigue en segundo plano: se vigila hasta que SUNAT conteste y se avisa (aceptada o rechazada).
+            const comprobante = venta.comprobante;
+            if (comprobante?.envio_diferido && !comprobante.por_resumen && comprobante.id_comprobante) {
+              this.seguimiento.seguir(comprobante.id_comprobante, comprobante.numero_formateado ?? `#${comprobante.id_comprobante}`);
+            }
           }
 
           this.puntoVenta.descontarStockLocal(

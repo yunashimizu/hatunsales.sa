@@ -14,6 +14,7 @@ import {
   nombreEstadoEnvio,
   nombreLote,
   plazoVencido,
+  segundosSunat,
   textoAccionSunat,
   textoPlazoVencido,
 } from './documentos-sunat';
@@ -200,5 +201,21 @@ describe('documentos-sunat: glosario único (SUNAT-4, S10.2)', () => {
     expect(nombreLote('LOTE-ANTIGUO')).toEqual({ texto: 'LOTE-ANTIGUO', tecnico: 'LOTE-ANTIGUO' });
     expect(nombreLote(null)).toEqual({ texto: '', tecnico: '' });
     expect(nombreLote('RX-20261105-1').texto).toBe('RX-20261105-1');
+  });
+});
+
+describe('documentos-sunat: cuánto tardó SUNAT', () => {
+  it('muestra segundos con un decimal y coma, también por debajo del segundo', () => {
+    expect(segundosSunat(2310)).toBe('2,3 s');
+    expect(segundosSunat(800)).toBe('0,8 s');
+    expect(segundosSunat(15000)).toBe('15,0 s');
+    expect(segundosSunat(0)).toBe('0,0 s');
+  });
+
+  it('sin dato válido devuelve cadena vacía', () => {
+    expect(segundosSunat(null)).toBe('');
+    expect(segundosSunat(undefined)).toBe('');
+    expect(segundosSunat(NaN)).toBe('');
+    expect(segundosSunat(-5)).toBe('');
   });
 });

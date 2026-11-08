@@ -109,6 +109,12 @@ export function textoPlazoVencido(
   return `El plazo de envío individual venció el ${limite} y ya pasaron los 7 días del resumen diario: si el cliente reclama el comprobante, anúlelo con nota de crédito y emita uno nuevo.`;
 }
 
+/** Milisegundos como segundos con un decimal y coma: 2310 → «2,3 s», 800 → «0,8 s». Sin dato válido, cadena vacía. */
+export function segundosSunat(ms: number | null | undefined): string {
+  if (ms === null || ms === undefined || !Number.isFinite(Number(ms)) || Number(ms) < 0) return '';
+  return `${(Number(ms) / 1000).toFixed(1).replace('.', ',')} s`;
+}
+
 /** Estado de un envío o de un lote en palabras (el mismo glosario que Documentos); un estado desconocido se muestra tal cual. */
 export function nombreEstadoEnvio(estado: string | null | undefined): string {
   return TEXTO_ESTADO_SUNAT[estado as EstadoSunat] ?? String(estado ?? '');

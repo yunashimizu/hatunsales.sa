@@ -1,12 +1,13 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { Observable, tap } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
 import { peticionSilenciosa } from '../../interceptors/contexto-http';
 import {
   Almacen, FilaInventario, MovimientoInventario, Paginado, ResumenInventario,
 } from '../models/admin.models';
 import { cabecerasAutenticadas, cacheCorto, opcionesHttp } from './api-base.service';
+import { EventosPanelService } from './eventos-panel.service';
 
 export interface FiltroInventario {
   texto?: string;
@@ -39,10 +40,16 @@ export interface StockPorAlmacen {
 @Injectable({ providedIn: 'root' })
 export class InventarioAdminService {
 
-  /** Sidebar, dashboard, Inventario y Stock lo piden a la vez al cargar: una sola petición. */
-  private readonly resumenCompartido = cacheCorto<ResumenInventario>(5000);
+  /** Sidebar, dashboard, Inventario y Stock lo piden a la vez al cargar: una sola petición. No es readonly: `invalidarResumen()` lo recrea. */
+  private resumenCompartido = cacheCorto<ResumenInventario>(5000);
+  private readonly eventos = inject(EventosPanelService);
 
   constructor(private http: HttpClient) {}
+
+  /** Olvida el resumen guardado: la siguiente lectura consulta de nuevo (tras una venta, una recepción o un ajuste). */
+  invalidarResumen(): void {
+    this.resumenCompartido = cacheCorto<ResumenInventario>(5000);
+  }
 
   listar(filtro: FiltroInventario = {}): Observable<Paginado<FilaInventario>> {
     let params = new HttpParams();
@@ -90,7 +97,9 @@ export class InventarioAdminService {
 
   /** Entrada o salida con motivo, que queda registrada en el kardex. */
   ajustar(ajuste: AjusteStock): Observable<{ stock: number }> {
-    return this.http.post<{ stock: number }>(urlConstants.inventario.ajuste, ajuste, opcionesHttp());
+    return this.http.post<{ stock: number }>(urlConstants.inventario.ajuste, ajuste, opcionesHttp()).pipe(
+      tap(() => this.eventos.emitir({ tipo: 'stock-cambio', datos: { id_producto: ajuste.id_producto } })),
+    );
   }
 
   transferir(datos: {
@@ -100,7 +109,9 @@ export class InventarioAdminService {
     cantidad: number;
     comentario?: string;
   }): Observable<any> {
-    return this.http.post(urlConstants.inventario.transferencia, datos, opcionesHttp());
+    return this.http.post(urlConstants.inventario.transferencia, datos, opcionesHttp()).pipe(
+      tap(() => this.eventos.emitir({ tipo: 'stock-cambio', datos: { id_producto: datos.id_producto } })),
+    );
   }
 
   fijarStockMinimo(idInventario: number, stockMinimo: number): Observable<any> {

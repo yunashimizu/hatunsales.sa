@@ -301,6 +301,10 @@ export interface ResultadoComprobante {
   accion_sunat?: string | null;
   /** true: modo «resumen diario»: la boleta quedó firmada y guardada y SUNAT la recibe en el resumen, no al cobrar. */
   por_resumen?: boolean;
+  /** true: el comprobante está guardado y su envío a SUNAT sigue en segundo plano (el panel lo sigue hasta que SUNAT responda). */
+  envio_diferido?: boolean;
+  /** ms que tardó SUNAT en responder (solo cuando el envío terminó en la misma petición). */
+  tiempo_sunat_ms?: number | null;
   archivos?: string[];
   /** Aviso del ambiente («Prueba SUNAT BETA: sin validez tributaria.»). */
   aviso?: string | null;

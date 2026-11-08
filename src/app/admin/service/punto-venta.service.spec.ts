@@ -5,6 +5,7 @@ import {
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { urlConstants } from '../../constants/urlConstants';
+import { EventoPanel, EventosPanelService } from './eventos-panel.service';
 import { PuntoVentaService, SolicitudVenta } from './punto-venta.service';
 
 describe('PuntoVentaService: API del POS', () => {
@@ -199,6 +200,50 @@ describe('PuntoVentaService: API del POS', () => {
       peticion().flush({ message: 'Conflicto' }, { status: 409, statusText: 'Conflict' });
 
       expect(resultados[0]).toMatchObject({ estado: 'error' });
+    });
+  });
+
+  describe('avisos al panel tras registrar', () => {
+    const solicitud: SolicitudVenta = {
+      id_tipo: 2,
+      emitir_comprobante: true,
+      items: [{ id_producto: 5, cantidad: 1, precio_unitario: 10 }],
+    };
+
+    it('una venta con comprobante publica «venta-registrada» y «comprobante-actualizado»', () => {
+      const eventos: EventoPanel[] = [];
+      TestBed.inject(EventosPanelService).de().subscribe((e) => eventos.push(e));
+
+      service.registrar(solicitud).subscribe();
+      http.expectOne(urlConstants.puntoVenta.base).flush({
+        id_venta: 31,
+        total: 10,
+        comprobante: { id_comprobante: 88, estado: 'pendiente', estado_sunat: 'ENVIANDO', aceptada_sunat: false, envio_diferido: true },
+      });
+
+      expect(eventos.map((e) => e.tipo)).toEqual(['venta-registrada', 'comprobante-actualizado']);
+      expect(eventos[0].datos).toMatchObject({ id_venta: 31 });
+      expect(eventos[1].datos).toMatchObject({ id_comprobante: 88, estado_sunat: 'ENVIANDO' });
+    });
+
+    it('una venta sin comprobante solo publica «venta-registrada»', () => {
+      const eventos: EventoPanel[] = [];
+      TestBed.inject(EventosPanelService).de().subscribe((e) => eventos.push(e));
+
+      service.registrar(solicitud).subscribe();
+      http.expectOne(urlConstants.puntoVenta.base).flush({ id_venta: 32, total: 10 });
+
+      expect(eventos.map((e) => e.tipo)).toEqual(['venta-registrada']);
+    });
+
+    it('si el registro falla no publica nada', () => {
+      const eventos: EventoPanel[] = [];
+      TestBed.inject(EventosPanelService).de().subscribe((e) => eventos.push(e));
+
+      service.registrar(solicitud).subscribe({ error: () => undefined });
+      http.expectOne(urlConstants.puntoVenta.base).flush({ message: 'x' }, { status: 500, statusText: 'Error' });
+
+      expect(eventos).toEqual([]);
     });
   });
 });

@@ -10,6 +10,7 @@ import { EstadoFiscalGlobal } from '../../../../models/fiscal.models';
 import { ComprobanteService } from '../../../../service/comprobante.service';
 import { FiscalEstadoService } from '../../../../service/fiscal-estado.service';
 import { ReceptorService } from '../../../../service/receptor.service';
+import { SeguimientoComprobanteService } from '../../../../service/seguimiento-comprobante.service';
 import { VentasSinComprobanteComponent } from './ventas-sin-comprobante.component';
 
 const VENTA_EMPRESA: VentaSinComprobante = {
@@ -42,6 +43,8 @@ describe('VentasSinComprobanteComponent', () => {
     descargarPdf: vi.fn(),
   };
 
+  const seguimiento = { seguir: vi.fn() };
+
   function texto(): string {
     return (fixture.nativeElement as HTMLElement).textContent ?? '';
   }
@@ -57,6 +60,7 @@ describe('VentasSinComprobanteComponent', () => {
         provideRouter([]),
         { provide: ComprobanteService, useValue: api },
         { provide: ReceptorService, useValue: { buscar: vi.fn() } },
+        { provide: SeguimientoComprobanteService, useValue: seguimiento },
         { provide: AlertService, useValue: alerta },
         { provide: FiscalEstadoService, useValue: { estado: estadoFiscal, iniciar: vi.fn() } },
       ],
@@ -151,6 +155,23 @@ describe('VentasSinComprobanteComponent', () => {
     expect(texto()).toContain('Prueba SUNAT BETA - sin validez tributaria');
     expect(texto()).toContain('Ticket 80 mm');
     expect(api.ventasSinComprobante).toHaveBeenCalledTimes(2);
+  });
+
+  it('con el envío en segundo plano sigue el comprobante hasta que SUNAT conteste; por resumen o ya aceptado, no', async () => {
+    const emitirCon = async (comprobante: ResultadoEmisionVenta['comprobante']) => {
+      api.emitirComprobanteDeVenta.mockReturnValue(of({ id_venta: 33, total: 59, cliente_denominacion: 'ACME SAC', comprobante }));
+      component.abrirEmision(VENTA_EMPRESA);
+      fixture.detectChanges();
+      await component.emitir();
+    };
+
+    await emitirCon({ id_comprobante: 91, numero_formateado: 'FB01-00000014', estado: 'pendiente', estado_sunat: 'ENVIANDO', aceptada_sunat: false, envio_diferido: true });
+    expect(seguimiento.seguir).toHaveBeenCalledTimes(1);
+    expect(seguimiento.seguir).toHaveBeenCalledWith(91, 'FB01-00000014');
+
+    await emitirCon({ id_comprobante: 92, numero_formateado: 'B001-00000015', estado: 'pendiente', estado_sunat: 'POR_RESUMIR', aceptada_sunat: false, envio_diferido: true, por_resumen: true });
+    await emitirCon({ id_comprobante: 93, numero_formateado: 'FB01-00000016', estado: 'emitido', estado_sunat: 'ACEPTADO', aceptada_sunat: true });
+    expect(seguimiento.seguir).toHaveBeenCalledTimes(1);
   });
 
   it('si SUNAT todavía no confirma, el resultado habla con el glosario («SUNAT lo está procesando»), sin ticket ni CDR', async () => {

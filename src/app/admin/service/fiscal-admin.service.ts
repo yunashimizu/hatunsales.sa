@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { urlConstants } from '../../constants/urlConstants';
+import { conTiempoLimite } from '../../interceptors/contexto-http';
 import {
   AlertasFiscalesApi,
   AmbienteFiscal,
@@ -25,6 +26,7 @@ import {
   ResultadoPruebaFiscal,
   ResultadoReanudacion,
   TipoArchivoEnvio,
+  TipoCpePrueba,
 } from '../models/fiscal.models';
 import { opcionesHttp } from './api-base.service';
 
@@ -119,7 +121,8 @@ export class FiscalAdminService {
     return this.http.delete(urlConstants.fiscal[tipo], opcionesHttp());
   }
 
-  probar(ambiente: AmbienteFiscal, documento: 'cpe' | 'gre', tipoCpe?: '01' | '03') {
+  /** Con `'todos'` el servidor manda 4 documentos en serie (hasta 4 × 30 s): el límite de espera sube a 150 s. */
+  probar(ambiente: AmbienteFiscal, documento: 'cpe' | 'gre', tipoCpe?: TipoCpePrueba) {
     return this.http.post<ResultadoPruebaFiscal>(
       urlConstants.fiscal.probarConexion,
       {
@@ -127,7 +130,10 @@ export class FiscalAdminService {
         documento,
         ...(ambiente === 'beta' && documento === 'cpe' && tipoCpe ? { tipo_cpe: tipoCpe } : {}),
       },
-      opcionesHttp(),
+      {
+        ...opcionesHttp(),
+        ...(ambiente === 'beta' && documento === 'cpe' && tipoCpe === 'todos' ? { context: conTiempoLimite(150_000) } : {}),
+      },
     );
   }
 

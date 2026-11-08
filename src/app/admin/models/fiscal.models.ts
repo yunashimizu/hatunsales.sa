@@ -196,6 +196,22 @@ export interface CambiosConfiguracionFiscal {
   confirmaciones?: Partial<ConfirmacionesActivacion>;
 }
 
+/** Comprobante de prueba: 01 factura, 03 boleta, 07 nota de crédito, 08 nota de débito. */
+export type TipoDocumentoPrueba = '01' | '03' | '07' | '08';
+
+/** Qué documento de prueba pide el administrador: uno solo o los cuatro de una vez. */
+export type TipoCpePrueba = TipoDocumentoPrueba | 'todos';
+
+/** Un documento de la prueba «Los 4 documentos»: `ok: null` = no se intentó (la factura base no fue aceptada). */
+export interface DocumentoPruebaFiscal {
+  tipo: TipoDocumentoPrueba;
+  ok: boolean | null;
+  codigo: string | null;
+  tiempo_ms: number | null;
+  envio_id: number | null;
+  detalle: string;
+}
+
 export interface ResultadoPruebaFiscal {
   ok: boolean;
   ambiente: AmbienteFiscal;
@@ -209,7 +225,13 @@ export interface ResultadoPruebaFiscal {
     codigo?: string;
     envio_id?: number;
     archivos?: TipoArchivoEnvio[];
+    /** Con «Los 4 documentos»: a qué documento pertenece el paso. */
+    documento?: TipoDocumentoPrueba;
+    /** ms de SUNAT en este paso de envío. */
+    tiempo_ms?: number | null;
   }[];
+  /** Solo con «Los 4 documentos»: un resumen por documento, en orden factura, boleta, nota de crédito, nota de débito. */
+  documentos?: DocumentoPruebaFiscal[];
 }
 
 /** POST /fiscal/probar-credenciales-produccion: getStatusCdr de un comprobante inexistente (no emite ni numera). */
@@ -267,6 +289,8 @@ export interface EnvioSunat {
   ultimo_error?: string | null;
   /** aaaa-mm-dd: último día para enviarlo a SUNAT por envío individual (null si no se conoce). */
   fecha_limite_envio?: string | null;
+  /** ms que tardó SUNAT en la última respuesta de este envío (null si aún no respondió). */
+  tiempo_ms?: number | null;
 }
 
 export interface FiltroEnvios {

@@ -81,6 +81,29 @@ describe('EnviosSunatComponent', () => {
     expect(fila.textContent).toContain('Sin acciones');
   });
 
+  it('muestra bajo «Estado SUNAT» cuánto tardó SUNAT, con un decimal y coma; sin dato no muestra nada', () => {
+    consultaEnvios().flush({
+      datos: [
+        envio({ id_envio: 1, tiempo_ms: 2310 }),
+        envio({ id_envio: 2, tiempo_ms: 800 }),
+        envio({ id_envio: 3, tiempo_ms: null }),
+        envio({ id_envio: 4 }),
+      ],
+      total: 4,
+      pagina: 1,
+      por_pagina: 20,
+    });
+    fixture.detectChanges();
+
+    const estados = Array.from(fixture.nativeElement.querySelectorAll('tbody tr [data-etiqueta="Estado SUNAT"]')) as HTMLElement[];
+    expect(estados[0].textContent).toContain('SUNAT respondió en 2,3 s');
+    expect(estados[1].textContent).toContain('SUNAT respondió en 0,8 s');
+    expect(estados[2].textContent).not.toContain('SUNAT respondió');
+    expect(estados[3].textContent).not.toContain('SUNAT respondió');
+    const textos = Array.from(estados[0].querySelectorAll('.adm-tabla__secundario')).map((e) => e.textContent?.trim());
+    expect(textos).toContain('SUNAT respondió en 2,3 s');
+  });
+
   it('ofrece solo las acciones que el servidor admite en cada estado', () => {
     const futuro = new Date(Date.now() + 60_000).toISOString();
     const pasado = new Date(Date.now() - 60_000).toISOString();

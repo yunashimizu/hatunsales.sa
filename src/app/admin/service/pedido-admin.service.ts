@@ -1,10 +1,11 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, map, tap } from 'rxjs';
 import { urlConstants } from '../../constants/urlConstants';
 import { peticionSilenciosa } from '../../interceptors/contexto-http';
 import { EstadoPedido, Pedido } from '../../store/models/tienda.models';
 import { cacheCorto, opcionesHttp } from './api-base.service';
+import { EventosPanelService } from './eventos-panel.service';
 
 /** Lo que el panel debe atender de los pedidos web: cobrar los pendientes y preparar los pagados. */
 export interface ResumenPedidosWeb {
@@ -36,7 +37,8 @@ export function pedidoCancelable(estado: EstadoPedido): boolean {
 @Injectable({ providedIn: 'root' })
 export class PedidoAdminService {
   private readonly resumen$ = new BehaviorSubject<ResumenPedidosWeb | null>(null);
-  private readonly compartir = cacheCorto<ResumenPedidosWeb>(5000);
+  private compartir = cacheCorto<ResumenPedidosWeb>(5000);
+  private readonly eventos = inject(EventosPanelService);
 
   /** Último resumen conocido (null hasta la primera lectura): lo escuchan el menú y el Inicio. */
   readonly resumen = this.resumen$.asObservable();
@@ -57,14 +59,29 @@ export class PedidoAdminService {
   cambiarEstado(id: number, estado: EstadoPedido, comentario?: string): Observable<Pedido> {
     const cuerpo: { estado: EstadoPedido; comentario?: string } = { estado };
     if (comentario?.trim()) cuerpo.comentario = comentario.trim();
-    return this.http.put<Pedido>(`${urlConstants.admin.pedidos}/${id}/estado`, cuerpo, opcionesHttp());
+    return this.http.put<Pedido>(`${urlConstants.admin.pedidos}/${id}/estado`, cuerpo, opcionesHttp()).pipe(
+      tap((pedido) => {
+        this.invalidarResumen();
+        this.eventos.emitir({ tipo: 'pedido-cambio', datos: { id_pedido: id, estado: pedido?.estado ?? estado } });
+      }),
+    );
+  }
+
+  /** Olvida el conteo guardado: la siguiente lectura de `porPreparar()` consulta de nuevo (tras mover un pedido o cobrar una venta). */
+  invalidarResumen(): void {
+    this.compartir = cacheCorto<ResumenPedidosWeb>(5000);
   }
 
   /** Confirma un pago hecho por fuera de la pasarela (transferencia, Yape, contra entrega): registra el cobro y genera la venta. */
   confirmarPago(id: number, referencia?: string): Observable<Pedido> {
     const cuerpo: { referencia?: string } = {};
     if (referencia?.trim()) cuerpo.referencia = referencia.trim();
-    return this.http.put<Pedido>(`${urlConstants.admin.pedidos}/${id}/confirmar-pago`, cuerpo, opcionesHttp());
+    return this.http.put<Pedido>(`${urlConstants.admin.pedidos}/${id}/confirmar-pago`, cuerpo, opcionesHttp()).pipe(
+      tap((pedido) => {
+        this.invalidarResumen();
+        this.eventos.emitir({ tipo: 'pedido-cambio', datos: { id_pedido: id, estado: pedido?.estado } });
+      }),
+    );
   }
 
   /** Pendientes y pagados por preparar: una sola lectura de conteo en el servidor (`admin/pedidos/resumen`) que se publica en `resumen`. Silenciosa: no avisa si falla. */

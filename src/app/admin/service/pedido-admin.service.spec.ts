@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { urlConstants } from '../../constants/urlConstants';
 import { SILENCIOSA } from '../../interceptors/contexto-http';
 import { Pedido } from '../../store/models/tienda.models';
+import { EventoPanel, EventosPanelService } from './eventos-panel.service';
 import { PedidoAdminService, pedidoCancelable, siguienteEstadoPedido } from './pedido-admin.service';
 
 describe('PedidoAdminService', () => {
@@ -112,6 +113,38 @@ describe('PedidoAdminService', () => {
     servicio.resumen.subscribe((r) => (ultimo = r));
     servicio.publicarDesde([p('pendiente'), p('pagado'), p('pagado'), p('entregado'), p('cancelado')]);
     expect(ultimo).toEqual({ pendientes: 1, pagados: 2, total: 3 });
+  });
+
+  describe('avisos al panel', () => {
+    it('cambiarEstado publica «pedido-cambio» y olvida el conteo guardado', () => {
+      const eventos: EventoPanel[] = [];
+      TestBed.inject(EventosPanelService).de('pedido-cambio').subscribe((e) => eventos.push(e));
+
+      servicio.porPreparar().subscribe();
+      http.expectOne(urlConstants.admin.pedidosResumen).flush({ pendientes: 1, pagados: 0 });
+
+      servicio.cambiarEstado(7, 'preparando').subscribe();
+      http.expectOne(`${base}/7/estado`).flush(p('preparando'));
+      expect(eventos.length).toBe(1);
+      expect(eventos[0].datos).toMatchObject({ id_pedido: 7, estado: 'preparando' });
+
+      // Dentro de los 5 s, pero con el conteo invalidado: vuelve a consultar.
+      servicio.porPreparar().subscribe();
+      http.expectOne(urlConstants.admin.pedidosResumen).flush({ pendientes: 0, pagados: 0 });
+    });
+
+    it('confirmarPago también publica «pedido-cambio»; un fallo no publica nada', () => {
+      const eventos: EventoPanel[] = [];
+      TestBed.inject(EventosPanelService).de('pedido-cambio').subscribe((e) => eventos.push(e));
+
+      servicio.confirmarPago(8, 'Yape 123').subscribe();
+      http.expectOne(`${base}/8/confirmar-pago`).flush(p('pagado'));
+      expect(eventos.length).toBe(1);
+
+      servicio.cambiarEstado(8, 'enviado').subscribe({ error: () => undefined });
+      http.expectOne(`${base}/8/estado`).flush({ message: 'x' }, { status: 400, statusText: 'Bad Request' });
+      expect(eventos.length).toBe(1);
+    });
   });
 });
 

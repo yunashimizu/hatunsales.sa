@@ -3,10 +3,11 @@ import { TestBed } from '@angular/core/testing';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { AuthService } from '../../auth/service/auth.service';
 import { EstadoFiscalGlobal } from '../models/fiscal.models';
-import { AvisosPanelService, CLAVE_AVISOS_VISTOS } from './avisos-panel.service';
+import { AvisosPanelService, CLAVE_AVISOS_VISTOS, UMBRAL_VISIBLE_MS } from './avisos-panel.service';
 import { CajaSesionService } from './caja-sesion.service';
 import { ComprobanteService } from './comprobante.service';
 import { CreditoAdminService } from './credito-admin.service';
+import { EventosPanelService } from './eventos-panel.service';
 import { FiscalEstadoService } from './fiscal-estado.service';
 import { InventarioAdminService } from './inventario-admin.service';
 import { PedidoAdminService } from './pedido-admin.service';
@@ -37,6 +38,10 @@ describe('AvisosPanelService', () => {
   const resumenInventario = vi.fn();
   const vencidasResumen = vi.fn();
   const sesionCaja = vi.fn();
+  const invalidarMonitor = vi.fn();
+  const invalidarResumen = vi.fn();
+  const invalidarCredito = vi.fn();
+  const invalidarSesion = vi.fn();
   let servicio: AvisosPanelService;
 
   function montar(roles: string[]): void {
@@ -46,10 +51,10 @@ describe('AvisosPanelService', () => {
         { provide: AuthService, useValue: { puedeVer: (r: string[]) => r.some((x) => rolesPermitidos.includes(x)) } },
         { provide: FiscalEstadoService, useValue: { estado, iniciar: fiscalIniciar } },
         { provide: PedidoAdminService, useValue: { resumen: resumenPedidos.asObservable() } },
-        { provide: ComprobanteService, useValue: { monitorAtencion } },
-        { provide: InventarioAdminService, useValue: { resumen: resumenInventario } },
-        { provide: CreditoAdminService, useValue: { vencidasResumen } },
-        { provide: CajaSesionService, useValue: { sesion: sesionCaja } },
+        { provide: ComprobanteService, useValue: { monitorAtencion, invalidarMonitor } },
+        { provide: InventarioAdminService, useValue: { resumen: resumenInventario, invalidarResumen } },
+        { provide: CreditoAdminService, useValue: { vencidasResumen, invalidar: invalidarCredito } },
+        { provide: CajaSesionService, useValue: { sesion: sesionCaja, invalidarSesion } },
       ],
     });
     servicio = TestBed.inject(AvisosPanelService);
@@ -77,12 +82,14 @@ describe('AvisosPanelService', () => {
     resumenPedidos.next(null);
     fiscalIniciar.mockClear();
     for (const doble of [monitorAtencion, resumenInventario, vencidasResumen, sesionCaja]) doble.mockReset();
+    for (const doble of [invalidarMonitor, invalidarResumen, invalidarCredito, invalidarSesion]) doble.mockReset();
     fijar();
   });
 
   afterEach(() => {
     servicio.detener();
     localStorage.clear();
+    vi.useRealTimers();
   });
 
   it('compone los avisos según el rol: el administrador ve todo, graves primero', () => {
@@ -177,5 +184,111 @@ describe('AvisosPanelService', () => {
     servicio.iniciar();
     expect(servicio.sinLectura()).toBe(true);
     expect(servicio.items()).toEqual([]);
+  });
+
+  describe('eventos del panel', () => {
+    function emitir(...tipos: Array<'venta-registrada' | 'comprobante-actualizado' | 'caja-cambio' | 'pedido-cambio' | 'stock-cambio'>): void {
+      const bus = TestBed.inject(EventosPanelService);
+      for (const tipo of tipos) bus.emitir({ tipo });
+    }
+
+    it('un evento invalida las cuatro cachés y vuelve a leer una vez, aunque lleguen dos en 500 ms', () => {
+      vi.useFakeTimers();
+      montar(['admin']);
+      servicio.iniciar();
+      expect(monitorAtencion).toHaveBeenCalledTimes(1);
+
+      emitir('venta-registrada');
+      vi.advanceTimersByTime(200);
+      emitir('comprobante-actualizado');
+      // Las cachés se invalidan al instante, por cada evento.
+      expect(invalidarMonitor).toHaveBeenCalledTimes(2);
+      expect(invalidarResumen).toHaveBeenCalledTimes(2);
+      expect(invalidarCredito).toHaveBeenCalledTimes(2);
+      expect(invalidarSesion).toHaveBeenCalledTimes(2);
+      // La lectura espera a que pasen 500 ms sin eventos nuevos.
+      vi.advanceTimersByTime(499);
+      expect(monitorAtencion).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(1);
+      expect(monitorAtencion).toHaveBeenCalledTimes(2);
+      expect(resumenInventario).toHaveBeenCalledTimes(2);
+      expect(vencidasResumen).toHaveBeenCalledTimes(2);
+      expect(sesionCaja).toHaveBeenCalledTimes(2);
+
+      vi.advanceTimersByTime(5_000);
+      expect(monitorAtencion).toHaveBeenCalledTimes(2);
+    });
+
+    it('escucha todos los tipos de evento', () => {
+      vi.useFakeTimers();
+      montar(['admin']);
+      servicio.iniciar();
+      for (const tipo of ['caja-cambio', 'pedido-cambio', 'stock-cambio'] as const) {
+        monitorAtencion.mockClear();
+        emitir(tipo);
+        vi.advanceTimersByTime(500);
+        expect(monitorAtencion).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it('un estado optimista (provisional) no dispara lecturas', () => {
+      vi.useFakeTimers();
+      montar(['admin']);
+      servicio.iniciar();
+      TestBed.inject(EventosPanelService).emitir({ tipo: 'comprobante-actualizado', provisional: true });
+      vi.advanceTimersByTime(1_000);
+      expect(monitorAtencion).toHaveBeenCalledTimes(1);
+      expect(invalidarMonitor).not.toHaveBeenCalled();
+    });
+
+    it('al detener deja de escuchar', () => {
+      vi.useFakeTimers();
+      montar(['admin']);
+      servicio.iniciar();
+      servicio.detener();
+      monitorAtencion.mockClear();
+      emitir('venta-registrada');
+      vi.advanceTimersByTime(1_000);
+      expect(monitorAtencion).not.toHaveBeenCalled();
+      expect(invalidarMonitor).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('volver a la pestaña', () => {
+    function volverAVerla(): void {
+      document.dispatchEvent(new Event('visibilitychange'));
+    }
+
+    it(`refresca si pasaron más de ${UMBRAL_VISIBLE_MS / 1000} s desde la última lectura`, () => {
+      vi.useFakeTimers();
+      montar(['admin']);
+      servicio.iniciar();
+      expect(monitorAtencion).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(15_000);
+      volverAVerla();
+      expect(monitorAtencion).toHaveBeenCalledTimes(2);
+    });
+
+    it('a los 5 s no vuelve a leer', () => {
+      vi.useFakeTimers();
+      montar(['admin']);
+      servicio.iniciar();
+
+      vi.advanceTimersByTime(5_000);
+      volverAVerla();
+      expect(monitorAtencion).toHaveBeenCalledTimes(1);
+    });
+
+    it('el reloj periódico sigue siendo de 60 s', () => {
+      vi.useFakeTimers();
+      montar(['admin']);
+      servicio.iniciar();
+
+      vi.advanceTimersByTime(59_000);
+      expect(monitorAtencion).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(1_000);
+      expect(monitorAtencion).toHaveBeenCalledTimes(2);
+    });
   });
 });

@@ -30,6 +30,8 @@ import {
   OperacionFiscal,
   ResultadoPruebaFiscal,
   SeriesSunat,
+  TipoCpePrueba,
+  TipoDocumentoPrueba,
 } from '../../models/fiscal.models';
 import {
   errorOperativo,
@@ -43,6 +45,7 @@ import {
   DestinoFiscal,
   SolicitudGuardadoFiscal,
 } from './activacion-produccion/activacion-produccion.component';
+import { segundosSunat } from '../../mantenimiento/component/doc/documentos-sunat';
 import { EnviosSunatComponent } from './envios-sunat/envios-sunat.component';
 import { LotesSunatComponent } from './lotes-sunat/lotes-sunat.component';
 import { LlaveAlertasSunatComponent } from './llave-alertas/llave-alertas-sunat.component';
@@ -162,7 +165,15 @@ export class FacturacionSunatComponent implements OnInit {
   credencialesGre = { clientId: '', clientSecret: '' };
   ambientePrueba: AmbienteFiscal = 'beta';
   documentoPrueba: 'cpe' | 'gre' = 'cpe';
-  tipoCpePrueba: '01' | '03' = '01';
+  tipoCpePrueba: TipoCpePrueba = '01';
+  /** Nombre en palabras de cada documento de la prueba «Los 4 documentos». */
+  readonly nombreDocumentoPrueba: Readonly<Record<TipoDocumentoPrueba, string>> = {
+    '01': 'Factura',
+    '03': 'Boleta',
+    '07': 'Nota de crédito',
+    '08': 'Nota de débito',
+  };
+  readonly segundosSunat = segundosSunat;
   emisorBeta: EmisorBeta | null = null;
   rucCertificadoBeta: string | null = null;
   rucEmisorBetaGuardado: string | null = null;
