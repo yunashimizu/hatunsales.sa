@@ -3214,28 +3214,7 @@ th[aria-sort='descending'] .adm-tabla__orden .bi { opacity: 1; }
   .adm-btn--oscuro:hover:not(:disabled) { transform: none; }
 }
 
-/* ── R21 · Armazón de acero ─────────────────────────────────────────────────────
-   En tema claro, el menú lateral y la barra inferior del celular van en grafito («acero») con el oro
-   encima; el lienzo de trabajo sigue claro. No se añade ninguna regla a esos componentes: aquí se
-   redefinen, solo dentro de ellos, los mismos tokens del panel (son los valores del tema oscuro).
-   En tema oscuro no cambia nada. */
-:root:not([data-tema='oscuro']) :is(.sidebar, app-barra-inferior) {
-  --adm-superficie: #232423;
-  --adm-superficie-2: #232423;
-  --adm-superficie-3: #30312e;
-  --adm-borde: #363733;
-  --adm-borde-fuerte: #4a4b45;
-  --adm-texto: #f6f4ee;
-  --adm-texto-2: #dad7ce;
-  --adm-texto-suave: #b8b5ac;
-  --adm-texto-tenue: #918f87;
-  --adm-marca: #d4b878;
-  --adm-marca-texto: #e9d6a4;
-  --adm-marca-claro: rgba(212, 184, 120, 0.16);
-  --adm-marca-borde: #e9d6a4;
-  --adm-primario: #3a3b38;
-  --adm-interruptor-off: #4a4b45;
-}
+/* R21 · El menú lateral y la barra inferior conservan el estilo claro con toques dorados (se probó grafito y Moisés prefirió el claro). */
 
 /* ── R21 · Profundidad ──────────────────────────────────────────────────────────
    Sombra cálida y muy suave: las tarjetas se despegan del papel sin dejar de ser planas.
