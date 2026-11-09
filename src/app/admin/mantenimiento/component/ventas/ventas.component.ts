@@ -13,7 +13,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
-  Subject, debounceTime, distinctUntilChanged, of, switchMap, takeUntil,
+  Subject, debounceTime, distinctUntilChanged, from, of, switchMap, takeUntil,
   catchError, EMPTY, finalize, map, tap, timer, Observable,
 } from 'rxjs';
 
@@ -29,7 +29,11 @@ import { CajaSesionService } from '../../../service/caja-sesion.service';
 import { SeguimientoComprobanteService } from '../../../service/seguimiento-comprobante.service';
 import { CotizacionService } from '../../../service/cotizacion.service';
 import { ConfiguracionFiscalService } from '../../../service/configuracion-fiscal.service';
-import { mensajeDeError, errorOperativo, escapeHtmlAlerta } from '../../../service/api-base.service';
+import { mensajeDeError, errorOperativo, escapeHtmlAlerta, normalizarErrorBlob } from '../../../service/api-base.service';
+import { ComprobanteService } from '../../../service/comprobante.service';
+import { nombreDescarga } from '../doc/documentos-sunat';
+import { descargarArchivo } from '../../../../shared/utils/descargar-archivo';
+import { imprimirPdf } from '../../../../shared/utils/imprimir-pdf';
 import {
   LineaVenta, PreviewComprobante, ProductoVenta, Receptor, SugerenciaReceptor,
   VentaRegistrada, TIPO_BOLETA, TIPO_FACTURA,
@@ -91,6 +95,9 @@ export class VentasComponent implements OnInit, OnDestroy {
   /** Pitidos del lector (ok / error / aviso) con interruptor junto al campo. */
   readonly sonido = inject(SonidoCajaService);
   private readonly seguimiento = inject(SeguimientoComprobanteService);
+  private readonly comprobantes = inject(ComprobanteService);
+  /** Envío del PDF a la impresora; es un campo para poder sustituirlo en las pruebas (el sistema de pruebas no admite vi.mock). */
+  private readonly imprimirDocumento = imprimirPdf;
 
   /** Fuerza repaint bajo shell OnPush (mismo patrón que Productos/Clientes). */
   private refrescarVista(): void {
@@ -2015,8 +2022,10 @@ export class VentasComponent implements OnInit, OnDestroy {
           this.puntoVenta.descontarStockLocal(
             lineasRegistradas,
           );
+          // Sin forzar: el stock de lo vendido ya se descontó arriba. Así no se bajan hasta 5 000 productos
+          // después de cada venta; el catálogo se renueva solo cuando vence su caché (3 min) o cambia el almacén.
           this.puntoVenta
-            .cargarCatalogo(true, this.idAlmacen)
+            .cargarCatalogo(false, this.idAlmacen)
             .pipe(
               takeUntil(this.destruir$),
               catchError(() => EMPTY),
@@ -2074,6 +2083,40 @@ export class VentasComponent implements OnInit, OnDestroy {
   cerrarUltimaVenta(): void {
     this.ultimaVenta = null;
     this.refrescarVista();
+  }
+
+  /** Mientras se pide y se manda a imprimir el ticket. */
+  imprimiendoTicket = false;
+
+  /** Imprime el ticket de 80 mm de la venta recién cobrada. Si el navegador no deja imprimir, lo descarga. */
+  imprimirTicket(): void {
+    const comprobante = this.ultimaVenta?.comprobante;
+    const id = comprobante?.id_comprobante;
+    if (!id || this.imprimiendoTicket) return;
+
+    this.imprimiendoTicket = true;
+    this.refrescarVista();
+    this.comprobantes
+      .descargarPdf(id, 'ticket')
+      .pipe(
+        // La bandera no se baja al llegar el PDF sino cuando el navegador abre la impresión o se rinde
+        // (hasta 8 s): el botón sigue en «Preparando…» y un segundo clic no pide otro ticket.
+        switchMap((blob) => from(this.imprimirDocumento(blob)).pipe(map((impreso) => ({ blob, impreso })))),
+        takeUntil(this.destruir$),
+        finalize(() => {
+          this.imprimiendoTicket = false;
+          this.refrescarVista();
+        }),
+      )
+      .subscribe({
+        next: ({ blob, impreso }) => {
+          if (impreso) return;
+          descargarArchivo(blob, nombreDescarga(comprobante?.numero_formateado ?? '', 'pdf_ticket'));
+          this.alerta.toast({ type: 'warning', title: 'No se pudo abrir la impresión: el ticket se descargó.' });
+        },
+        error: async (e) =>
+          this.alerta.error(errorOperativo(await normalizarErrorBlob(e), 'No se pudo generar el ticket')),
+      });
   }
 
   abrirComprobante(): void {

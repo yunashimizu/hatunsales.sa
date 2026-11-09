@@ -128,6 +128,17 @@ describe('ClientesComponent · orden, páginas y CSV', () => {
   const nombres = (raiz: HTMLElement) =>
     Array.from(raiz.querySelectorAll('tbody tr .adm-tabla__principal')).map((n) => n.textContent!.trim());
 
+  it('la búsqueda perdona tildes y el orden de las palabras', async () => {
+    const fixture = await montar();
+    const c = fixture.componentInstance;
+    c.clientes = [
+      { id_cliente: 901, nombre: 'María Ñañez Pérez', nombre_completo: 'María Ñañez Pérez', dni: 1, email: '', telefono: '' },
+      { id_cliente: 902, nombre: 'Juan Soto', nombre_completo: 'Juan Soto', dni: 2, email: '', telefono: '' },
+    ];
+    c.filtro = 'perez nanez maria';
+    expect(c.personasFiltradas.map((p) => p.id_cliente)).toEqual([901]);
+  });
+
   it('ordena por la cabecera, marca aria-sort y vuelve a la primera página', async () => {
     const fixture = await montar();
     const raiz: HTMLElement = fixture.nativeElement;

@@ -166,14 +166,14 @@
 
     <div class="adm-panel__pie">
       <ng-container *ngIf="fase === 'formulario'">
-        <button type="button" class="adm-btn adm-btn--suave" [disabled]="guardando" (click)="cerrar()">
-          Cancelar
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--cancelar" [disabled]="guardando" (click)="cerrar()">
+          <i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar
         </button>
         <button type="button" class="adm-btn adm-btn--suave" *ngIf="puedeSoloAgregar"
                 [disabled]="bloqueado" (click)="soloAgregar()">
           <i class="bi bi-cart-plus"></i> Solo agregar al carrito
         </button>
-        <button type="button" class="adm-btn adm-btn--primario" [disabled]="bloqueado" (click)="guardar()">
+        <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar" [disabled]="bloqueado" (click)="guardar()">
           <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
           {{ guardando ? textoProgreso : (modoActivo === 'crear' ? 'Crear y agregar' : 'Ingresar y agregar') }}
         </button>

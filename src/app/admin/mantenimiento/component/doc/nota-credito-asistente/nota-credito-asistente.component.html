@@ -400,14 +400,14 @@
         @if (pendiente) {
           <span class="adm-ayuda nca-pie__pendiente" role="status">{{ pendiente }}</span>
         }
-        <button type="button" class="adm-btn adm-btn--fantasma" (click)="cerrar()" [disabled]="enviando">Cancelar</button>
+        <button type="button" class="adm-btn adm-btn--fantasma adm-btn--cancelar" (click)="cerrar()" [disabled]="enviando"><i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar</button>
         <button type="button" class="adm-btn adm-btn--primario" (click)="emitir()" [disabled]="enviando || !!pendiente">
           <i class="bi" [ngClass]="enviando ? 'bi-arrow-repeat adm-girando' : 'bi-send'" aria-hidden="true"></i>
           {{ enviando ? 'Enviando a SUNAT…' : 'Emitir nota de crédito a SUNAT' }}
         </button>
       } @else {
-        <button type="button" class="adm-btn adm-btn--fantasma" (click)="cerrar()">
-          {{ contexto?.permitido && puedeEmitir ? 'Cancelar' : 'Cerrar' }}
+        <button type="button" class="adm-btn adm-btn--fantasma" [class.adm-btn--cancelar]="contexto?.permitido && puedeEmitir" (click)="cerrar()">
+          <i class="bi bi-x-lg" aria-hidden="true" *ngIf="contexto?.permitido && puedeEmitir"></i> {{ contexto?.permitido && puedeEmitir ? 'Cancelar' : 'Cerrar' }}
         </button>
         @if (contexto?.permitido && puedeEmitir) {
           <button type="button" class="adm-btn adm-btn--primario" (click)="continuar()" [disabled]="!motivo">

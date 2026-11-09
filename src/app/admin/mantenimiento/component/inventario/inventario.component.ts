@@ -450,6 +450,7 @@ export class InventarioComponent implements OnInit, OnDestroy {
         id_almacen_destino: this.transferencia.id_almacen_destino,
         cantidad,
         comentario: this.transferencia.comentario?.trim() || undefined,
+        stock_origen_esperado: Number(fila.stock),
       })
       .pipe(takeUntil(this.destruir$))
       .subscribe({

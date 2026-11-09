@@ -126,7 +126,7 @@ export class ArqueoCajaPaginaComponent implements OnInit {
     const vistas = new Map<number, string>();
     for (const c of this.cajas) {
       if (c.id_sucursal !== null && c.id_sucursal !== undefined && !vistas.has(c.id_sucursal)) {
-        vistas.set(c.id_sucursal, c.sucursal_nombre || `Sucursal ${c.id_sucursal}`);
+        vistas.set(c.id_sucursal, c.sucursal_nombre || `Local ${c.id_sucursal}`);
       }
     }
     return [...vistas].map(([id, nombre]) => ({ id, nombre }));
@@ -160,6 +160,7 @@ export class ArqueoCajaPaginaComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.leerLocalDeLaUrl();
     this.cargarCajas();
     this.cargarListados();
     combineLatest([this.ruta.queryParamMap, this.recargar$.pipe(startWith(undefined))])
@@ -234,6 +235,33 @@ export class ArqueoCajaPaginaComponent implements OnInit {
   private filtrosIniciales(): FiltrosArqueo {
     const hoy = hoyEnLima();
     return { id_sucursal: null, id_caja: null, id_usuario: null, desde: hoy, hasta: hoy };
+  }
+
+  /** Llegar desde Caja («Arqueo de este local»): `?id_sucursal=N` arranca con ese filtro. Lo inválido se ignora. */
+  private leerLocalDeLaUrl(): void {
+    const valor = this.ruta.snapshot.queryParamMap.get('id_sucursal');
+    if (valor === null || !/^\d+$/.test(valor)) return;
+    const id = Number(valor);
+    if (!Number.isSafeInteger(id) || id < 1 || id > 2_147_483_647) return;
+    this.filtros = { ...this.filtros, id_sucursal: id };
+    this.aplicados = { ...this.filtros };
+  }
+
+  /** Cajas de un local según la lista de cajas (para las fichas «Cajas ahora» de su tarjeta). */
+  cajasDeLocal(idSucursal: number | null): CajaDisponible[] {
+    return this.cajas.filter((c) => (c.id_sucursal ?? null) === idSucursal);
+  }
+
+  /** «Ver turnos de este local»: filtra por el local, aplica y lleva el listado a la vista. */
+  verTurnosDeLocal(idSucursal: number | null): void {
+    if (idSucursal === null) return;
+    this.filtros = { ...this.filtros, id_sucursal: idSucursal };
+    this.alCambiarSucursal();
+    this.aplicarFiltros();
+    if (this.errorFiltro) return;
+    if (typeof document !== 'undefined') {
+      setTimeout(() => document.getElementById('arq-turnos')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+    }
   }
 
   private cargarCajas(): void {
@@ -316,7 +344,7 @@ export class ArqueoCajaPaginaComponent implements OnInit {
         error: (error) => {
           this.resumen = null;
           this.cargandoResumen = false;
-          this.errorResumen = mensajeDeError(error, 'No se pudo cargar el resumen por sucursal');
+          this.errorResumen = mensajeDeError(error, 'No se pudo cargar el resumen por local');
           this.cdr.markForCheck();
         },
       });
@@ -415,12 +443,12 @@ export class ArqueoCajaPaginaComponent implements OnInit {
     const signo = this.signoDiferencia(valor);
     if (signo === null) return '—';
     if (signo === 'cuadra') return 'Cuadra';
-    const absoluto = Math.abs(valor as number).toFixed(2);
+    const absoluto = Math.abs(valor as number).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return signo === 'sobra' ? `Sobra S/ ${absoluto}` : `Falta S/ ${absoluto}`;
   }
 
   nombreSucursal(s: Pick<ResumenSucursalCaja, 'nombre' | 'id_sucursal'>): string {
-    return s.nombre || (s.id_sucursal === null ? 'Sin sucursal' : `Sucursal ${s.id_sucursal}`);
+    return s.nombre || (s.id_sucursal === null ? 'Sin local' : `Local ${s.id_sucursal}`);
   }
 
   trackSucursal(s: TarjetaSucursal): string {

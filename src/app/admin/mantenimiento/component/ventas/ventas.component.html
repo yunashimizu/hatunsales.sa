@@ -97,7 +97,7 @@
             <label class="adm-etiqueta" for="adm-buscar-producto">
               {{ nombreAlmacenActivo ? 'Código, SKU o nombre' : 'Buscar producto' }}
             </label>
-            <button type="button" class="adm-btn adm-btn--primario adm-btn--sm pv-buscador__alta"
+            <button type="button" class="adm-btn adm-btn--primario adm-btn--crear adm-btn--sm pv-buscador__alta"
                     *ngIf="mostrarBotonAltaProductoEnBusqueda || mostrarTarjetaSinResultados"
                     (click)="abrirAltaRapida()"
                     title="Registrar este producto y continuar la venta (F2)">
@@ -336,7 +336,8 @@
 
           <div class="pv-resultado__texto">
             <strong class="pv-resultado__titulo">
-              {{ ultimaVenta.comprobante_error ? 'Venta registrada, comprobante pendiente' : 'Comprobante emitido' }}
+              {{ ultimaVenta.comprobante_error ? 'Venta registrada, comprobante pendiente'
+                 : (ultimaVenta.comprobante ? 'Comprobante emitido' : 'Venta registrada') }}
             </strong>
             <div class="pv-resultado__detalle">
               Venta #{{ ultimaVenta.id_venta }}
@@ -354,6 +355,12 @@
           </div>
 
           <div class="adm-acciones pv-resultado__acciones">
+            <button type="button" class="adm-btn adm-btn--primario adm-btn--sm pv-resultado__ticket"
+                    *ngIf="ultimaVenta.comprobante?.id_comprobante"
+                    [disabled]="imprimiendoTicket" (click)="imprimirTicket()">
+              <i class="bi" [ngClass]="imprimiendoTicket ? 'bi-arrow-repeat adm-girando' : 'bi-printer'" aria-hidden="true"></i>
+              {{ imprimiendoTicket ? 'Preparando…' : 'Imprimir ticket' }}
+            </button>
             <button type="button" class="adm-btn adm-btn--suave adm-btn--sm"
                     *ngIf="ultimaVenta.comprobante?.enlace_pdf || ultimaVenta.comprobante?.enlace"
                     (click)="abrirComprobante()">
@@ -362,7 +369,7 @@
             <a class="adm-btn adm-btn--suave adm-btn--sm" routerLink="/dashboard/mantenimiento/doc">
               <i class="bi bi-collection" aria-hidden="true"></i> Ir a documentos
             </a>
-            <a class="adm-btn adm-btn--primario adm-btn--sm"
+            <a class="adm-btn adm-btn--suave adm-btn--sm"
                *ngIf="ultimaVenta.id_venta"
                [routerLink]="['/dashboard/mantenimiento/guias-remision']"
                [queryParams]="{ venta: ultimaVenta.id_venta }">

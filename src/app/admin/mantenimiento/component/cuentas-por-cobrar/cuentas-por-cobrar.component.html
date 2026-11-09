@@ -351,7 +351,7 @@
             <button type="button" class="adm-btn adm-btn--suave" (click)="limpiarSeleccionCredito()" *ngIf="seleccionado">
               Limpiar
             </button>
-            <button type="button" class="adm-btn adm-btn--primario" (click)="guardarConfig()" [disabled]="guardandoConfig">
+            <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar" (click)="guardarConfig()" [disabled]="guardandoConfig">
               <i class="bi" [ngClass]="guardandoConfig ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i> Guardar línea
             </button>
           </div>
@@ -384,7 +384,7 @@
         </h2>
         <p class="adm-tarjeta__sub">Aparecen en el POS cuando el cliente paga por transferencia.</p>
       </div>
-      <button type="button" class="adm-btn adm-btn--suave" *ngIf="esAdmin" (click)="nuevaCuenta()">
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--crear" *ngIf="esAdmin" (click)="nuevaCuenta()">
         <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva
       </button>
     </div>
@@ -412,7 +412,7 @@
         </div>
         <div class="adm-campo adm-campo--accion">
           <label class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</label>
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardarCuenta()" [disabled]="guardandoCuenta">
+          <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar" (click)="guardarCuenta()" [disabled]="guardandoCuenta">
             <i class="bi" [ngClass]="guardandoCuenta ? 'bi-arrow-repeat adm-girando' : (editandoCuentaId ? 'bi-check-lg' : 'bi-plus-lg')" aria-hidden="true"></i>
             {{ editandoCuentaId ? 'Actualizar' : 'Agregar' }}
           </button>
@@ -504,7 +504,7 @@
         </div>
       </div>
       <div class="adm-modal__pie">
-        <button type="button" class="adm-btn adm-btn--suave" (click)="cerrarRecordatorio()">Cancelar</button>
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--cancelar" (click)="cerrarRecordatorio()"><i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar</button>
         <button type="button" class="adm-btn adm-btn--exito" (click)="enviarRecordatorio()" [disabled]="!enlaceRecordatorio">
           <i class="bi bi-whatsapp" aria-hidden="true"></i> Abrir WhatsApp
         </button>
@@ -610,7 +610,7 @@
   </div>
 
   <div class="adm-panel__pie" *ngIf="seleccion.estado !== 'pagado'">
-    <button type="button" class="adm-btn adm-btn--suave" (click)="seleccion = null">Cancelar</button>
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--cancelar" (click)="seleccion = null"><i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar</button>
     <button type="button" class="adm-btn adm-btn--exito" (click)="registrarAbono()" [disabled]="abonando">
       <i class="bi" [ngClass]="abonando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
       {{ abonando ? 'Guardando…' : 'Registrar abono' }}

@@ -21,7 +21,7 @@
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
         Actualizar
       </button>
-      <button type="button" class="adm-btn adm-btn--primario" (click)="nuevo()" *ngIf="puedeEditar">
+      <button type="button" class="adm-btn adm-btn--primario adm-btn--crear" (click)="nuevo()" *ngIf="puedeEditar">
         <i class="bi bi-plus-lg"></i> Nueva marca
       </button>
     </div>
@@ -116,10 +116,10 @@
         </div>
 
         <div class="adm-tarjeta__pie">
-          <button type="button" class="adm-btn adm-btn--suave" *ngIf="editandoId" (click)="cancelar()">
-            Cancelar
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--cancelar" *ngIf="editandoId" (click)="cancelar()">
+            <i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar
           </button>
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+          <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar" (click)="guardar()" [disabled]="guardando">
             <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
             {{ guardando ? 'Guardando…' : (editandoId ? 'Actualizar' : 'Crear') }}
           </button>

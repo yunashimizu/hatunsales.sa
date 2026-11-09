@@ -317,7 +317,7 @@
                 Con resumen diario esto rige para las facturas: las boletas no se envían al cobrar.
               }
             </p>
-            <button class="adm-btn adm-btn--primario" type="submit" [disabled]="operacionForm.invalid">
+            <button class="adm-btn adm-btn--primario adm-btn--guardar" type="submit" [disabled]="operacionForm.invalid">
               Guardar operación y series
             </button>
             <details class="adm-mas-info">
@@ -367,7 +367,7 @@
                 </div>
               }
             </div>
-            <button class="adm-btn adm-btn--primario" type="submit" [disabled]="emisorForm.invalid">Guardar emisor</button>
+            <button class="adm-btn adm-btn--primario adm-btn--guardar" type="submit" [disabled]="emisorForm.invalid">Guardar emisor</button>
           </fieldset>
         </form>
       </section>
@@ -459,7 +459,7 @@
                 </div>
               </div>
               <div class="adm-acciones">
-                <button class="adm-btn adm-btn--primario" type="submit" [disabled]="!archivo || certificadoForm.invalid">
+                <button class="adm-btn adm-btn--primario adm-btn--guardar" type="submit" [disabled]="!archivo || certificadoForm.invalid">
                   Guardar certificado
                 </button>
                 <button class="adm-btn adm-btn--suave" type="button" (click)="generarAutofirmado()">
@@ -495,7 +495,7 @@
                        [placeholder]="cfg.sol.tiene_clave ? 'Vacío conserva la clave actual' : ''" />
               </div>
               <div class="adm-acciones">
-                <button class="adm-btn adm-btn--primario" type="submit" [disabled]="solForm.invalid">Guardar SOL</button>
+                <button class="adm-btn adm-btn--primario adm-btn--guardar" type="submit" [disabled]="solForm.invalid">Guardar SOL</button>
                 <button class="adm-btn adm-btn--peligro-suave" type="button" (click)="eliminarCredenciales('sol')"
                         [disabled]="!cfg.sol.tiene_clave">
                   Eliminar clave
@@ -530,7 +530,7 @@
                        maxlength="200" pattern="\S+" [(ngModel)]="credencialesGre.clientSecret" autocomplete="new-password" />
               </div>
               <div class="adm-acciones">
-                <button class="adm-btn adm-btn--primario" type="submit" [disabled]="credGreForm.invalid">
+                <button class="adm-btn adm-btn--primario adm-btn--guardar" type="submit" [disabled]="credGreForm.invalid">
                   Guardar credenciales API
                 </button>
                 <button class="adm-btn adm-btn--peligro-suave" type="button" (click)="eliminarCredenciales('gre')"
@@ -597,7 +597,7 @@
                 </div>
               </div>
             }
-            <button class="adm-btn adm-btn--primario" type="submit" [disabled]="greForm.invalid">
+            <button class="adm-btn adm-btn--primario adm-btn--guardar" type="submit" [disabled]="greForm.invalid">
               Guardar configuración de guías
             </button>
           </fieldset>
@@ -706,7 +706,7 @@
                     </div>
                   }
                 </div>
-                <button class="adm-btn adm-btn--primario" type="submit" [disabled]="betaForm.invalid">Guardar emisor BETA</button>
+                <button class="adm-btn adm-btn--primario adm-btn--guardar" type="submit" [disabled]="betaForm.invalid">Guardar emisor BETA</button>
               </fieldset>
             </form>
           }

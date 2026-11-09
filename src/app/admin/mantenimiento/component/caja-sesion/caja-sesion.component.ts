@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  HostListener,
   OnDestroy,
   OnInit,
   inject,
@@ -32,6 +33,17 @@ import {
 
 /** Tope que acepta el servidor para el efectivo inicial (S/ 9 999 999.99). */
 const MONTO_MAXIMO = 9_999_999.99;
+
+/** Mínimo entre dos consultas del tablero al volver a la pestaña (sin temporizador periódico). */
+const REFRESCO_MINIMO_MS = 15_000;
+
+/** Un local con sus cajas, para el tablero «Cajas por local». `id` null = cajas sin sucursal. */
+export interface LocalDeCajas {
+  id: number | null;
+  nombre: string;
+  cajas: CajaDisponible[];
+  libres: number;
+}
 
 @Component({
   selector: 'app-caja-sesion',
@@ -69,6 +81,10 @@ export class CajaSesionComponent implements OnInit, OnDestroy {
   avisoDesglose = '';
   readonly maxCantidadDenominacion = MAX_CANTIDAD_DENOMINACION;
 
+  /** Momento de la última consulta de cajas (para no repetirla al volver a la pestaña). */
+  private ultimaConsultaCajas = 0;
+  private cacheLocales: { cajas: CajaDisponible[]; locales: LocalDeCajas[] } | null = null;
+
   private readonly destruir$ = new Subject<void>();
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -96,6 +112,56 @@ export class CajaSesionComponent implements OnInit, OnDestroy {
 
   get cajaElegida(): CajaDisponible | null {
     return this.cajas.find((c) => c.id_caja === this.idCajaElegida) ?? null;
+  }
+
+  /** Cajas agrupadas por local, en el orden en que llegan; las que no tienen local van al final. */
+  get locales(): LocalDeCajas[] {
+    if (this.cacheLocales?.cajas === this.cajas) return this.cacheLocales.locales;
+    const grupos = new Map<number, LocalDeCajas>();
+    const sinLocal: LocalDeCajas = { id: null, nombre: 'Sin local', cajas: [], libres: 0 };
+    for (const c of this.cajas) {
+      let g = c.id_sucursal != null ? grupos.get(c.id_sucursal) : sinLocal;
+      if (!g) {
+        g = { id: c.id_sucursal, nombre: c.sucursal_nombre || `Local ${c.id_sucursal}`, cajas: [], libres: 0 };
+        grupos.set(c.id_sucursal as number, g);
+      }
+      g.cajas.push(c);
+      if (!c.ocupada) g.libres++;
+    }
+    const locales = [...grupos.values()];
+    if (sinLocal.cajas.length) locales.push(sinLocal);
+    this.cacheLocales = { cajas: this.cajas, locales };
+    return locales;
+  }
+
+  /** Elige una caja del tablero: solo libres, sin turno abierto y no mientras se abre uno. */
+  elegirCaja(c: CajaDisponible): void {
+    if (c.ocupada || this.abriendo || this.apertura) return;
+    this.idCajaElegida = c.id_caja;
+    this.cdr.markForCheck();
+  }
+
+  /** La caja es del turno del usuario (dato del back o, si no llega, la caja de su apertura). */
+  esMia(c: CajaDisponible): boolean {
+    return c.es_mia === true || (!!c.ocupada && this.apertura?.id_caja === c.id_caja);
+  }
+
+  /** Hora de apertura que se muestra en una caja ocupada. */
+  abiertaEn(c: CajaDisponible): string | null {
+    return c.abierta_en ?? (this.esMia(c) ? this.apertura?.fecha ?? null : null);
+  }
+
+  /** Conectado: al volver a la pestaña se vuelve a pedir el tablero (mínimo 15 s entre peticiones). */
+  @HostListener('document:visibilitychange')
+  @HostListener('window:focus')
+  alVolverALaPestana(): void {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    if (this.abriendo || this.cargando || this.cargandoCajas) return;
+    if (Date.now() - this.ultimaConsultaCajas < REFRESCO_MINIMO_MS) return;
+    this.cargandoCajas = true;
+    this.errorCajas = '';
+    this.cdr.markForCheck();
+    this.pedirCajas();
   }
 
   /** Efectivo que dejó el último turno cerrado de la caja elegida (null si no hay dato). */
@@ -235,6 +301,11 @@ export class CajaSesionComponent implements OnInit, OnDestroy {
         this.alerta.error(errorOperativo(err, 'No se pudo cargar la sesión de caja'));
       },
     });
+    this.pedirCajas();
+  }
+
+  private pedirCajas(): void {
+    this.ultimaConsultaCajas = Date.now();
     this.api.disponibles().pipe(takeUntil(this.destruir$)).subscribe({
       next: (r) => {
         this.cargandoCajas = false;

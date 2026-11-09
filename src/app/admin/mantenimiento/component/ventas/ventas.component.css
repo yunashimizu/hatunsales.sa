@@ -277,7 +277,7 @@
 .pv-dato { position: relative; min-width: 0; overflow-wrap: anywhere; }
 .pv-dato::before { content: '·'; position: absolute; left: -10px; }
 .pv-linea__cantidad { grid-area: cantidad; margin-top: 8px; }
-.pv-linea__quitar { grid-area: quitar; justify-self: end; width: 32px; height: 32px; margin-top: 8px; color: var(--adm-texto-tenue); }
+.pv-linea__quitar { grid-area: quitar; justify-self: end; width: 32px; height: 32px; margin-top: 8px; }
 
 /* Descuento por unidad: caja gemela del contador. Vacía se ve discreta; con descuento se pinta de oro. */
 .pv-linea__desc {

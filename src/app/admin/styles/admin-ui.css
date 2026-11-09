@@ -56,6 +56,7 @@
   --adm-primario-suave: #e8ddbf;
   --adm-primario-borde: #e3d3ab;
   --adm-primario-texto: #ffffff;     /* letra sobre un relleno --adm-primario */
+  --adm-primario-icono: #e9d6a4;     /* icono de un botón grafito: oro claro (acero y oro) */
   --adm-violeta: #8a6f3c;
   --adm-gradiente: #2b2c2b;          /* relleno de acción (antes degradado azul) */
   --adm-gradiente-vivo: #b8975a;     /* barras de progreso y acentos: oro */
@@ -954,6 +955,45 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 .adm-btn--fantasma { background: transparent; color: var(--adm-texto-suave); }
 .adm-btn--fantasma:hover:not(:disabled) { background: var(--adm-superficie-3); color: var(--adm-texto); }
 
+/* ── R19 · El color dice qué va a pasar ────────────────────────────────────────
+   Oro = crear, guardar, abrir o modificar · Rojo = eliminar, anular, quitar
+   Rojo callado = cancelar · Grafito/gris = lo demás.
+   Son modificadores que se SUMAN a la variante que el botón ya tiene (primario, suave…). */
+
+/* Crear y guardar: DORADO, el color de la marca (R20). Sobre un botón principal, relleno con letra grafito;
+   sobre uno secundario, contorno de oro. El filo de luz y sombra lo hace leer como metal, sin degradado. */
+.adm-btn--crear,
+.adm-btn--guardar { background: var(--adm-marca); border-color: var(--adm-marca); color: #1f201f; }
+.adm-btn--crear:hover:not(:disabled),
+.adm-btn--guardar:hover:not(:disabled) { background: var(--adm-marca); border-color: var(--adm-marca); filter: brightness(0.93); }
+.adm-btn--primario.adm-btn--crear:not(:disabled),
+.adm-btn--primario.adm-btn--guardar:not(:disabled) { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), inset 0 -1px 0 rgba(31, 32, 31, 0.14); font-weight: var(--fw-negrita); }
+.adm-btn--suave.adm-btn--crear,
+.adm-btn--suave.adm-btn--guardar { background: var(--adm-superficie); color: var(--adm-marca-texto); border-color: var(--adm-marca-borde); box-shadow: none; }
+.adm-btn--suave.adm-btn--crear:hover:not(:disabled),
+.adm-btn--suave.adm-btn--guardar:hover:not(:disabled) { background: var(--adm-marca-claro); border-color: var(--adm-marca); color: var(--adm-marca-osc); filter: none; }
+
+/* Acero y oro: el icono de un botón grafito va en dorado claro */
+.adm-btn--primario:not(.adm-btn--crear):not(.adm-btn--guardar):not(:disabled) > i { color: var(--adm-primario-icono); }
+
+/* Modificar (botón con texto): contorno de oro */
+.adm-btn--editar { background: var(--adm-superficie); color: var(--adm-marca-texto); border-color: var(--adm-marca-borde); }
+.adm-btn--editar:hover:not(:disabled) { background: var(--adm-marca-claro); border-color: var(--adm-marca); color: var(--adm-marca-osc); }
+
+/* Cancelar: se descarta lo escrito. Rojo, pero callado: letra y contorno, sin relleno. */
+.adm-btn--cancelar { background: var(--adm-superficie); color: var(--adm-peligro-texto); border-color: var(--adm-peligro-borde); }
+.adm-btn--cancelar:hover:not(:disabled),
+a.adm-btn--cancelar:hover { background: var(--adm-peligro-claro); border-color: var(--adm-peligro); color: var(--adm-peligro-texto); }
+
+/* Botones con relleno, deshabilitados: gris plano y legible (antes, el color a medias) */
+.adm-btn--primario:disabled,
+.adm-btn--exito:disabled,
+.adm-btn--peligro:disabled,
+.adm-btn--crear:disabled,
+.adm-btn--guardar:disabled {
+  opacity: 1; color: var(--adm-texto-suave); background: var(--adm-superficie-3); border-color: var(--adm-borde);
+}
+
 /* Pulsación: escala .98, rápida, sin la elevación del hover. Va después de las
    variantes y con más especificidad para ganar a su :hover mientras se pulsa. */
 .adm-btn:active:not(:disabled):not([aria-disabled='true']) {
@@ -998,9 +1038,23 @@ a.adm-btn--fantasma:hover { color: var(--adm-texto); }
 }
 .adm-btn-icono:hover:not(:disabled) { background: var(--adm-superficie-3); color: var(--adm-texto); }
 .adm-btn-icono:active:not(:disabled) { transform: scale(0.94); transition-duration: var(--mov-pulsacion, 90ms); }
-.adm-btn-icono--peligro:hover:not(:disabled) { background: var(--adm-peligro-claro); color: var(--adm-peligro); }
-.adm-btn-icono--primario:hover:not(:disabled) { background: var(--adm-marca-claro); color: var(--adm-marca-texto); }
-.adm-btn-icono--exito:hover:not(:disabled) { background: var(--adm-exito-claro); color: var(--adm-exito); }
+/* Acciones de fila: el color está a la vista, no solo al pasar el ratón (R19) */
+.adm-btn-icono--primario { color: var(--adm-marca-texto); }
+.adm-btn-icono--peligro  { color: var(--adm-peligro-texto); }
+.adm-btn-icono--exito    { color: var(--adm-exito-texto); }
+.adm-btn-icono--primario:hover:not(:disabled) { background: var(--adm-marca-claro); border-color: var(--adm-marca-borde); color: var(--adm-marca-osc); }
+.adm-btn-icono--peligro:hover:not(:disabled)  { background: var(--adm-peligro-claro); border-color: var(--adm-peligro-borde); color: var(--adm-peligro); }
+.adm-btn-icono--exito:hover:not(:disabled)    { background: var(--adm-exito-claro); border-color: var(--adm-exito-borde); color: var(--adm-exito); }
+/* Fila señalada: sus acciones se vuelven fichas */
+.adm-tabla tbody tr:hover .adm-btn-icono--primario:not(:disabled) { background: var(--adm-marca-claro); }
+.adm-tabla tbody tr:hover .adm-btn-icono--peligro:not(:disabled)  { background: var(--adm-peligro-claro); }
+/* Táctil (no hay «pasar el ratón»): fichas siempre */
+@media (pointer: coarse) {
+  .adm-btn-icono--primario:not(:disabled) { background: var(--adm-marca-claro); border-color: var(--adm-marca-borde); }
+  .adm-btn-icono--peligro:not(:disabled)  { background: var(--adm-peligro-claro); border-color: var(--adm-peligro-borde); }
+}
+/* Cerrar (×): gris en reposo; rojo al señalarlo, como la × de una ventana */
+.adm-btn-icono:not(.adm-btn-icono--peligro):has(> .bi-x-lg):hover:not(:disabled) { background: var(--adm-peligro-claro); color: var(--adm-peligro); }
 .adm-btn-icono--borde { border-color: var(--adm-borde-fuerte); background: var(--adm-superficie); box-shadow: var(--adm-sombra-sm); }
 .adm-btn-icono--sm { width: 30px; height: 30px; font-size: 14px; }
 .adm-btn-icono:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -3158,6 +3212,47 @@ th[aria-sort='descending'] .adm-tabla__orden .bi { opacity: 1; }
   .adm-btn--exito:hover:not(:disabled),
   .adm-btn--peligro:hover:not(:disabled),
   .adm-btn--oscuro:hover:not(:disabled) { transform: none; }
+}
+
+/* ── R21 · Armazón de acero ─────────────────────────────────────────────────────
+   En tema claro, el menú lateral y la barra inferior del celular van en grafito («acero») con el oro
+   encima; el lienzo de trabajo sigue claro. No se añade ninguna regla a esos componentes: aquí se
+   redefinen, solo dentro de ellos, los mismos tokens del panel (son los valores del tema oscuro).
+   En tema oscuro no cambia nada. */
+:root:not([data-tema='oscuro']) :is(.sidebar, app-barra-inferior) {
+  --adm-superficie: #232423;
+  --adm-superficie-2: #232423;
+  --adm-superficie-3: #30312e;
+  --adm-borde: #363733;
+  --adm-borde-fuerte: #4a4b45;
+  --adm-texto: #f6f4ee;
+  --adm-texto-2: #dad7ce;
+  --adm-texto-suave: #b8b5ac;
+  --adm-texto-tenue: #918f87;
+  --adm-marca: #d4b878;
+  --adm-marca-texto: #e9d6a4;
+  --adm-marca-claro: rgba(212, 184, 120, 0.16);
+  --adm-marca-borde: #e9d6a4;
+  --adm-primario: #3a3b38;
+  --adm-interruptor-off: #4a4b45;
+}
+
+/* ── R21 · Profundidad ──────────────────────────────────────────────────────────
+   Sombra cálida y muy suave: las tarjetas se despegan del papel sin dejar de ser planas.
+   Solo en tema claro (sobre fondo oscuro una sombra no se ve y el borde ya separa). */
+:root:not([data-tema='oscuro']) .adm-tarjeta,
+:root:not([data-tema='oscuro']) .adm-metrica {
+  box-shadow: 0 1px 2px rgba(31, 32, 31, 0.04), 0 12px 28px -20px rgba(31, 32, 31, 0.2);
+}
+/* Los indicadores se levantan un punto al señalarlos (solo con ratón y si el sistema no pide menos movimiento) */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  :root:not([data-tema='oscuro']) .adm-metrica {
+    transition: border-color var(--adm-transicion), box-shadow var(--adm-transicion), transform var(--adm-transicion);
+  }
+  :root:not([data-tema='oscuro']) .adm-metrica:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(31, 32, 31, 0.05), 0 16px 32px -20px rgba(31, 32, 31, 0.28);
+  }
 }
 
 /* ── R17a · Densidad compacta ────────────────────────────────────────────────

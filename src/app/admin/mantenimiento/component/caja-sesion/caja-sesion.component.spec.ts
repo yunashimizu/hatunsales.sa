@@ -382,3 +382,161 @@ describe('CajaSesionComponent: apertura con o sin efectivo', () => {
     });
   });
 });
+
+describe('CajaSesionComponent: tablero de cajas por local', () => {
+  let fixture: ComponentFixture<CajaSesionComponent>;
+  let http: HttpTestingController;
+  const alerta = {
+    toast: vi.fn(),
+    error: vi.fn(),
+    confirm: vi.fn(async () => ({ isConfirmed: true })),
+  };
+  // Horas locales: el pipe `date` las muestra en la zona del navegador.
+  const a0805 = new Date(2026, 10, 9, 8, 5).toISOString();
+  const a0810 = new Date(2026, 10, 9, 8, 10).toISOString();
+  const cajas = [
+    { id_caja: 5, nombre: 'Caja 5', id_sucursal: null, sucursal_nombre: null, ocupada: false, sugerido_inicial: null },
+    { id_caja: 1, nombre: 'Caja 1', id_sucursal: 1, sucursal_nombre: 'Lurín', ocupada: false, sugerido_inicial: 150 },
+    { id_caja: 2, nombre: 'Caja 2', id_sucursal: 1, sucursal_nombre: 'Lurín', ocupada: true, sugerido_inicial: null, ocupada_por: 'Ana Quispe', abierta_en: a0805, es_mia: false },
+    { id_caja: 3, nombre: 'Caja 3', id_sucursal: 2, sucursal_nombre: 'Pachacámac', ocupada: false, sugerido_inicial: null },
+  ];
+
+  const el = (selector: string) => fixture.nativeElement.querySelector(selector) as HTMLElement | null;
+  const todos = (selector: string) => Array.from(fixture.nativeElement.querySelectorAll(selector)) as HTMLElement[];
+  const texto = (nodo: HTMLElement | null = fixture.nativeElement) => nodo?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  const opcion = (id: number) => el(`button.caja-opcion[data-caja="${id}"]`) as HTMLButtonElement;
+
+  async function montar(items: unknown[], apertura: unknown = null): Promise<void> {
+    fixture = TestBed.createComponent(CajaSesionComponent);
+    fixture.detectChanges();
+    http.expectOne(urlConstants.caja.sesion).flush({ abierta: !!apertura, modo: 'blando', apertura });
+    http.expectOne(urlConstants.caja.disponibles).flush({ items });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await TestBed.configureTestingModule({
+      imports: [CajaSesionComponent],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AlertService, useValue: alerta },
+      ],
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => http.verify());
+
+  it('agrupa las cajas por local en el orden de llegada y deja «Sin local» al final', async () => {
+    await montar(cajas);
+    const nombres = todos('.caja-local__nombre').map((n) => texto(n));
+    expect(nombres).toEqual(['Lurín', 'Pachacámac', 'Sin local']);
+    const lurin = el('.caja-local[data-local="1"]');
+    expect(texto(lurin)).toContain('2 cajas · 1 libre');
+    expect(Array.from(lurin!.querySelectorAll('button.caja-opcion')).map((b) => b.getAttribute('data-caja'))).toEqual(['1', '2']);
+    // Solo los locales con id enlazan a su arqueo
+    const enlaces = todos('a.caja-local__arqueo');
+    expect(enlaces).toHaveLength(2);
+    expect(enlaces[0].getAttribute('href')).toContain('/dashboard/mantenimiento/arqueo-caja?id_sucursal=1');
+    expect(el('.caja-local[data-local="sin-local"] a.caja-local__arqueo')).toBeNull();
+    // El select de antes ya no existe
+    expect(el('#caja-sel')).toBeNull();
+  });
+
+  it('preselecciona la primera libre, la marca con anillo y titula el formulario con caja y local', async () => {
+    await montar(cajas);
+    expect(fixture.componentInstance.idCajaElegida).toBe(5);
+    expect(opcion(5).classList.contains('caja-opcion--elegida')).toBe(true);
+    expect(opcion(5).getAttribute('aria-pressed')).toBe('true');
+    expect(texto(el('#caja-abrir-titulo'))).toBe('Abrir turno · Caja 5');
+
+    opcion(1).click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.idCajaElegida).toBe(1);
+    expect(opcion(1).classList.contains('caja-opcion--elegida')).toBe(true);
+    expect(opcion(1).querySelector('.bi-check-circle-fill')).not.toBeNull();
+    expect(opcion(5).getAttribute('aria-pressed')).toBe('false');
+    expect(texto(el('#caja-abrir-titulo'))).toBe('Abrir turno · Caja 1 · Lurín');
+    expect(texto(opcion(1))).toContain('Dejó S/ 150.00');
+    // El sugerido del formulario sale de la caja elegida
+    expect(texto()).toContain('Dejó S/ 150.00 el último turno');
+  });
+
+  it('abre el turno con la caja elegida en el tablero', async () => {
+    await montar(cajas);
+    opcion(3).click();
+    fixture.detectChanges();
+    (el('#modo-sin-efectivo') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (el('#caja-abrir button.adm-btn--primario') as HTMLButtonElement).click();
+    const peticion = http.expectOne(urlConstants.caja.abrir);
+    expect(peticion.request.body).toEqual({ id_caja: 3, sin_efectivo: true });
+    peticion.flush({ id_apertura: 99 });
+    http.expectOne(urlConstants.caja.sesion).flush({ abierta: false, modo: 'blando', apertura: null });
+    http.expectOne(urlConstants.caja.disponibles).flush({ items: cajas });
+  });
+
+  it('una ocupada no se puede elegir y muestra quién la tiene y desde cuándo', async () => {
+    await montar(cajas);
+    const ocupada = opcion(2);
+    expect(ocupada.disabled).toBe(true);
+    expect(ocupada.classList.contains('caja-opcion--ocupada')).toBe(true);
+    expect(texto(ocupada)).toContain('Ocupada');
+    expect(texto(ocupada)).toContain('Ana Quispe · desde las 08:05');
+    fixture.componentInstance.elegirCaja(cajas[2] as any);
+    expect(fixture.componentInstance.idCajaElegida).toBe(5);
+  });
+
+  it('con turno abierto el tablero es de solo lectura y marca «Tu turno»', async () => {
+    const mias = cajas.map((c) => (c.id_caja === 1 ? { ...c, ocupada: true, ocupada_por: 'Rosa', abierta_en: a0810, es_mia: true } : c));
+    await montar(mias, {
+      id_apertura: 40, id_caja: 1, caja_nombre: 'Caja 1', id_sucursal: 1, sucursal_nombre: 'Lurín',
+      id_usuario: 1, fecha: a0810, monto_inicial: 100,
+    });
+    http.match((r) => r.url.includes('/caja/arqueo') || r.url.includes('/caja/movimientos'));
+    expect(el('#caja-abrir')).toBeNull();
+    expect(el('#caja-estado')).not.toBeNull();
+    expect(texto(el('#caja-tablero-nota'))).toContain('Ya tienes un turno abierto. Ciérralo para cambiar de caja.');
+    const botones = todos('button.caja-opcion') as HTMLButtonElement[];
+    expect(botones.length).toBe(4);
+    expect(botones.every((b) => b.disabled)).toBe(true);
+    expect(el('.caja-opcion--elegida')).toBeNull();
+    expect(opcion(1).classList.contains('caja-opcion--mia')).toBe(true);
+    expect(texto(opcion(1))).toContain('Tu turno · desde las 08:10');
+    fixture.componentInstance.elegirCaja(cajas[3] as any);
+    expect(el('.caja-opcion--elegida')).toBeNull();
+  });
+
+  it('sin los campos nuevos del back sigue funcionando (solo no aparece el nombre)', async () => {
+    const viejas = cajas.map(({ id_caja, nombre, id_sucursal, sucursal_nombre, ocupada }) => ({ id_caja, nombre, id_sucursal, sucursal_nombre, ocupada }));
+    await montar(viejas);
+    expect(todos('.caja-local').length).toBe(3);
+    expect(texto(opcion(2))).toContain('Turno abierto');
+    expect(texto(opcion(2))).not.toContain('desde las');
+    expect(fixture.componentInstance.idCajaElegida).toBe(5);
+    expect(texto(el('#caja-abrir-titulo'))).toBe('Abrir turno · Caja 5');
+  });
+
+  it('sin cajas registradas lo explica dentro del tablero y no deja abrir', async () => {
+    await montar([]);
+    expect(texto(el('#caja-tablero'))).toContain('No hay cajas registradas. Pide a quien administra el sistema que las cree.');
+    expect(texto(el('#caja-abrir-titulo'))).toBe('Elige una caja libre');
+    expect((el('#caja-abrir button.adm-btn--primario') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('al volver a la pestaña pide de nuevo el tablero, como mucho cada 15 s', async () => {
+    await montar(cajas);
+    const c = fixture.componentInstance;
+    c.alVolverALaPestana();
+    http.expectNone(urlConstants.caja.disponibles);
+    (c as any).ultimaConsultaCajas = Date.now() - 16_000;
+    window.dispatchEvent(new Event('focus'));
+    http.expectOne(urlConstants.caja.disponibles).flush({ items: cajas });
+    http.expectNone(urlConstants.caja.sesion);
+  });
+});

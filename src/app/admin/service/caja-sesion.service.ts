@@ -46,6 +46,12 @@ export interface CajaDisponible {
   ocupada: boolean;
   /** Efectivo contado en el último cierre de esta caja; null si no hay cierre previo. */
   sugerido_inicial?: number | null;
+  /** Quién tiene el turno abierto en esta caja (back R20; ausente en servidores anteriores). */
+  ocupada_por?: string | null;
+  /** Fecha y hora ISO de esa apertura. */
+  abierta_en?: string | null;
+  /** El turno abierto en esta caja es del usuario que consulta. */
+  es_mia?: boolean;
 }
 
 /** Cuerpo de POST /caja/abrir. `sin_efectivo: true` guarda 0.00 e ignora `monto_inicial`. */

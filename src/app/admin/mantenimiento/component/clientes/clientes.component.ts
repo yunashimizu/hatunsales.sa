@@ -18,6 +18,7 @@ import {
   EstadoOrden, alternarOrden, ariaSort, guardarOrden, iconoOrden, leerOrdenGuardado, ordenarLista,
 } from '../../../../shared/utils/orden-lista';
 import { PaginaLocal, guardarFilasPorPagina, leerFilasPorPagina, paginar } from '../../../../shared/utils/paginacion-local';
+import { contienePalabras, normalizarBusqueda } from '../../../../shared/utils/texto-busqueda';
 import { AuthService } from '../../../../auth/service/auth.service';
 import { rolPermitido } from '../../../../auth/roles.constants';
 import { GestionService } from '../../service/gestion.service';
@@ -161,14 +162,15 @@ export class ClientesComponent implements OnInit, OnDestroy {
   }
 
   get personasFiltradas(): any[] {
-    const texto = this.filtroTexto.trim().toLowerCase();
+    const texto = normalizarBusqueda(this.filtroTexto);
     const m = this.memoPersonas;
     if (m && m.lista === this.clientes && m.texto === texto && m.orden === this.ordenPersonas) return m.resultado;
 
     const filtradas = !texto ? this.clientes : this.clientes.filter((c) =>
-      `${c.nombre_completo ?? c.nombre ?? ''} ${c.dni ?? ''} ${c.email ?? ''} ${c.telefono ?? ''}`
-        .toLowerCase()
-        .includes(texto),
+      contienePalabras(
+        normalizarBusqueda(`${c.nombre_completo ?? c.nombre ?? ''} ${c.dni ?? ''} ${c.email ?? ''} ${c.telefono ?? ''}`),
+        texto,
+      ),
     );
     const orden = this.ordenPersonas;
     const resultado = orden.clave
@@ -179,12 +181,12 @@ export class ClientesComponent implements OnInit, OnDestroy {
   }
 
   get empresasFiltradas(): any[] {
-    const texto = this.filtroTexto.trim().toLowerCase();
+    const texto = normalizarBusqueda(this.filtroTexto);
     const m = this.memoEmpresas;
     if (m && m.lista === this.empresas && m.texto === texto && m.orden === this.ordenEmpresas) return m.resultado;
 
     const filtradas = !texto ? this.empresas : this.empresas.filter((e) =>
-      `${e.razon_social ?? ''} ${e.nombre_comercial ?? ''} ${e.ruc ?? ''}`.toLowerCase().includes(texto),
+      contienePalabras(normalizarBusqueda(`${e.razon_social ?? ''} ${e.nombre_comercial ?? ''} ${e.ruc ?? ''}`), texto),
     );
     const orden = this.ordenEmpresas;
     const resultado = orden.clave

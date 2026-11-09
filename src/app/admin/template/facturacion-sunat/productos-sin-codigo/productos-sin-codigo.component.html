@@ -141,7 +141,7 @@
                             [attr.aria-label]="'Buscar el código SUNAT de ' + p.nombre" data-prueba="buscar-fila">
                       <i class="bi bi-search" aria-hidden="true"></i>
                     </button>
-                    <button type="submit" class="adm-btn adm-btn--suave adm-btn--sm" [disabled]="ocupado"
+                    <button type="submit" class="adm-btn adm-btn--suave adm-btn--guardar adm-btn--sm" [disabled]="ocupado"
                             [attr.aria-label]="'Guardar código SUNAT de ' + p.nombre">
                       <i class="bi" [ngClass]="idEnProceso === p.id_producto ? 'bi-arrow-repeat adm-girando' : 'bi-check2'" aria-hidden="true"></i>
                       Guardar

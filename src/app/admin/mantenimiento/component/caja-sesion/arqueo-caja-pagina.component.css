@@ -97,12 +97,15 @@
   min-height: 44px;
 }
 
-/* ── Tarjetas por sucursal ────────────────────────────────────────────────── */
+/* ── Tarjetas por local ───────────────────────────────────────────────────── */
+/* R20: tarjetas anchas (300 px) para que los importes no se partan; min() evita desbordar a 360 px */
 .arq-sucursales {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
+.arq-sucursal { flex: 1 1 300px; min-width: min(300px, 100%); }
+.arq-sucursal--total { flex-basis: 100%; }
 
 .arq-sucursal__cabecera {
   flex-wrap: wrap;
@@ -145,7 +148,9 @@
   text-align: right;
   font-weight: var(--fw-semi);
   color: var(--adm-texto);
-  overflow-wrap: anywhere;
+  /* Un importe nunca se parte («S/» y la cifra van juntos); el dt sí puede partir */
+  white-space: nowrap;
+  overflow-wrap: normal;
 }
 
 .arq-datos__fila--total dd {
@@ -154,6 +159,29 @@
 
 .arq-metodos {
   margin: 12px 0 0;
+}
+
+/* Cajas ahora: una ficha por caja del local (libre en neutro, abierta con punto verde) */
+.arq-cajas-ahora {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.arq-caja-ficha {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.arq-sucursal__pie {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--adm-borde);
 }
 
 /* Diferencia: el color acompaña al texto «Sobra/Falta/Cuadra», nunca va solo */
@@ -259,7 +287,6 @@
    Así nunca queda solo en una segunda fila de la grilla. */
 @container arq (min-width: 900px) {
   .arq-sucursal--total {
-    grid-column: 1 / -1;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;

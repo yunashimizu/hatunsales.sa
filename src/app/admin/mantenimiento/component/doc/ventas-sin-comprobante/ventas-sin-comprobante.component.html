@@ -305,7 +305,7 @@
           }
           <button type="button" class="adm-btn adm-btn--primario" (click)="cerrarEmision()">Listo</button>
         } @else {
-          <button type="button" class="adm-btn adm-btn--fantasma" (click)="cerrarEmision()" [disabled]="emitiendo">Cancelar</button>
+          <button type="button" class="adm-btn adm-btn--fantasma adm-btn--cancelar" (click)="cerrarEmision()" [disabled]="emitiendo"><i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar</button>
           <button type="button" class="adm-btn adm-btn--primario" (click)="emitir()"
                   [disabled]="emitiendo || emisionIncierta || !!errorFormulario || !!emisionInactiva">
             <i class="bi" [ngClass]="emitiendo ? 'bi-arrow-repeat adm-girando' : 'bi-send'" aria-hidden="true"></i>

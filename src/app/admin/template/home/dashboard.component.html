@@ -94,8 +94,8 @@
                 <label class="ini-solo-lectores" for="ini-meta-campo">Meta de ventas del día, en soles</label>
                 <input id="ini-meta-campo" name="meta" class="adm-input adm-input--chico adm-input--num ini-meta__campo"
                        appNumero="moneda" placeholder="Ej. 8,500" autocomplete="off" [(ngModel)]="metaBorrador" />
-                <button type="submit" class="adm-btn adm-btn--primario adm-btn--sm">Guardar</button>
-                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="cancelarMeta()">Cancelar</button>
+                <button type="submit" class="adm-btn adm-btn--primario adm-btn--guardar adm-btn--sm">Guardar</button>
+                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-btn--cancelar" (click)="cancelarMeta()"><i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar</button>
               </form>
             } @else if (metaDiaria) {
               <div class="ini-meta__barra" role="progressbar" aria-label="Avance de la meta del día"

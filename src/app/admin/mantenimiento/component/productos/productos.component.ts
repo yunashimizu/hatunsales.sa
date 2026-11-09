@@ -36,6 +36,7 @@ import { PuntoVentaService } from '../../../service/punto-venta.service';
 import { UnidadMedidaService } from '../../../service/unidad-medida.service';
 import { SelectorUnidadComponent } from '../../../../shared/components/selector-unidad/selector-unidad.component';
 import { UnidadMedidaPipe } from '../../../../shared/ui/unidad-medida.pipe';
+import { contienePalabras, normalizarBusqueda } from '../../../../shared/utils/texto-busqueda';
 import { EtiquetasProductoComponent } from './etiquetas/etiquetas-producto.component';
 import {
   ImagenProducto, OpcionCategoria, OpcionMarca, ProductoAdmin,
@@ -321,12 +322,12 @@ export class ProductosComponent implements OnInit, OnDestroy {
       && m.estado === this.filtroEst && m.orden === this.orden) {
       return m.resultado;
     }
-    const texto = this.filtroTexto.trim().toLowerCase();
+    const texto = normalizarBusqueda(this.filtroTexto);
 
     const filtrados = this.productos.filter((p) => {
       if (texto) {
-        const buscable = `${p.nombre} ${p.sku} ${p.codigo_barras} ${p.categoria} ${p.marca}`.toLowerCase();
-        if (!buscable.includes(texto)) return false;
+        const buscable = normalizarBusqueda(`${p.nombre} ${p.sku} ${p.codigo_barras} ${p.categoria} ${p.marca}`);
+        if (!contienePalabras(buscable, texto)) return false;
       }
 
       if (this.filtroCat !== '' && p.id_categoria !== Number(this.filtroCat)) return false;

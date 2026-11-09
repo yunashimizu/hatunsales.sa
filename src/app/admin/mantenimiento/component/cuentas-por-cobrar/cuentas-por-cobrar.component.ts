@@ -808,6 +808,8 @@ export class CuentasPorCobrarComponent implements OnInit, OnDestroy {
       monto: Number(this.abono.monto),
       id_metodo: this.abono.id_metodo ?? undefined,
       referencia: this.abono.referencia || undefined,
+      // El saldo que vio quien abona: si otro abono llegó antes, el servidor avisa en vez de cobrar de más.
+      saldo_esperado: Number(this.seleccion.saldo),
     }).subscribe({
       next: (detalle) => {
         this.abonando = false;

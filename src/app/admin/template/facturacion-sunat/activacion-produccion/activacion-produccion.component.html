@@ -133,7 +133,7 @@
           </label>
         }
         <div class="adm-acciones">
-          <button type="submit" class="adm-btn adm-btn--primario" [disabled]="!declaracionesSinGuardar">
+          <button type="submit" class="adm-btn adm-btn--primario adm-btn--guardar" [disabled]="!declaracionesSinGuardar">
             Guardar declaraciones
           </button>
           @if (declaracionesSinGuardar) {
@@ -172,7 +172,7 @@
           }
         </div>
         <div class="adm-acciones">
-          <button type="submit" class="adm-btn adm-btn--primario" [disabled]="!correlativosValidos">
+          <button type="submit" class="adm-btn adm-btn--primario adm-btn--guardar" [disabled]="!correlativosValidos">
             Guardar primer número de cada serie
           </button>
           @if (!correlativosValidos) {

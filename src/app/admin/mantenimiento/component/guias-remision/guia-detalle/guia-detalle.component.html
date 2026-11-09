@@ -282,7 +282,7 @@
         </button>
       }
       @if (puedeEscribir && g.acciones.puede_editar) {
-        <button type="button" class="adm-btn adm-btn--suave" (click)="editar.emit(g)" [disabled]="ocupado">
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--editar" (click)="editar.emit(g)" [disabled]="ocupado">
           <i class="bi bi-pencil" aria-hidden="true"></i> {{ g.estado === 'rechazado' ? 'Corregir' : 'Editar' }}
         </button>
       }

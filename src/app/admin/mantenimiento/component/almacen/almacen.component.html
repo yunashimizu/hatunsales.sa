@@ -20,7 +20,7 @@
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
         Actualizar
       </button>
-      <button type="button" class="adm-btn adm-btn--primario" (click)="nuevo()">
+      <button type="button" class="adm-btn adm-btn--primario adm-btn--crear" (click)="nuevo()">
         <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo almacén
       </button>
     </div>
@@ -119,10 +119,10 @@
         </div>
 
         <div class="adm-tarjeta__pie">
-          <button type="button" class="adm-btn adm-btn--suave" *ngIf="editandoId" (click)="cancelar()">
-            Cancelar
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--cancelar" *ngIf="editandoId" (click)="cancelar()">
+            <i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar
           </button>
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+          <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar" (click)="guardar()" [disabled]="guardando">
             <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
             {{ guardando ? 'Guardando…' : (editandoId ? 'Guardar cambios' : 'Crear almacén') }}
           </button>
@@ -166,7 +166,7 @@
           <div class="adm-vacio__icono"><i class="bi bi-building-add"></i></div>
           <div class="adm-vacio__titulo">Todavía no hay almacenes</div>
           <p>Registre el primero para ubicar el stock de sus productos y empezar a recibir mercadería.</p>
-          <button type="button" class="adm-btn adm-btn--suave" (click)="almNombre.focus()">
+          <button type="button" class="adm-btn adm-btn--suave adm-btn--crear" (click)="almNombre.focus()">
             <i class="bi bi-plus-lg" aria-hidden="true"></i> Registrar el primero
           </button>
         </div>

@@ -78,8 +78,12 @@ describe('ArqueoCajaPaginaComponent: selección de turno', () => {
     ignorarListados();
     const anterior = http.expectOne(urlConstants.caja.sesion);
     parametros.next(convertToParamMap({ id_apertura: '25' }));
-    expect(anterior.cancelled).toBe(true);
+    // R20: la sesión se comparte con cacheCorto (shareReplay sin refCount), así que la petición ya no se
+    // cancela; lo que importa sigue igual: su respuesta tardía no reemplaza el turno elegido después.
     expect(component.idApertura).toBe(25);
+    anterior.flush({ apertura: { id_apertura: 12 } });
+    expect(component.idApertura).toBe(25);
+    expect(component.idConsulta).toBe(25);
   });
 });
 
@@ -272,6 +276,7 @@ describe('ArqueoCajaPaginaComponent: arqueo por sucursal', () => {
     expect(component.textoDiferencia(12.5)).toBe('Sobra S/ 12.50');
     expect(component.textoDiferencia(0.004)).toBe('Cuadra');
     expect(component.textoDiferencia(null)).toBe('—');
+    expect(component.textoDiferencia(-1557.5)).toBe('Falta S/ 1,557.50');
   });
 
   it('con una sola sucursal no repite el total', async () => {
@@ -449,6 +454,64 @@ describe('ArqueoCajaPaginaComponent: arqueo por sucursal', () => {
     expect(component.idConsulta).toBe(31);
     expect(navegar).toHaveBeenCalledWith([], expect.objectContaining({ queryParams: { id_apertura: 31 } }));
   });
+
+  it('habla de «local»: título, etiqueta del filtro y ayuda', async () => {
+    await montar();
+    expect(texto(el('#arq-resumen-titulo'))).toBe('Resumen por local');
+    expect(texto(el('label[for="arq-sucursal"]'))).toBe('Local');
+    expect(texto(el('.arq-ayuda'))).toContain('Las tarjetas por local usan');
+    expect(component.nombreSucursal({ nombre: '', id_sucursal: null })).toBe('Sin local');
+  });
+
+  it('cada tarjeta de local (no «Total») muestra sus cajas ahora: libre en neutro, abierta con nombre', async () => {
+    fixture = TestBed.createComponent(ArqueoCajaPaginaComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    consulta(urlConstants.caja.disponibles).flush({
+      items: [
+        { id_caja: 1, nombre: 'Caja 1', id_sucursal: 1, sucursal_nombre: 'Principal', ocupada: false },
+        { id_caja: 3, nombre: 'Caja 3', id_sucursal: 1, sucursal_nombre: 'Principal', ocupada: true, ocupada_por: 'Ana Quispe' },
+        { id_caja: 4, nombre: 'Caja 4', id_sucursal: null, sucursal_nombre: null, ocupada: true },
+      ],
+    });
+    http.expectOne(urlConstants.caja.sesion).flush({ apertura: null });
+    consulta(urlConstants.caja.resumenSucursales).flush(RESUMEN);
+    consulta(urlConstants.caja.aperturas).flush({ items: [turno()], total: 1, pagina: 1, por_pagina: 20 });
+    fixture.detectChanges();
+    const [principal, sin, total] = todos('.arq-sucursal');
+    const fichas = (t: HTMLElement) => Array.from(t.querySelectorAll('.arq-caja-ficha')).map((f) => texto(f as HTMLElement));
+    expect(fichas(principal)).toEqual(['Caja 1 · libre', 'Caja 3 · Ana Quispe']);
+    expect(principal.querySelector('.arq-caja-ficha[data-caja="1"]')!.classList.contains('adm-insignia--neutra')).toBe(true);
+    expect(principal.querySelector('.arq-caja-ficha[data-caja="3"]')!.classList.contains('adm-insignia--punto')).toBe(true);
+    expect(fichas(sin)).toEqual(['Caja 4 · abierta']);
+    expect(fichas(total)).toEqual([]);
+  });
+
+  it('«Ver turnos de este local» filtra por el local, aplica y lleva el listado a la vista', async () => {
+    await montar();
+    const desplazar = vi.fn();
+    const original = (Element.prototype as any).scrollIntoView;
+    (Element.prototype as any).scrollIntoView = desplazar;
+    try {
+      // Solo las tarjetas de un local con id lo ofrecen (ni «Sin sucursal» ni «Total»)
+      expect(todos('.arq-ver-local').map((b) => b.getAttribute('data-local'))).toEqual(['1']);
+      (el('.arq-ver-local[data-local="1"]') as HTMLButtonElement).click();
+      const turnos = consulta(urlConstants.caja.aperturas);
+      const resumen = consulta(urlConstants.caja.resumenSucursales);
+      expect(turnos.request.params.get('id_sucursal')).toBe('1');
+      expect(turnos.request.params.get('pagina')).toBe('1');
+      expect(component.filtros.id_sucursal).toBe(1);
+      expect(component.aplicados.id_sucursal).toBe(1);
+      turnos.flush({ items: [turno()], total: 1, pagina: 1, por_pagina: 20 });
+      resumen.flush(RESUMEN);
+      await new Promise((r) => setTimeout(r));
+      expect(desplazar).toHaveBeenCalled();
+      // (otro setTimeout de una prueba anterior puede desplazar a #arqueo-turno: se busca el nuestro)
+      expect(desplazar.mock.instances.map((i) => (i as unknown as HTMLElement).id)).toContain('arq-turnos');
+    } finally {
+      (Element.prototype as any).scrollIntoView = original;
+    }
+  });
   describe('descarga del PDF del resumen', () => {
     let clic: ReturnType<typeof vi.spyOn>;
     let crearUrl: ReturnType<typeof vi.fn>;
@@ -537,5 +600,58 @@ describe('ArqueoCajaPaginaComponent: arqueo por sucursal', () => {
       expect(clic).toHaveBeenCalledTimes(1);
       expect(texto(boton())).toBe('Descargar PDF');
     });
+  });
+});
+
+describe('ArqueoCajaPaginaComponent: llegar desde Caja con ?id_sucursal', () => {
+  let http: HttpTestingController;
+
+  async function montarCon(params: Record<string, string>) {
+    await TestBed.configureTestingModule({
+      imports: [ArqueoCajaPaginaComponent],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthService, useValue: { puedeVer: () => true } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            queryParamMap: new BehaviorSubject(convertToParamMap(params)).asObservable(),
+            snapshot: { queryParamMap: convertToParamMap(params) },
+          },
+        },
+      ],
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(ArqueoCajaPaginaComponent);
+    fixture.detectChanges();
+    http.expectOne((r) => r.url === urlConstants.caja.disponibles).flush({ items: [] });
+    http.expectOne(urlConstants.caja.sesion).flush({ apertura: null });
+    const resumen = http.expectOne((r) => r.url === urlConstants.caja.resumenSucursales);
+    const turnos = http.expectOne((r) => r.url === urlConstants.caja.aperturas);
+    return { fixture, resumen, turnos };
+  }
+
+  afterEach(() => http.verify());
+
+  it('arranca con el filtro de ese local aplicado', async () => {
+    const { fixture, resumen, turnos } = await montarCon({ id_sucursal: '2' });
+    expect(turnos.request.params.get('id_sucursal')).toBe('2');
+    expect(fixture.componentInstance.filtros.id_sucursal).toBe(2);
+    expect(fixture.componentInstance.aplicados.id_sucursal).toBe(2);
+    resumen.flush(RESUMEN);
+    turnos.flush({ items: [], total: 0, pagina: 1, por_pagina: 20 });
+    fixture.detectChanges();
+    // Las tarjetas siguen al filtro: ninguna del resumen es del local 2
+    expect(fixture.nativeElement.querySelector('#arq-resumen-vacio')).not.toBeNull();
+  });
+
+  it.each(['abc', '0', '-3', '1.5', '99999999999'])('ignora un id_sucursal inválido (%s)', async (valor) => {
+    const { fixture, resumen, turnos } = await montarCon({ id_sucursal: valor });
+    expect(turnos.request.params.has('id_sucursal')).toBe(false);
+    expect(fixture.componentInstance.filtros.id_sucursal).toBeNull();
+    resumen.flush(RESUMEN);
+    turnos.flush({ items: [], total: 0, pagina: 1, por_pagina: 20 });
   });
 });

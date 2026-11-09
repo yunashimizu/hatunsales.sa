@@ -1113,6 +1113,20 @@ describe('ProductosComponent · listado (orden, páginas, CSV y URL)', () => {
   });
   afterEach(() => vi.useRealTimers());
 
+  it('la búsqueda perdona tildes y el orden de las palabras', async () => {
+    const c = await montar();
+    (c as any).productos = [
+      { ...lista[0], id_producto: 901, nombre: 'Caña para pescar', sku: 'CAN-1', estado: true, categoria: 'Pesca' },
+      { ...lista[1], id_producto: 902, nombre: 'TUBO PVC', sku: 'TUB-1', estado: true, categoria: 'Gasfitería' },
+    ];
+    c.filtro = 'pescar cana';
+    expect(c.productosFiltrados.map((p) => p.id_producto)).toEqual([901]);
+    c.filtro = 'pvc tubo';
+    expect(c.productosFiltrados.map((p) => p.id_producto)).toEqual([902]);
+    c.filtro = 'gasfiteria';
+    expect(c.productosFiltrados.map((p) => p.id_producto)).toEqual([902]);
+  });
+
   it('ordena por columna: ascendente, descendente y sin orden, y recuerda el orden en la pestaña', async () => {
     const c = await montar();
     c.ordenar('precio');

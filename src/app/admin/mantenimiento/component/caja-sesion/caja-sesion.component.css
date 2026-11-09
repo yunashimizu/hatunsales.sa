@@ -205,6 +205,173 @@
   padding: 1.5rem 0;
 }
 
+/* ── Cajas por local (R20): un grupo por local, cada caja es un botón ────────── */
+.caja-tablero__nota {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--adm-r-sm, 10px);
+  background: var(--adm-superficie-2, var(--adm-superficie-3));
+  color: var(--adm-texto-suave);
+}
+.caja-tablero__nota > i { color: var(--adm-marca-texto); }
+
+.caja-locales {
+  display: grid;
+  gap: 18px;
+}
+
+.caja-local + .caja-local {
+  padding-top: 16px;
+  border-top: 1px solid var(--adm-borde);
+}
+
+.caja-local__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+
+.caja-local__icono {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--adm-marca-claro);
+  color: var(--adm-marca-texto);
+  font-size: 16px;
+}
+
+.caja-local__datos {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.caja-local__nombre {
+  margin: 0;
+  font-size: var(--fs-base, 1rem);
+  font-weight: var(--fw-negrita, 700);
+  color: var(--adm-texto);
+  overflow-wrap: anywhere;
+}
+
+.caja-local__cuenta {
+  font-size: var(--adm-fs-ayuda);
+  color: var(--adm-texto-suave);
+}
+
+.caja-local__arqueo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 2px;
+  font-size: var(--adm-fs-ayuda);
+  font-weight: var(--fw-semi, 600);
+  color: var(--adm-marca-texto);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.caja-local__arqueo:hover { color: var(--adm-marca-osc); text-decoration: underline; }
+.caja-local__arqueo:focus-visible { outline: none; box-shadow: var(--adm-anillo); border-radius: 6px; }
+
+.caja-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.caja-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--adm-borde);
+  border-radius: var(--adm-r-sm, 10px);
+  background: var(--adm-superficie);
+  color: var(--adm-texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.caja-opcion:disabled { cursor: default; }
+.caja-opcion--libre:hover:not(:disabled) { border-color: var(--adm-marca-borde); background: var(--adm-marca-halo); }
+.caja-opcion:focus-visible { outline: none; box-shadow: var(--adm-anillo); border-color: var(--adm-marca); }
+
+.caja-opcion__fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+}
+
+.caja-opcion__nombre {
+  font-weight: var(--fw-negrita, 700);
+  overflow-wrap: anywhere;
+}
+
+.caja-opcion__marca { color: var(--adm-marca); font-size: 1.05rem; }
+
+.caja-opcion__estado {
+  font-size: var(--adm-fs-ayuda);
+  font-weight: var(--fw-semi, 600);
+}
+.caja-opcion__estado--libre { color: var(--adm-exito-texto); }
+.caja-opcion__estado--ocupada { color: var(--adm-texto-suave); }
+
+.caja-opcion__detalle {
+  font-size: var(--adm-fs-ayuda);
+  color: var(--adm-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.caja-opcion--elegida {
+  border-color: var(--adm-marca);
+  box-shadow: var(--adm-anillo);
+  background: color-mix(in srgb, var(--adm-marca-claro) 55%, var(--adm-superficie));
+}
+.caja-opcion--libre.caja-opcion--elegida:hover:not(:disabled) {
+  border-color: var(--adm-marca);
+  background: color-mix(in srgb, var(--adm-marca-claro) 55%, var(--adm-superficie));
+}
+
+.caja-opcion--ocupada {
+  background: var(--adm-superficie-2, var(--adm-superficie-3));
+  border-style: dashed;
+}
+
+/* La insignia «Tu turno · desde las 08:10» parte línea dentro del botón en vez de salirse */
+.caja-opcion .caja-opcion__mia {
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.caja-opcion--mia {
+  border-style: solid;
+  border-color: var(--adm-exito-borde);
+  background: color-mix(in srgb, var(--adm-exito-claro) 45%, var(--adm-superficie));
+}
+
+/* Con turno abierto el tablero es de lectura: las libres no invitan a pulsar */
+.caja-tablero .caja-opcion--libre:disabled { opacity: 0.85; }
+
+.caja-campo-monto--primero { margin-top: 0; }
+
 /* ── Abrir caja ──────────────────────────────────────────────────────────── */
 .caja-ayuda {
   margin: 6px 0 0;

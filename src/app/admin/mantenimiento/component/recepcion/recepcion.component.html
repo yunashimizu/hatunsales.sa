@@ -320,7 +320,7 @@
         </div>
 
         <div class="adm-tarjeta__pie rec-resumen__pie">
-          <button type="button" class="adm-btn adm-btn--primario adm-btn--lg adm-btn--bloque" *ngIf="lineas.length"
+          <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar adm-btn--lg adm-btn--bloque" *ngIf="lineas.length"
                   (click)="confirmar()" [disabled]="confirmando">
             <i class="bi" [ngClass]="confirmando ? 'bi-arrow-repeat adm-girando' : 'bi-check2-circle'" aria-hidden="true"></i>
             {{ confirmando ? 'Confirmando…' : 'Confirmar recepción' }}
@@ -378,7 +378,7 @@
       <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-inbox"></i></div>
       <div class="adm-vacio__titulo">Todavía no hay recepciones</div>
       <p>Cuando confirme una recepción aparecerá aquí con sus unidades OK y observadas.</p>
-      <button type="button" class="adm-btn adm-btn--suave" (click)="cambiarPestana('nueva')">
+      <button type="button" class="adm-btn adm-btn--suave adm-btn--crear" (click)="cambiarPestana('nueva')">
         <i class="bi bi-upc-scan" aria-hidden="true"></i> Registrar una recepción
       </button>
     </div>
@@ -552,7 +552,7 @@
                   <i class="bi" [ngClass]="revisandoObs === o.id_observacion ? 'bi-arrow-repeat adm-girando' : 'bi-check2'" aria-hidden="true"></i>
                   Visto bueno
                 </button>
-                <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" (click)="rechazar(o)"
+                <button type="button" class="adm-btn adm-btn--peligro-suave adm-btn--sm" (click)="rechazar(o)"
                         [disabled]="revisandoObs !== null">
                   <i class="bi bi-x-lg" aria-hidden="true"></i> Rechazar
                 </button>

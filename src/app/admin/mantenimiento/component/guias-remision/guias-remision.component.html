@@ -15,7 +15,7 @@
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i> Actualizar
       </button>
       @if (puedeEscribir) {
-        <button type="button" class="adm-btn adm-btn--primario" (click)="nuevaGuia()">
+        <button type="button" class="adm-btn adm-btn--primario adm-btn--crear" (click)="nuevaGuia()">
           <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva guía
         </button>
       }
@@ -196,7 +196,7 @@
                       </button>
                     }
                     @if (puedeEscribir && g.acciones.puede_editar) {
-                      <button type="button" class="adm-btn-icono adm-btn-icono--sm" (click)="editar(g)" [disabled]="!!enCurso"
+                      <button type="button" class="adm-btn-icono adm-btn-icono--primario adm-btn-icono--sm" (click)="editar(g)" [disabled]="!!enCurso"
                               [attr.title]="g.estado === 'rechazado' ? 'Corregir' : 'Editar'"
                               [attr.aria-label]="(g.estado === 'rechazado' ? 'Corregir la guía ' : 'Editar la guía ') + numeroGuia(g)">
                         <i class="bi bi-pencil" aria-hidden="true"></i>

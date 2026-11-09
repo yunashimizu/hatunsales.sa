@@ -522,11 +522,11 @@
   </div>
 
   <div class="adm-panel__pie inv-ficha-pie" *ngIf="modo !== 'movimientos'">
-    <button type="button" class="adm-btn adm-btn--suave" (click)="cerrarPanel()" [disabled]="procesando">
-      Cancelar
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--cancelar" (click)="cerrarPanel()" [disabled]="procesando">
+      <i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar
     </button>
 
-    <button type="button" class="adm-btn adm-btn--primario" *ngIf="modo === 'ajuste'"
+    <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar" *ngIf="modo === 'ajuste'"
             [disabled]="procesando" (click)="registrarAjuste()">
       <i class="bi" [ngClass]="procesando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
       Registrar ajuste

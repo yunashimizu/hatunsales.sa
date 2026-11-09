@@ -17,7 +17,7 @@
               [disabled]="ocupado" (click)="volverLista()">
         <i class="bi bi-arrow-left"></i> Volver a la lista
       </button>
-      <button type="button" class="adm-btn adm-btn--primario" *ngIf="modo === 'lista'" (click)="nueva()">
+      <button type="button" class="adm-btn adm-btn--primario adm-btn--crear" *ngIf="modo === 'lista'" (click)="nueva()">
         <i class="bi bi-plus-lg"></i> Nueva cotización
       </button>
     </div>
@@ -68,7 +68,7 @@
             ? 'Pruebe con otro código, cliente, estado o monto.'
             : 'Cree la primera para enviarla al cliente por WhatsApp, PDF o Excel.' }}
         </p>
-        <button type="button" class="adm-btn adm-btn--primario" (click)="nueva()">
+        <button type="button" class="adm-btn adm-btn--primario adm-btn--crear" (click)="nueva()">
           <i class="bi bi-plus-lg"></i> Nueva cotización
         </button>
       </div>
@@ -168,7 +168,7 @@
                 <div class="adm-tabla__principal">{{ receptor.denominacion }}</div>
                 <div class="adm-tabla__secundario">{{ receptor.numero_documento }}</div>
               </div>
-              <button type="button" class="adm-btn-icono" *ngIf="!soloLectura"
+              <button type="button" class="adm-btn-icono adm-btn-icono--peligro" *ngIf="!soloLectura"
                       (click)="quitarCliente()" aria-label="Quitar cliente" title="Quitar cliente">
                 <i class="bi bi-x-lg"></i>
               </button>
@@ -635,7 +635,7 @@
             </article>
 
             <div class="cot-acciones">
-              <button type="button" class="adm-btn adm-btn--lg adm-btn--bloque"
+              <button type="button" class="adm-btn adm-btn--guardar adm-btn--lg adm-btn--bloque"
                       [ngClass]="cotizacionActual?.id_proforma ? 'adm-btn--suave' : 'adm-btn--primario'"
                       [disabled]="guardando || !lineas.length || !!cotizacionActual?.id_proforma" (click)="guardar()">
                 <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-save'"></i>

@@ -14,12 +14,16 @@ import { ConfiguracionFiscalService } from '../../../service/configuracion-fisca
 import { SolicitudVenta } from '../../../service/punto-venta.service';
 import { PreviewComprobante } from '../../../models/admin.models';
 import { CATALOGO_RESPALDO, UnidadMedidaService } from '../../../service/unidad-medida.service';
+import { ComprobanteService } from '../../../service/comprobante.service';
 import { VentasComponent } from './ventas.component';
+
 
 describe('VentasComponent', () => {
   let fixture: ComponentFixture<VentasComponent>;
   let component: VentasComponent;
   let previewServicio: ReturnType<typeof vi.fn>;
+  let imprimirMock: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
+  let descargaMock: ReturnType<typeof vi.fn<(...args: any[]) => any>>;
   let puntoVentaMock: Record<string, any>;
   let sonidoMock: { ok: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn>; aviso: ReturnType<typeof vi.fn>; activo: () => boolean; alternar: ReturnType<typeof vi.fn> };
 
@@ -96,9 +100,15 @@ describe('VentasComponent', () => {
   }
 
   const seguimientoMock = { seguir: vi.fn() };
+  const comprobantesMock = {
+    descargarPdf: vi.fn((_id: number, _formato?: string) => of(new Blob(['%PDF'], { type: 'application/pdf' }))),
+  };
 
   beforeEach(async () => {
     seguimientoMock.seguir.mockClear();
+    comprobantesMock.descargarPdf.mockClear();
+    imprimirMock = vi.fn();
+    descargaMock = vi.fn();
     previewServicio = vi.fn((solicitud: SolicitudVenta) =>
       of(crearPreview(Number(solicitud.items[0]?.descuento ?? 0) * 2)),
     );
@@ -137,6 +147,7 @@ describe('VentasComponent', () => {
         { provide: ReceptorService, useValue: {} },
         { provide: PuntoVentaService, useValue: puntoVentaMock },
         { provide: SeguimientoComprobanteService, useValue: seguimientoMock },
+        { provide: ComprobanteService, useValue: comprobantesMock },
         { provide: AlertService, useValue: {
           toast: () => undefined,
           confirm: async () => ({ isConfirmed: true }),
@@ -158,7 +169,16 @@ describe('VentasComponent', () => {
 
     fixture = TestBed.createComponent(VentasComponent);
     component = fixture.componentInstance;
+    // El envío a la impresora se sustituye (jsdom no imprime); la descarga real se observa en el enlace.
+    (component as any).imprimirDocumento = imprimirMock;
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:ticket');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      descargaMock(this.download);
+    });
   });
+
+  afterEach(() => vi.restoreAllMocks());
 
   it('dispara la búsqueda al enfocar cuando ya hay texto escrito', () => {
     component.textoProducto = 'caña de pescar';
@@ -614,6 +634,24 @@ describe('VentasComponent', () => {
       expect(warning).not.toHaveBeenCalled();
       // Y se vigila hasta que SUNAT conteste (aceptada o rechazada).
       expect(seguimientoMock.seguir).toHaveBeenCalledWith(9, 'B001-00000009');
+    });
+
+    it('tras cobrar no vuelve a bajar el catálogo entero: descuenta el stock local y deja decidir a la caché', async () => {
+      const cargar = vi.fn((_forzar?: boolean, _idAlmacen?: number | null) => of([]));
+      const descontar = vi.fn();
+      puntoVentaMock['cargarCatalogo'] = cargar;
+      puntoVentaMock['descontarStockLocal'] = descontar;
+      cargarCarrito(0.2);
+      component.lineasPago = [pago(EFECTIVO, null)];
+      component.preview = crearPreview(0.4);
+
+      component.cobrar();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(descontar).toHaveBeenCalledTimes(1);
+      expect(cargar).toHaveBeenCalledTimes(1);
+      // Sin forzar (primer argumento false): con `true` bajaba hasta 5 000 productos después de cada venta.
+      expect(cargar.mock.calls[0][0]).toBe(false);
     });
 
     it('con la boleta en modo resumen diario avisa que se informa a SUNAT en el resumen, sin decir que se confirma en segundos', async () => {
@@ -1189,6 +1227,111 @@ describe('VentasComponent', () => {
       const unidad = (fixture.nativeElement as HTMLElement).querySelector('.pv-tile__unidad');
 
       expect(normalizar(unidad?.textContent)).toBe('kg');
+    });
+  });
+
+  describe('Imprimir ticket tras cobrar', () => {
+    function ventaCon(extra: Record<string, unknown> = {}) {
+      return {
+        id_venta: 7, fecha: '2026-11-09', origen: 'mostrador', cliente_denominacion: 'CLIENTES VARIOS',
+        subtotal: 10, igv: 1.8, total: 11.8, ...extra,
+      } as any;
+    }
+    function omitirCargaInicial(): void {
+      for (const carga of ['cargarMetodosPago', 'cargarSeriesFiscales', 'cargarContextoPos', 'cargarChipCaja']) {
+        vi.spyOn(component as any, carga).mockImplementation(() => undefined);
+      }
+    }
+    const pintar = (venta: unknown) => {
+      omitirCargaInicial();
+      component.ultimaVenta = venta as any;
+      fixture.detectChanges();
+      return fixture.nativeElement as HTMLElement;
+    };
+    const boton = (el: HTMLElement) => el.querySelector<HTMLButtonElement>('.pv-resultado__ticket');
+    const titulo = (el: HTMLElement) => (el.querySelector('.pv-resultado__titulo')?.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const conComprobante = () => ventaCon({ comprobante: { id_comprobante: 55, numero_formateado: 'B001-12' } });
+
+    it('el botón solo aparece cuando la venta tiene comprobante con id', () => {
+      expect(boton(pintar(conComprobante()))).not.toBeNull();
+    });
+
+    it('una venta sin comprobante dice «Venta registrada» y no ofrece el ticket', () => {
+      const el = pintar(ventaCon());
+      expect(boton(el)).toBeNull();
+      expect(titulo(el)).toBe('Venta registrada');
+    });
+
+    it('con comprobante el título sigue siendo «Comprobante emitido»', () => {
+      expect(titulo(pintar(conComprobante()))).toBe('Comprobante emitido');
+    });
+
+    it('con error de comprobante mantiene el título de pendiente y sin botón', () => {
+      const el = pintar(ventaCon({ comprobante_error: 'SUNAT no responde' }));
+      expect(titulo(el)).toBe('Venta registrada, comprobante pendiente');
+      expect(boton(el)).toBeNull();
+    });
+
+    it('al pulsarlo pide el ticket de ese comprobante y lo manda a imprimir', async () => {
+      imprimirMock.mockResolvedValue(true);
+      const el = pintar(conComprobante());
+      boton(el)!.click();
+      await vi.waitFor(() => expect(imprimirMock).toHaveBeenCalledTimes(1));
+
+      expect(comprobantesMock.descargarPdf).toHaveBeenCalledWith(55, 'ticket');
+      await vi.waitFor(() => expect(component.imprimiendoTicket).toBe(false));
+      expect(descargaMock).not.toHaveBeenCalled();
+    });
+
+    it('el botón sigue en «Preparando…» hasta que la impresión arranca o se rinde (un segundo clic no pide otro ticket)', async () => {
+      let resolver!: (impreso: boolean) => void;
+      imprimirMock.mockReturnValue(new Promise<boolean>((r) => { resolver = r; }));
+      component.ultimaVenta = conComprobante();
+
+      component.imprimirTicket();
+      await vi.waitFor(() => expect(imprimirMock).toHaveBeenCalledTimes(1));
+      // El PDF ya llegó, pero la impresión aún no resolvió: la bandera sigue arriba y otro clic no hace nada.
+      expect(component.imprimiendoTicket).toBe(true);
+      component.imprimirTicket();
+      expect(comprobantesMock.descargarPdf).toHaveBeenCalledTimes(1);
+
+      resolver(true);
+      await vi.waitFor(() => expect(component.imprimiendoTicket).toBe(false));
+    });
+
+    it('si la impresión no es posible descarga el ticket y avisa', async () => {
+      imprimirMock.mockResolvedValue(false);
+      const toast = vi.spyOn(TestBed.inject(AlertService), 'toast');
+      component.ultimaVenta = conComprobante();
+
+      component.imprimirTicket();
+      await vi.waitFor(() => expect(descargaMock).toHaveBeenCalledTimes(1));
+
+      expect(descargaMock).toHaveBeenCalledWith('B001-12-ticket.pdf');
+      expect(toast).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'No se pudo abrir la impresión: el ticket se descargó.',
+      }));
+    });
+
+    it('un error de red se avisa con alerta y no imprime', async () => {
+      comprobantesMock.descargarPdf.mockReturnValueOnce(throwError(() => new Error('sin red')));
+      const error = vi.spyOn(TestBed.inject(AlertService), 'error');
+      component.ultimaVenta = conComprobante();
+
+      component.imprimirTicket();
+      await vi.waitFor(() => expect(error).toHaveBeenCalledTimes(1));
+
+      expect(imprimirMock).not.toHaveBeenCalled();
+      expect(component.imprimiendoTicket).toBe(false);
+    });
+
+    it('no hace nada sin comprobante o si ya está imprimiendo', () => {
+      component.ultimaVenta = ventaCon();
+      component.imprimirTicket();
+      component.ultimaVenta = conComprobante();
+      component.imprimiendoTicket = true;
+      component.imprimirTicket();
+      expect(comprobantesMock.descargarPdf).not.toHaveBeenCalled();
     });
   });
 

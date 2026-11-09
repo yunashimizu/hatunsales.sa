@@ -108,6 +108,8 @@ export class InventarioAdminService {
     id_almacen_destino: number;
     cantidad: number;
     comentario?: string;
+    /** Stock de origen que vio quien transfiere: si ya cambió, el servidor responde 409 en vez de mover otra cantidad. */
+    stock_origen_esperado?: number;
   }): Observable<any> {
     return this.http.post(urlConstants.inventario.transferencia, datos, opcionesHttp()).pipe(
       tap(() => this.eventos.emitir({ tipo: 'stock-cambio', datos: { id_producto: datos.id_producto } })),

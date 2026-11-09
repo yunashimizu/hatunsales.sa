@@ -80,16 +80,13 @@
 
   <div class="adm-grid adm-grid--2 caja-columnas">
 
-    <!-- Estado / cerrar -->
-    <section class="adm-tarjeta">
+    <!-- Estado / cerrar: solo con el turno abierto (cerrado, la tarjeta de arriba ya lo dice) -->
+    @if (apertura) {
+    <section class="adm-tarjeta" id="caja-estado">
       <div class="adm-tarjeta__cabecera">
         <h2 class="adm-tarjeta__titulo"><i class="bi bi-info-circle" aria-hidden="true"></i> Estado del turno</h2>
       </div>
-      <div class="adm-tarjeta__cuerpo" *ngIf="cargando && !sesion" aria-busy="true" aria-label="Consultando el turno">
-        <div class="adm-esqueleto adm-esqueleto--fila" *ngFor="let n of [1,2,3]"></div>
-      </div>
-      <div class="adm-tarjeta__cuerpo" *ngIf="!cargando || sesion">
-        <ng-container *ngIf="apertura; else sinApertura">
+      <div class="adm-tarjeta__cuerpo">
           <p class="adm-ayuda caja-intro">
             Turno abierto. Tus cobros preferirán esta caja.
           </p>
@@ -115,7 +112,7 @@
               <div class="adm-tabla__principal">{{ apertura.caja_nombre }}</div>
             </div>
             <div class="adm-campo">
-              <span class="adm-etiqueta">Sucursal</span>
+              <span class="adm-etiqueta">Local</span>
               <div>{{ apertura.sucursal_nombre || '—' }}</div>
             </div>
           </div>
@@ -148,38 +145,111 @@
               <span>Para cerrar el turno, realiza el conteo en «Arqueo del turno», debajo.</span>
             </p>
           }
-        </ng-container>
-        <ng-template #sinApertura>
-          <div class="adm-vacio caja-vacio">
-            <div class="adm-vacio__icono"><i class="bi bi-cash-register" aria-hidden="true"></i></div>
-            <div class="adm-vacio__titulo">Sin turno abierto</div>
-            <p>Abre una caja libre para asociar tus cobros a tu sesión.</p>
+      </div>
+    </section>
+    }
+
+    <!-- Cajas por local: siempre. Sin turno, aquí se elige la caja; con turno, solo lectura. -->
+    <section class="adm-tarjeta caja-tablero" id="caja-tablero" aria-labelledby="caja-tablero-titulo">
+      <div class="adm-tarjeta__cabecera">
+        <h2 class="adm-tarjeta__titulo" id="caja-tablero-titulo"><i class="bi bi-shop" aria-hidden="true"></i> Cajas por local</h2>
+      </div>
+      <div class="adm-tarjeta__cuerpo">
+        @if (apertura) {
+          <p class="adm-ayuda caja-tablero__nota" id="caja-tablero-nota">
+            <i class="bi bi-lock" aria-hidden="true"></i> Ya tienes un turno abierto. Ciérralo para cambiar de caja.
+          </p>
+        }
+        @if (errorCajas) {
+          <p class="adm-aviso adm-aviso--peligro adm-aviso--compacto caja-aviso" role="alert">
+            <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+            <span>{{ errorCajas }}</span>
+          </p>
+        }
+        @if (cargandoCajas && !cajas.length) {
+          <div aria-busy="true" aria-label="Consultando las cajas">
+            @for (n of [1, 2, 3]; track n) { <div class="adm-esqueleto adm-esqueleto--fila"></div> }
           </div>
-        </ng-template>
+        } @else if (!cajas.length && !errorCajas) {
+          <div class="adm-vacio adm-vacio--compacto caja-vacio">
+            <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-cash-stack" aria-hidden="true"></i></div>
+            <p>No hay cajas registradas. Pide a quien administra el sistema que las cree.</p>
+          </div>
+        } @else {
+          <div class="caja-locales">
+            @for (g of locales; track g.id ?? 'sin-local') {
+              <div class="caja-local" [attr.data-local]="g.id ?? 'sin-local'">
+                <div class="caja-local__cabecera">
+                  <span class="caja-local__icono" aria-hidden="true"><i class="bi bi-shop-window"></i></span>
+                  <div class="caja-local__datos">
+                    <h3 class="caja-local__nombre">{{ g.nombre }}</h3>
+                    <span class="caja-local__cuenta">{{ g.cajas.length }} {{ g.cajas.length === 1 ? 'caja' : 'cajas' }} · {{ g.libres }} {{ g.libres === 1 ? 'libre' : 'libres' }}</span>
+                  </div>
+                  @if (g.id != null) {
+                    <a class="caja-local__arqueo" routerLink="/dashboard/mantenimiento/arqueo-caja" [queryParams]="{ id_sucursal: g.id }">
+                      Arqueo de este local <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                    </a>
+                  }
+                </div>
+                <div class="caja-opciones" role="group" [attr.aria-label]="'Cajas de ' + g.nombre">
+                  @for (c of g.cajas; track c.id_caja) {
+                    <button type="button" class="caja-opcion" [attr.data-caja]="c.id_caja"
+                            [class.caja-opcion--libre]="!c.ocupada"
+                            [class.caja-opcion--ocupada]="c.ocupada"
+                            [class.caja-opcion--mia]="esMia(c)"
+                            [class.caja-opcion--elegida]="!apertura && !c.ocupada && c.id_caja === idCajaElegida"
+                            [attr.aria-pressed]="!apertura && !c.ocupada && c.id_caja === idCajaElegida"
+                            [disabled]="c.ocupada || !!apertura || abriendo"
+                            (click)="elegirCaja(c)">
+                      <span class="caja-opcion__fila">
+                        <span class="caja-opcion__nombre">{{ c.nombre }}</span>
+                        @if (!apertura && !c.ocupada && c.id_caja === idCajaElegida) {
+                          <i class="bi bi-check-circle-fill caja-opcion__marca" aria-hidden="true"></i>
+                        }
+                      </span>
+                      @if (esMia(c)) {
+                        <span class="adm-insignia adm-insignia--exito adm-insignia--sm caja-opcion__mia">
+                          Tu turno@if (abiertaEn(c); as hora) { · desde las {{ hora | date:'HH:mm' }} }
+                        </span>
+                      } @else if (c.ocupada) {
+                        <span class="caja-opcion__estado caja-opcion__estado--ocupada">Ocupada</span>
+                        <span class="caja-opcion__detalle">
+                          @if (c.ocupada_por) {
+                            {{ c.ocupada_por }}@if (c.abierta_en) { · desde las {{ c.abierta_en | date:'HH:mm' }} }
+                          } @else {
+                            Turno abierto
+                          }
+                        </span>
+                      } @else {
+                        <span class="caja-opcion__estado caja-opcion__estado--libre">Libre</span>
+                        @if (c.sugerido_inicial != null) {
+                          <span class="caja-opcion__detalle">Dejó S/ {{ c.sugerido_inicial | number:'1.2-2' }}</span>
+                        }
+                      }
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
       </div>
     </section>
 
-    <!-- Abrir -->
-    <section class="adm-tarjeta">
+    <!-- Abrir: solo sin turno; la caja se elige en el tablero -->
+    @if (!apertura) {
+    <section class="adm-tarjeta" id="caja-abrir">
       <div class="adm-tarjeta__cabecera">
-        <h2 class="adm-tarjeta__titulo"><i class="bi bi-unlock" aria-hidden="true"></i> Abrir caja</h2>
+        <h2 class="adm-tarjeta__titulo" id="caja-abrir-titulo"><i class="bi bi-unlock" aria-hidden="true"></i>
+          @if (cajaElegida; as c) {
+            Abrir turno · {{ c.nombre }}@if (c.sucursal_nombre) { · {{ c.sucursal_nombre }} }
+          } @else {
+            Elige una caja libre
+          }
+        </h2>
       </div>
       <div class="adm-tarjeta__cuerpo">
-        <ng-container *ngIf="!apertura; else yaAbierta">
-          <div class="adm-campo">
-            <label class="adm-etiqueta" for="caja-sel">Caja</label>
-            <select id="caja-sel" class="adm-select" [(ngModel)]="idCajaElegida">
-              <option [ngValue]="null" disabled>Selecciona…</option>
-              <option *ngFor="let c of cajas" [ngValue]="c.id_caja" [disabled]="c.ocupada">
-                {{ c.nombre }}
-                <ng-container *ngIf="c.sucursal_nombre"> — {{ c.sucursal_nombre }}</ng-container>
-                <ng-container *ngIf="c.ocupada"> (ocupada)</ng-container>
-              </option>
-            </select>
-          </div>
-          <p class="adm-ayuda caja-ayuda">Las ocupadas ya tienen un turno abierto.</p>
-
-          <div class="adm-campo caja-campo-monto">
+          <div class="adm-campo caja-campo-monto caja-campo-monto--primero">
             <span class="adm-etiqueta" id="efectivo-modo-etiqueta">Efectivo al abrir</span>
             <div class="adm-segmentado adm-segmentado--bloque caja-modo" role="radiogroup" aria-labelledby="efectivo-modo-etiqueta">
               <button type="button" class="adm-segmento" role="radio" id="modo-con-efectivo"
@@ -266,7 +336,7 @@
                     <span class="caja-desglose__total-texto" id="desglose-total" aria-live="polite" aria-atomic="true">
                       Total contado: <strong class="adm-tabular">S/ {{ totalConteo | number:'1.2-2' }}</strong>
                     </span>
-                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm" id="desglose-limpiar"
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm adm-btn--cancelar" id="desglose-limpiar"
                             (click)="limpiarConteo()" [disabled]="!conteoConDatos">
                       <i class="bi bi-eraser" aria-hidden="true"></i> Borrar conteo
                     </button>
@@ -313,25 +383,9 @@
               {{ abriendo ? 'Abriendo…' : 'Abrir turno' }}
             </button>
           </div>
-          @if (errorCajas) {
-            <p class="adm-aviso adm-aviso--peligro adm-aviso--compacto caja-aviso" role="alert">
-              <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
-              <span>{{ errorCajas }}</span>
-            </p>
-          }
-          <p class="adm-aviso adm-aviso--neutro adm-aviso--compacto caja-aviso" *ngIf="!cajas.length && !cargando && !cargandoCajas && !errorCajas">
-            <i class="bi bi-info-circle" aria-hidden="true"></i>
-            <span>No hay cajas registradas en el sistema. Crea cajas en la base o pide a un admin.</span>
-          </p>
-        </ng-container>
-        <ng-template #yaAbierta>
-          <div class="adm-aviso adm-aviso--exito caja-ya-abierta">
-            <i class="bi bi-check-circle" aria-hidden="true"></i>
-            <span>Ya tienes un turno abierto. Ciérralo a la izquierda si necesitas cambiar de caja.</span>
-          </div>
-        </ng-template>
       </div>
     </section>
+    }
 
   </div>
   @if (idTurnoArqueo; as idTurno) {

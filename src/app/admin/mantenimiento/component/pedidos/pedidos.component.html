@@ -327,7 +327,7 @@
   <div class="adm-panel__pie ped-ficha__pie">
     <button type="button" class="adm-btn adm-btn--suave" *ngIf="esFinal" (click)="cerrarPanel()">Cerrar</button>
 
-    <button type="button" class="adm-btn adm-btn--primario ped-principal" *ngIf="p.estado === 'pendiente'" (click)="confirmarPago()" [disabled]="procesando">
+    <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar ped-principal" *ngIf="p.estado === 'pendiente'" (click)="confirmarPago()" [disabled]="procesando">
       <i class="bi" [ngClass]="procesando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
       {{ procesando ? 'Confirmando…' : 'Confirmar pago' }}
     </button>

@@ -537,10 +537,10 @@
   </div>
 
   <div class="adm-panel__pie">
-    <button type="button" class="adm-btn adm-btn--suave" (click)="cerrarPanel()" [disabled]="guardando">
-      Cancelar
+    <button type="button" class="adm-btn adm-btn--suave adm-btn--cancelar" (click)="cerrarPanel()" [disabled]="guardando">
+      <i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar
     </button>
-    <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+    <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar" (click)="guardar()" [disabled]="guardando">
       <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
       Guardar cambios
     </button>

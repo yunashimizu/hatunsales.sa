@@ -104,6 +104,63 @@ describe('PuntoVentaService: API del POS', () => {
     });
   });
 
+  describe('filtrarLocal', () => {
+    const catalogo = () => [
+      { id_producto: 1, nombre: 'Caña para pescar', codigo_barras: '111', sku: 'CAN-01' },
+      { id_producto: 2, nombre: 'TUBO PVC 1/2', codigo_barras: '222', sku: 'TUB-02' },
+      { id_producto: 3, nombre: 'Codo para tubo', codigo_barras: '333', sku: 'COD-03' },
+      { id_producto: 4, nombre: 'Tubo galvanizado', codigo_barras: '444', sku: 'TUB-04' },
+    ];
+    const ids = (r: { id_producto: number }[]) => r.map((p) => p.id_producto);
+
+    beforeEach(() => {
+      (service as any).catalogo = catalogo();
+    });
+
+    it('encuentra sin tildes ni mayúsculas', () => {
+      expect(ids(service.filtrarLocal('cana pescar'))).toEqual([1]);
+      expect(ids(service.filtrarLocal('CAÑA'))).toEqual([1]);
+    });
+
+    it('encuentra con las palabras en otro orden', () => {
+      expect(ids(service.filtrarLocal('pvc tubo'))).toEqual([2]);
+      expect(ids(service.filtrarLocal('pescar cana'))).toEqual([1]);
+    });
+
+    it('el código de barras exacto va primero', () => {
+      (service as any).catalogo = [
+        { id_producto: 1, nombre: 'Tuerca 555', codigo_barras: '1', sku: 'T-1' },
+        { id_producto: 2, nombre: 'Otro', codigo_barras: '555', sku: 'O-2' },
+      ];
+      expect(ids(service.filtrarLocal('555'))).toEqual([2, 1]);
+    });
+
+    it('el SKU exacto va segundo, tras el código de barras', () => {
+      (service as any).catalogo = [
+        { id_producto: 1, nombre: 'Aaa tuerca x1', codigo_barras: '9', sku: 'S-1' },
+        { id_producto: 2, nombre: 'Por SKU', codigo_barras: '8', sku: 'X1' },
+        { id_producto: 3, nombre: 'Por barras', codigo_barras: 'x1', sku: 'S-3' },
+      ];
+      expect(ids(service.filtrarLocal('x1'))).toEqual([3, 2, 1]);
+    });
+
+    it('los que empiezan por la consulta van antes que los que la contienen', () => {
+      // «Codo para tubo» (contiene) iría antes por orden alfabético si no hubiera prioridad.
+      expect(ids(service.filtrarLocal('tubo'))).toEqual([4, 2, 3]);
+    });
+
+    it('respeta el límite', () => {
+      expect(service.filtrarLocal('tubo', 2).length).toBe(2);
+    });
+
+    it('texto vacío o catálogo vacío devuelve []', () => {
+      expect(service.filtrarLocal('')).toEqual([]);
+      expect(service.filtrarLocal('   ')).toEqual([]);
+      (service as any).catalogo = [];
+      expect(service.filtrarLocal('tubo')).toEqual([]);
+    });
+  });
+
   describe('porCodigoLocal', () => {
     it('ignora saltos de línea y espacios del lector al comparar con el catálogo', () => {
       (service as any).catalogo = [{ id_producto: 1, nombre: 'CEMENTO', codigo_barras: '7501234567890', sku: 'CEM-01' }];

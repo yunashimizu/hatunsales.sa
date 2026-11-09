@@ -804,7 +804,7 @@
         </button>
       </div>
       <div class="gre-form__acciones">
-        <button type="button" class="adm-btn adm-btn--suave" (click)="guardarBorrador()" [disabled]="!!ocupado || cargando">
+        <button type="button" class="adm-btn adm-btn--suave adm-btn--guardar" (click)="guardarBorrador()" [disabled]="!!ocupado || cargando">
           <i class="bi" [ngClass]="ocupado === 'guardar' ? 'bi-arrow-repeat adm-girando' : 'bi-save'" aria-hidden="true"></i>
           {{ ocupado === 'guardar' ? 'Guardando…' : 'Guardar borrador' }}
         </button>

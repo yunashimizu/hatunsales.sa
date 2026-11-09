@@ -106,7 +106,7 @@
               {{ correoValido ? destino : 'Escriba un correo válido, por ejemplo contabilidad@suempresa.pe.' }}
             </p>
           </div>
-          <button type="submit" class="adm-btn adm-btn--suave" [disabled]="guardandoCorreo || !correoValido || !correoCambiado" data-prueba="guardar-correo">
+          <button type="submit" class="adm-btn adm-btn--suave adm-btn--guardar" [disabled]="guardandoCorreo || !correoValido || !correoCambiado" data-prueba="guardar-correo">
             <i class="bi" [ngClass]="guardandoCorreo ? 'bi-arrow-repeat adm-girando' : 'bi-check2'" aria-hidden="true"></i>
             Guardar correo
           </button>

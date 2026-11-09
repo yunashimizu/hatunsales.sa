@@ -21,7 +21,7 @@
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'"></i>
         Actualizar
       </button>
-      <button type="button" class="adm-btn adm-btn--primario" (click)="abrirNuevo()" *ngIf="puedeEditar">
+      <button type="button" class="adm-btn adm-btn--primario adm-btn--crear" (click)="abrirNuevo()" *ngIf="puedeEditar">
         <i class="bi bi-plus-lg"></i> Nuevo producto
       </button>
     </div>
@@ -190,7 +190,7 @@
           ? 'Pruebe con otro término o cambie la categoría o el estado.'
           : 'Registre el primer producto con su precio, stock e imágenes para empezar a vender.' }}
       </p>
-      <button type="button" class="adm-btn adm-btn--primario" (click)="abrirNuevo()" *ngIf="puedeEditar && !productos.length">
+      <button type="button" class="adm-btn adm-btn--primario adm-btn--crear" (click)="abrirNuevo()" *ngIf="puedeEditar && !productos.length">
         <i class="bi bi-plus-lg"></i> Crear el primero
       </button>
       <button type="button" class="adm-btn adm-btn--suave" *ngIf="productos.length && hayFiltros"
@@ -760,10 +760,10 @@
   </div>
 
   <div class="adm-panel__pie">
-    <button type="button" class="adm-btn adm-btn--suave" (click)="cerrarPanel()" [disabled]="guardando">
-      {{ editando || !puedeEditar ? 'Cerrar' : 'Cancelar' }}
+    <button type="button" class="adm-btn adm-btn--suave" [class.adm-btn--cancelar]="!(editando || !puedeEditar)" (click)="cerrarPanel()" [disabled]="guardando">
+      <i class="bi bi-x-lg" aria-hidden="true" *ngIf="!(editando || !puedeEditar)"></i> {{ editando || !puedeEditar ? 'Cerrar' : 'Cancelar' }}
     </button>
-    <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando"
+    <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar" (click)="guardar()" [disabled]="guardando"
             *ngIf="puedeEditar">
       <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'"></i>
       {{ editando ? 'Guardar cambios' : 'Crear producto' }}

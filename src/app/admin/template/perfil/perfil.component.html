@@ -125,7 +125,7 @@
         </ul>
 
         <div class="adm-acciones perfil-espaciado">
-          <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+          <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar" (click)="guardar()" [disabled]="guardando">
             <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
             {{ guardando ? 'Guardando…' : 'Guardar cambios' }}
           </button>

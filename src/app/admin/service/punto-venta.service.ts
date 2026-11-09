@@ -7,6 +7,7 @@ import {
   Paginado, PreviewComprobante, ProductoVenta, VentaRegistrada,
 } from '../models/admin.models';
 import { normalizarCodigo } from '../../shared/utils/codigo-barras.util';
+import { contienePalabras, normalizarBusqueda } from '../../shared/utils/texto-busqueda';
 import { cabecerasAutenticadas, mensajeDeError, opcionesHttp } from './api-base.service';
 import { EventosPanelService } from './eventos-panel.service';
 
@@ -190,20 +191,36 @@ export class PuntoVentaService {
     return this.catalogo.find((p) => Number(p.id_producto) === id) ?? null;
   }
 
-  /** Autocompletado local: mismos criterios de prioridad que el backend. */
+  /** Texto normalizado (nombre + SKU + código) de cada producto, para no recalcularlo en cada tecla. */
+  private readonly pajares = new WeakMap<ProductoVenta, string>();
+
+  private pajarDe(p: ProductoVenta): string {
+    let pajar = this.pajares.get(p);
+    if (pajar === undefined) {
+      pajar = normalizarBusqueda(`${p.nombre || ''} ${p.sku || ''} ${p.codigo_barras || ''}`);
+      this.pajares.set(p, pajar);
+    }
+    return pajar;
+  }
+
+  /**
+   * Autocompletado local: código de barras exacto, SKU exacto y luego parciales.
+   * Los parciales perdonan tildes, mayúsculas y el orden de las palabras.
+   */
   filtrarLocal(termino: string, limite = 12): ProductoVenta[] {
     const texto = (termino ?? '').trim();
     if (!texto || !this.catalogo.length) return [];
 
     const t = texto.toLowerCase();
+    const consulta = normalizarBusqueda(texto);
     const exactosBarcode: ProductoVenta[] = [];
     const exactosSku: ProductoVenta[] = [];
-    const parciales: ProductoVenta[] = [];
+    const empiezan: ProductoVenta[] = [];
+    const contienen: ProductoVenta[] = [];
 
     for (const p of this.catalogo) {
       const sku = (p.sku || '').toLowerCase();
       const barcode = p.codigo_barras || '';
-      const nombre = (p.nombre || '').toLowerCase();
 
       if (barcode === texto) {
         exactosBarcode.push(p);
@@ -213,13 +230,17 @@ export class PuntoVentaService {
         exactosSku.push(p);
         continue;
       }
-      if (nombre.includes(t) || sku.includes(t) || barcode.includes(texto)) {
-        parciales.push(p);
+      if (contienePalabras(this.pajarDe(p), consulta)) {
+        if (normalizarBusqueda(p.nombre).startsWith(consulta)) empiezan.push(p);
+        else contienen.push(p);
       }
     }
 
-    parciales.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es'));
-    return [...exactosBarcode, ...exactosSku, ...parciales].slice(0, limite);
+    const porNombre = (a: ProductoVenta, b: ProductoVenta) =>
+      (a.nombre || '').localeCompare(b.nombre || '', 'es');
+    empiezan.sort(porNombre);
+    contienen.sort(porNombre);
+    return [...exactosBarcode, ...exactosSku, ...empiezan, ...contienen].slice(0, limite);
   }
 
   /** Match exacto local (lector / SKU). */
@@ -378,7 +399,7 @@ export class PuntoVentaService {
     return this.http.get(urlConstants.credito.cuenta(id), opcionesHttp());
   }
 
-  abonarCxc(id: number, body: { monto: number; id_metodo?: number; referencia?: string }): Observable<any> {
+  abonarCxc(id: number, body: { monto: number; id_metodo?: number; referencia?: string; saldo_esperado?: number }): Observable<any> {
     return this.http.post(urlConstants.credito.abonar(id), body, opcionesHttp());
   }
 

@@ -5,7 +5,7 @@
       <div>
         <span class="adm-cabecera__eyebrow">Ventas</span>
         <h1 class="adm-cabecera__titulo">Arqueo de caja</h1>
-        <p class="adm-cabecera__sub">Resumen por sucursal, turnos del período y arqueo detallado por turno.</p>
+        <p class="adm-cabecera__sub">Resumen por local, turnos del período y arqueo detallado por turno.</p>
       </div>
     </div>
     <div class="adm-acciones">
@@ -33,7 +33,7 @@
       <div class="adm-tarjeta__cuerpo">
         <form class="arq-filtros" (ngSubmit)="aplicarFiltros()" novalidate>
           <div class="adm-campo">
-            <label class="adm-etiqueta" for="arq-sucursal">Sucursal</label>
+            <label class="adm-etiqueta" for="arq-sucursal">Local</label>
             <select id="arq-sucursal" class="adm-select" name="sucursal" [(ngModel)]="filtros.id_sucursal"
                     (ngModelChange)="alCambiarSucursal()">
               <option [ngValue]="null">Todas</option>
@@ -86,17 +86,17 @@
           }
         </div>
         <p class="adm-ayuda arq-ayuda">
-          Las tarjetas por sucursal usan el rango de fechas y la sucursal; la caja
+          Las tarjetas por local usan el rango de fechas y el local; la caja
           @if (esAdmin) { y el usuario }
           filtran solo el listado de turnos. Las fechas son días de Lima.
         </p>
       </div>
     </section>
 
-    <!-- Tarjetas por sucursal -->
+    <!-- Tarjetas por local -->
     <section aria-labelledby="arq-resumen-titulo" class="arq-seccion">
       <div class="arq-seccion__cabecera">
-        <h2 class="adm-seccion__titulo arq-seccion__titulo" id="arq-resumen-titulo">Resumen por sucursal</h2>
+        <h2 class="adm-seccion__titulo arq-seccion__titulo" id="arq-resumen-titulo">Resumen por local</h2>
         <button type="button" class="adm-btn adm-btn--suave arq-pdf" id="arq-resumen-pdf"
                 (click)="descargarPdf()" [disabled]="generandoPdf" [attr.aria-busy]="generandoPdf">
           <i class="bi" [ngClass]="generandoPdf ? 'bi-arrow-repeat adm-girando' : (errorPdf ? 'bi-arrow-clockwise' : 'bi-file-earmark-pdf')" aria-hidden="true"></i>
@@ -121,7 +121,7 @@
           </div>
         </div>
       } @else if (cargandoResumen && !resumen) {
-        <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando el resumen por sucursal">
+        <div class="adm-esqueletos" aria-busy="true" aria-label="Cargando el resumen por local">
           <div class="adm-esqueleto adm-esqueleto--fila"></div>
           <div class="adm-esqueleto adm-esqueleto--fila"></div>
         </div>
@@ -137,6 +137,21 @@
                 </span>
               </div>
               <div class="adm-tarjeta__cuerpo">
+                @if (!s.esTotal) {
+                  @let fichas = cajasDeLocal(s.id_sucursal);
+                  @if (fichas.length) {
+                    <ul class="arq-cajas-ahora" [attr.aria-label]="'Cajas de ' + nombreSucursal(s) + ' ahora'">
+                      @for (c of fichas; track c.id_caja) {
+                        <li class="adm-insignia adm-insignia--sm arq-caja-ficha"
+                            [class.adm-insignia--neutra]="!c.ocupada"
+                            [class.adm-insignia--exito]="c.ocupada"
+                            [class.adm-insignia--punto]="c.ocupada"
+                            [class.arq-caja-ficha--abierta]="c.ocupada"
+                            [attr.data-caja]="c.id_caja">{{ c.nombre }} · {{ c.ocupada ? (c.ocupada_por || 'abierta') : 'libre' }}</li>
+                      }
+                    </ul>
+                  }
+                }
                 <dl class="arq-datos">
                   <div class="arq-datos__fila">
                     <dt>Efectivo inicial</dt>
@@ -169,6 +184,16 @@
                     }
                   </ul>
                 }
+                @if (!s.esTotal && s.id_sucursal !== null) {
+                  <div class="arq-sucursal__pie">
+                    <button type="button" class="adm-btn adm-btn--suave adm-btn--sm arq-ver-local"
+                            [attr.data-local]="s.id_sucursal"
+                            (click)="verTurnosDeLocal(s.id_sucursal)"
+                            [disabled]="cargandoResumen || cargandoTurnos">
+                      <i class="bi bi-list-check" aria-hidden="true"></i> Ver turnos de este local
+                    </button>
+                  </div>
+                }
               </div>
             </article>
           }
@@ -185,7 +210,7 @@
     </section>
 
     <!-- Listado de turnos -->
-    <section class="adm-tarjeta adm-tarjeta--acento" aria-labelledby="arq-turnos-titulo">
+    <section class="adm-tarjeta adm-tarjeta--acento" id="arq-turnos" aria-labelledby="arq-turnos-titulo">
       <div class="adm-tarjeta__cabecera">
         <h2 class="adm-tarjeta__titulo" id="arq-turnos-titulo">
           <i class="bi bi-list-check" aria-hidden="true"></i> Turnos
@@ -213,7 +238,7 @@
         <div class="adm-vacio adm-vacio--compacto" id="arq-turnos-vacio" role="status">
           <div class="adm-vacio__icono adm-vacio__icono--neutro"><i class="bi bi-inbox" aria-hidden="true"></i></div>
           <div class="adm-vacio__titulo">Ningún turno coincide con los filtros</div>
-          <p>Cambie las fechas o quite la sucursal, la caja o el usuario.</p>
+          <p>Cambie las fechas o quite el local, la caja o el usuario.</p>
         </div>
       } @else {
         <div class="adm-tabla-envoltorio" [attr.aria-busy]="cargandoTurnos">
@@ -237,7 +262,7 @@
                   <td data-etiqueta="Turno" class="arq-celda-turno">
                     <div class="arq-celda-turno__texto">
                       <div class="adm-tabla__principal">#{{ t.id_apertura }} · {{ t.caja_nombre }}</div>
-                      <div class="adm-tabla__secundario">{{ t.sucursal_nombre || 'Sin sucursal' }}@if (t.usuario_nombre) { · {{ t.usuario_nombre }} }</div>
+                      <div class="adm-tabla__secundario">{{ t.sucursal_nombre || 'Sin local' }}@if (t.usuario_nombre) { · {{ t.usuario_nombre }} }</div>
                     </div>
                   </td>
                   <td data-etiqueta="Apertura" class="adm-tabular">{{ t.abierta_en | date:'dd/MM/yyyy HH:mm':'-0500' }}</td>

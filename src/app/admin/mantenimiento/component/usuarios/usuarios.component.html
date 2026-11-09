@@ -14,7 +14,7 @@
         <i class="bi" [ngClass]="cargando ? 'bi-arrow-repeat adm-girando' : 'bi-arrow-clockwise'" aria-hidden="true"></i>
         Actualizar
       </button>
-      <button type="button" class="adm-btn adm-btn--primario" (click)="nuevo()">
+      <button type="button" class="adm-btn adm-btn--primario adm-btn--crear" (click)="nuevo()">
         <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo usuario
       </button>
     </div>
@@ -96,12 +96,12 @@
         <div class="adm-campo adm-campo--accion">
           <label class="adm-etiqueta adm-etiqueta--fantasma" aria-hidden="true">&nbsp;</label>
           <div class="adm-acciones">
-            <button type="button" class="adm-btn adm-btn--primario" (click)="guardar()" [disabled]="guardando">
+            <button type="button" class="adm-btn adm-btn--primario adm-btn--guardar" (click)="guardar()" [disabled]="guardando">
               <i class="bi" [ngClass]="guardando ? 'bi-arrow-repeat adm-girando' : 'bi-check-lg'" aria-hidden="true"></i>
               {{ guardando ? 'Guardando…' : (editando ? 'Actualizar' : 'Guardar') }}
             </button>
-            <button type="button" class="adm-btn adm-btn--suave" *ngIf="editando" (click)="cancelar()">
-              Cancelar
+            <button type="button" class="adm-btn adm-btn--suave adm-btn--cancelar" *ngIf="editando" (click)="cancelar()">
+              <i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar
             </button>
           </div>
         </div>
