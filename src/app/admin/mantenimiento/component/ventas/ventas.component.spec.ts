@@ -13,6 +13,7 @@ import { CotizacionService } from '../../../service/cotizacion.service';
 import { ConfiguracionFiscalService } from '../../../service/configuracion-fiscal.service';
 import { SolicitudVenta } from '../../../service/punto-venta.service';
 import { PreviewComprobante } from '../../../models/admin.models';
+import { CATALOGO_RESPALDO, UnidadMedidaService } from '../../../service/unidad-medida.service';
 import { VentasComponent } from './ventas.component';
 
 describe('VentasComponent', () => {
@@ -148,6 +149,10 @@ describe('VentasComponent', () => {
         { provide: ActivatedRoute, useValue: { queryParamMap: of({ get: () => null }) } },
         { provide: Router, useValue: {} },
         { provide: AuthService, useValue: { puedeEditarCatalogo: () => true } },
+        { provide: UnidadMedidaService, useValue: {
+          mapa: new Map(CATALOGO_RESPALDO.unidades.map((u) => [u.codigo, u])),
+          cargar: () => of(CATALOGO_RESPALDO),
+        } },
       ],
     }).compileComponents();
 
@@ -1104,6 +1109,86 @@ describe('VentasComponent', () => {
       await component.retomarEspera(component.enEspera[0]);
       expect(confirmar).toHaveBeenCalledTimes(2);
       expect(component.lineas.map((l) => l.id_producto)).toEqual([1]);
+    });
+  });
+
+  describe('Ticket ordenado: líneas del carrito', () => {
+    function omitirCargaInicial(): void {
+      for (const carga of ['cargarMetodosPago', 'cargarSeriesFiscales', 'cargarContextoPos', 'cargarChipCaja']) {
+        vi.spyOn(component as any, carga).mockImplementation(() => undefined);
+      }
+    }
+    function linea(id: number, extra: Record<string, unknown> = {}) {
+      return {
+        id_producto: id, descripcion: `PRODUCTO ${id}`, sku: `S${id}`, unidad_medida: 'NIU',
+        cantidad: 1, precio_unitario: 10, descuento: 0, stock_disponible: 10, ...extra,
+      };
+    }
+    const normalizar = (t: string | null | undefined) => (t ?? '').replace(/\s+/g, ' ').trim();
+
+    it('los datos de la línea son legibles: unidad con abreviatura, stock y código rotulado', () => {
+      component.lineas = [
+        linea(1, { unidad_medida: 'KGM', sku: 'CLA-03', cantidad: 5, precio_unitario: 10, stock_disponible: 10 }),
+        linea(2, { sku: '' }),
+      ];
+      omitirCargaInicial();
+      fixture.detectChanges();
+      const filas = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('li.pv-linea'));
+
+      const datos1 = Array.from(filas[0].querySelectorAll('.pv-dato')).map((d) => normalizar(d.textContent));
+      expect(datos1).toEqual(['5 kg × S/ 10.00', 'Stock 10', 'Cód. CLA-03']);
+      expect(filas[0].textContent).not.toContain('KGM');
+      expect(filas[1].querySelectorAll('.pv-dato').length).toBe(2);
+    });
+
+    it('el descuento va vacío si es 0 y, con descuento, la caja se marca y explica el cálculo', async () => {
+      component.lineas = [linea(1, { descuento: 0 }), linea(2, { descuento: 1.5, cantidad: 2 })];
+      omitirCargaInicial();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const filas = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('li.pv-linea'));
+      const input = (fila: Element) => fila.querySelector('.pv-descuento-input') as HTMLInputElement;
+
+      expect(input(filas[0]).value).toBe('');
+      expect(filas[0].classList.contains('pv-linea--con-dto')).toBe(false);
+      expect(filas[0].querySelector('.pv-descuento-detalle')).toBeNull();
+
+      expect(input(filas[1]).value).toBe('1.5');
+      expect(filas[1].classList.contains('pv-linea--con-dto')).toBe(true);
+      expect(normalizar(filas[1].querySelector('.pv-descuento-detalle')?.textContent)).toBe('Descuento: 2 × S/ 1.50 = − S/ 3.00');
+    });
+
+    it('cada línea tiene la misma estructura, en orden de lectura, sin envoltorio «extra»', () => {
+      component.lineas = [linea(1), linea(2, { cantidad: 3, descuento: 1 })];
+      omitirCargaInicial();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const filas = Array.from(el.querySelectorAll('li.pv-linea'));
+
+      expect(filas.length).toBe(2);
+      for (const fila of filas) {
+        const clases = Array.from(fila.children)
+          .map((h) => Array.from(h.classList).find((c) => c.startsWith('pv-linea__')))
+          .filter((c) => c);
+        expect(clases.slice(0, 6)).toEqual([
+          'pv-linea__info', 'pv-linea__monto', 'pv-linea__detalle', 'pv-linea__cantidad', 'pv-linea__desc', 'pv-linea__quitar',
+        ]);
+      }
+      expect(el.querySelector('.pv-linea__extra')).toBeNull();
+    });
+
+    it('el tile del catálogo muestra la unidad abreviada (kg) y no el código SUNAT', () => {
+      puntoVentaMock['tieneCatalogo'] = true;
+      puntoVentaMock['catalogoCacheado'] = [{
+        id_producto: 1, nombre: 'CLAVOS', sku: 'CLA-03', codigo_barras: '', unidad_medida: 'KGM',
+        precio_venta: 10, descuento: 0, precio_final: 10, stock_disponible: 5, imagen_url: '',
+      }];
+      omitirCargaInicial();
+      fixture.detectChanges();
+      const unidad = (fixture.nativeElement as HTMLElement).querySelector('.pv-tile__unidad');
+
+      expect(normalizar(unidad?.textContent)).toBe('kg');
     });
   });
 

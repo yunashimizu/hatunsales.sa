@@ -311,7 +311,7 @@
             </span>
             <span class="pv-tile__pie">
               <span class="pv-tile__precio">S/ {{ producto.precio_final | number:'1.2-2' }}</span>
-              <span class="pv-tile__unidad" *ngIf="producto.unidad_medida">{{ producto.unidad_medida }}</span>
+              <span class="pv-tile__unidad" *ngIf="producto.unidad_medida">{{ producto.unidad_medida | unidadMedida }}</span>
             </span>
           </button>
           <button type="button" class="pv-tile pv-tile--nuevo"
@@ -580,9 +580,20 @@
           <ul class="pv-lineas" *ngIf="lineas.length">
             <li *ngFor="let linea of lineas; trackBy: identificarLinea"
                 class="pv-linea"
+                [class.pv-linea--con-dto]="descuentoTotalLinea(linea) > 0"
                 [class.adm-recien-creado]="linea.id_producto === idLineaDestacada">
               <div class="pv-linea__info">
                 <div class="pv-linea__nombre" title="{{ linea.descripcion }}">{{ linea.descripcion }}</div>
+              </div>
+
+              <div class="pv-linea__monto">S/ {{ subtotalLinea(linea) | number:'1.2-2' }}</div>
+
+              <div class="pv-linea__detalle">
+                <span class="pv-dato">{{ linea.cantidad }}<ng-container *ngIf="linea.unidad_medida"> {{ linea.unidad_medida | unidadMedida }}</ng-container> × S/ {{ linea.precio_unitario | number:'1.2-2' }}</span>
+                <span class="pv-dato">Stock {{ linea.stock_disponible }}</span>
+                <span class="pv-dato" *ngIf="linea.sku">Cód. {{ linea.sku }}</span>
+                <span class="adm-insignia adm-insignia--peligro adm-insignia--sm"
+                      *ngIf="linea.cantidad > linea.stock_disponible">Excede el stock</span>
               </div>
 
               <div class="pv-linea__cantidad">
@@ -602,39 +613,26 @@
                 </div>
               </div>
 
-              <div class="pv-linea__monto">S/ {{ subtotalLinea(linea) | number:'1.2-2' }}</div>
-
-              <div class="pv-linea__extra">
-                <div class="pv-linea__detalle">
-                  <span>{{ linea.cantidad }} × S/ {{ linea.precio_unitario | number:'1.2-2' }}</span>
-                  <span *ngIf="linea.unidad_medida"> · {{ linea.unidad_medida }}</span>
-                  <span *ngIf="linea.sku"> · {{ linea.sku }}</span>
-                  · Stock {{ linea.stock_disponible }}
-                  <span class="adm-insignia adm-insignia--peligro adm-insignia--sm"
-                        *ngIf="linea.cantidad > linea.stock_disponible">Excede el stock</span>
-                </div>
-                <label class="pv-linea__desc" title="Descuento por unidad, en soles">
-                  <span>Dto. c/u S/</span>
-                  <input class="adm-input adm-input--chico adm-input--num pv-descuento-input"
-                         type="number"
-                         min="0"
-                         step="0.01"
-                         [ngModel]="linea.descuento ?? 0"
-                         (ngModelChange)="cambiarDescuento(linea, $event)"
-                         [attr.aria-label]="'Descuento por unidad para ' + linea.descripcion">
-                </label>
-                <div class="pv-descuento-detalle" *ngIf="descuentoTotalLinea(linea) > 0" aria-live="polite">
-                  <ng-container *ngIf="linea.cantidad !== 1">{{ linea.cantidad }} × {{ descuentoUnitarioEfectivo(linea) | number:'1.2-2' }} = </ng-container>− S/ {{ descuentoTotalLinea(linea) | number:'1.2-2' }}
-                </div>
-                <div class="pv-descuento-detalle pv-descuento-detalle--aviso" *ngIf="descuentoExcede(linea)" role="status">
-                  No puede superar el precio: se aplica S/ {{ descuentoUnitarioEfectivo(linea) | number:'1.2-2' }}
-                </div>
-              </div>
+              <label class="pv-linea__desc" title="Descuento por unidad, en soles">
+                <span>Dto. c/u S/</span>
+                <input class="adm-input adm-input--num pv-descuento-input"
+                       type="number" min="0" step="0.01" placeholder="0.00"
+                       [ngModel]="linea.descuento || null"
+                       (ngModelChange)="cambiarDescuento(linea, $event)"
+                       [attr.aria-label]="'Descuento por unidad para ' + linea.descripcion">
+              </label>
 
               <button type="button" class="adm-btn-icono adm-btn-icono--peligro adm-btn-icono--sm pv-linea__quitar"
                       (click)="quitarLinea(linea)" aria-label="Quitar producto" title="Quitar del carrito">
                 <i class="bi bi-x-lg" aria-hidden="true"></i>
               </button>
+
+              <div class="pv-descuento-detalle" *ngIf="descuentoTotalLinea(linea) > 0" aria-live="polite">
+                Descuento: <ng-container *ngIf="linea.cantidad !== 1">{{ linea.cantidad }} × S/ {{ descuentoUnitarioEfectivo(linea) | number:'1.2-2' }} = </ng-container>− S/ {{ descuentoTotalLinea(linea) | number:'1.2-2' }}
+              </div>
+              <div class="pv-descuento-detalle pv-descuento-detalle--aviso" *ngIf="descuentoExcede(linea)" role="status">
+                No puede superar el precio: se aplica S/ {{ descuentoUnitarioEfectivo(linea) | number:'1.2-2' }}
+              </div>
             </li>
           </ul>
         </section>
@@ -642,7 +640,7 @@
         <!-- Más opciones: serie, observaciones, correo y emisión electrónica -->
         <details class="adm-mas-info pv-mas-opciones" [open]="!emitirComprobante || enviarPorCorreo">
           <summary class="adm-mas-info__resumen">
-            Más opciones<span class="pv-mas-opciones__hint">: serie {{ serie }}, correo, observaciones</span>
+            Más opciones<span class="pv-mas-opciones__hint">serie {{ serie }} · correo · observaciones</span>
             <span class="adm-insignia adm-insignia--aviso adm-insignia--sm" *ngIf="!emitirComprobante">Sin comprobante electrónico</span>
           </summary>
           <div class="pv-pila pv-mas-opciones__cuerpo">

@@ -39,6 +39,7 @@ import {
 } from './producto-rapido/producto-rapido.component';
 import { HojaComprobanteComponent } from '../doc/hoja-comprobante/hoja-comprobante.component';
 import { HojaComprobante, describirMedioPago, hojaDesdePreview } from '../doc/hoja-comprobante/hoja-comprobante.model';
+import { UnidadMedidaPipe } from '../../../../shared/ui/unidad-medida.pipe';
 
 const LS_ALMACEN = 'pos_id_almacen';
 /** Ventas en espera (carritos guardados para atender a otro cliente): se conservan en este navegador. */
@@ -77,7 +78,7 @@ interface EscaneoPendiente {
   selector: 'app-ventas',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, ProductoRapidoComponent, HojaComprobanteComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ProductoRapidoComponent, HojaComprobanteComponent, UnidadMedidaPipe],
   templateUrl: './ventas.component.html',
   styleUrls: ['./ventas.component.css'],
 })

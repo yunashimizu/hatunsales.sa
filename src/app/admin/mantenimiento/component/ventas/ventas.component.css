@@ -25,7 +25,7 @@
 @container pv-pagina (min-width: 900px) {
   .pv-grid { flex-direction: row; align-items: stretch; }
   .pv-izquierda { flex: 1 1 0; min-width: 0; }
-  .pv-ticket { flex: 0 0 clamp(400px, 32%, 480px); max-width: 480px; align-self: stretch; }
+  .pv-ticket { flex: 0 0 clamp(440px, 36%, 540px); max-width: 540px; align-self: stretch; }
 }
 
 /* ── Buscador / escáner ── */
@@ -185,6 +185,11 @@
   background: var(--adm-superficie); border: 1.5px solid var(--adm-marca-contorno); border-radius: var(--adm-r-xl);
   box-shadow: 0 0 0 4px var(--adm-marca-halo);   /* halo dorado muy tenue: guía la vista hacia el cobro */
   /* Sin overflow: hidden, para que la lista de sugerencias de cliente pueda salirse del panel */
+  --pv-col-control: 132px; --pv-alto-control: 38px;   /* contador y descuento de cada línea: mismo ancho y alto */
+}
+/* Táctil o pantalla chica: contador y descuento de 44 px */
+@media (pointer: coarse), (max-width: 900px) {
+  .pv-ticket { --pv-col-control: 142px; --pv-alto-control: 46px; }
 }
 .pv-ticket__cabecera {
   display: flex; align-items: center; gap: 10px; padding: 12px 18px;
@@ -214,21 +219,11 @@
   .pv-cliente .pv-pila .adm-acciones .adm-btn { min-height: 36px; height: 36px; white-space: nowrap; align-self: start; }
   .pv-cliente .pv-pila .pv-buscador__input { min-height: 36px; height: 36px; }
 }
-/* Ticket angosto (400-439 px, solo escritorio): «Buscar en SUNAT» queda como icono; el texto sigue para lectores de pantalla y en el title.
-   Desde 440 px de ticket vuelve el texto. Se mide el propio ticket (container query), no la ventana. */
+/* Dos paneles: el buscador ocupa su fila y los dos botones comparten la siguiente (el ticket nunca baja de 440 px) */
 @container pv-pagina (min-width: 900px) {
-  /* Con texto no cabe todo en una fila sin dejar el buscador en ~110 px: el buscador ocupa su fila y los dos botones la siguiente */
-  @container pv-ticket (min-width: 437px) {
-    .pv-cliente .pv-pila { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-    .pv-cliente .pv-pila > .adm-campo { grid-column: 1 / -1; }
-    .pv-cliente .pv-pila .adm-acciones .adm-btn { justify-content: center; }
-  }
-  @container pv-ticket (max-width: 436px) {
-    .pv-cliente .pv-btn-texto {
-      position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
-    }
-    .pv-cliente .pv-pila .adm-acciones .adm-btn--primario { width: 40px; padding-inline: 0; }
-  }
+  .pv-cliente .pv-pila { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .pv-cliente .pv-pila > .adm-campo { grid-column: 1 / -1; }
+  .pv-cliente .pv-pila .adm-acciones .adm-btn { justify-content: center; }
 }
 .pv-receptor {
   display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px 8px 12px;
@@ -246,51 +241,91 @@
 /* Zona central: líneas, «Más opciones» y pago fluyen con la página */
 .pv-ticket__cuerpo { display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; padding: 0 18px 12px; }
 
-/* Líneas del carrito */
+/* Líneas del carrito: cada línea se lee como un recibo.
+   Fila 1: nombre | importe · Fila 2: datos · Fila 3: contador | descuento | aire | quitar.
+   Contador y descuento miden lo mismo (--pv-col-control × --pv-alto-control) y caen en la misma posición
+   en todas las líneas, tenga el producto el nombre, el código o el importe que tenga. */
 .pv-lineas { margin: 0; padding: 0; list-style: none; }
-/* Rejilla de 2 filas × 3 columnas: nombre | contador | precio  /  detalle + descuento | (vacío) | quitar */
 .pv-linea {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto 80px; align-items: center; gap: 6px 12px;
+  display: grid;
+  grid-template-columns: var(--pv-col-control) var(--pv-col-control) minmax(0, 1fr) auto;
+  grid-template-areas:
+    "nombre   nombre  nombre  monto"
+    "detalle  detalle detalle detalle"
+    "cantidad dto     .       quitar";
+  align-items: center; gap: 0 8px;
   padding: 10px 0; border-bottom: 1px solid var(--adm-borde);
 }
 .pv-linea:last-child { border-bottom: 0; }
-.pv-linea__info { grid-column: 1; grid-row: 1; min-width: 0; }
-.pv-linea__cantidad { grid-column: 2; grid-row: 1; }
-.pv-linea__monto { grid-column: 3; grid-row: 1; }
-.pv-linea__extra { grid-column: 1 / 3; grid-row: 2; min-width: 0; }
-.pv-linea__quitar { grid-column: 3; grid-row: 2; justify-self: end; }
+.pv-linea__info { grid-area: nombre; align-self: start; min-width: 0; }
 .pv-linea__nombre {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
   font-size: var(--adm-fs-cuerpo); font-weight: 600; line-height: 1.3; color: var(--adm-texto); overflow-wrap: anywhere;
 }
-.pv-linea__monto { font-size: var(--adm-fs-cuerpo); font-weight: 700; text-align: right; white-space: nowrap; color: var(--adm-texto); font-variant-numeric: tabular-nums; }
-.pv-linea__extra { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
-.pv-linea__detalle { font-size: 0.78125rem; line-height: 1.4; color: var(--adm-texto-tenue); font-variant-numeric: tabular-nums; }
-.pv-linea__detalle .adm-insignia { margin-left: 4px; }
-.pv-linea__desc { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 0.78125rem; white-space: nowrap; color: var(--adm-texto-tenue); }
-.pv-linea__quitar { width: 32px; height: 32px; color: var(--adm-texto-tenue); }
-.pv-descuento-input { width: 64px; min-height: 32px; height: 32px; padding: 4px 8px; }
+.pv-linea__monto {
+  grid-area: monto; align-self: start; padding-left: 8px;
+  font-size: var(--adm-fs-cuerpo); font-weight: 700; line-height: 1.3; text-align: right; white-space: nowrap;
+  color: var(--adm-texto); font-variant-numeric: tabular-nums;
+}
+/* Datos separados por «·»: cada dato lleva su punto a la izquierda, fuera de su caja; el del primero de cada
+   renglón cae fuera del contenedor y se recorta, así nunca queda un punto suelto al inicio o al final. */
+.pv-linea__detalle {
+  grid-area: detalle; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 15px;
+  min-width: 0; margin-top: 2px; overflow: hidden;
+  font-size: 0.78125rem; line-height: 1.4; color: var(--adm-texto-tenue); font-variant-numeric: tabular-nums;
+}
+.pv-dato { position: relative; min-width: 0; overflow-wrap: anywhere; }
+.pv-dato::before { content: '·'; position: absolute; left: -10px; }
+.pv-linea__cantidad { grid-area: cantidad; margin-top: 8px; }
+.pv-linea__quitar { grid-area: quitar; justify-self: end; width: 32px; height: 32px; margin-top: 8px; color: var(--adm-texto-tenue); }
+
+/* Descuento por unidad: caja gemela del contador. Vacía se ve discreta; con descuento se pinta de oro. */
+.pv-linea__desc {
+  grid-area: dto; display: flex; align-items: center; width: 100%; height: var(--pv-alto-control);
+  margin: 8px 0 0; overflow: hidden; cursor: text;
+  font-size: 0.75rem; font-weight: 500; white-space: nowrap; color: var(--adm-texto-tenue);
+  background: var(--adm-superficie-2); border: 1px solid var(--adm-borde); border-radius: var(--adm-r-sm);
+  transition: border-color var(--adm-transicion), box-shadow var(--adm-transicion), background var(--adm-transicion);
+}
+/* Si no cabe (teléfono de 320 px), cede el rótulo, no el número */
+.pv-linea__desc > span { flex: 0 1 auto; min-width: 0; padding-left: 10px; overflow: hidden; text-overflow: ellipsis; }
+.pv-linea__desc:hover { border-color: var(--adm-borde-fuerte); }
+.pv-linea__desc:focus-within { background: var(--adm-superficie); border-color: var(--adm-marca); box-shadow: var(--adm-anillo); }
+.pv-linea__desc .pv-descuento-input {
+  flex: 1 0 52px; width: auto; min-width: 0; height: 100%; min-height: 0; padding: 0 10px 0 4px;
+  font-size: var(--adm-fs-etiqueta); font-weight: 600; text-align: right; color: var(--adm-texto);
+  background: transparent; border: 0; border-radius: 0; box-shadow: none; outline: 0;
+}
+.pv-linea__desc .pv-descuento-input:focus { border: 0; box-shadow: none; outline: 0; }   /* el foco lo pinta la caja */
+.pv-linea__desc .pv-descuento-input::placeholder { font-weight: 400; color: var(--adm-texto-tenue); }
+.pv-linea--con-dto .pv-linea__desc { color: var(--adm-marca-texto); background: var(--adm-marca-claro); border-color: var(--adm-marca-borde); }
 .pv-descuento-detalle {
-  flex: 1 1 100%; font-size: var(--adm-fs-ayuda); line-height: 1.3; text-align: left;
+  grid-column: 1 / -1; margin-top: 6px; font-size: var(--adm-fs-ayuda); line-height: 1.3;
   color: var(--adm-texto-suave); font-variant-numeric: tabular-nums;
 }
+.pv-descuento-detalle + .pv-descuento-detalle { margin-top: 2px; }
 .pv-descuento-detalle--aviso { color: var(--adm-aviso); }
 .pv-carrito__vaciar:hover:not(:disabled) { color: var(--adm-peligro); background: var(--adm-peligro-claro); }
 
 /* Contador − cantidad + en una sola pieza (igual que .step de la maqueta) */
 .pv-contador {
-  display: inline-flex; align-items: center; overflow: hidden;
+  display: flex; align-items: center; width: 100%; overflow: hidden;
   background: var(--adm-superficie); border: 1px solid var(--adm-borde-fuerte); border-radius: var(--adm-r-sm);
   transition: border-color var(--adm-transicion), box-shadow var(--adm-transicion);
 }
 .pv-contador:focus-within { border-color: var(--adm-marca); box-shadow: var(--adm-anillo); }
-.pv-contador .adm-btn-icono { width: 36px; height: 36px; border-radius: 0; font-size: 1.125rem; }
+.pv-contador .adm-btn-icono { flex: none; width: 40px; height: 36px; border-radius: 0; font-size: 1.125rem; }
 .pv-contador .adm-btn-icono:focus-visible { outline-offset: -2px; }
 .pv-contador__input {
-  width: 44px; min-height: 36px; padding: 4px 2px; font-size: var(--adm-fs-cuerpo); font-weight: 700; text-align: center;
+  flex: 1 1 0; width: auto; min-width: 0; min-height: 36px; padding: 4px 2px; font-size: var(--adm-fs-cuerpo); font-weight: 700; text-align: center;
   font-variant-numeric: tabular-nums; border: 0; border-radius: 0; box-shadow: none;
 }
 .pv-contador__input:focus { box-shadow: none; }
+/* Táctil o pantalla chica: botones y número de 44 px */
+@media (pointer: coarse), (max-width: 900px) {
+  .pv-contador .adm-btn-icono { width: 44px; height: 44px; }
+  .pv-contador__input { min-height: 44px; }
+}
 
 /* Sin flechas (spinner) en ningún numérico del ticket ni del pago */
 .pv-ticket input[type=number]::-webkit-outer-spin-button,
@@ -299,7 +334,7 @@
 
 /* Más opciones */
 .pv-mas-opciones { border-top: 1px solid var(--adm-borde); padding-top: 8px; }
-.pv-mas-opciones__hint { font-weight: 500; color: var(--adm-texto-tenue); }
+.pv-mas-opciones__hint { font-weight: 400; color: var(--adm-texto-tenue); }
 .pv-mas-opciones__cuerpo { padding-top: 6px; }
 .pv-serie__input { font-family: var(--adm-fuente-mono); font-weight: 700; letter-spacing: 0.06em; text-align: center; }
 .pv-serie__ayuda { flex: 1 1 140px; margin: 0 0 2px; }
@@ -512,8 +547,6 @@
   .pv-total-movil__derecha { display: flex; flex-direction: column; align-items: flex-end; flex: none; }
   .pv-total-movil__accion { font-size: var(--adm-fs-ayuda); font-weight: 700; color: var(--adm-marca-borde); white-space: nowrap; }
   .pv-total-movil__accion i { font-size: 11px; vertical-align: -1px; }
-  .pv-contador .adm-btn-icono { width: 44px; height: 44px; }
-  .pv-contador__input { min-height: 44px; }
   .pv-contexto .pv-contexto__almacen { margin-left: 0; flex: 1 1 100%; }
   .pv-contexto__almacen .adm-select { width: 100%; }
 }
@@ -532,8 +565,8 @@
   .pv-ticket__cuerpo { padding-inline: 14px; }
   .pv-cliente,
   .pv-cobro { padding-inline: 14px; }
-  .pv-contador__input { width: 52px; font-size: var(--fs-lg); }
-  .pv-descuento-input { width: 110px; min-height: 40px; font-size: var(--fs-lg); }
+  .pv-contador__input { font-size: var(--fs-lg); }
+  .pv-linea__desc .pv-descuento-input { font-size: var(--fs-lg); }
   .pv-total > .pv-total__monto { font-size: 1.75rem; }
 
   /* R16c: contexto, cliente y «Más opciones» sin partirse */
@@ -544,13 +577,15 @@
   .pv-cliente .pv-pila .adm-acciones .adm-btn { min-height: 44px; justify-content: center; white-space: nowrap; padding-inline: 8px; gap: 6px; }
   .pv-mas-opciones > .adm-mas-info__resumen { display: flex; max-width: 100%; min-width: 0; white-space: nowrap; }
   .pv-mas-opciones__hint { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  /* Línea del carrito: nombre completo arriba (con el importe), contador y quitar debajo, detalle al pie */
-  .pv-linea { grid-template-columns: minmax(0, 1fr) auto; }
-  .pv-linea__info { grid-column: 1; grid-row: 1; }
-  .pv-linea__monto { grid-column: 2; grid-row: 1; }
-  .pv-linea__cantidad { grid-column: 1; grid-row: 2; justify-self: start; }
-  .pv-linea__quitar { grid-column: 2; grid-row: 2; }
-  .pv-linea__extra { grid-column: 1 / -1; grid-row: 3; }
+  /* Línea del carrito en teléfono: la «×» sube junto a los datos y el descuento llena el resto de la fila del contador */
+  .pv-linea {
+    grid-template-columns: minmax(0, var(--pv-col-control)) minmax(0, 1fr) auto;
+    grid-template-areas:
+      "nombre   nombre  monto"
+      "detalle  detalle quitar"
+      "cantidad dto     dto";
+  }
+  .pv-linea__quitar { margin-block: -6px; }
   /* La tira de categorías se desvanece al borde: señal de que hay más a la derecha */
   .pv-categorias {
     scroll-snap-type: x proximity;
@@ -564,6 +599,12 @@
   .pv-cobrar__monto { padding: 4px 10px; white-space: nowrap; }
   .pv-secundarias { gap: 6px; }
   .pv-secundaria { min-width: 0; padding-inline: 6px; white-space: nowrap; }
+}
+
+/* Teléfono angosto: los dos botones del cliente caben sin pisarse */
+@media (max-width: 400px) {
+  .pv-cliente .pv-pila .adm-acciones .adm-btn { font-size: var(--adm-fs-etiqueta); }
+  .pv-cliente .pv-pila .adm-acciones .adm-btn > i { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
